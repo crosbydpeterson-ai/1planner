@@ -93,7 +93,7 @@ export default function Season() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
       </div>
     );
@@ -105,7 +105,7 @@ export default function Season() {
   const daysLeft = season ? differenceInDays(new Date(season.endDate), new Date()) : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50">
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto p-4 pb-8">
         {/* Header */}
         <motion.div

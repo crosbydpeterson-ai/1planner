@@ -64,7 +64,7 @@ export default function Leaderboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full" />
       </div>
     );
@@ -73,7 +73,7 @@ export default function Leaderboard() {
   const currentUserRank = profile ? leaderboard.findIndex(p => p.id === profile.id) + 1 : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto p-4 pb-8">
         {/* Header */}
         <motion.div

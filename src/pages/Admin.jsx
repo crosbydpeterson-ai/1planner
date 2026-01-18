@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { MATH_TEACHERS, READING_TEACHERS } from '@/components/quest/TeacherConfig';
+import { PETS } from '@/components/quest/PetCatalog';
+import { THEMES } from '@/components/quest/ThemeCatalog';
 import { toast } from 'sonner';
 
 const ADMIN_PIN = '1234'; // In production, this would be hashed and stored server-side
@@ -1018,20 +1020,65 @@ export default function Admin() {
                   </SelectTrigger>
                   <SelectContent>
                     {giftType === 'pet' ? (
-                      customPets.map(pet => (
-                        <SelectItem key={pet.id} value={`custom_${pet.id}`}>
-                          {pet.emoji || '🎁'} {pet.name}
-                        </SelectItem>
-                      ))
+                      <>
+                        {PETS.map(pet => (
+                          <SelectItem key={pet.id} value={pet.id}>
+                            {pet.emoji || '🎁'} {pet.name} (Built-in)
+                          </SelectItem>
+                        ))}
+                        {customPets.map(pet => (
+                          <SelectItem key={pet.id} value={`custom_${pet.id}`}>
+                            {pet.emoji || '🎁'} {pet.name} (Custom)
+                          </SelectItem>
+                        ))}
+                      </>
                     ) : (
-                      customThemes.map(theme => (
-                        <SelectItem key={theme.id} value={`custom_${theme.id}`}>
-                          {theme.name}
-                        </SelectItem>
-                      ))
+                      <>
+                        {THEMES.map(theme => (
+                          <SelectItem key={theme.id} value={theme.id}>
+                            {theme.name} (Built-in)
+                          </SelectItem>
+                        ))}
+                        {customThemes.map(theme => (
+                          <SelectItem key={theme.id} value={`custom_${theme.id}`}>
+                            {theme.name} (Custom)
+                          </SelectItem>
+                        ))}
+                      </>
                     )}
                   </SelectContent>
                 </Select>
+              </div>
+              
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (!giftUser) return;
+                    const allPetIds = [...PETS.map(p => p.id), ...customPets.map(p => `custom_${p.id}`)];
+                    await base44.entities.UserProfile.update(giftUser.id, { unlockedPets: allPetIds });
+                    setUsers(users.map(u => u.id === giftUser.id ? { ...u, unlockedPets: allPetIds } : u));
+                    toast.success(`All pets gifted to ${giftUser.username}!`);
+                  }}
+                  className="flex-1 border-purple-500 text-purple-400 hover:bg-purple-500/20"
+                >
+                  Gift ALL Pets
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (!giftUser) return;
+                    const allThemeIds = [...THEMES.map(t => t.id), ...customThemes.map(t => `custom_${t.id}`)];
+                    await base44.entities.UserProfile.update(giftUser.id, { unlockedThemes: allThemeIds });
+                    setUsers(users.map(u => u.id === giftUser.id ? { ...u, unlockedThemes: allThemeIds } : u));
+                    toast.success(`All themes gifted to ${giftUser.username}!`);
+                  }}
+                  className="flex-1 border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
+                >
+                  Gift ALL Themes
+                </Button>
               </div>
             </div>
             <DialogFooter>

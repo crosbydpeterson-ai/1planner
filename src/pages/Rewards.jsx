@@ -90,7 +90,7 @@ export default function Rewards() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full" />
       </div>
     );
@@ -103,7 +103,7 @@ export default function Rewards() {
   const unlockedThemeIds = getUnlockedThemes(userXp);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto p-4 pb-8">
         {/* Header */}
         <motion.div

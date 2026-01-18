@@ -83,10 +83,7 @@ export default function Dashboard() {
   const themeColors = currentTheme?.colors || THEMES[0].colors;
 
   return (
-    <div 
-      className="min-h-screen transition-colors"
-      style={{ backgroundColor: themeColors.bg }}
-    >
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto p-4 pb-4">
         {/* Header */}
         <motion.div
