@@ -1,0 +1,224 @@
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useNavigate, Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ClipboardList, ArrowLeft, Filter, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AssignmentCard from '@/components/quest/AssignmentCard';
+import { toast } from 'sonner';
+import { getUnlockedPets } from '@/components/quest/PetCatalog';
+import { getUnlockedThemes } from '@/components/quest/ThemeCatalog';
+
+export default function Assignments() {
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState(null);
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    const profileId = localStorage.getItem('quest_profile_id');
+    if (!profileId) {
+      navigate(createPageUrl('Home'));
+      return;
+    }
+
+    try {
+      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      if (profiles.length === 0) {
+        navigate(createPageUrl('Home'));
+        return;
+      }
+
+      const p = profiles[0];
+      setProfile(p);
+
+      // Load approved assignments visible to this user
+      const allAssignments = await base44.entities.Assignment.filter({ isApproved: true });
+      const visible = allAssignments.filter(a => {
+        if (a.target === 'everyone' || a.subject === 'everyone') return true;
+        if (a.subject === 'math' && a.target === p.mathTeacher) return true;
+        if (a.subject === 'reading' && a.target === p.readingTeacher) return true;
+        return false;
+      });
+      setAssignments(visible);
+    } catch (e) {
+      console.error('Error loading data:', e);
+    }
+    setLoading(false);
+  };
+
+  const handleComplete = async (assignment) => {
+    if (!profile) return;
+
+    try {
+      const xpToAdd = assignment.xpReward || 10;
+      const newXp = (profile.xp || 0) + xpToAdd;
+      const completedAssignments = [...(profile.completedAssignments || []), assignment.id];
+      
+      // Check for new pet unlocks
+      const newUnlockedPets = getUnlockedPets(newXp);
+      const newUnlockedThemes = getUnlockedThemes(newXp);
+
+      await base44.entities.UserProfile.update(profile.id, {
+        xp: newXp,
+        completedAssignments,
+        unlockedPets: newUnlockedPets,
+        unlockedThemes: newUnlockedThemes
+      });
+
+      setProfile({
+        ...profile,
+        xp: newXp,
+        completedAssignments,
+        unlockedPets: newUnlockedPets,
+        unlockedThemes: newUnlockedThemes
+      });
+
+      toast.success(`+${xpToAdd} XP earned!`, {
+        description: `Assignment "${assignment.title}" completed`
+      });
+
+      // Check if new pets/themes unlocked
+      if (newUnlockedPets.length > (profile.unlockedPets?.length || 1)) {
+        toast.success('🎉 New pet unlocked!', {
+          description: 'Check the Rewards page to see your new companion!'
+        });
+      }
+      if (newUnlockedThemes.length > (profile.unlockedThemes?.length || 1)) {
+        toast.success('🎨 New theme unlocked!', {
+          description: 'Check the Rewards page to apply your new theme!'
+        });
+      }
+    } catch (e) {
+      console.error('Error completing assignment:', e);
+      toast.error('Failed to complete assignment');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!profile) return null;
+
+  const completedIds = profile.completedAssignments || [];
+  const filteredAssignments = assignments.filter(a => {
+    if (filter === 'all') return true;
+    if (filter === 'pending') return !completedIds.includes(a.id);
+    if (filter === 'completed') return completedIds.includes(a.id);
+    return a.subject === filter;
+  });
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50">
+      <div className="max-w-4xl mx-auto p-4 pb-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-4 mb-6"
+        >
+          <Link to={createPageUrl('Dashboard')}>
+            <Button variant="ghost" size="icon" className="rounded-xl">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+              <ClipboardList className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">Assignments</h1>
+              <p className="text-sm text-slate-500">Complete quests to earn XP</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-6"
+        >
+          <Tabs value={filter} onValueChange={setFilter}>
+            <TabsList className="bg-white shadow-sm border border-slate-100 p-1 rounded-xl">
+              <TabsTrigger value="all" className="rounded-lg">All</TabsTrigger>
+              <TabsTrigger value="pending" className="rounded-lg">Pending</TabsTrigger>
+              <TabsTrigger value="completed" className="rounded-lg">Completed</TabsTrigger>
+              <TabsTrigger value="math" className="rounded-lg">Math</TabsTrigger>
+              <TabsTrigger value="reading" className="rounded-lg">Reading</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="grid grid-cols-2 gap-4 mb-6"
+        >
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-emerald-500" />
+              <span className="text-2xl font-bold text-slate-800">{completedIds.length}</span>
+            </div>
+            <p className="text-sm text-slate-500">Completed</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-slate-400" />
+              <span className="text-2xl font-bold text-slate-800">
+                {assignments.length - completedIds.length}
+              </span>
+            </div>
+            <p className="text-sm text-slate-500">Remaining</p>
+          </div>
+        </motion.div>
+
+        {/* Assignment List */}
+        <div className="space-y-4">
+          <AnimatePresence>
+            {filteredAssignments.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-12 bg-white rounded-2xl border border-slate-100"
+              >
+                <ClipboardList className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                <p className="text-slate-500">No assignments found</p>
+              </motion.div>
+            ) : (
+              filteredAssignments.map((assignment, index) => (
+                <motion.div
+                  key={assignment.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <AssignmentCard
+                    assignment={assignment}
+                    isCompleted={completedIds.includes(assignment.id)}
+                    onComplete={handleComplete}
+                  />
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
