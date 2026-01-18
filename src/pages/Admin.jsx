@@ -1173,12 +1173,40 @@ export default function Admin() {
                             <SelectItem value="title">Title</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Input
-                          placeholder="Value (ID or title text)"
-                          value={reward.value}
-                          onChange={(e) => updateSeasonReward(index, 'value', e.target.value)}
-                          className="bg-slate-600 border-slate-500 text-sm"
-                        />
+                        {reward.type === 'pet' ? (
+                          <Select value={reward.value} onValueChange={(v) => updateSeasonReward(index, 'value', v)}>
+                            <SelectTrigger className="bg-slate-600 border-slate-500 text-sm">
+                              <SelectValue placeholder="Select pet" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {customPets.map(pet => (
+                                <SelectItem key={pet.id} value={`custom_${pet.id}`}>
+                                  {pet.emoji || '🎁'} {pet.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : reward.type === 'theme' ? (
+                          <Select value={reward.value} onValueChange={(v) => updateSeasonReward(index, 'value', v)}>
+                            <SelectTrigger className="bg-slate-600 border-slate-500 text-sm">
+                              <SelectValue placeholder="Select theme" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {customThemes.map(theme => (
+                                <SelectItem key={theme.id} value={`custom_${theme.id}`}>
+                                  {theme.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="Title text"
+                            value={reward.value}
+                            onChange={(e) => updateSeasonReward(index, 'value', e.target.value)}
+                            className="bg-slate-600 border-slate-500 text-sm"
+                          />
+                        )}
                       </div>
                     </div>
                   ))}
