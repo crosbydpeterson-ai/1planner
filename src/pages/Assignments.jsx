@@ -22,7 +22,7 @@ export default function Assignments() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newAssignment, setNewAssignment] = useState({ title: '', description: '' });
+  const [newAssignment, setNewAssignment] = useState({ title: '', description: '', dueDate: '' });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -48,12 +48,27 @@ export default function Assignments() {
 
       // Load approved assignments visible to this user
       const allAssignments = await base44.entities.Assignment.filter({ isApproved: true });
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Filter out expired assignments and delete them
+      const expiredIds = [];
       const visible = allAssignments.filter(a => {
+        // Check if past due date
+        if (a.dueDate && a.dueDate < today) {
+          expiredIds.push(a.id);
+          return false;
+        }
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
         if (a.subject === 'math' && a.target === p.mathTeacher) return true;
         if (a.subject === 'reading' && a.target === p.readingTeacher) return true;
         return false;
       });
+      
+      // Auto-delete expired assignments
+      for (const id of expiredIds) {
+        base44.entities.Assignment.delete(id).catch(() => {});
+      }
+      
       setAssignments(visible);
     } catch (e) {
       console.error('Error loading data:', e);
@@ -74,11 +89,12 @@ export default function Assignments() {
         subject: 'everyone',
         target: 'everyone',
         xpReward: 25,
+        dueDate: newAssignment.dueDate || null,
         isApproved: false // Needs admin approval
       });
       toast.success('Assignment submitted for approval!');
       setShowAddForm(false);
-      setNewAssignment({ title: '', description: '' });
+      setNewAssignment({ title: '', description: '', dueDate: '' });
     } catch (e) {
       toast.error('Failed to submit assignment');
     }
@@ -207,7 +223,16 @@ export default function Assignments() {
                   placeholder="What needs to be done?"
                 />
               </div>
-              <p className="text-sm text-slate-500">All suggested assignments award 25 XP and require admin approval.</p>
+              <div className="space-y-2">
+                <Label>Due Date (optional)</Label>
+                <Input
+                  type="date"
+                  value={newAssignment.dueDate}
+                  onChange={(e) => setNewAssignment({ ...newAssignment, dueDate: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <p className="text-sm text-slate-500">All suggested assignments award 25 XP and require admin approval. Assignments auto-delete after due date.</p>
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
