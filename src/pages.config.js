@@ -5,6 +5,7 @@ import Leaderboard from './pages/Leaderboard';
 import Rewards from './pages/Rewards';
 import Season from './pages/Season';
 import Admin from './pages/Admin';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -20,4 +21,5 @@ export const PAGES = {
 export const pagesConfig = {
     mainPage: "Dashboard",
     Pages: PAGES,
+    Layout: __Layout,
 };

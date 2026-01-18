@@ -27,7 +27,7 @@ export default function Dashboard() {
   const loadProfile = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) {
-      navigate(createPageUrl('Login'));
+      navigate(createPageUrl('Home'));
       return;
     }
 
@@ -35,7 +35,7 @@ export default function Dashboard() {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length === 0) {
         localStorage.clear();
-        navigate(createPageUrl('Login'));
+        navigate(createPageUrl('Home'));
         return;
       }
 
