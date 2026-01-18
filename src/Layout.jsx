@@ -19,7 +19,7 @@ export default function Layout({ children, currentPageName }) {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20">
       {children}
       
       {!hideNav && (
