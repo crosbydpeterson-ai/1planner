@@ -1,11 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, ClipboardList, Trophy, Gift, Sparkles, Shield } from 'lucide-react';
+import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { base44 } from '@/api/base44Client';
+import ThemedBackground from '@/components/theme/ThemedBackground';
+import ChatbotWidget from '@/components/chat/ChatbotWidget';
+import { THEMES } from '@/components/quest/ThemeCatalog';
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
+  const [themeColors, setThemeColors] = useState(null);
+  
+  useEffect(() => {
+    loadUserTheme();
+  }, []);
+
+  const loadUserTheme = async () => {
+    const profileId = localStorage.getItem('quest_profile_id');
+    if (!profileId) return;
+    
+    try {
+      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      if (profiles.length > 0 && profiles[0].equippedThemeId) {
+        const theme = THEMES.find(t => t.id === profiles[0].equippedThemeId);
+        if (theme) {
+          setThemeColors(theme.colors);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading theme:', e);
+    }
+  };
   
   // Don't show navigation on Home (login) page or Admin page
   const hideNav = currentPageName === 'Home' || currentPageName === 'Admin';
@@ -14,13 +40,15 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Dashboard', icon: Home, label: 'Home' },
     { name: 'Assignments', icon: ClipboardList, label: 'Quests' },
     { name: 'Leaderboard', icon: Trophy, label: 'Rank' },
-    { name: 'Rewards', icon: Gift, label: 'Shop' },
+    { name: 'Rewards', icon: Gem, label: 'Collection' },
     { name: 'Season', icon: Sparkles, label: 'Season' },
   ];
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 relative">
+      <ThemedBackground colors={themeColors} />
       {children}
+      {!hideNav && <ChatbotWidget />}
       
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 safe-area-pb">
