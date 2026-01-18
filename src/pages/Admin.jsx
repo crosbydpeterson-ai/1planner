@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, ArrowLeft, Search, Users, ClipboardList, Plus, 
   Lock, Unlock, Eye, EyeOff, Key, Zap, Check, X, Edit2, Save,
-  Palette, Star, Image, Trash2
+  Palette, Star, Image, Trash2, Gift, Calendar, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,12 +52,26 @@ export default function Admin() {
   const [showPetForm, setShowPetForm] = useState(false);
   const [showThemeForm, setShowThemeForm] = useState(false);
   const [petForm, setPetForm] = useState({
-    name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: ''
+    name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '', isGiftOnly: false
   });
   const [themeForm, setThemeForm] = useState({
     name: '', rarity: 'common', xpRequired: 0, description: '',
     primaryColor: '#6366f1', secondaryColor: '#8b5cf6', accentColor: '#f59e0b', bgColor: '#f8fafc'
   });
+
+  // Gifting
+  const [showGiftDialog, setShowGiftDialog] = useState(false);
+  const [giftUser, setGiftUser] = useState(null);
+  const [giftType, setGiftType] = useState('pet');
+  const [giftItemId, setGiftItemId] = useState('');
+
+  // Seasons
+  const [seasons, setSeasons] = useState([]);
+  const [showSeasonForm, setShowSeasonForm] = useState(false);
+  const [seasonForm, setSeasonForm] = useState({
+    name: '', startDate: '', endDate: '', isActive: true, rewards: []
+  });
+  const [editingAssignment, setEditingAssignment] = useState(null);
 
   useEffect(() => {
     // Check if already authenticated
@@ -82,16 +96,18 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allUsers, allAssignments, allPets, allThemes] = await Promise.all([
+      const [allUsers, allAssignments, allPets, allThemes, allSeasons] = await Promise.all([
         base44.entities.UserProfile.list('-created_date'),
         base44.entities.Assignment.list('-created_date'),
         base44.entities.CustomPet.list('-created_date'),
-        base44.entities.CustomTheme.list('-created_date')
+        base44.entities.CustomTheme.list('-created_date'),
+        base44.entities.Season.list('-created_date')
       ]);
       setUsers(allUsers);
       setAssignments(allAssignments);
       setCustomPets(allPets);
       setCustomThemes(allThemes);
+      setSeasons(allSeasons);
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -202,7 +218,7 @@ export default function Admin() {
       const newPet = await base44.entities.CustomPet.create(petForm);
       setCustomPets([newPet, ...customPets]);
       setShowPetForm(false);
-      setPetForm({ name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '' });
+      setPetForm({ name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '', isGiftOnly: false });
       toast.success('Pet created!');
     } catch (e) {
       toast.error('Failed to create pet');
@@ -257,6 +273,103 @@ export default function Admin() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleGiftItem = async () => {
+    if (!giftUser || !giftItemId) {
+      toast.error('Please select an item to gift');
+      return;
+    }
+    try {
+      if (giftType === 'pet') {
+        const unlockedPets = [...(giftUser.unlockedPets || [])];
+        if (!unlockedPets.includes(giftItemId)) {
+          unlockedPets.push(giftItemId);
+          await base44.entities.UserProfile.update(giftUser.id, { unlockedPets });
+          setUsers(users.map(u => u.id === giftUser.id ? { ...u, unlockedPets } : u));
+        }
+      } else {
+        const unlockedThemes = [...(giftUser.unlockedThemes || [])];
+        if (!unlockedThemes.includes(giftItemId)) {
+          unlockedThemes.push(giftItemId);
+          await base44.entities.UserProfile.update(giftUser.id, { unlockedThemes });
+          setUsers(users.map(u => u.id === giftUser.id ? { ...u, unlockedThemes } : u));
+        }
+      }
+      toast.success(`${giftType === 'pet' ? 'Pet' : 'Theme'} gifted to ${giftUser.username}!`);
+      setShowGiftDialog(false);
+      setGiftItemId('');
+    } catch (e) {
+      toast.error('Failed to gift item');
+    }
+  };
+
+  const handleDeleteAssignment = async (assignment) => {
+    try {
+      await base44.entities.Assignment.delete(assignment.id);
+      setAssignments(assignments.filter(a => a.id !== assignment.id));
+      toast.success('Assignment deleted');
+    } catch (e) {
+      toast.error('Failed to delete assignment');
+    }
+  };
+
+  const handleUpdateAssignment = async () => {
+    if (!editingAssignment) return;
+    try {
+      await base44.entities.Assignment.update(editingAssignment.id, editingAssignment);
+      setAssignments(assignments.map(a => a.id === editingAssignment.id ? editingAssignment : a));
+      setEditingAssignment(null);
+      toast.success('Assignment updated');
+    } catch (e) {
+      toast.error('Failed to update assignment');
+    }
+  };
+
+  const handleCreateSeason = async () => {
+    if (!seasonForm.name.trim() || !seasonForm.startDate || !seasonForm.endDate) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    try {
+      const newSeason = await base44.entities.Season.create(seasonForm);
+      setSeasons([newSeason, ...seasons]);
+      setShowSeasonForm(false);
+      setSeasonForm({ name: '', startDate: '', endDate: '', isActive: true, rewards: [] });
+      toast.success('Season created!');
+    } catch (e) {
+      toast.error('Failed to create season');
+    }
+  };
+
+  const handleDeleteSeason = async (season) => {
+    try {
+      await base44.entities.Season.delete(season.id);
+      setSeasons(seasons.filter(s => s.id !== season.id));
+      toast.success('Season deleted');
+    } catch (e) {
+      toast.error('Failed to delete season');
+    }
+  };
+
+  const addSeasonReward = () => {
+    setSeasonForm({
+      ...seasonForm,
+      rewards: [...seasonForm.rewards, { xpRequired: 100, type: 'pet', value: '', name: '' }]
+    });
+  };
+
+  const updateSeasonReward = (index, field, value) => {
+    const newRewards = [...seasonForm.rewards];
+    newRewards[index][field] = value;
+    setSeasonForm({ ...seasonForm, rewards: newRewards });
+  };
+
+  const removeSeasonReward = (index) => {
+    setSeasonForm({
+      ...seasonForm,
+      rewards: seasonForm.rewards.filter((_, i) => i !== index)
+    });
   };
 
   const filteredUsers = users.filter(u => 
@@ -366,6 +479,10 @@ export default function Admin() {
               <Palette className="w-4 h-4 mr-2" />
               Themes ({customThemes.length})
             </TabsTrigger>
+            <TabsTrigger value="seasons" className="data-[state=active]:bg-slate-700">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Seasons ({seasons.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -443,6 +560,17 @@ export default function Admin() {
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setGiftUser(user);
+                              setShowGiftDialog(true);
+                            }}
+                            className="text-purple-400 hover:text-purple-300"
+                          >
+                            <Gift className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -487,18 +615,37 @@ export default function Admin() {
                           : `${assignment.subject}: ${assignment.target}`
                         }
                         {assignment.xpReward && ` • ${assignment.xpReward} XP`}
+                        {assignment.dueDate && ` • Due: ${assignment.dueDate}`}
                       </p>
                     </div>
-                    {!assignment.isApproved && (
+                    <div className="flex gap-2">
+                      {!assignment.isApproved && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleApproveAssignment(assignment)}
+                          className="bg-emerald-600 hover:bg-emerald-700"
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Approve
+                        </Button>
+                      )}
                       <Button
                         size="sm"
-                        onClick={() => handleApproveAssignment(assignment)}
-                        className="bg-emerald-600 hover:bg-emerald-700"
+                        variant="ghost"
+                        onClick={() => setEditingAssignment({ ...assignment })}
+                        className="text-slate-400 hover:text-white"
                       >
-                        <Check className="w-4 h-4 mr-1" />
-                        Approve
+                        <Edit2 className="w-4 h-4" />
                       </Button>
-                    )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteAssignment(assignment)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -524,7 +671,9 @@ export default function Admin() {
                       )}
                       <div>
                         <h3 className="font-semibold text-white">{pet.name}</h3>
-                        <p className="text-xs text-slate-400 capitalize">{pet.rarity} • {pet.xpRequired} XP</p>
+                        <p className="text-xs text-slate-400 capitalize">
+                          {pet.rarity} • {pet.isGiftOnly ? 'Gift Only' : `${pet.xpRequired} XP`}
+                        </p>
                       </div>
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => handleDeletePet(pet)} className="text-red-400 hover:text-red-300">
@@ -536,6 +685,39 @@ export default function Admin() {
               ))}
               {customPets.length === 0 && (
                 <div className="col-span-full text-center py-8 text-slate-400">No custom pets yet</div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="seasons">
+            <div className="flex justify-end mb-4">
+              <Button onClick={() => setShowSeasonForm(true)} className="bg-gradient-to-r from-amber-500 to-orange-600">
+                <Plus className="w-4 h-4 mr-2" />
+                New Season
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {seasons.map((season) => (
+                <div key={season.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-semibold text-white flex items-center gap-2">
+                        {season.name}
+                        {season.isActive && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Active</span>}
+                      </h3>
+                      <p className="text-xs text-slate-400">{season.startDate} to {season.endDate}</p>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => handleDeleteSeason(season)} className="text-red-400 hover:text-red-300">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {season.rewards?.length > 0 && (
+                    <div className="text-sm text-slate-400">{season.rewards.length} rewards configured</div>
+                  )}
+                </div>
+              ))}
+              {seasons.length === 0 && (
+                <div className="text-center py-8 text-slate-400">No seasons yet</div>
               )}
             </div>
           </TabsContent>
@@ -750,12 +932,13 @@ export default function Admin() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>XP Required</Label>
+                  <Label>XP Required {petForm.isGiftOnly && '(ignored)'}</Label>
                   <Input
                     type="number"
                     value={petForm.xpRequired}
                     onChange={(e) => setPetForm({ ...petForm, xpRequired: parseInt(e.target.value) || 0 })}
                     className="bg-slate-700 border-slate-600"
+                    disabled={petForm.isGiftOnly}
                   />
                 </div>
                 <div className="space-y-2">
@@ -767,6 +950,16 @@ export default function Admin() {
                     className="bg-slate-700 border-slate-600"
                   />
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isGiftOnly"
+                  checked={petForm.isGiftOnly}
+                  onChange={(e) => setPetForm({ ...petForm, isGiftOnly: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="isGiftOnly" className="cursor-pointer">Gift Only (not in global pool)</Label>
               </div>
               <div className="space-y-2">
                 <Label>Or Upload Image</Label>
@@ -794,6 +987,210 @@ export default function Admin() {
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowPetForm(false)}>Cancel</Button>
               <Button onClick={handleCreatePet} className="bg-purple-600">Create Pet</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Gift Dialog */}
+        <Dialog open={showGiftDialog} onOpenChange={setShowGiftDialog}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white">
+            <DialogHeader>
+              <DialogTitle>Gift Item to {giftUser?.username}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Gift Type</Label>
+                <Select value={giftType} onValueChange={(v) => { setGiftType(v); setGiftItemId(''); }}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pet">Pet</SelectItem>
+                    <SelectItem value="theme">Theme</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Select {giftType === 'pet' ? 'Pet' : 'Theme'}</Label>
+                <Select value={giftItemId} onValueChange={setGiftItemId}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600">
+                    <SelectValue placeholder={`Select a ${giftType}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {giftType === 'pet' ? (
+                      customPets.map(pet => (
+                        <SelectItem key={pet.id} value={`custom_${pet.id}`}>
+                          {pet.emoji || '🎁'} {pet.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      customThemes.map(theme => (
+                        <SelectItem key={theme.id} value={`custom_${theme.id}`}>
+                          {theme.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowGiftDialog(false)}>Cancel</Button>
+              <Button onClick={handleGiftItem} className="bg-purple-600">Gift Item</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Assignment Dialog */}
+        <Dialog open={!!editingAssignment} onOpenChange={() => setEditingAssignment(null)}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white">
+            <DialogHeader>
+              <DialogTitle>Edit Assignment</DialogTitle>
+            </DialogHeader>
+            {editingAssignment && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Title</Label>
+                  <Input
+                    value={editingAssignment.title}
+                    onChange={(e) => setEditingAssignment({ ...editingAssignment, title: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={editingAssignment.description || ''}
+                    onChange={(e) => setEditingAssignment({ ...editingAssignment, description: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>XP Reward</Label>
+                    <Input
+                      type="number"
+                      value={editingAssignment.xpReward || 25}
+                      onChange={(e) => setEditingAssignment({ ...editingAssignment, xpReward: parseInt(e.target.value) || 0 })}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Due Date</Label>
+                    <Input
+                      type="date"
+                      value={editingAssignment.dueDate || ''}
+                      onChange={(e) => setEditingAssignment({ ...editingAssignment, dueDate: e.target.value })}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setEditingAssignment(null)}>Cancel</Button>
+              <Button onClick={handleUpdateAssignment} className="bg-emerald-600">Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Season Form Dialog */}
+        <Dialog open={showSeasonForm} onOpenChange={setShowSeasonForm}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create Season</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Season Name</Label>
+                <Input
+                  value={seasonForm.name}
+                  onChange={(e) => setSeasonForm({ ...seasonForm, name: e.target.value })}
+                  placeholder="Spring 2024"
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Input
+                    type="date"
+                    value={seasonForm.startDate}
+                    onChange={(e) => setSeasonForm({ ...seasonForm, startDate: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <Input
+                    type="date"
+                    value={seasonForm.endDate}
+                    onChange={(e) => setSeasonForm({ ...seasonForm, endDate: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Season Rewards</Label>
+                  <Button size="sm" onClick={addSeasonReward} className="bg-amber-600">
+                    <Plus className="w-3 h-3 mr-1" /> Add Reward
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {seasonForm.rewards.map((reward, index) => (
+                    <div key={index} className="bg-slate-700 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-300">Reward {index + 1}</span>
+                        <Button size="sm" variant="ghost" onClick={() => removeSeasonReward(index)} className="text-red-400 h-6 px-2">
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          placeholder="Name"
+                          value={reward.name}
+                          onChange={(e) => updateSeasonReward(index, 'name', e.target.value)}
+                          className="bg-slate-600 border-slate-500 text-sm"
+                        />
+                        <Input
+                          type="number"
+                          placeholder="XP Required"
+                          value={reward.xpRequired}
+                          onChange={(e) => updateSeasonReward(index, 'xpRequired', parseInt(e.target.value) || 0)}
+                          className="bg-slate-600 border-slate-500 text-sm"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Select value={reward.type} onValueChange={(v) => updateSeasonReward(index, 'type', v)}>
+                          <SelectTrigger className="bg-slate-600 border-slate-500 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pet">Pet</SelectItem>
+                            <SelectItem value="theme">Theme</SelectItem>
+                            <SelectItem value="title">Title</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          placeholder="Value (ID or title text)"
+                          value={reward.value}
+                          onChange={(e) => updateSeasonReward(index, 'value', e.target.value)}
+                          className="bg-slate-600 border-slate-500 text-sm"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {seasonForm.rewards.length === 0 && (
+                    <p className="text-sm text-slate-500 text-center py-2">No rewards added yet</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowSeasonForm(false)}>Cancel</Button>
+              <Button onClick={handleCreateSeason} className="bg-amber-600">Create Season</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
