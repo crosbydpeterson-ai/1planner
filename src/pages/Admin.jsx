@@ -5,7 +5,8 @@ import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, ArrowLeft, Search, Users, ClipboardList, Plus, 
-  Lock, Unlock, Eye, EyeOff, Key, Zap, Check, X, Edit2, Save
+  Lock, Unlock, Eye, EyeOff, Key, Zap, Check, X, Edit2, Save,
+  Palette, Star, Image, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,19 @@ export default function Admin() {
     dueDate: ''
   });
 
+  // Custom Pets & Themes
+  const [customPets, setCustomPets] = useState([]);
+  const [customThemes, setCustomThemes] = useState([]);
+  const [showPetForm, setShowPetForm] = useState(false);
+  const [showThemeForm, setShowThemeForm] = useState(false);
+  const [petForm, setPetForm] = useState({
+    name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: ''
+  });
+  const [themeForm, setThemeForm] = useState({
+    name: '', rarity: 'common', xpRequired: 0, description: '',
+    primaryColor: '#6366f1', secondaryColor: '#8b5cf6', accentColor: '#f59e0b', bgColor: '#f8fafc'
+  });
+
   useEffect(() => {
     // Check if already authenticated
     const adminAuth = localStorage.getItem('quest_admin_auth');
@@ -68,12 +82,16 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allUsers, allAssignments] = await Promise.all([
+      const [allUsers, allAssignments, allPets, allThemes] = await Promise.all([
         base44.entities.UserProfile.list('-created_date'),
-        base44.entities.Assignment.list('-created_date')
+        base44.entities.Assignment.list('-created_date'),
+        base44.entities.CustomPet.list('-created_date'),
+        base44.entities.CustomTheme.list('-created_date')
       ]);
       setUsers(allUsers);
       setAssignments(allAssignments);
+      setCustomPets(allPets);
+      setCustomThemes(allThemes);
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -171,6 +189,76 @@ export default function Admin() {
     }
   };
 
+  const handleCreatePet = async () => {
+    if (!petForm.name.trim()) {
+      toast.error('Please enter a name');
+      return;
+    }
+    if (!petForm.emoji && !petForm.imageUrl) {
+      toast.error('Please add an emoji or image');
+      return;
+    }
+    try {
+      const newPet = await base44.entities.CustomPet.create(petForm);
+      setCustomPets([newPet, ...customPets]);
+      setShowPetForm(false);
+      setPetForm({ name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '' });
+      toast.success('Pet created!');
+    } catch (e) {
+      toast.error('Failed to create pet');
+    }
+  };
+
+  const handleCreateTheme = async () => {
+    if (!themeForm.name.trim()) {
+      toast.error('Please enter a name');
+      return;
+    }
+    try {
+      const newTheme = await base44.entities.CustomTheme.create(themeForm);
+      setCustomThemes([newTheme, ...customThemes]);
+      setShowThemeForm(false);
+      setThemeForm({
+        name: '', rarity: 'common', xpRequired: 0, description: '',
+        primaryColor: '#6366f1', secondaryColor: '#8b5cf6', accentColor: '#f59e0b', bgColor: '#f8fafc'
+      });
+      toast.success('Theme created!');
+    } catch (e) {
+      toast.error('Failed to create theme');
+    }
+  };
+
+  const handleDeletePet = async (pet) => {
+    try {
+      await base44.entities.CustomPet.delete(pet.id);
+      setCustomPets(customPets.filter(p => p.id !== pet.id));
+      toast.success('Pet deleted');
+    } catch (e) {
+      toast.error('Failed to delete pet');
+    }
+  };
+
+  const handleDeleteTheme = async (theme) => {
+    try {
+      await base44.entities.CustomTheme.delete(theme.id);
+      setCustomThemes(customThemes.filter(t => t.id !== theme.id));
+      toast.success('Theme deleted');
+    } catch (e) {
+      toast.error('Failed to delete theme');
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPetForm({ ...petForm, imageUrl: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const filteredUsers = users.filter(u => 
     u.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -261,7 +349,7 @@ export default function Admin() {
         </motion.div>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="bg-slate-800 border-slate-700 mb-6">
+          <TabsList className="bg-slate-800 border-slate-700 mb-6 flex-wrap">
             <TabsTrigger value="users" className="data-[state=active]:bg-slate-700">
               <Users className="w-4 h-4 mr-2" />
               Users ({users.length})
@@ -269,6 +357,14 @@ export default function Admin() {
             <TabsTrigger value="assignments" className="data-[state=active]:bg-slate-700">
               <ClipboardList className="w-4 h-4 mr-2" />
               Assignments ({assignments.length})
+            </TabsTrigger>
+            <TabsTrigger value="pets" className="data-[state=active]:bg-slate-700">
+              <Star className="w-4 h-4 mr-2" />
+              Pets ({customPets.length})
+            </TabsTrigger>
+            <TabsTrigger value="themes" className="data-[state=active]:bg-slate-700">
+              <Palette className="w-4 h-4 mr-2" />
+              Themes ({customThemes.length})
             </TabsTrigger>
           </TabsList>
 
@@ -406,6 +502,75 @@ export default function Admin() {
                   </div>
                 </motion.div>
               ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pets">
+            <div className="flex justify-end mb-4">
+              <Button onClick={() => setShowPetForm(true)} className="bg-gradient-to-r from-purple-500 to-pink-600">
+                <Plus className="w-4 h-4 mr-2" />
+                New Pet
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {customPets.map((pet) => (
+                <div key={pet.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      {pet.imageUrl ? (
+                        <img src={pet.imageUrl} alt={pet.name} className="w-12 h-12 rounded-lg object-cover" />
+                      ) : (
+                        <span className="text-4xl">{pet.emoji}</span>
+                      )}
+                      <div>
+                        <h3 className="font-semibold text-white">{pet.name}</h3>
+                        <p className="text-xs text-slate-400 capitalize">{pet.rarity} • {pet.xpRequired} XP</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => handleDeletePet(pet)} className="text-red-400 hover:text-red-300">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {pet.description && <p className="text-sm text-slate-500">{pet.description}</p>}
+                </div>
+              ))}
+              {customPets.length === 0 && (
+                <div className="col-span-full text-center py-8 text-slate-400">No custom pets yet</div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="themes">
+            <div className="flex justify-end mb-4">
+              <Button onClick={() => setShowThemeForm(true)} className="bg-gradient-to-r from-cyan-500 to-blue-600">
+                <Plus className="w-4 h-4 mr-2" />
+                New Theme
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {customThemes.map((theme) => (
+                <div key={theme.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold text-white">{theme.name}</h3>
+                      <p className="text-xs text-slate-400 capitalize">{theme.rarity} • {theme.xpRequired} XP</p>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => handleDeleteTheme(theme)} className="text-red-400 hover:text-red-300">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="flex gap-2 mb-2">
+                    <div className="w-8 h-8 rounded" style={{ backgroundColor: theme.primaryColor }} />
+                    <div className="w-8 h-8 rounded" style={{ backgroundColor: theme.secondaryColor }} />
+                    <div className="w-8 h-8 rounded" style={{ backgroundColor: theme.accentColor }} />
+                    <div className="w-8 h-8 rounded border border-slate-600" style={{ backgroundColor: theme.bgColor }} />
+                  </div>
+                  {theme.description && <p className="text-sm text-slate-500">{theme.description}</p>}
+                </div>
+              ))}
+              {customThemes.length === 0 && (
+                <div className="col-span-full text-center py-8 text-slate-400">No custom themes yet</div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -547,6 +712,191 @@ export default function Admin() {
               <Button onClick={handleCreateAssignment} className="bg-emerald-600">
                 Create Assignment
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* New Pet Dialog */}
+        <Dialog open={showPetForm} onOpenChange={setShowPetForm}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white">
+            <DialogHeader>
+              <DialogTitle>Create Custom Pet</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    value={petForm.name}
+                    onChange={(e) => setPetForm({ ...petForm, name: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rarity</Label>
+                  <Select value={petForm.rarity} onValueChange={(v) => setPetForm({ ...petForm, rarity: v })}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="common">Common</SelectItem>
+                      <SelectItem value="uncommon">Uncommon</SelectItem>
+                      <SelectItem value="rare">Rare</SelectItem>
+                      <SelectItem value="epic">Epic</SelectItem>
+                      <SelectItem value="legendary">Legendary</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>XP Required</Label>
+                  <Input
+                    type="number"
+                    value={petForm.xpRequired}
+                    onChange={(e) => setPetForm({ ...petForm, xpRequired: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Emoji (or upload image)</Label>
+                  <Input
+                    value={petForm.emoji}
+                    onChange={(e) => setPetForm({ ...petForm, emoji: e.target.value })}
+                    placeholder="🐶"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Or Upload Image</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                  {petForm.imageUrl && (
+                    <img src={petForm.imageUrl} alt="Preview" className="w-12 h-12 rounded-lg object-cover" />
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={petForm.description}
+                  onChange={(e) => setPetForm({ ...petForm, description: e.target.value })}
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowPetForm(false)}>Cancel</Button>
+              <Button onClick={handleCreatePet} className="bg-purple-600">Create Pet</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* New Theme Dialog */}
+        <Dialog open={showThemeForm} onOpenChange={setShowThemeForm}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white">
+            <DialogHeader>
+              <DialogTitle>Create Custom Theme</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    value={themeForm.name}
+                    onChange={(e) => setThemeForm({ ...themeForm, name: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rarity</Label>
+                  <Select value={themeForm.rarity} onValueChange={(v) => setThemeForm({ ...themeForm, rarity: v })}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="common">Common</SelectItem>
+                      <SelectItem value="uncommon">Uncommon</SelectItem>
+                      <SelectItem value="rare">Rare</SelectItem>
+                      <SelectItem value="epic">Epic</SelectItem>
+                      <SelectItem value="legendary">Legendary</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>XP Required</Label>
+                <Input
+                  type="number"
+                  value={themeForm.xpRequired}
+                  onChange={(e) => setThemeForm({ ...themeForm, xpRequired: parseInt(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Primary Color</Label>
+                  <Input
+                    type="color"
+                    value={themeForm.primaryColor}
+                    onChange={(e) => setThemeForm({ ...themeForm, primaryColor: e.target.value })}
+                    className="h-10 bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Secondary Color</Label>
+                  <Input
+                    type="color"
+                    value={themeForm.secondaryColor}
+                    onChange={(e) => setThemeForm({ ...themeForm, secondaryColor: e.target.value })}
+                    className="h-10 bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Accent Color</Label>
+                  <Input
+                    type="color"
+                    value={themeForm.accentColor}
+                    onChange={(e) => setThemeForm({ ...themeForm, accentColor: e.target.value })}
+                    className="h-10 bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Background Color</Label>
+                  <Input
+                    type="color"
+                    value={themeForm.bgColor}
+                    onChange={(e) => setThemeForm({ ...themeForm, bgColor: e.target.value })}
+                    className="h-10 bg-slate-700 border-slate-600"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={themeForm.description}
+                  onChange={(e) => setThemeForm({ ...themeForm, description: e.target.value })}
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+              <div className="p-4 rounded-lg" style={{ backgroundColor: themeForm.bgColor }}>
+                <p className="text-sm font-medium" style={{ color: themeForm.primaryColor }}>Preview</p>
+                <div className="flex gap-2 mt-2">
+                  <div className="px-3 py-1 rounded" style={{ backgroundColor: themeForm.primaryColor, color: 'white' }}>Primary</div>
+                  <div className="px-3 py-1 rounded" style={{ backgroundColor: themeForm.secondaryColor, color: 'white' }}>Secondary</div>
+                  <div className="px-3 py-1 rounded" style={{ backgroundColor: themeForm.accentColor, color: 'white' }}>Accent</div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowThemeForm(false)}>Cancel</Button>
+              <Button onClick={handleCreateTheme} className="bg-cyan-600">Create Theme</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
