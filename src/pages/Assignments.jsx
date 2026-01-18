@@ -3,9 +3,13 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ClipboardList, ArrowLeft, Filter, CheckCircle } from 'lucide-react';
+import { ClipboardList, ArrowLeft, CheckCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import AssignmentCard from '@/components/quest/AssignmentCard';
 import { toast } from 'sonner';
 import { getUnlockedPets } from '@/components/quest/PetCatalog';
@@ -17,6 +21,9 @@ export default function Assignments() {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newAssignment, setNewAssignment] = useState({ title: '', description: '' });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -52,6 +59,30 @@ export default function Assignments() {
       console.error('Error loading data:', e);
     }
     setLoading(false);
+  };
+
+  const handleAddAssignment = async () => {
+    if (!newAssignment.title.trim()) {
+      toast.error('Please enter a title');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await base44.entities.Assignment.create({
+        title: newAssignment.title,
+        description: newAssignment.description,
+        subject: 'everyone',
+        target: 'everyone',
+        xpReward: 25,
+        isApproved: false // Needs admin approval
+      });
+      toast.success('Assignment submitted for approval!');
+      setShowAddForm(false);
+      setNewAssignment({ title: '', description: '' });
+    } catch (e) {
+      toast.error('Failed to submit assignment');
+    }
+    setSubmitting(false);
   };
 
   const handleComplete = async (assignment) => {
@@ -143,7 +174,49 @@ export default function Assignments() {
               <p className="text-sm text-slate-500">Complete quests to earn XP</p>
             </div>
           </div>
+          <Button
+            onClick={() => setShowAddForm(true)}
+            size="sm"
+            className="bg-gradient-to-r from-emerald-500 to-teal-600"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Suggest
+          </Button>
         </motion.div>
+
+        {/* Add Assignment Dialog */}
+        <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Suggest an Assignment</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input
+                  value={newAssignment.title}
+                  onChange={(e) => setNewAssignment({ ...newAssignment, title: e.target.value })}
+                  placeholder="Assignment title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description (optional)</Label>
+                <Textarea
+                  value={newAssignment.description}
+                  onChange={(e) => setNewAssignment({ ...newAssignment, description: e.target.value })}
+                  placeholder="What needs to be done?"
+                />
+              </div>
+              <p className="text-sm text-slate-500">All suggested assignments award 25 XP and require admin approval.</p>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
+              <Button onClick={handleAddAssignment} disabled={submitting} className="bg-emerald-600">
+                {submitting ? 'Submitting...' : 'Submit'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Filters */}
         <motion.div
