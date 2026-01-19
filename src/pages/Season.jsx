@@ -77,6 +77,11 @@ export default function Season() {
         if (!currentThemes.includes(reward.value)) {
           updateData.unlockedThemes = [...currentThemes, reward.value];
         }
+      } else if (reward.type === 'title') {
+        const currentTitles = profile.unlockedTitles || [];
+        if (!currentTitles.includes(reward.value)) {
+          updateData.unlockedTitles = [...currentTitles, reward.value];
+        }
       }
 
       await base44.entities.UserProfile.update(profile.id, updateData);
