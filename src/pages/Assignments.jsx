@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import AssignmentCard from '@/components/quest/AssignmentCard';
+import GlassIcon from '@/components/ui/GlassIcon';
 import { toast } from 'sonner';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
 
@@ -185,9 +186,7 @@ export default function Assignments() {
             </Button>
           </Link>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-              <ClipboardList className="w-6 h-6 text-white" />
-            </div>
+            <GlassIcon icon={ClipboardList} color="emerald" />
             <div>
               <h1 className="text-2xl font-bold text-slate-800">Assignments</h1>
               <p className="text-sm text-slate-500">Complete quests to earn XP</p>
@@ -264,28 +263,30 @@ export default function Assignments() {
           </Tabs>
         </motion.div>
 
-        {/* Stats */}
+        {/* Stats - Liquid Glass */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
           className="grid grid-cols-2 gap-4 mb-6"
         >
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-2">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/5" />
+            <div className="flex items-center gap-2 relative z-10">
               <CheckCircle className="w-5 h-5 text-emerald-500" />
               <span className="text-2xl font-bold text-slate-800">{completedIds.length}</span>
             </div>
-            <p className="text-sm text-slate-500">Completed</p>
+            <p className="text-sm text-slate-500 relative z-10">Completed</p>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-2">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-500/10 to-slate-500/5" />
+            <div className="flex items-center gap-2 relative z-10">
               <ClipboardList className="w-5 h-5 text-slate-400" />
               <span className="text-2xl font-bold text-slate-800">
                 {assignments.length - completedIds.length}
               </span>
             </div>
-            <p className="text-sm text-slate-500">Remaining</p>
+            <p className="text-sm text-slate-500 relative z-10">Remaining</p>
           </div>
         </motion.div>
 
