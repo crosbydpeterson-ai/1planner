@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import XPProgress from '@/components/quest/XPProgress';
 import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
+import GlassIcon from '@/components/ui/GlassIcon';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -90,12 +91,7 @@ export default function Dashboard() {
           className="flex items-center justify-between mb-8"
         >
           <div className="flex items-center gap-3">
-            <div 
-              className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
-              style={{ background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.secondary})` }}
-            >
-              <Sword className="w-6 h-6 text-white" />
-            </div>
+            <GlassIcon icon={Sword} color="primary" />
             <div>
               <h1 className="text-xl font-bold text-slate-800">Quest Planner</h1>
               <p className="text-sm text-slate-500">Welcome back, {profile.username}!</p>
@@ -164,27 +160,30 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - Glass Style */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="grid grid-cols-3 gap-3 mb-6"
         >
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-            <Zap className="w-5 h-5 mx-auto mb-1 text-amber-500" />
-            <p className="text-xl font-bold text-slate-800">{profile.xp || 0}</p>
-            <p className="text-xs text-slate-400">Total XP</p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/5" />
+            <Zap className="w-5 h-5 mx-auto mb-1 text-amber-500 relative z-10" />
+            <p className="text-xl font-bold text-slate-800 relative z-10">{profile.xp || 0}</p>
+            <p className="text-xs text-slate-400 relative z-10">Total XP</p>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-            <Star className="w-5 h-5 mx-auto mb-1 text-purple-500" />
-            <p className="text-xl font-bold text-slate-800">{profile.unlockedPets?.length || 1}</p>
-            <p className="text-xs text-slate-400">Pets</p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/5" />
+            <Star className="w-5 h-5 mx-auto mb-1 text-purple-500 relative z-10" />
+            <p className="text-xl font-bold text-slate-800 relative z-10">{profile.unlockedPets?.length || 1}</p>
+            <p className="text-xs text-slate-400 relative z-10">Pets</p>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-            <ClipboardList className="w-5 h-5 mx-auto mb-1 text-emerald-500" />
-            <p className="text-xl font-bold text-slate-800">{profile.completedAssignments?.length || 0}</p>
-            <p className="text-xs text-slate-400">Completed</p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/50 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/5" />
+            <ClipboardList className="w-5 h-5 mx-auto mb-1 text-emerald-500 relative z-10" />
+            <p className="text-xl font-bold text-slate-800 relative z-10">{profile.completedAssignments?.length || 0}</p>
+            <p className="text-xs text-slate-400 relative z-10">Completed</p>
           </div>
         </motion.div>
 
@@ -228,7 +227,7 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        {/* Navigation Cards */}
+        {/* Navigation Cards - Liquid Glass Style */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -236,34 +235,38 @@ export default function Dashboard() {
           className="grid grid-cols-2 gap-4"
         >
           <Link to={createPageUrl('Assignments')}>
-            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg hover:shadow-xl transition-shadow">
-              <ClipboardList className="w-8 h-8 mb-3" />
-              <h3 className="font-bold text-lg">Assignments</h3>
-              <p className="text-emerald-100 text-sm">Complete quests for XP</p>
+            <div className="relative rounded-2xl p-5 text-white shadow-xl hover:shadow-2xl transition-all hover:scale-[1.02] overflow-hidden backdrop-blur-xl bg-gradient-to-br from-emerald-500/90 to-teal-600/90 border border-white/20">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+              <ClipboardList className="w-8 h-8 mb-3 drop-shadow-lg relative z-10" />
+              <h3 className="font-bold text-lg relative z-10">Assignments</h3>
+              <p className="text-emerald-100 text-sm relative z-10">Complete quests for XP</p>
             </div>
           </Link>
 
           <Link to={createPageUrl('Leaderboard')}>
-            <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-white shadow-lg hover:shadow-xl transition-shadow">
-              <Trophy className="w-8 h-8 mb-3" />
-              <h3 className="font-bold text-lg">Leaderboard</h3>
-              <p className="text-amber-100 text-sm">See top students</p>
+            <div className="relative rounded-2xl p-5 text-white shadow-xl hover:shadow-2xl transition-all hover:scale-[1.02] overflow-hidden backdrop-blur-xl bg-gradient-to-br from-amber-500/90 to-orange-600/90 border border-white/20">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+              <Trophy className="w-8 h-8 mb-3 drop-shadow-lg relative z-10" />
+              <h3 className="font-bold text-lg relative z-10">Leaderboard</h3>
+              <p className="text-amber-100 text-sm relative z-10">See top students</p>
             </div>
           </Link>
 
           <Link to={createPageUrl('Rewards')}>
-            <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-5 text-white shadow-lg hover:shadow-xl transition-shadow">
-              <Gift className="w-8 h-8 mb-3" />
-              <h3 className="font-bold text-lg">Rewards</h3>
-              <p className="text-purple-100 text-sm">Pets, themes & more</p>
+            <div className="relative rounded-2xl p-5 text-white shadow-xl hover:shadow-2xl transition-all hover:scale-[1.02] overflow-hidden backdrop-blur-xl bg-gradient-to-br from-purple-500/90 to-pink-600/90 border border-white/20">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+              <Gift className="w-8 h-8 mb-3 drop-shadow-lg relative z-10" />
+              <h3 className="font-bold text-lg relative z-10">Collection</h3>
+              <p className="text-purple-100 text-sm relative z-10">Pets, themes & more</p>
             </div>
           </Link>
 
           <Link to={createPageUrl('Season')}>
-            <div className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl p-5 text-white shadow-lg hover:shadow-xl transition-shadow">
-              <Sparkles className="w-8 h-8 mb-3" />
-              <h3 className="font-bold text-lg">Season</h3>
-              <p className="text-indigo-100 text-sm">Claim season rewards</p>
+            <div className="relative rounded-2xl p-5 text-white shadow-xl hover:shadow-2xl transition-all hover:scale-[1.02] overflow-hidden backdrop-blur-xl bg-gradient-to-br from-indigo-500/90 to-violet-600/90 border border-white/20">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+              <Sparkles className="w-8 h-8 mb-3 drop-shadow-lg relative z-10" />
+              <h3 className="font-bold text-lg relative z-10">Season</h3>
+              <p className="text-indigo-100 text-sm relative z-10">Claim season rewards</p>
             </div>
           </Link>
         </motion.div>
