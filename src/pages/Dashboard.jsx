@@ -9,16 +9,15 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import XPProgress from '@/components/quest/XPProgress';
-import { PETS } from '@/components/quest/PetCatalog';
-import { THEMES } from '@/components/quest/ThemeCatalog';
+import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recentAssignments, setRecentAssignments] = useState([]);
-  const [currentTheme, setCurrentTheme] = useState(null);
   const [currentPet, setCurrentPet] = useState(null);
+  const [petTheme, setPetTheme] = useState(null);
 
   useEffect(() => {
     loadProfile();
@@ -42,11 +41,10 @@ export default function Dashboard() {
       const p = profiles[0];
       setProfile(p);
 
-      // Get equipped pet and theme
-      const pet = PETS.find(pet => pet.id === p.equippedPetId);
-      const theme = THEMES.find(t => t.id === p.equippedThemeId);
+      // Get equipped pet and its theme
+      const pet = PETS.find(pet => pet.id === p.equippedPetId) || PETS[0];
       setCurrentPet(pet);
-      setCurrentTheme(theme);
+      setPetTheme(pet.theme);
 
       // Load visible assignments
       const assignments = await base44.entities.Assignment.filter({ isApproved: true });
@@ -80,7 +78,7 @@ export default function Dashboard() {
 
   if (!profile) return null;
 
-  const themeColors = currentTheme?.colors || THEMES[0].colors;
+  const themeColors = petTheme || PETS[0].theme;
 
   return (
     <div className="min-h-screen">
@@ -141,7 +139,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Current Theme */}
+          {/* Pet's Theme */}
           <div className="bg-white rounded-2xl shadow-md p-4 border border-slate-100">
             <div className="flex items-center gap-3">
               <div className="flex gap-1">
@@ -153,10 +151,14 @@ export default function Dashboard() {
                   className="w-4 h-8 rounded-full"
                   style={{ backgroundColor: themeColors.secondary }}
                 />
+                <div 
+                  className="w-4 h-8 rounded-full"
+                  style={{ backgroundColor: themeColors.accent }}
+                />
               </div>
               <div>
-                <p className="text-xs text-slate-400">Theme</p>
-                <p className="font-semibold text-slate-800">{currentTheme?.name || 'Classic Quest'}</p>
+                <p className="text-xs text-slate-400">Pet's Theme</p>
+                <p className="font-semibold text-slate-800">{currentPet?.name || 'Starter'}'s Colors</p>
               </div>
             </div>
           </div>
