@@ -28,8 +28,20 @@ export default function Layout({ children, currentPageName }) {
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length > 0 && profiles[0].equippedPetId) {
-        // Get theme from equipped pet
-        const petTheme = getPetTheme(profiles[0].equippedPetId);
+        const petId = profiles[0].equippedPetId;
+        
+        // Check if it's a custom pet
+        if (petId.startsWith('custom_')) {
+          const customPetId = petId.replace('custom_', '');
+          const customPets = await base44.entities.CustomPet.filter({ id: customPetId });
+          if (customPets.length > 0 && customPets[0].theme) {
+            setThemeColors(customPets[0].theme);
+            return;
+          }
+        }
+        
+        // Get theme from built-in pet
+        const petTheme = getPetTheme(petId);
         setThemeColors(petTheme);
       }
     } catch (e) {

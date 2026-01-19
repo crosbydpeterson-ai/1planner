@@ -55,7 +55,8 @@ export default function Admin() {
   const [showPetForm, setShowPetForm] = useState(false);
   const [showThemeForm, setShowThemeForm] = useState(false);
   const [petForm, setPetForm] = useState({
-    name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '', isGiftOnly: false
+    name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '', isGiftOnly: false,
+    theme: { primary: '#6366f1', secondary: '#a855f7', accent: '#f59e0b', bg: '#f8fafc' }
   });
   const [themeForm, setThemeForm] = useState({
     name: '', rarity: 'common', xpRequired: 0, description: '',
@@ -221,7 +222,10 @@ export default function Admin() {
       const newPet = await base44.entities.CustomPet.create(petForm);
       setCustomPets([newPet, ...customPets]);
       setShowPetForm(false);
-      setPetForm({ name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '', isGiftOnly: false });
+      setPetForm({ 
+        name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '', isGiftOnly: false,
+        theme: { primary: '#6366f1', secondary: '#a855f7', accent: '#f59e0b', bg: '#f8fafc' }
+      });
       toast.success('Pet created!');
     } catch (e) {
       toast.error('Failed to create pet');
@@ -986,6 +990,49 @@ export default function Admin() {
                   onChange={(e) => setPetForm({ ...petForm, description: e.target.value })}
                   className="bg-slate-700 border-slate-600"
                 />
+              </div>
+              
+              {/* Theme Colors */}
+              <div className="space-y-2">
+                <Label>Pet Theme Colors</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  <div>
+                    <Label className="text-xs text-slate-400">Primary</Label>
+                    <Input
+                      type="color"
+                      value={petForm.theme?.primary || '#6366f1'}
+                      onChange={(e) => setPetForm({ ...petForm, theme: { ...petForm.theme, primary: e.target.value } })}
+                      className="h-10 bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-400">Secondary</Label>
+                    <Input
+                      type="color"
+                      value={petForm.theme?.secondary || '#a855f7'}
+                      onChange={(e) => setPetForm({ ...petForm, theme: { ...petForm.theme, secondary: e.target.value } })}
+                      className="h-10 bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-400">Accent</Label>
+                    <Input
+                      type="color"
+                      value={petForm.theme?.accent || '#f59e0b'}
+                      onChange={(e) => setPetForm({ ...petForm, theme: { ...petForm.theme, accent: e.target.value } })}
+                      className="h-10 bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-400">Background</Label>
+                    <Input
+                      type="color"
+                      value={petForm.theme?.bg || '#f8fafc'}
+                      onChange={(e) => setPetForm({ ...petForm, theme: { ...petForm.theme, bg: e.target.value } })}
+                      className="h-10 bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             <DialogFooter>
