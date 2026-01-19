@@ -86,21 +86,21 @@ export default function AdminChatWidget() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-700"
+            className="fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/10"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-red-500 to-orange-600 text-white p-4">
+            <div className="bg-gradient-to-r from-red-500/90 to-orange-600/90 backdrop-blur-sm text-white p-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5" />
                 <div>
                   <h3 className="font-bold text-lg">Admin AI Assistant</h3>
-                  <p className="text-red-100 text-sm">I can create pets, themes, manage users & more</p>
+                  <p className="text-red-100 text-sm">Create seasons, pets, themes & more in one go!</p>
                 </div>
               </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-900">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-transparent">
               {loading && !messages.length ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-6 h-6 animate-spin text-red-500" />
@@ -120,8 +120,8 @@ export default function AdminChatWidget() {
                     <div
                       className={`max-w-[85%] rounded-2xl px-4 py-2 ${
                         msg.role === 'user'
-                          ? 'bg-red-500 text-white'
-                          : 'bg-slate-700 border border-slate-600 text-slate-200'
+                          ? 'bg-red-500/90 backdrop-blur-sm text-white'
+                          : 'bg-white/10 backdrop-blur-sm border border-white/10 text-slate-200'
                       }`}
                     >
                       {msg.role === 'user' ? (
@@ -139,14 +139,14 @@ export default function AdminChatWidget() {
             </div>
 
             {/* Input */}
-            <div className="p-3 border-t border-slate-700 bg-slate-800">
+            <div className="p-3 border-t border-white/10 bg-slate-900/50 backdrop-blur-sm">
               <div className="flex gap-2">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask me to do anything..."
-                  className="flex-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  placeholder="Create a space season with rewards..."
+                  className="flex-1 bg-white/10 border-white/10 text-white placeholder:text-slate-400"
                 />
                 <Button
                   onClick={sendMessage}
