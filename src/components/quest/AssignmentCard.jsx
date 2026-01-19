@@ -20,21 +20,21 @@ export default function AssignmentCard({ assignment, isCompleted, onComplete }) 
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         "relative rounded-2xl p-5 transition-all overflow-hidden",
-        "bg-white/60 backdrop-blur-xl border border-white/40 shadow-lg",
+        "bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg",
         isCompleted && "opacity-60",
         assignment.isFlagged && "border-amber-300/50"
       )}
     >
       {/* Glass gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
       
       <div className="flex items-start justify-between gap-4 relative z-10">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/50 backdrop-blur-sm border border-white/30">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/20 backdrop-blur-sm border border-white/20">
               <Icon className="w-4 h-4 text-slate-600" />
             </div>
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-white/50 backdrop-blur-sm text-slate-600">
+            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm text-slate-600">
               {assignment.subject === "everyone" ? "All Students" : assignment.subject.charAt(0).toUpperCase() + assignment.subject.slice(1)}
               {assignment.target !== "everyone" && ` • ${assignment.target}`}
             </span>
@@ -76,14 +76,14 @@ export default function AssignmentCard({ assignment, isCompleted, onComplete }) 
         
         <div>
           {isCompleted ? (
-            <div className="w-10 h-10 rounded-full bg-emerald-500/20 backdrop-blur-sm flex items-center justify-center border border-emerald-300/30">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/30 backdrop-blur-sm flex items-center justify-center border border-emerald-300/20">
               <Check className="w-5 h-5 text-emerald-600" />
             </div>
           ) : (
             <Button
               size="sm"
               onClick={() => onComplete && onComplete(assignment)}
-              className="bg-white/50 backdrop-blur-sm border border-white/30 text-slate-700 hover:bg-white/70 shadow-lg"
+              className="bg-white/20 backdrop-blur-sm border border-white/20 text-slate-700 hover:bg-white/40 shadow-lg"
             >
               Complete
             </Button>

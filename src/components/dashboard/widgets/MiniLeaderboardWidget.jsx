@@ -39,9 +39,9 @@ export default function MiniLeaderboardWidget({ currentUserId }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative rounded-2xl p-4 overflow-hidden bg-white/60 backdrop-blur-xl border border-white/40 shadow-lg"
+      className="relative rounded-2xl p-4 overflow-hidden bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -67,8 +67,8 @@ export default function MiniLeaderboardWidget({ currentUserId }) {
                 key={user.id}
                 className={`flex items-center justify-between p-2 rounded-lg ${
                   user.id === currentUserId 
-                    ? 'bg-indigo-500/20 backdrop-blur-sm border border-indigo-300/30' 
-                    : 'bg-white/40 backdrop-blur-sm border border-white/30'
+                    ? 'bg-indigo-500/20 backdrop-blur-sm border border-indigo-300/20' 
+                    : 'bg-white/20 backdrop-blur-sm border border-white/20'
                 }`}
               >
                 <div className="flex items-center gap-2">

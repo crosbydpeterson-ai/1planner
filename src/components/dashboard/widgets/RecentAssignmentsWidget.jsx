@@ -11,9 +11,9 @@ export default function RecentAssignmentsWidget({ assignments, completedIds }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative rounded-2xl p-5 overflow-hidden bg-white/60 backdrop-blur-xl border border-white/40 shadow-lg"
+      className="relative rounded-2xl p-5 overflow-hidden bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-slate-800">Recent Quests</h2>
@@ -32,8 +32,8 @@ export default function RecentAssignmentsWidget({ assignments, completedIds }) {
                 key={assignment.id}
                 className={`p-3 rounded-xl backdrop-blur-sm border ${
                   isCompleted 
-                    ? 'bg-emerald-500/20 border-emerald-300/30' 
-                    : 'bg-white/40 border-white/30'
+                    ? 'bg-emerald-500/20 border-emerald-300/20' 
+                    : 'bg-white/20 border-white/20'
                 }`}
               >
                 <div className="flex items-center justify-between">

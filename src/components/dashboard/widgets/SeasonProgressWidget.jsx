@@ -48,9 +48,9 @@ export default function SeasonProgressWidget({ userXp, claimedRewards }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative rounded-2xl p-4 shadow-xl overflow-hidden bg-white/60 backdrop-blur-xl border border-white/40"
+      className="relative rounded-2xl p-4 shadow-xl overflow-hidden bg-white/20 backdrop-blur-xl border border-white/20"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/30 to-purple-500/10 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/5 pointer-events-none" />
       
       <div className="flex items-center justify-between relative z-10 mb-3">
         <div className="flex items-center gap-2">
