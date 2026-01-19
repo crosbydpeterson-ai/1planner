@@ -1129,6 +1129,21 @@ export default function Admin() {
                   Gift ALL Themes
                 </Button>
               </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (!giftUser) return;
+                  await base44.entities.MagicEgg.create({ userId: giftUser.userId });
+                  toast.success(`🥚 Magic Egg gifted to ${giftUser.username}!`, {
+                    description: 'They can now create their own custom pet!'
+                  });
+                }}
+                className="w-full border-amber-500 text-amber-400 hover:bg-amber-500/20"
+              >
+                🥚 Gift Magic Egg
+              </Button>
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowGiftDialog(false)}>Cancel</Button>
