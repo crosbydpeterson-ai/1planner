@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 import ThemedBackground from '@/components/theme/ThemedBackground';
 import ChatbotWidget from '@/components/chat/ChatbotWidget';
-import { THEMES } from '@/components/quest/ThemeCatalog';
+import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
@@ -14,6 +14,11 @@ export default function Layout({ children, currentPageName }) {
   
   useEffect(() => {
     loadUserTheme();
+    
+    // Listen for theme updates
+    const handleThemeUpdate = () => loadUserTheme();
+    window.addEventListener('themeUpdated', handleThemeUpdate);
+    return () => window.removeEventListener('themeUpdated', handleThemeUpdate);
   }, []);
 
   const loadUserTheme = async () => {
@@ -22,11 +27,10 @@ export default function Layout({ children, currentPageName }) {
     
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
-      if (profiles.length > 0 && profiles[0].equippedThemeId) {
-        const theme = THEMES.find(t => t.id === profiles[0].equippedThemeId);
-        if (theme) {
-          setThemeColors(theme.colors);
-        }
+      if (profiles.length > 0 && profiles[0].equippedPetId) {
+        // Get theme from equipped pet
+        const petTheme = getPetTheme(profiles[0].equippedPetId);
+        setThemeColors(petTheme);
       }
     } catch (e) {
       console.error('Error loading theme:', e);

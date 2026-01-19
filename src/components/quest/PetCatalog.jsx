@@ -1,84 +1,84 @@
-// Pet catalog with XP unlock thresholds
+// Pet catalog - each pet has its own exclusive theme!
 export const PETS = [
   {
     id: "starter_slime",
     name: "Starter Slime",
     rarity: "common",
-    xpRequired: 0,
     description: "A friendly blob that bounces by your side.",
-    emoji: "🟢"
+    emoji: "🟢",
+    theme: { primary: "#22c55e", secondary: "#86efac", accent: "#4ade80", bg: "#f0fdf4" }
   },
   {
     id: "study_owl",
     name: "Study Owl",
     rarity: "common",
-    xpRequired: 100,
     description: "Wise companion for late-night study sessions.",
-    emoji: "🦉"
+    emoji: "🦉",
+    theme: { primary: "#78716c", secondary: "#a8a29e", accent: "#fbbf24", bg: "#fafaf9" }
   },
   {
     id: "math_cat",
     name: "Math Cat",
     rarity: "uncommon",
-    xpRequired: 250,
     description: "Always lands on its feet... and the right answer.",
-    emoji: "🐱"
+    emoji: "🐱",
+    theme: { primary: "#f97316", secondary: "#fdba74", accent: "#fbbf24", bg: "#fff7ed" }
   },
   {
     id: "book_dragon",
     name: "Book Dragon",
     rarity: "uncommon",
-    xpRequired: 500,
     description: "Hoards knowledge instead of gold.",
-    emoji: "🐉"
+    emoji: "🐉",
+    theme: { primary: "#dc2626", secondary: "#f87171", accent: "#fbbf24", bg: "#fef2f2" }
   },
   {
     id: "phoenix_scholar",
     name: "Phoenix Scholar",
     rarity: "rare",
-    xpRequired: 1000,
     description: "Rises from the ashes of failed tests.",
-    emoji: "🔥"
+    emoji: "🔥",
+    theme: { primary: "#ea580c", secondary: "#fb923c", accent: "#fcd34d", bg: "#431407" }
   },
   {
     id: "cosmic_fox",
     name: "Cosmic Fox",
     rarity: "rare",
-    xpRequired: 1500,
     description: "Navigates the stars of knowledge.",
-    emoji: "🦊"
+    emoji: "🦊",
+    theme: { primary: "#8b5cf6", secondary: "#c4b5fd", accent: "#f472b6", bg: "#1e1b4b" }
   },
   {
     id: "crystal_unicorn",
     name: "Crystal Unicorn",
     rarity: "epic",
-    xpRequired: 2500,
     description: "Legendary steed of straight-A students.",
-    emoji: "🦄"
+    emoji: "🦄",
+    theme: { primary: "#ec4899", secondary: "#f9a8d4", accent: "#a855f7", bg: "#fdf2f8" }
   },
   {
     id: "void_wolf",
     name: "Void Wolf",
     rarity: "epic",
-    xpRequired: 4000,
     description: "Guardian of the academic realm.",
-    emoji: "🐺"
+    emoji: "🐺",
+    theme: { primary: "#1e293b", secondary: "#475569", accent: "#6366f1", bg: "#0f172a" }
   },
   {
     id: "celestial_dragon",
     name: "Celestial Dragon",
     rarity: "legendary",
-    xpRequired: 7500,
     description: "The ultimate companion. Master of all subjects.",
-    emoji: "✨"
+    emoji: "✨",
+    theme: { primary: "#fbbf24", secondary: "#fcd34d", accent: "#f472b6", bg: "#1a1a2e" }
   },
   {
     id: "quantum_phoenix",
     name: "Quantum Phoenix",
     rarity: "legendary",
-    xpRequired: 10000,
     description: "Exists in all timelines. Achieves all goals.",
-    emoji: "⚡"
+    emoji: "⚡",
+    theme: { primary: "#3b82f6", secondary: "#60a5fa", accent: "#f59e0b", bg: "#0c0a3e" }
   }
 ];
 
@@ -90,8 +90,21 @@ export const RARITY_COLORS = {
   legendary: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-400" }
 };
 
-export const getUnlockedPets = (xp) => {
-  return PETS.filter(pet => xp >= pet.xpRequired).map(pet => pet.id);
+// Get a random pet from the pool (for assignment rewards)
+export const getRandomPet = (ownedPetIds = []) => {
+  // Filter out already owned pets
+  const availablePets = PETS.filter(p => !ownedPetIds.includes(p.id));
+  if (availablePets.length === 0) {
+    // All pets owned, return random one anyway
+    return PETS[Math.floor(Math.random() * PETS.length)];
+  }
+  return availablePets[Math.floor(Math.random() * availablePets.length)];
+};
+
+// Get pet's theme colors
+export const getPetTheme = (petId) => {
+  const pet = PETS.find(p => p.id === petId);
+  return pet?.theme || PETS[0].theme;
 };
 
 export default function PetCatalog() {

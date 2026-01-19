@@ -12,8 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import AssignmentCard from '@/components/quest/AssignmentCard';
 import { toast } from 'sonner';
-import { getUnlockedPets } from '@/components/quest/PetCatalog';
-import { getUnlockedThemes } from '@/components/quest/ThemeCatalog';
+import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
 
 export default function Assignments() {
   const navigate = useNavigate();
@@ -105,43 +104,47 @@ export default function Assignments() {
     if (!profile) return;
 
     try {
-      const xpToAdd = assignment.xpReward || 10;
+      const xpToAdd = 25; // Fixed 25 XP per assignment
       const newXp = (profile.xp || 0) + xpToAdd;
       const completedAssignments = [...(profile.completedAssignments || []), assignment.id];
       
-      // Check for new pet unlocks
-      const newUnlockedPets = getUnlockedPets(newXp);
-      const newUnlockedThemes = getUnlockedThemes(newXp);
+      // Get a random pet as reward
+      const currentPets = profile.unlockedPets || ['starter_slime'];
+      const randomPet = getRandomPet(currentPets);
+      const isNewPet = !currentPets.includes(randomPet.id);
+      const newUnlockedPets = isNewPet ? [...currentPets, randomPet.id] : currentPets;
 
       await base44.entities.UserProfile.update(profile.id, {
         xp: newXp,
         completedAssignments,
-        unlockedPets: newUnlockedPets,
-        unlockedThemes: newUnlockedThemes
+        unlockedPets: newUnlockedPets
       });
 
       setProfile({
         ...profile,
         xp: newXp,
         completedAssignments,
-        unlockedPets: newUnlockedPets,
-        unlockedThemes: newUnlockedThemes
+        unlockedPets: newUnlockedPets
       });
 
-      toast.success(`+${xpToAdd} XP earned!`, {
+      toast.success(`+25 XP earned!`, {
         description: `Assignment "${assignment.title}" completed`
       });
 
-      // Check if new pets/themes unlocked
-      if (newUnlockedPets.length > (profile.unlockedPets?.length || 1)) {
-        toast.success('🎉 New pet unlocked!', {
-          description: 'Check the Rewards page to see your new companion!'
-        });
-      }
-      if (newUnlockedThemes.length > (profile.unlockedThemes?.length || 1)) {
-        toast.success('🎨 New theme unlocked!', {
-          description: 'Check the Rewards page to apply your new theme!'
-        });
+      // Show pet reward
+      if (isNewPet) {
+        setTimeout(() => {
+          toast.success(`${randomPet.emoji} New pet unlocked: ${randomPet.name}!`, {
+            description: `You got a ${randomPet.rarity} pet with its own exclusive theme!`,
+            duration: 5000
+          });
+        }, 500);
+      } else {
+        setTimeout(() => {
+          toast(`${randomPet.emoji} You already have ${randomPet.name}`, {
+            description: 'Keep completing assignments to collect more pets!'
+          });
+        }, 500);
       }
     } catch (e) {
       console.error('Error completing assignment:', e);
