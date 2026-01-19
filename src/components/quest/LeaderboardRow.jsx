@@ -49,6 +49,11 @@ export default function LeaderboardRow({ user, rank, isCurrentUser }) {
           )}>
             {user.username}
           </h3>
+          {user.equippedTitle && (
+            <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full font-medium">
+              {user.equippedTitle}
+            </span>
+          )}
           {isCurrentUser && (
             <span className="text-xs bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full">You</span>
           )}
