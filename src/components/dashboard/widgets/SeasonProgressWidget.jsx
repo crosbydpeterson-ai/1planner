@@ -48,18 +48,18 @@ export default function SeasonProgressWidget({ userXp, claimedRewards }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative rounded-2xl p-4 text-white shadow-xl overflow-hidden backdrop-blur-xl bg-gradient-to-r from-indigo-500/90 to-purple-600/90 border border-white/20"
+      className="relative rounded-2xl p-4 shadow-xl overflow-hidden bg-white/60 backdrop-blur-xl border border-white/40"
     >
-      <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/30 to-purple-500/10 pointer-events-none" />
       
       <div className="flex items-center justify-between relative z-10 mb-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5" />
-          <h3 className="font-semibold">{season.name}</h3>
+          <Sparkles className="w-5 h-5 text-indigo-600" />
+          <h3 className="font-semibold text-slate-800">{season.name}</h3>
         </div>
         <Link 
           to={createPageUrl('Season')}
-          className="flex items-center gap-1 text-sm text-indigo-200 hover:text-white"
+          className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700"
         >
           View <ChevronRight className="w-4 h-4" />
         </Link>
@@ -67,14 +67,14 @@ export default function SeasonProgressWidget({ userXp, claimedRewards }) {
       
       <div className="flex items-center justify-between relative z-10">
         <div>
-          <div className="flex items-center gap-1 text-indigo-200 text-xs">
+          <div className="flex items-center gap-1 text-slate-500 text-xs">
             <Calendar className="w-3 h-3" />
             {daysLeft} days left
           </div>
         </div>
         <div className="text-right">
-          <p className="text-lg font-bold">{claimedCount}/{totalRewards}</p>
-          <p className="text-xs text-indigo-200">rewards claimed</p>
+          <p className="text-lg font-bold text-slate-800">{claimedCount}/{totalRewards}</p>
+          <p className="text-xs text-slate-500">rewards claimed</p>
         </div>
       </div>
     </motion.div>

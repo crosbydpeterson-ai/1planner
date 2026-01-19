@@ -46,8 +46,8 @@ export default function Assignments() {
       const p = profiles[0];
       setProfile(p);
 
-      // Load approved assignments visible to this user
-      const allAssignments = await base44.entities.Assignment.filter({ isApproved: true });
+      // Load all assignments (approved by default now)
+      const allAssignments = await base44.entities.Assignment.list('-created_date');
       const today = new Date().toISOString().split('T')[0];
       
       // Filter out expired assignments and delete them
@@ -83,16 +83,51 @@ export default function Assignments() {
     }
     setSubmitting(true);
     try {
-      await base44.entities.Assignment.create({
+      // AI moderation check
+      const moderationResult = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are a content moderator for a school assignment tracker app used by students. 
+Review this assignment suggestion and determine if it should be flagged for admin review.
+
+Title: "${newAssignment.title}"
+Description: "${newAssignment.description || 'No description'}"
+
+Flag the assignment if ANY of these apply:
+- Inappropriate, offensive, or vulgar language
+- Spam or gibberish (random characters, too short like "aaa" or "test")
+- Not a real school assignment (jokes, memes, unrelated content)
+- Attempts to exploit the system
+
+Respond with JSON:`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            shouldFlag: { type: "boolean" },
+            reason: { type: "string" }
+          }
+        }
+      });
+
+      const assignment = await base44.entities.Assignment.create({
         title: newAssignment.title,
         description: newAssignment.description,
         subject: 'everyone',
         target: 'everyone',
         xpReward: 25,
         dueDate: newAssignment.dueDate || null,
-        isApproved: false // Needs admin approval
+        isApproved: true,
+        isFlagged: moderationResult.shouldFlag || false,
+        flagReason: moderationResult.shouldFlag ? moderationResult.reason : null
       });
-      toast.success('Assignment submitted for approval!');
+
+      if (moderationResult.shouldFlag) {
+        toast.warning('Assignment added but flagged for review', {
+          description: 'You can complete it but won\'t earn XP until an admin approves it.'
+        });
+      } else {
+        toast.success('Assignment added!');
+      }
+      
+      setAssignments([assignment, ...assignments]);
       setShowAddForm(false);
       setNewAssignment({ title: '', description: '', dueDate: '' });
     } catch (e) {
@@ -105,9 +140,20 @@ export default function Assignments() {
     if (!profile) return;
 
     try {
-      const xpToAdd = 25; // Fixed 25 XP per assignment
-      const newXp = (profile.xp || 0) + xpToAdd;
       const completedAssignments = [...(profile.completedAssignments || []), assignment.id];
+      
+      // If flagged, no XP reward
+      if (assignment.isFlagged) {
+        await base44.entities.UserProfile.update(profile.id, { completedAssignments });
+        setProfile({ ...profile, completedAssignments });
+        toast.success('Assignment completed!', {
+          description: 'Flagged for review - XP pending admin approval'
+        });
+        return;
+      }
+
+      const xpToAdd = 25;
+      const newXp = (profile.xp || 0) + xpToAdd;
       
       // Get a random pet as reward
       const currentPets = profile.unlockedPets || ['starter_slime'];
@@ -132,7 +178,6 @@ export default function Assignments() {
         description: `Assignment "${assignment.title}" completed`
       });
 
-      // Show pet reward
       if (isNewPet) {
         setTimeout(() => {
           toast.success(`${randomPet.emoji} New pet unlocked: ${randomPet.name}!`, {
@@ -234,7 +279,7 @@ export default function Assignments() {
                   min={new Date().toISOString().split('T')[0]}
                 />
               </div>
-              <p className="text-sm text-slate-500">All suggested assignments award 25 XP and require admin approval. Assignments auto-delete after due date.</p>
+              <p className="text-sm text-slate-500">Assignments are auto-approved. AI may flag suspicious ones for review (no XP until cleared).</p>
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>

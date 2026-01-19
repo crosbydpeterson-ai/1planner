@@ -7,9 +7,12 @@ export default function XPWidget({ xp }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-3xl shadow-lg p-6 border border-slate-100"
+      className="relative rounded-3xl p-6 overflow-hidden bg-white/60 backdrop-blur-xl border border-white/40 shadow-lg"
     >
-      <XPProgress xp={xp || 0} />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
+      <div className="relative z-10">
+        <XPProgress xp={xp || 0} />
+      </div>
     </motion.div>
   );
 }
