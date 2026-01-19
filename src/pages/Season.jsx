@@ -8,8 +8,7 @@ import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
 import SeasonRewards from '@/components/quest/SeasonRewards';
 import { toast } from 'sonner';
-import { getUnlockedPets, PETS } from '@/components/quest/PetCatalog';
-import { getUnlockedThemes, THEMES } from '@/components/quest/ThemeCatalog';
+import { PETS } from '@/components/quest/PetCatalog';
 
 export default function Season() {
   const navigate = useNavigate();
