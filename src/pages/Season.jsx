@@ -7,6 +7,7 @@ import { Sparkles, ArrowLeft, Calendar, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
 import SeasonRewards from '@/components/quest/SeasonRewards';
+import GlassIcon from '@/components/ui/GlassIcon';
 import { toast } from 'sonner';
 import { PETS } from '@/components/quest/PetCatalog';
 
@@ -118,9 +119,7 @@ export default function Season() {
             </Button>
           </Link>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
+            <GlassIcon icon={Sparkles} color="primary" />
             <div>
               <h1 className="text-2xl font-bold text-slate-800">Season Pass</h1>
               <p className="text-sm text-slate-500">Earn exclusive rewards</p>
@@ -130,16 +129,17 @@ export default function Season() {
 
         {season ? (
           <>
-            {/* Season Banner */}
+            {/* Season Banner - Liquid Glass */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-6 text-white mb-6 shadow-lg"
+              className="relative rounded-2xl p-6 text-white mb-6 shadow-xl overflow-hidden backdrop-blur-xl bg-gradient-to-r from-indigo-500/90 via-purple-500/90 to-pink-500/90 border border-white/20"
             >
-              <div className="flex items-start justify-between">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+              <div className="flex items-start justify-between relative z-10">
                 <div>
-                  <h2 className="text-2xl font-bold mb-1">{season.name}</h2>
+                  <h2 className="text-2xl font-bold mb-1 drop-shadow-lg">{season.name}</h2>
                   <div className="flex items-center gap-2 text-indigo-100">
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm">
@@ -148,22 +148,22 @@ export default function Season() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold">{daysLeft}</div>
+                  <div className="text-3xl font-bold drop-shadow-lg">{daysLeft}</div>
                   <div className="text-indigo-200 text-sm">days left</div>
                 </div>
               </div>
               
-              <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between">
+              <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between relative z-10">
                 <div>
                   <p className="text-indigo-200 text-sm">Your XP</p>
-                  <p className="text-2xl font-bold flex items-center gap-1">
+                  <p className="text-2xl font-bold flex items-center gap-1 drop-shadow-lg">
                     <Zap className="w-5 h-5" />
                     {userXp.toLocaleString()}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-indigo-200 text-sm">Rewards Claimed</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-2xl font-bold drop-shadow-lg">
                     {(profile.claimedSeasonRewards || []).length}/{season.rewards?.length || 0}
                   </p>
                 </div>
