@@ -34,30 +34,38 @@ A student wants to create their own custom pet using a Magic Egg!
 Their idea: "${petIdea}"
 
 Generate a fun, school-appropriate pet based on their idea. The pet should:
-- Have a creative, catchy name
+- Have a creative, catchy name (2-3 words max)
 - Be cute and friendly
 - Have a fun description (1-2 sentences)
-- Have an emoji that fits the pet
-- Have a cohesive color theme
+- Have a single emoji that fits the pet (just ONE emoji character)
+- Have a cohesive color theme with 4 HEX color codes
 
-Return JSON with:`,
+IMPORTANT for theme colors:
+- primary: Main color (vibrant, saturated) - MUST be a valid hex like #3b82f6
+- secondary: Lighter/complementary color - MUST be a valid hex like #93c5fd  
+- accent: Pop color for highlights - MUST be a valid hex like #f59e0b
+- bg: Background color (light for light themes like #f0f9ff, dark for dark themes like #1e1b4b)
+
+Make sure all colors work well together and match the pet's personality!`,
         response_json_schema: {
           type: "object",
           properties: {
-            name: { type: "string" },
-            description: { type: "string" },
-            emoji: { type: "string" },
+            name: { type: "string", description: "Pet name, 2-3 words" },
+            description: { type: "string", description: "Fun 1-2 sentence description" },
+            emoji: { type: "string", description: "Single emoji character" },
             rarity: { type: "string", enum: ["uncommon", "rare", "epic"] },
             theme: {
               type: "object",
               properties: {
-                primary: { type: "string" },
-                secondary: { type: "string" },
-                accent: { type: "string" },
-                bg: { type: "string" }
-              }
+                primary: { type: "string", description: "Main hex color like #3b82f6" },
+                secondary: { type: "string", description: "Secondary hex color like #93c5fd" },
+                accent: { type: "string", description: "Accent hex color like #f59e0b" },
+                bg: { type: "string", description: "Background hex color like #f0f9ff or #1e1b4b" }
+              },
+              required: ["primary", "secondary", "accent", "bg"]
             }
-          }
+          },
+          required: ["name", "description", "emoji", "rarity", "theme"]
         }
       });
 
