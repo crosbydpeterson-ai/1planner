@@ -19,6 +19,7 @@ import { MATH_TEACHERS, READING_TEACHERS } from '@/components/quest/TeacherConfi
 import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
 import { toast } from 'sonner';
+import AdminChatWidget from '@/components/admin/AdminChatWidget';
 
 const ADMIN_PIN = '1234'; // In production, this would be hashed and stored server-side
 
@@ -428,6 +429,7 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-slate-900">
+      <AdminChatWidget />
       <div className="max-w-6xl mx-auto p-4 pb-8">
         {/* Header */}
         <motion.div
