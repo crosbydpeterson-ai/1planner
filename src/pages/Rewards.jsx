@@ -6,11 +6,13 @@ import { motion } from 'framer-motion';
 import { Gift, ArrowLeft, Star, Zap, Lock, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PETS, RARITY_COLORS } from '@/components/quest/PetCatalog';
+import GlassIcon from '@/components/ui/GlassIcon';
 import { toast } from 'sonner';
 
 export default function Rewards() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
+  const [customPets, setCustomPets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,19 +27,23 @@ export default function Rewards() {
     }
 
     try {
-      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      const [profiles, dbCustomPets] = await Promise.all([
+        base44.entities.UserProfile.filter({ id: profileId }),
+        base44.entities.CustomPet.list()
+      ]);
       if (profiles.length === 0) {
         navigate(createPageUrl('Home'));
         return;
       }
       setProfile(profiles[0]);
+      setCustomPets(dbCustomPets);
     } catch (e) {
       console.error('Error loading data:', e);
     }
     setLoading(false);
   };
 
-  const handleEquipPet = async (petId) => {
+  const handleEquipPet = async (petId, petData) => {
     if (!profile) return;
 
     const unlockedPets = profile.unlockedPets || ['starter_slime'];
@@ -51,9 +57,8 @@ export default function Rewards() {
         equippedPetId: petId
       });
       setProfile({ ...profile, equippedPetId: petId });
-      const pet = PETS.find(p => p.id === petId);
-      toast.success(`${pet?.emoji} ${pet?.name} equipped!`, {
-        description: `${pet?.name}'s exclusive theme is now active!`
+      toast.success(`${petData?.emoji || '🎁'} ${petData?.name} equipped!`, {
+        description: `${petData?.name}'s exclusive theme is now active!`
       });
       // Trigger theme update in layout
       window.dispatchEvent(new Event('themeUpdated'));
@@ -76,6 +81,20 @@ export default function Rewards() {
   const userXp = profile.xp || 0;
   const unlockedPetIds = profile.unlockedPets || ['starter_slime'];
 
+  // Combine built-in pets with custom pets
+  const allPets = [
+    ...PETS,
+    ...customPets.map(cp => ({
+      id: `custom_${cp.id}`,
+      name: cp.name,
+      rarity: cp.rarity,
+      description: cp.description || '',
+      emoji: cp.emoji || '🎁',
+      imageUrl: cp.imageUrl,
+      theme: cp.theme || { primary: '#6366f1', secondary: '#a855f7', accent: '#f59e0b', bg: '#f8fafc' }
+    }))
+  ];
+
   return (
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto p-4 pb-8">
@@ -91,9 +110,7 @@ export default function Rewards() {
             </Button>
           </Link>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
-              <Gift className="w-6 h-6 text-white" />
-            </div>
+            <GlassIcon icon={Gift} color="purple" />
             <div>
               <h1 className="text-2xl font-bold text-slate-800">Collection</h1>
               <p className="text-sm text-slate-500">Your pets & their themes</p>
@@ -118,7 +135,7 @@ export default function Rewards() {
             </div>
             <div className="text-right">
               <p className="text-amber-100 text-sm">Pets Collected</p>
-              <p className="text-xl font-bold">{unlockedPetIds.length} / {PETS.length}</p>
+              <p className="text-xl font-bold">{unlockedPetIds.length} / {allPets.length}</p>
             </div>
           </div>
         </motion.div>
@@ -143,10 +160,11 @@ export default function Rewards() {
           animate={{ opacity: 1 }}
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
         >
-          {PETS.map((pet, index) => {
+          {allPets.map((pet, index) => {
             const isUnlocked = unlockedPetIds.includes(pet.id);
             const isEquipped = profile.equippedPetId === pet.id;
-            const rarityStyle = RARITY_COLORS[pet.rarity];
+            const rarityStyle = RARITY_COLORS[pet.rarity] || RARITY_COLORS.common;
+            const theme = pet.theme || { primary: '#6366f1', secondary: '#a855f7', accent: '#f59e0b' };
             
             return (
               <motion.div
@@ -154,7 +172,7 @@ export default function Rewards() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                onClick={() => isUnlocked && handleEquipPet(pet.id)}
+                onClick={() => isUnlocked && handleEquipPet(pet.id, pet)}
                 className={`
                   relative rounded-2xl p-4 border-2 transition-all cursor-pointer
                   ${isEquipped 
@@ -179,8 +197,12 @@ export default function Rewards() {
                   </div>
                 )}
                 
-                {/* Pet emoji */}
-                <div className="text-5xl text-center mb-3">{pet.emoji}</div>
+                {/* Pet emoji or image */}
+                {pet.imageUrl ? (
+                  <img src={pet.imageUrl} alt={pet.name} className="w-14 h-14 mx-auto mb-3 rounded-lg object-cover" />
+                ) : (
+                  <div className="text-5xl text-center mb-3">{pet.emoji}</div>
+                )}
                 
                 {/* Pet name */}
                 <h3 className="font-bold text-slate-800 text-center text-sm mb-1">{pet.name}</h3>
@@ -190,11 +212,29 @@ export default function Rewards() {
                   {pet.rarity}
                 </div>
                 
-                {/* Theme preview */}
+                {/* Theme preview - liquid glass style */}
                 <div className="flex justify-center gap-1 mb-2">
-                  <div className="w-4 h-4 rounded-full shadow-inner" style={{ backgroundColor: pet.theme.primary }} />
-                  <div className="w-4 h-4 rounded-full shadow-inner" style={{ backgroundColor: pet.theme.secondary }} />
-                  <div className="w-4 h-4 rounded-full shadow-inner" style={{ backgroundColor: pet.theme.accent }} />
+                  <div 
+                    className="w-5 h-5 rounded-full shadow-lg ring-1 ring-white/30" 
+                    style={{ 
+                      backgroundColor: theme.primary,
+                      boxShadow: `0 2px 8px ${theme.primary}50`
+                    }} 
+                  />
+                  <div 
+                    className="w-5 h-5 rounded-full shadow-lg ring-1 ring-white/30" 
+                    style={{ 
+                      backgroundColor: theme.secondary,
+                      boxShadow: `0 2px 8px ${theme.secondary}50`
+                    }} 
+                  />
+                  <div 
+                    className="w-5 h-5 rounded-full shadow-lg ring-1 ring-white/30" 
+                    style={{ 
+                      backgroundColor: theme.accent,
+                      boxShadow: `0 2px 8px ${theme.accent}50`
+                    }} 
+                  />
                 </div>
                 
                 {/* Description */}
