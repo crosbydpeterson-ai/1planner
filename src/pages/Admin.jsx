@@ -21,7 +21,7 @@ import { THEMES } from '@/components/quest/ThemeCatalog';
 import { toast } from 'sonner';
 import AdminChatWidget from '@/components/admin/AdminChatWidget';
 
-const ADMIN_PIN = '1234'; // In production, this would be hashed and stored server-side
+const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -78,6 +78,11 @@ export default function Admin() {
   });
   const [editingAssignment, setEditingAssignment] = useState(null);
 
+  // Magic Eggs
+  const [magicEggs, setMagicEggs] = useState([]);
+  const [adminEggIdea, setAdminEggIdea] = useState('');
+  const [generatingAdminPet, setGeneratingAdminPet] = useState(false);
+
   useEffect(() => {
     // Check if already authenticated
     const adminAuth = localStorage.getItem('quest_admin_auth');
@@ -88,31 +93,33 @@ export default function Admin() {
   }, []);
 
   const handleAdminLogin = () => {
-    // Simple PIN verification (in production, this would be server-side with hashing)
-    if (adminPin === ADMIN_PIN) {
+    // Simple password verification (in production, this would be server-side with hashing)
+    if (adminPin === ADMIN_PASSWORD) {
       setIsAuthenticated(true);
       localStorage.setItem('quest_admin_auth', 'true');
       loadData();
     } else {
-      toast.error('Invalid admin PIN');
+      toast.error('Invalid admin password');
     }
   };
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allUsers, allAssignments, allPets, allThemes, allSeasons] = await Promise.all([
+      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs] = await Promise.all([
         base44.entities.UserProfile.list('-created_date'),
         base44.entities.Assignment.list('-created_date'),
         base44.entities.CustomPet.list('-created_date'),
         base44.entities.CustomTheme.list('-created_date'),
-        base44.entities.Season.list('-created_date')
+        base44.entities.Season.list('-created_date'),
+        base44.entities.MagicEgg.list('-created_date')
       ]);
       setUsers(allUsers);
       setAssignments(allAssignments);
       setCustomPets(allPets);
       setCustomThemes(allThemes);
       setSeasons(allSeasons);
+      setMagicEggs(allEggs);
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -421,20 +428,20 @@ White or transparent background, centered, high quality illustration.`;
               <Shield className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-            <p className="text-slate-400 mt-2">Enter admin PIN to continue</p>
+            <p className="text-slate-400 mt-2">Enter admin password to continue</p>
           </div>
 
           <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-slate-300">Admin PIN</Label>
+                <Label className="text-slate-300">Admin Password</Label>
                 <Input
                   type="password"
                   value={adminPin}
-                  onChange={(e) => setAdminPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="••••"
-                  maxLength={4}
-                  className="h-12 bg-slate-700 border-slate-600 text-white text-center text-2xl tracking-[0.5em] font-mono"
+                  onChange={(e) => setAdminPin(e.target.value)}
+                  placeholder="Enter password..."
+                  onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
+                  className="h-12 bg-slate-700 border-slate-600 text-white"
                 />
               </div>
               <Button
@@ -515,6 +522,10 @@ White or transparent background, centered, high quality illustration.`;
             <TabsTrigger value="seasons" className="data-[state=active]:bg-slate-700">
               <Sparkles className="w-4 h-4 mr-2" />
               Seasons ({seasons.length})
+            </TabsTrigger>
+            <TabsTrigger value="eggs" className="data-[state=active]:bg-slate-700">
+              🥚
+              Magic Eggs
             </TabsTrigger>
           </TabsList>
 
@@ -752,6 +763,164 @@ White or transparent background, centered, high quality illustration.`;
               {seasons.length === 0 && (
                 <div className="text-center py-8 text-slate-400">No seasons yet</div>
               )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="eggs">
+            <div className="space-y-6">
+              {/* Admin Magic Egg Creator */}
+              <div className="bg-gradient-to-br from-amber-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-white/10">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">🥚✨</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Admin Magic Egg</h3>
+                    <p className="text-slate-400 text-sm">Create unlimited custom creatures with AI</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <Textarea
+                    value={adminEggIdea}
+                    onChange={(e) => setAdminEggIdea(e.target.value)}
+                    placeholder="Describe your creature idea... (e.g., 'A cosmic pizza that shoots cheese stars', 'A friendly cloud robot that rains candy')"
+                    className="bg-slate-800/50 border-white/10 text-white min-h-[100px]"
+                  />
+                  <Button
+                    onClick={async () => {
+                      if (!adminEggIdea.trim()) {
+                        toast.error('Enter a creature idea!');
+                        return;
+                      }
+                      setGeneratingAdminPet(true);
+                      try {
+                        const result = await base44.integrations.Core.InvokeLLM({
+                          prompt: `You are a magical creature designer for a KIDS school gamification app.
+
+Create a magical companion based on: "${adminEggIdea}"
+
+WHAT YOU CAN CREATE:
+- Traditional pets, magical creatures, living objects, food creatures, nature spirits, abstract concepts, robots, mythical beings - ANYTHING fun!
+
+CONTENT RULES (FOR CHILDREN):
+- Must be appropriate for elementary/middle school kids
+- NO violence, weapons, scary monsters, demons, horror
+- Keep it cute, fun, positive, school-friendly!
+
+Generate:
+- name: Creative 2-3 word name
+- description: Fun 1-2 sentence description
+- emoji: Single emoji that fits
+- rarity: uncommon, rare, or epic
+- theme: { primary, secondary, accent, bg } - all valid hex codes`,
+                          response_json_schema: {
+                            type: "object",
+                            properties: {
+                              name: { type: "string" },
+                              description: { type: "string" },
+                              emoji: { type: "string" },
+                              rarity: { type: "string", enum: ["uncommon", "rare", "epic"] },
+                              theme: {
+                                type: "object",
+                                properties: {
+                                  primary: { type: "string" },
+                                  secondary: { type: "string" },
+                                  accent: { type: "string" },
+                                  bg: { type: "string" }
+                                }
+                              }
+                            }
+                          }
+                        });
+
+                        // Generate image
+                        let imageUrl = '';
+                        try {
+                          const imgResult = await base44.integrations.Core.GenerateImage({
+                            prompt: `Cute cartoon creature for kids game: ${result.name}. ${result.description}. Style: adorable, colorful, Pixar-style, game mascot. Colors: ${result.theme?.primary}, ${result.theme?.secondary}. White background, centered.`
+                          });
+                          imageUrl = imgResult.url;
+                        } catch (e) {
+                          console.log('Image generation failed, using emoji');
+                        }
+
+                        // Create the pet
+                        const newPet = await base44.entities.CustomPet.create({
+                          name: result.name,
+                          description: result.description,
+                          emoji: result.emoji,
+                          imageUrl: imageUrl,
+                          rarity: result.rarity,
+                          xpRequired: 999999,
+                          isGiftOnly: true,
+                          theme: result.theme
+                        });
+
+                        setCustomPets([newPet, ...customPets]);
+                        toast.success(`🎉 ${result.name} created!`, {
+                          description: 'Pet added to your collection'
+                        });
+                        setAdminEggIdea('');
+                      } catch (e) {
+                        toast.error('Magic failed! Try again.');
+                      }
+                      setGeneratingAdminPet(false);
+                    }}
+                    disabled={generatingAdminPet}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  >
+                    {generatingAdminPet ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating Magic...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-4 h-4 mr-2" />
+                        Create Creature with AI
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Existing Magic Eggs */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4">User Magic Eggs ({magicEggs.length})</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {magicEggs.map((egg) => {
+                    const owner = users.find(u => u.userId === egg.userId);
+                    return (
+                      <div key={egg.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-3xl">{egg.isUsed ? '🐣' : '🥚'}</span>
+                            <div>
+                              <p className="text-white font-medium">{owner?.username || 'Unknown User'}</p>
+                              <p className="text-xs text-slate-400">
+                                {egg.isUsed ? 'Hatched' : 'Unused'}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              await base44.entities.MagicEgg.delete(egg.id);
+                              setMagicEggs(magicEggs.filter(e => e.id !== egg.id));
+                              toast.success('Egg deleted');
+                            }}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {magicEggs.length === 0 && (
+                    <div className="col-span-full text-center py-8 text-slate-400">No magic eggs yet</div>
+                  )}
+                </div>
+              </div>
             </div>
           </TabsContent>
 
