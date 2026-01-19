@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, ArrowLeft, Search, Users, ClipboardList, Plus, 
   Lock, Unlock, Eye, EyeOff, Key, Zap, Check, X, Edit2, Save,
-  Palette, Star, Image, Trash2, Gift, Calendar, Sparkles
+  Palette, Star, Image, Trash2, Gift, Calendar, Sparkles, Wand2, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,6 +58,7 @@ export default function Admin() {
     name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '', isGiftOnly: false,
     theme: { primary: '#6366f1', secondary: '#a855f7', accent: '#f59e0b', bg: '#f8fafc' }
   });
+  const [generatingPetImage, setGeneratingPetImage] = useState(false);
   const [themeForm, setThemeForm] = useState({
     name: '', rarity: 'common', xpRequired: 0, description: '',
     primaryColor: '#6366f1', secondaryColor: '#8b5cf6', accentColor: '#f59e0b', bgColor: '#f8fafc'
@@ -280,6 +281,30 @@ export default function Admin() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleGeneratePetImage = async () => {
+    if (!petForm.name) {
+      toast.error('Please enter a pet name first');
+      return;
+    }
+    setGeneratingPetImage(true);
+    try {
+      const imagePrompt = `Cute cartoon pet character for a kids game: ${petForm.name}. ${petForm.description || 'A friendly magical creature'}.
+Style: adorable, friendly, colorful digital art, game mascot style, simple clean design.
+Color scheme: primary ${petForm.theme?.primary}, secondary ${petForm.theme?.secondary}, accent ${petForm.theme?.accent}.
+White or transparent background, centered, high quality illustration.`;
+      
+      const result = await base44.integrations.Core.GenerateImage({
+        prompt: imagePrompt
+      });
+      
+      setPetForm({ ...petForm, imageUrl: result.url });
+      toast.success('Image generated!');
+    } catch (e) {
+      toast.error('Failed to generate image');
+    }
+    setGeneratingPetImage(false);
   };
 
   const handleGiftItem = async () => {
@@ -970,18 +995,42 @@ export default function Admin() {
                 <Label htmlFor="isGiftOnly" className="cursor-pointer">Gift Only (not in global pool)</Label>
               </div>
               <div className="space-y-2">
-                <Label>Or Upload Image</Label>
-                <div className="flex items-center gap-4">
+                <Label>Pet Image</Label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleGeneratePetImage}
+                    disabled={generatingPetImage}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  >
+                    {generatingPetImage ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Wand2 className="w-4 h-4 mr-2" />
+                    )}
+                    AI Generate
+                  </Button>
+                  <span className="text-slate-400 text-sm">or</span>
                   <Input
                     type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
-                    className="bg-slate-700 border-slate-600"
+                    className="bg-slate-700 border-slate-600 flex-1"
                   />
-                  {petForm.imageUrl && (
-                    <img src={petForm.imageUrl} alt="Preview" className="w-12 h-12 rounded-lg object-cover" />
-                  )}
                 </div>
+                {petForm.imageUrl && (
+                  <div className="flex items-center gap-3 mt-2">
+                    <img src={petForm.imageUrl} alt="Preview" className="w-16 h-16 rounded-xl object-cover shadow-lg" />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setPetForm({ ...petForm, imageUrl: '' })}
+                      className="text-red-400"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>

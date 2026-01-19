@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Wand2, Loader2 } from 'lucide-react';
+import { Sparkles, Wand2, Loader2, ImageIcon, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,6 +14,8 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
   const [generating, setGenerating] = useState(false);
   const [petIdea, setPetIdea] = useState('');
   const [generatedPet, setGeneratedPet] = useState(null);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState(null);
+  const [generatingImage, setGeneratingImage] = useState(false);
   const [step, setStep] = useState('idea'); // 'idea', 'generating', 'preview', 'hatching'
 
   const handleGeneratePet = async () => {
@@ -71,11 +73,35 @@ Make sure all colors work well together and match the pet's personality!`,
 
       setGeneratedPet(result);
       setStep('preview');
+      
+      // Auto-generate image
+      generatePetImage(result);
     } catch (e) {
       toast.error('Magic failed! Try again.');
       setStep('idea');
     }
     setGenerating(false);
+  };
+
+  const generatePetImage = async (pet) => {
+    if (!pet) return;
+    setGeneratingImage(true);
+    try {
+      const imagePrompt = `Cute cartoon pet character for a kids game: ${pet.name}. ${pet.description}. 
+Style: adorable, friendly, colorful digital art, game mascot style, simple clean design.
+Color scheme: primary ${pet.theme?.primary}, secondary ${pet.theme?.secondary}, accent ${pet.theme?.accent}.
+White or transparent background, centered, high quality illustration.`;
+      
+      const result = await base44.integrations.Core.GenerateImage({
+        prompt: imagePrompt
+      });
+      
+      setGeneratedImageUrl(result.url);
+    } catch (e) {
+      console.error('Image generation failed:', e);
+      // Continue without image - emoji fallback
+    }
+    setGeneratingImage(false);
   };
 
   const handleHatchPet = async () => {
@@ -84,11 +110,12 @@ Make sure all colors work well together and match the pet's personality!`,
     setStep('hatching');
 
     try {
-      // Create the custom pet
+      // Create the custom pet with image if available
       const newPet = await base44.entities.CustomPet.create({
         name: generatedPet.name,
         description: generatedPet.description,
         emoji: generatedPet.emoji,
+        imageUrl: generatedImageUrl || '',
         rarity: generatedPet.rarity,
         xpRequired: 999999,
         isGiftOnly: true,
@@ -119,6 +146,7 @@ Make sure all colors work well together and match the pet's personality!`,
       setStep('idea');
       setPetIdea('');
       setGeneratedPet(null);
+      setGeneratedImageUrl(null);
     } catch (e) {
       toast.error('Failed to hatch pet');
       setStep('preview');
@@ -218,10 +246,45 @@ Make sure all colors work well together and match the pet's personality!`,
                 className="space-y-4 py-4"
               >
                 <div 
-                  className="rounded-2xl p-6 text-center"
+                  className="rounded-2xl p-6 text-center relative overflow-hidden"
                   style={{ backgroundColor: generatedPet.theme?.bg || '#f8fafc' }}
                 >
-                  <div className="text-6xl mb-3">{generatedPet.emoji}</div>
+                  {/* Pet Image or Emoji */}
+                  <div className="relative w-32 h-32 mx-auto mb-3">
+                    {generatingImage ? (
+                      <div className="w-full h-full rounded-2xl bg-white/50 flex items-center justify-center">
+                        <div className="text-center">
+                          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" style={{ color: generatedPet.theme?.primary }} />
+                          <p className="text-xs text-slate-500">Creating art...</p>
+                        </div>
+                      </div>
+                    ) : generatedImageUrl ? (
+                      <img 
+                        src={generatedImageUrl} 
+                        alt={generatedPet.name}
+                        className="w-full h-full object-cover rounded-2xl shadow-xl"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-7xl">
+                        {generatedPet.emoji}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Regenerate Image Button */}
+                  {!generatingImage && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => generatePetImage(generatedPet)}
+                      className="mb-2 text-xs"
+                      style={{ color: generatedPet.theme?.primary }}
+                    >
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      {generatedImageUrl ? 'New Image' : 'Generate Image'}
+                    </Button>
+                  )}
+                  
                   <h3 
                     className="text-xl font-bold mb-1"
                     style={{ color: generatedPet.theme?.primary || '#6366f1' }}
@@ -249,13 +312,14 @@ Make sure all colors work well together and match the pet's personality!`,
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => { setStep('idea'); setGeneratedPet(null); }}
+                    onClick={() => { setStep('idea'); setGeneratedPet(null); setGeneratedImageUrl(null); }}
                     className="flex-1"
                   >
                     Try Again
                   </Button>
                   <Button
                     onClick={handleHatchPet}
+                    disabled={generatingImage}
                     className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
