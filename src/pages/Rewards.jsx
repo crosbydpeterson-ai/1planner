@@ -3,16 +3,18 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Gift, ArrowLeft, Star, Zap, Lock, Check } from 'lucide-react';
+import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PETS, RARITY_COLORS } from '@/components/quest/PetCatalog';
 import GlassIcon from '@/components/ui/GlassIcon';
+import MagicEggCreator from '@/components/rewards/MagicEggCreator';
 import { toast } from 'sonner';
 
 export default function Rewards() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [customPets, setCustomPets] = useState([]);
+  const [magicEggs, setMagicEggs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,9 +29,10 @@ export default function Rewards() {
     }
 
     try {
-      const [profiles, dbCustomPets] = await Promise.all([
+      const [profiles, dbCustomPets, dbMagicEggs] = await Promise.all([
         base44.entities.UserProfile.filter({ id: profileId }),
-        base44.entities.CustomPet.list()
+        base44.entities.CustomPet.list(),
+        base44.entities.MagicEgg.list()
       ]);
       if (profiles.length === 0) {
         navigate(createPageUrl('Home'));
@@ -37,6 +40,9 @@ export default function Rewards() {
       }
       setProfile(profiles[0]);
       setCustomPets(dbCustomPets);
+      // Filter eggs for this user that haven't been used
+      const userEggs = dbMagicEggs.filter(e => e.userId === profiles[0].userId && !e.isUsed);
+      setMagicEggs(userEggs);
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -80,6 +86,16 @@ export default function Rewards() {
 
   const userXp = profile.xp || 0;
   const unlockedPetIds = profile.unlockedPets || ['starter_slime'];
+
+  const handlePetCreated = (newPet, newPetId) => {
+    setCustomPets([...customPets, newPet]);
+    setMagicEggs(magicEggs.slice(1)); // Remove used egg
+    setProfile({
+      ...profile,
+      unlockedPets: [...(profile.unlockedPets || []), newPetId],
+      equippedPetId: newPetId
+    });
+  };
 
   // Combine built-in pets with custom pets
   const allPets = [
@@ -145,14 +161,41 @@ export default function Rewards() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="bg-white rounded-xl p-4 mb-6 border border-slate-200"
+          className="relative rounded-xl p-4 mb-6 overflow-hidden bg-white/20 backdrop-blur-xl border border-white/20"
         >
-          <p className="text-sm text-slate-600">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+          <p className="text-sm text-slate-600 relative z-10">
             <Star className="w-4 h-4 inline mr-1 text-amber-500" />
             Complete assignments to earn <strong>25 XP</strong> and a <strong>random pet</strong>! 
             Each pet has its own <strong>exclusive theme</strong> that activates when equipped.
           </p>
         </motion.div>
+
+        {/* Magic Eggs Section */}
+        {magicEggs.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-6"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              <h2 className="font-bold text-slate-800">Magic Eggs</h2>
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{magicEggs.length} available</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {magicEggs.map((egg, index) => (
+                <MagicEggCreator 
+                  key={egg.id} 
+                  egg={egg} 
+                  profile={profile}
+                  onPetCreated={handlePetCreated}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Pet Grid */}
         <motion.div
@@ -174,46 +217,51 @@ export default function Rewards() {
                 transition={{ delay: index * 0.05 }}
                 onClick={() => isUnlocked && handleEquipPet(pet.id, pet)}
                 className={`
-                  relative rounded-2xl p-4 border-2 transition-all cursor-pointer
+                  relative rounded-2xl p-4 transition-all cursor-pointer overflow-hidden
                   ${isEquipped 
-                    ? 'border-amber-400 bg-amber-50 shadow-lg scale-[1.02]' 
+                    ? 'bg-amber-500/20 backdrop-blur-xl border border-amber-300/30 shadow-lg scale-[1.02]' 
                     : isUnlocked 
-                      ? 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md' 
-                      : 'border-slate-100 bg-slate-50 opacity-60 cursor-not-allowed'
+                      ? 'bg-white/20 backdrop-blur-xl border border-white/20 hover:bg-white/30 hover:shadow-md' 
+                      : 'bg-white/10 backdrop-blur-xl border border-white/10 opacity-60 cursor-not-allowed'
                   }
                 `}
               >
                 {/* Equipped badge */}
                 {isEquipped && (
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center shadow-md">
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center shadow-md z-10">
                     <Check className="w-4 h-4 text-white" />
                   </div>
                 )}
                 
+                {/* Glass overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                
                 {/* Lock icon */}
                 {!isUnlocked && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-slate-100/50 rounded-2xl">
-                    <Lock className="w-8 h-8 text-slate-400" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-sm rounded-2xl z-20">
+                    <Lock className="w-8 h-8 text-slate-500" />
                   </div>
                 )}
                 
                 {/* Pet emoji or image */}
-                {pet.imageUrl ? (
-                  <img src={pet.imageUrl} alt={pet.name} className="w-14 h-14 mx-auto mb-3 rounded-lg object-cover" />
-                ) : (
-                  <div className="text-5xl text-center mb-3">{pet.emoji}</div>
-                )}
+                <div className="relative z-10">
+                  {pet.imageUrl ? (
+                    <img src={pet.imageUrl} alt={pet.name} className="w-14 h-14 mx-auto mb-3 rounded-lg object-cover" />
+                  ) : (
+                    <div className="text-5xl text-center mb-3">{pet.emoji}</div>
+                  )}
+                </div>
                 
                 {/* Pet name */}
-                <h3 className="font-bold text-slate-800 text-center text-sm mb-1">{pet.name}</h3>
+                <h3 className="font-bold text-slate-800 text-center text-sm mb-1 relative z-10">{pet.name}</h3>
                 
                 {/* Rarity badge */}
-                <div className={`text-xs text-center px-2 py-1 rounded-full ${rarityStyle.bg} ${rarityStyle.text} capitalize mb-2`}>
+                <div className={`text-xs text-center px-2 py-1 rounded-full ${rarityStyle.bg} ${rarityStyle.text} capitalize mb-2 relative z-10`}>
                   {pet.rarity}
                 </div>
                 
                 {/* Theme preview - liquid glass style */}
-                <div className="flex justify-center gap-1 mb-2">
+                <div className="flex justify-center gap-1 mb-2 relative z-10">
                   <div 
                     className="w-5 h-5 rounded-full shadow-lg ring-1 ring-white/30" 
                     style={{ 
@@ -238,7 +286,7 @@ export default function Rewards() {
                 </div>
                 
                 {/* Description */}
-                <p className="text-xs text-slate-500 text-center line-clamp-2">{pet.description}</p>
+                <p className="text-xs text-slate-500 text-center line-clamp-2 relative z-10">{pet.description}</p>
               </motion.div>
             );
           })}
