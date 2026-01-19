@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
 import Rewards from './pages/Rewards';
 import Season from './pages/Season';
+import PetCreator from './pages/PetCreator';
 import __Layout from './Layout.jsx';
 
 
@@ -16,6 +17,7 @@ export const PAGES = {
     "Leaderboard": Leaderboard,
     "Rewards": Rewards,
     "Season": Season,
+    "PetCreator": PetCreator,
 }
 
 export const pagesConfig = {

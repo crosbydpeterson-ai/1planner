@@ -566,6 +566,9 @@ White or transparent background, centered, high quality illustration.`;
                             {user.hiddenFromLeaderboard && (
                               <EyeOff className="w-4 h-4 text-yellow-400" />
                             )}
+                            {user.isPetCreator && (
+                              <Wand2 className="w-4 h-4 text-pink-400" />
+                            )}
                           </h3>
                           <p className="text-sm text-slate-400">
                             Math: {user.mathTeacher} • Reading: {user.readingTeacher}
@@ -614,6 +617,20 @@ White or transparent background, centered, high quality illustration.`;
                             className="text-purple-400 hover:text-purple-300"
                           >
                             <Gift className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              const newStatus = !user.isPetCreator;
+                              await base44.entities.UserProfile.update(user.id, { isPetCreator: newStatus });
+                              setUsers(users.map(u => u.id === user.id ? { ...u, isPetCreator: newStatus } : u));
+                              toast.success(newStatus ? `${user.username} can now create pets!` : `Pet creator access removed from ${user.username}`);
+                            }}
+                            className={user.isPetCreator ? "text-pink-400 hover:text-pink-300" : "text-slate-400 hover:text-slate-300"}
+                            title={user.isPetCreator ? "Remove Pet Creator" : "Grant Pet Creator"}
+                          >
+                            <Wand2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>

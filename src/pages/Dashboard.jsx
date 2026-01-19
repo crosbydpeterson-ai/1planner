@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Sword, LogOut, Settings } from 'lucide-react';
+import { Sword, LogOut, Settings, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
 import GlassIcon from '@/components/ui/GlassIcon';
@@ -183,6 +183,17 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {profile.isPetCreator && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => navigate(createPageUrl('PetCreator'))}
+                className="text-pink-400 hover:text-pink-600"
+                title="Pet Creator"
+              >
+                <Wand2 className="w-5 h-5" />
+              </Button>
+            )}
             <Button 
               variant="ghost" 
               size="icon"
