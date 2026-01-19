@@ -29,11 +29,20 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
 
     try {
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a magical pet designer for a school gamification app called Quest Planner.
+        prompt: `You are a magical pet designer for a KIDS school gamification app called Quest Planner.
 
 A student wants to create their own custom pet using a Magic Egg!
 
 Their idea: "${petIdea}"
+
+CONTENT RULES (VERY IMPORTANT - THIS IS FOR CHILDREN):
+- The pet MUST be appropriate for elementary/middle school kids
+- NO violence, weapons, scary monsters, demons, or horror themes
+- NO inappropriate body parts or suggestive content
+- NO drugs, alcohol, or adult themes
+- NO mean, bullying, or negative personalities
+- If the user's idea is inappropriate, create a SAFE alternative (like a friendly version)
+- Keep it cute, fun, positive, and school-friendly!
 
 Generate a fun, school-appropriate pet based on their idea. The pet should:
 - Have a creative, catchy name (2-3 words max)
@@ -87,8 +96,9 @@ Make sure all colors work well together and match the pet's personality!`,
     if (!pet) return;
     setGeneratingImage(true);
     try {
-      const imagePrompt = `Cute cartoon pet character for a kids game: ${pet.name}. ${pet.description}. 
-Style: adorable, friendly, colorful digital art, game mascot style, simple clean design.
+      const imagePrompt = `Cute cartoon pet character for a CHILDREN'S educational game: ${pet.name}. ${pet.description}. 
+Style: adorable, friendly, colorful digital art, game mascot style, simple clean design, kid-friendly, Pixar-style cuteness.
+MUST BE: Safe for children, no scary elements, bright and cheerful.
 Color scheme: primary ${pet.theme?.primary}, secondary ${pet.theme?.secondary}, accent ${pet.theme?.accent}.
 White or transparent background, centered, high quality illustration.`;
       

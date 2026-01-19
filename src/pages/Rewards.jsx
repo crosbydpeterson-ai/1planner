@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles } from 'lucide-react';
+import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PETS, RARITY_COLORS } from '@/components/quest/PetCatalog';
 import GlassIcon from '@/components/ui/GlassIcon';
@@ -71,6 +71,29 @@ export default function Rewards() {
     } catch (e) {
       console.error('Error equipping pet:', e);
       toast.error('Failed to equip pet');
+    }
+  };
+
+  const handleEquipTitle = async (title) => {
+    if (!profile) return;
+
+    const unlockedTitles = profile.unlockedTitles || [];
+    if (!unlockedTitles.includes(title)) {
+      toast.error('You have not unlocked this title yet!');
+      return;
+    }
+
+    try {
+      // Toggle off if already equipped
+      const newTitle = profile.equippedTitle === title ? '' : title;
+      await base44.entities.UserProfile.update(profile.id, {
+        equippedTitle: newTitle
+      });
+      setProfile({ ...profile, equippedTitle: newTitle });
+      toast.success(newTitle ? `Title "${title}" equipped!` : 'Title removed');
+    } catch (e) {
+      console.error('Error equipping title:', e);
+      toast.error('Failed to equip title');
     }
   };
 
@@ -170,6 +193,49 @@ export default function Rewards() {
             Each pet has its own <strong>exclusive theme</strong> that activates when equipped.
           </p>
         </motion.div>
+
+        {/* Titles Section */}
+        {(profile.unlockedTitles?.length > 0) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.17 }}
+            className="mb-6"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Award className="w-5 h-5 text-purple-500" />
+              <h2 className="font-bold text-slate-800">Your Titles</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {profile.unlockedTitles.map((title) => {
+                const isEquipped = profile.equippedTitle === title;
+                return (
+                  <motion.button
+                    key={title}
+                    onClick={() => handleEquipTitle(title)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`
+                      px-4 py-2 rounded-xl font-semibold text-sm transition-all
+                      ${isEquipped 
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
+                        : 'bg-white/30 backdrop-blur-xl border border-white/20 text-slate-700 hover:bg-white/50'
+                      }
+                    `}
+                  >
+                    {isEquipped && <Check className="w-4 h-4 inline mr-1" />}
+                    {title}
+                  </motion.button>
+                );
+              })}
+            </div>
+            {profile.equippedTitle && (
+              <p className="text-xs text-slate-500 mt-2">
+                Your title "{profile.equippedTitle}" is shown on the leaderboard!
+              </p>
+            )}
+          </motion.div>
+        )}
 
         {/* Magic Eggs Section */}
         {magicEggs.length > 0 && (
