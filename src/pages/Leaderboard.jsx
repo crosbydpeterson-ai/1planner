@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Trophy, ArrowLeft, Users, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LeaderboardRow from '@/components/quest/LeaderboardRow';
+import GlassIcon from '@/components/ui/GlassIcon';
 import { PETS } from '@/components/quest/PetCatalog';
 
 export default function Leaderboard() {
@@ -88,9 +89,7 @@ export default function Leaderboard() {
               </Button>
             </Link>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
-                <Trophy className="w-6 h-6 text-white" />
-              </div>
+              <GlassIcon icon={Trophy} color="amber" />
               <div>
                 <h1 className="text-2xl font-bold text-slate-800">Leaderboard</h1>
                 <p className="text-sm text-slate-500">Top students by XP</p>
@@ -108,22 +107,23 @@ export default function Leaderboard() {
           </Button>
         </motion.div>
 
-        {/* Your rank card */}
+        {/* Your rank card - Liquid Glass */}
         {profile && currentUserRank > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-5 text-white mb-6 shadow-lg"
+            className="relative rounded-2xl p-5 text-white mb-6 shadow-xl overflow-hidden backdrop-blur-xl bg-gradient-to-r from-indigo-500/90 to-purple-600/90 border border-white/20"
           >
-            <div className="flex items-center justify-between">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+            <div className="flex items-center justify-between relative z-10">
               <div>
                 <p className="text-indigo-200 text-sm">Your Rank</p>
-                <p className="text-4xl font-bold">#{currentUserRank}</p>
+                <p className="text-4xl font-bold drop-shadow-lg">#{currentUserRank}</p>
               </div>
               <div className="text-right">
                 <p className="text-indigo-200 text-sm">Total XP</p>
-                <p className="text-3xl font-bold">{(profile.xp || 0).toLocaleString()}</p>
+                <p className="text-3xl font-bold drop-shadow-lg">{(profile.xp || 0).toLocaleString()}</p>
               </div>
             </div>
           </motion.div>
