@@ -40,12 +40,16 @@ export default function AdminChatWidget() {
 
   const initConversation = async () => {
     setLoading(true);
-    const conv = await base44.agents.createConversation({
-      agent_name: "admin_assistant",
-      metadata: { name: "Admin Chat" }
-    });
-    setConversation(conv);
-    setMessages(conv.messages || []);
+    try {
+      const conv = await base44.agents.createConversation({
+        agent_name: "admin_assistant",
+        metadata: { name: "Admin Chat" }
+      });
+      setConversation(conv);
+      setMessages(conv.messages || []);
+    } catch (e) {
+      console.error('Failed to create conversation:', e);
+    }
     setLoading(false);
   };
 
