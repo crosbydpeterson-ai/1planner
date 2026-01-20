@@ -527,6 +527,10 @@ White or transparent background, centered, high quality illustration.`;
               🥚
               Magic Eggs
             </TabsTrigger>
+            <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">
+              🫧
+              Events
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">

@@ -233,6 +233,9 @@ export default function Dashboard() {
           onSave={handleSaveWidgets}
         />
       )}
+
+      {/* Event Manager */}
+      <EventManager profile={profile} />
     </div>
   );
 }
