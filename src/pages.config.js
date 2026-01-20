@@ -3,9 +3,9 @@ import Assignments from './pages/Assignments';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
+import PetCreator from './pages/PetCreator';
 import Rewards from './pages/Rewards';
 import Season from './pages/Season';
-import PetCreator from './pages/PetCreator';
 import __Layout from './Layout.jsx';
 
 
@@ -15,9 +15,9 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Home": Home,
     "Leaderboard": Leaderboard,
+    "PetCreator": PetCreator,
     "Rewards": Rewards,
     "Season": Season,
-    "PetCreator": PetCreator,
 }
 
 export const pagesConfig = {

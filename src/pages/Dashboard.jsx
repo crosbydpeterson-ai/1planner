@@ -11,6 +11,7 @@ import GlassIcon from '@/components/ui/GlassIcon';
 // Widget components
 import WidgetGrid from '@/components/dashboard/WidgetGrid';
 import WidgetCustomizer from '@/components/dashboard/WidgetCustomizer';
+import EventManager from '@/components/events/EventManager';
 import XPWidget from '@/components/dashboard/widgets/XPWidget';
 import PetWidget from '@/components/dashboard/widgets/PetWidget';
 import StatsWidget from '@/components/dashboard/widgets/StatsWidget';
