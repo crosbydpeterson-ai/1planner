@@ -54,15 +54,21 @@ export default function AdminChatWidget() {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || !conversation) return;
+    if (!input.trim() || !conversation || loading) return;
     
     const userMessage = input.trim();
     setInput('');
+    setLoading(true);
     
-    await base44.agents.addMessage(conversation, {
-      role: "user",
-      content: userMessage
-    });
+    try {
+      await base44.agents.addMessage(conversation, {
+        role: "user",
+        content: userMessage
+      });
+    } catch (e) {
+      console.error('Failed to send message:', e);
+    }
+    setLoading(false);
   };
 
   const handleKeyPress = (e) => {
@@ -154,11 +160,11 @@ export default function AdminChatWidget() {
                 />
                 <Button
                   onClick={sendMessage}
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || loading || !conversation}
                   size="icon"
                   className="bg-red-500 hover:bg-red-600"
                 >
-                  <Send className="w-4 h-4" />
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
             </div>
