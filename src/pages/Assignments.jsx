@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import AssignmentCard from '@/components/quest/AssignmentCard';
 import GlassIcon from '@/components/ui/GlassIcon';
@@ -22,7 +23,7 @@ export default function Assignments() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newAssignment, setNewAssignment] = useState({ title: '', description: '', dueDate: '' });
+  const [newAssignment, setNewAssignment] = useState({ title: '', description: '', dueDate: '', subject: 'everyone' });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -107,11 +108,19 @@ Respond with JSON:`,
         }
       });
 
+      // Set target based on subject and user's teacher
+      let target = 'everyone';
+      if (newAssignment.subject === 'math') {
+        target = profile.mathTeacher;
+      } else if (newAssignment.subject === 'reading') {
+        target = profile.readingTeacher;
+      }
+
       const assignment = await base44.entities.Assignment.create({
         title: newAssignment.title,
         description: newAssignment.description,
-        subject: 'everyone',
-        target: 'everyone',
+        subject: newAssignment.subject,
+        target: target,
         xpReward: 25,
         dueDate: newAssignment.dueDate || null,
         isApproved: true,
@@ -129,7 +138,7 @@ Respond with JSON:`,
       
       setAssignments([assignment, ...assignments]);
       setShowAddForm(false);
-      setNewAssignment({ title: '', description: '', dueDate: '' });
+      setNewAssignment({ title: '', description: '', dueDate: '', subject: 'everyone' });
     } catch (e) {
       toast.error('Failed to submit assignment');
     }
@@ -243,7 +252,7 @@ Respond with JSON:`,
             className="bg-gradient-to-r from-emerald-500 to-teal-600"
           >
             <Plus className="w-4 h-4 mr-1" />
-            Suggest
+            ADD
           </Button>
         </motion.div>
 
@@ -261,6 +270,22 @@ Respond with JSON:`,
                   onChange={(e) => setNewAssignment({ ...newAssignment, title: e.target.value })}
                   placeholder="Assignment title"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Subject</Label>
+                <Select
+                  value={newAssignment.subject}
+                  onValueChange={(value) => setNewAssignment({ ...newAssignment, subject: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="everyone">Everyone</SelectItem>
+                    <SelectItem value="math">Math</SelectItem>
+                    <SelectItem value="reading">Reading</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Description (optional)</Label>
