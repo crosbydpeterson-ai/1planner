@@ -83,6 +83,14 @@ export default function Admin() {
   const [adminEggIdea, setAdminEggIdea] = useState('');
   const [generatingAdminPet, setGeneratingAdminPet] = useState(false);
 
+  // Events
+  const [events, setEvents] = useState([]);
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [eventForm, setEventForm] = useState({
+    name: '', type: 'bubble_pop', isActive: false,
+    config: { bubbleCount: 15, eggChance: 10 }
+  });
+
   useEffect(() => {
     // Check if already authenticated
     const adminAuth = localStorage.getItem('quest_admin_auth');
@@ -106,13 +114,14 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs] = await Promise.all([
+      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents] = await Promise.all([
         base44.entities.UserProfile.list('-created_date'),
         base44.entities.Assignment.list('-created_date'),
         base44.entities.CustomPet.list('-created_date'),
         base44.entities.CustomTheme.list('-created_date'),
         base44.entities.Season.list('-created_date'),
-        base44.entities.MagicEgg.list('-created_date')
+        base44.entities.MagicEgg.list('-created_date'),
+        base44.entities.AdminEvent.list('-created_date')
       ]);
       setUsers(allUsers);
       setAssignments(allAssignments);
@@ -120,6 +129,7 @@ export default function Admin() {
       setCustomThemes(allThemes);
       setSeasons(allSeasons);
       setMagicEggs(allEggs);
+      setEvents(allEvents);
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -939,6 +949,163 @@ Generate:
                   })}
                   {magicEggs.length === 0 && (
                     <div className="col-span-full text-center py-8 text-slate-400">No magic eggs yet</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="events">
+            <div className="space-y-6">
+              {/* Create Event */}
+              <div className="bg-gradient-to-br from-blue-500/20 via-cyan-500/20 to-teal-500/20 rounded-2xl p-6 border border-white/10">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">🫧</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Create Event</h3>
+                    <p className="text-slate-400 text-sm">Launch fun events for students</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Event Name</Label>
+                      <Input
+                        value={eventForm.name}
+                        onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
+                        placeholder="Bubble Bonanza"
+                        className="bg-slate-800/50 border-white/10 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Event Type</Label>
+                      <Select value={eventForm.type} onValueChange={(v) => setEventForm({ ...eventForm, type: v })}>
+                        <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bubble_pop">🫧 Bubble Pop</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {eventForm.type === 'bubble_pop' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-slate-300">Bubble Count</Label>
+                        <Input
+                          type="number"
+                          value={eventForm.config.bubbleCount}
+                          onChange={(e) => setEventForm({ 
+                            ...eventForm, 
+                            config: { ...eventForm.config, bubbleCount: parseInt(e.target.value) || 15 }
+                          })}
+                          className="bg-slate-800/50 border-white/10 text-white"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-slate-300">Magic Egg Chance (%)</Label>
+                        <Input
+                          type="number"
+                          value={eventForm.config.eggChance}
+                          onChange={(e) => setEventForm({ 
+                            ...eventForm, 
+                            config: { ...eventForm.config, eggChance: parseInt(e.target.value) || 10 }
+                          })}
+                          className="bg-slate-800/50 border-white/10 text-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={async () => {
+                      if (!eventForm.name.trim()) {
+                        toast.error('Enter an event name!');
+                        return;
+                      }
+                      try {
+                        const newEvent = await base44.entities.AdminEvent.create({
+                          ...eventForm,
+                          isActive: true,
+                          startTime: new Date().toISOString()
+                        });
+                        setEvents([newEvent, ...events]);
+                        toast.success(`🎉 ${eventForm.name} is now LIVE!`);
+                        setEventForm({
+                          name: '', type: 'bubble_pop', isActive: false,
+                          config: { bubbleCount: 15, eggChance: 10 }
+                        });
+                      } catch (e) {
+                        toast.error('Failed to create event');
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Launch Event
+                  </Button>
+                </div>
+              </div>
+
+              {/* Existing Events */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Events ({events.length})</h3>
+                <div className="space-y-3">
+                  {events.map((event) => (
+                    <div key={event.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">
+                            {event.type === 'bubble_pop' ? '🫧' : '🎮'}
+                          </span>
+                          <div>
+                            <h4 className="text-white font-medium flex items-center gap-2">
+                              {event.name}
+                              {event.isActive && (
+                                <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded animate-pulse">
+                                  LIVE
+                                </span>
+                              )}
+                            </h4>
+                            <p className="text-xs text-slate-400">
+                              {event.type === 'bubble_pop' && `${event.config?.bubbleCount || 15} bubbles • ${event.config?.eggChance || 10}% egg chance`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              const newActive = !event.isActive;
+                              await base44.entities.AdminEvent.update(event.id, { isActive: newActive });
+                              setEvents(events.map(e => e.id === event.id ? { ...e, isActive: newActive } : e));
+                              toast.success(newActive ? 'Event activated!' : 'Event stopped');
+                            }}
+                            className={event.isActive ? "text-red-400 hover:text-red-300" : "text-emerald-400 hover:text-emerald-300"}
+                          >
+                            {event.isActive ? <X className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              await base44.entities.AdminEvent.delete(event.id);
+                              setEvents(events.filter(e => e.id !== event.id));
+                              toast.success('Event deleted');
+                            }}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {events.length === 0 && (
+                    <div className="text-center py-8 text-slate-400">No events yet</div>
                   )}
                 </div>
               </div>
