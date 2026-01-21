@@ -87,30 +87,6 @@ export default function Assignments() {
     
     setSubmitting(true);
     try {
-      // AI moderation check
-      const moderationResult = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a content moderator for a school assignment tracker app used by students. 
-Review this assignment suggestion and determine if it should be flagged for admin review.
-
-Title: "${newAssignment.title}"
-Description: "${newAssignment.description || 'No description'}"
-
-Flag the assignment if ANY of these apply:
-- Inappropriate, offensive, or vulgar language
-- Spam or gibberish (random characters, too short like "aaa" or "test")
-- Not a real school assignment (jokes, memes, unrelated content)
-- Attempts to exploit the system
-
-Respond with JSON:`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            shouldFlag: { type: "boolean" },
-            reason: { type: "string" }
-          }
-        }
-      });
-
       // Set target based on subject and user's teacher
       let target = 'everyone';
       if (newAssignment.subject === 'math') {
@@ -126,18 +102,10 @@ Respond with JSON:`,
         target: target,
         xpReward: 25,
         dueDate: newAssignment.dueDate || null,
-        isApproved: true,
-        isFlagged: moderationResult.shouldFlag || false,
-        flagReason: moderationResult.shouldFlag ? moderationResult.reason : null
+        isApproved: true
       });
 
-      if (moderationResult.shouldFlag) {
-        toast.warning('Assignment added but flagged for review', {
-          description: 'You can complete it but won\'t earn XP until an admin approves it.'
-        });
-      } else {
-        toast.success('Assignment added!');
-      }
+      toast.success('Assignment added!');
       
       setAssignments([assignment, ...assignments]);
       setShowAddForm(false);
@@ -153,17 +121,6 @@ Respond with JSON:`,
 
     try {
       const completedAssignments = [...(profile.completedAssignments || []), assignment.id];
-      
-      // If flagged, no XP reward
-      if (assignment.isFlagged) {
-        await base44.entities.UserProfile.update(profile.id, { completedAssignments });
-        setProfile({ ...profile, completedAssignments });
-        toast.success('Assignment completed!', {
-          description: 'Flagged for review - XP pending admin approval'
-        });
-        return;
-      }
-
       const xpToAdd = 25;
       const newXp = (profile.xp || 0) + xpToAdd;
       
