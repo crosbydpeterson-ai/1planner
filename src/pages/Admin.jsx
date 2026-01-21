@@ -100,13 +100,37 @@ export default function Admin() {
   });
 
   useEffect(() => {
-    // Check if already authenticated
-    const adminAuth = localStorage.getItem('quest_admin_auth');
-    if (adminAuth === 'true') {
-      setIsAuthenticated(true);
-      loadData();
-    }
+    checkAdminAccess();
   }, []);
+
+  const checkAdminAccess = async () => {
+    // First check if user is logged in and is admin
+    const profileId = localStorage.getItem('quest_profile_id');
+    if (!profileId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      if (profiles.length === 0 || profiles[0].username.toLowerCase() !== 'crosby') {
+        // Not admin user, redirect to dashboard
+        navigate(createPageUrl('Dashboard'));
+        return;
+      }
+      
+      // Check if already authenticated with password
+      const adminAuth = localStorage.getItem('quest_admin_auth');
+      if (adminAuth === 'true') {
+        setIsAuthenticated(true);
+        loadData();
+      } else {
+        setLoading(false);
+      }
+    } catch (e) {
+      navigate(createPageUrl('Dashboard'));
+    }
+  };
 
   const handleAdminLogin = () => {
     // Simple password verification (in production, this would be server-side with hashing)
