@@ -13,10 +13,10 @@ export default function ByteReviewDialog({ open, onOpenChange, assignment, onAcc
   const [error, setError] = useState(null);
 
   React.useEffect(() => {
-    if (open && assignment && !review) {
+    if (open && assignment?.title && !review) {
       reviewAssignment();
     }
-  }, [open, assignment]);
+  }, [open, assignment?.title]);
 
   React.useEffect(() => {
     if (!open) {
@@ -26,6 +26,7 @@ export default function ByteReviewDialog({ open, onOpenChange, assignment, onAcc
   }, [open]);
 
   const reviewAssignment = async () => {
+    if (!assignment?.title) return;
     setLoading(true);
     setError(null);
     try {
