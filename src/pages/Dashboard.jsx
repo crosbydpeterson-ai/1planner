@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Sword, LogOut, Settings, Wand2 } from 'lucide-react';
+import { Sword, LogOut, Settings, Wand2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
 import GlassIcon from '@/components/ui/GlassIcon';
@@ -195,6 +195,15 @@ export default function Dashboard() {
                 <Wand2 className="w-5 h-5" />
               </Button>
             )}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate(createPageUrl('UserSettings'))}
+              className="text-slate-400 hover:text-slate-600"
+              title="User Settings"
+            >
+              <User className="w-5 h-5" />
+            </Button>
             <Button 
               variant="ghost" 
               size="icon"
