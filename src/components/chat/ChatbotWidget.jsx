@@ -57,10 +57,14 @@ export default function ChatbotWidget() {
     const userMessage = input.trim();
     setInput('');
     
-    await base44.agents.addMessage(conversation, {
-      role: "user",
-      content: userMessage
-    });
+    try {
+      await base44.agents.addMessage(conversation, {
+        role: "user",
+        content: userMessage
+      });
+    } catch (e) {
+      console.error('Failed to send message:', e);
+    }
   };
 
   const handleKeyPress = (e) => {
