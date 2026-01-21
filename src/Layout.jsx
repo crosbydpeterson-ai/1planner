@@ -11,15 +11,31 @@ import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const [themeColors, setThemeColors] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   useEffect(() => {
     loadUserTheme();
+    checkAdminStatus();
     
     // Listen for theme updates
     const handleThemeUpdate = () => loadUserTheme();
     window.addEventListener('themeUpdated', handleThemeUpdate);
     return () => window.removeEventListener('themeUpdated', handleThemeUpdate);
   }, []);
+
+  const checkAdminStatus = async () => {
+    const profileId = localStorage.getItem('quest_profile_id');
+    if (!profileId) return;
+    
+    try {
+      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      if (profiles.length > 0 && profiles[0].username.toLowerCase() === 'crosby') {
+        setIsAdmin(true);
+      }
+    } catch (e) {
+      console.error('Error checking admin status:', e);
+    }
+  };
 
   const loadUserTheme = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
@@ -86,19 +102,21 @@ export default function Layout({ children, currentPageName }) {
                   <span className="text-xs mt-1 font-medium">{item.label}</span>
                 </Link>
               );
-            })}
-            <Link
-              to={createPageUrl('Admin')}
-              className={cn(
-                "flex flex-col items-center py-1 px-3 rounded-xl transition-all",
-                currentPageName === 'Admin' 
-                  ? "text-red-600" 
-                  : "text-slate-400 hover:text-slate-600"
+              })}
+              {isAdmin && (
+              <Link
+                to={createPageUrl('Admin')}
+                className={cn(
+                  "flex flex-col items-center py-1 px-3 rounded-xl transition-all",
+                  currentPageName === 'Admin' 
+                    ? "text-red-600" 
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                <Shield className="w-5 h-5" />
+                <span className="text-xs mt-1 font-medium">Admin</span>
+              </Link>
               )}
-            >
-              <Shield className="w-5 h-5" />
-              <span className="text-xs mt-1 font-medium">Admin</span>
-            </Link>
           </div>
         </nav>
       )}
