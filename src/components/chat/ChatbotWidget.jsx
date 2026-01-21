@@ -42,12 +42,16 @@ export default function ChatbotWidget() {
 
   const initConversation = async () => {
     setLoading(true);
-    const conv = await base44.agents.createConversation({
-      agent_name: "guide_chatbot",
-      metadata: { name: "Guide Chat" }
-    });
-    setConversation(conv);
-    setMessages(conv.messages || []);
+    try {
+      const conv = await base44.agents.createConversation({
+        agent_name: "guide_chatbot",
+        metadata: { name: "Guide Chat" }
+      });
+      setConversation(conv);
+      setMessages(conv.messages || []);
+    } catch (e) {
+      console.error('Failed to create conversation:', e);
+    }
     setLoading(false);
   };
 
@@ -154,7 +158,7 @@ export default function ChatbotWidget() {
                 />
                 <Button
                   onClick={sendMessage}
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || !conversation}
                   size="icon"
                   className="bg-sky-500 hover:bg-sky-600"
                 >

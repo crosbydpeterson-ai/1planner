@@ -39,7 +39,6 @@ export default function AdminChatWidget() {
   }, [conversation?.id]);
 
   const initConversation = async () => {
-    setLoading(true);
     try {
       const conv = await base44.agents.createConversation({
         agent_name: "admin_assistant",
@@ -50,7 +49,6 @@ export default function AdminChatWidget() {
     } catch (e) {
       console.error('Failed to create conversation:', e);
     }
-    setLoading(false);
   };
 
   const sendMessage = async () => {
