@@ -1249,6 +1249,9 @@ Generate:
                         const existingSetting = appSettings.find(s => s.key === 'referral_settings');
                         if (existingSetting) {
                           await base44.entities.AppSetting.update(existingSetting.id, { value: referralSettings });
+                          setAppSettings(appSettings.map(s => 
+                            s.key === 'referral_settings' ? { ...s, value: referralSettings } : s
+                          ));
                         } else {
                           const newSetting = await base44.entities.AppSetting.create({ 
                             key: 'referral_settings', 

@@ -123,6 +123,24 @@ export default function Home() {
     setError('');
 
     try {
+      // Get referral settings
+      const settings = await base44.entities.AppSetting.list();
+      const refSetting = settings.find(s => s.key === 'referral_settings');
+      const referralMode = refSetting?.value?.referralMode || false;
+      const referrerRewardXP = refSetting?.value?.referrerRewardXP || 50;
+      const referredRewardXP = refSetting?.value?.referredRewardXP || 25;
+
+      // Check for referral code in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const referralCode = urlParams.get('ref');
+
+      // If referral mode is ON, require a referral link
+      if (referralMode && !referralCode) {
+        setError('Sign-ups require a referral link. Ask a friend to share their link with you!');
+        setLoading(false);
+        return;
+      }
+
       // Check if username already exists (case-insensitive)
       const existing = await base44.entities.UserProfile.list();
       const taken = existing.find(p => 
@@ -135,16 +153,27 @@ export default function Home() {
         return;
       }
 
+      // If there's a referral code, validate it
+      let referrerProfile = null;
+      if (referralCode) {
+        referrerProfile = existing.find(p => p.id === referralCode);
+        if (!referrerProfile) {
+          setError('Invalid referral link');
+          setLoading(false);
+          return;
+        }
+      }
+
       // Create unique ID for demo
       const uniqueId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Create user profile
+      // Create user profile with referral XP if applicable
       const profile = await base44.entities.UserProfile.create({
         userId: uniqueId,
         username: username.trim().toLowerCase(),
         mathTeacher,
         readingTeacher,
-        xp: 0,
+        xp: referralCode ? referredRewardXP : 0,
         isLocked: false,
         hiddenFromLeaderboard: false,
         unlockedPets: ['starter_slime'],
@@ -154,6 +183,13 @@ export default function Home() {
         claimedSeasonRewards: [],
         completedAssignments: []
       });
+
+      // Award XP to referrer
+      if (referrerProfile) {
+        await base44.entities.UserProfile.update(referrerProfile.id, {
+          xp: (referrerProfile.xp || 0) + referrerRewardXP
+        });
+      }
 
       // Store PIN hash
       localStorage.setItem(`pin_${uniqueId}`, btoa(pin));
