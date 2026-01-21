@@ -91,6 +91,14 @@ export default function Admin() {
     config: { bubbleCount: 15, eggChance: 10 }
   });
 
+  // Settings
+  const [appSettings, setAppSettings] = useState([]);
+  const [referralSettings, setReferralSettings] = useState({
+    referralMode: false,
+    referrerRewardXP: 50,
+    referredRewardXP: 25,
+  });
+
   useEffect(() => {
     // Check if already authenticated
     const adminAuth = localStorage.getItem('quest_admin_auth');
@@ -114,14 +122,15 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents] = await Promise.all([
+      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings] = await Promise.all([
         base44.entities.UserProfile.list('-created_date'),
         base44.entities.Assignment.list('-created_date'),
         base44.entities.CustomPet.list('-created_date'),
         base44.entities.CustomTheme.list('-created_date'),
         base44.entities.Season.list('-created_date'),
         base44.entities.MagicEgg.list('-created_date'),
-        base44.entities.AdminEvent.list('-created_date')
+        base44.entities.AdminEvent.list('-created_date'),
+        base44.entities.AppSetting.list()
       ]);
       setUsers(allUsers);
       setAssignments(allAssignments);
@@ -130,6 +139,11 @@ export default function Admin() {
       setSeasons(allSeasons);
       setMagicEggs(allEggs);
       setEvents(allEvents);
+      setAppSettings(allSettings);
+      const refSetting = allSettings.find(s => s.key === 'referral_settings');
+      if (refSetting) {
+        setReferralSettings(refSetting.value);
+      }
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -540,6 +554,10 @@ White or transparent background, centered, high quality illustration.`;
             <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">
               🫧
               Events
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">
+              ⚙️
+              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -1165,6 +1183,92 @@ Generate:
               {customThemes.length === 0 && (
                 <div className="col-span-full text-center py-8 text-slate-400">No custom themes yet</div>
               )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-purple-500/20 via-indigo-500/20 to-blue-500/20 rounded-2xl p-6 border border-white/10">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">🔗</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Referral System</h3>
+                    <p className="text-slate-400 text-sm">Configure how referrals work in your app</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 p-3 bg-slate-800/50 rounded-lg">
+                    <input
+                      type="checkbox"
+                      id="referralMode"
+                      checked={referralSettings.referralMode}
+                      onChange={(e) => setReferralSettings({ ...referralSettings, referralMode: e.target.checked })}
+                      className="rounded"
+                    />
+                    <Label htmlFor="referralMode" className="cursor-pointer text-white">
+                      Enable Referral-Only Mode (New users must have a referral link to sign up)
+                    </Label>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Referrer Reward (XP)</Label>
+                      <Input
+                        type="number"
+                        value={referralSettings.referrerRewardXP}
+                        onChange={(e) => setReferralSettings({ ...referralSettings, referrerRewardXP: parseInt(e.target.value) || 0 })}
+                        placeholder="XP for person who shared link"
+                        className="bg-slate-800/50 border-white/10 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">New User Reward (XP)</Label>
+                      <Input
+                        type="number"
+                        value={referralSettings.referredRewardXP}
+                        onChange={(e) => setReferralSettings({ ...referralSettings, referredRewardXP: parseInt(e.target.value) || 0 })}
+                        placeholder="XP for new user who joins"
+                        className="bg-slate-800/50 border-white/10 text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-800/50 rounded-lg p-4 text-sm text-slate-300">
+                    <p className="font-medium mb-2">📋 How it works:</p>
+                    <ul className="list-disc list-inside space-y-1 text-slate-400">
+                      <li>Each user gets a unique referral link in their settings</li>
+                      <li>When someone signs up with their link, both users earn XP</li>
+                      <li>If referral-only mode is ON, new users must use a referral link to sign up</li>
+                      <li>If OFF, referral links are optional but still reward XP</li>
+                    </ul>
+                  </div>
+
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const existingSetting = appSettings.find(s => s.key === 'referral_settings');
+                        if (existingSetting) {
+                          await base44.entities.AppSetting.update(existingSetting.id, { value: referralSettings });
+                        } else {
+                          const newSetting = await base44.entities.AppSetting.create({ 
+                            key: 'referral_settings', 
+                            value: referralSettings 
+                          });
+                          setAppSettings([...appSettings, newSetting]);
+                        }
+                        toast.success('Referral settings saved!');
+                      } catch (e) {
+                        console.error('Failed to save referral settings:', e);
+                        toast.error('Failed to save settings');
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Referral Settings
+                  </Button>
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
