@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import AssignmentCard from '@/components/quest/AssignmentCard';
 import GlassIcon from '@/components/ui/GlassIcon';
+import ByteReviewDialog from '@/components/assignments/ByteReviewDialog';
 import { toast } from 'sonner';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
 
@@ -25,6 +26,8 @@ export default function Assignments() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAssignment, setNewAssignment] = useState({ title: '', description: '', dueDate: '', subject: 'everyone' });
   const [submitting, setSubmitting] = useState(false);
+  const [showByteReview, setShowByteReview] = useState(false);
+  const [pendingAssignment, setPendingAssignment] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -82,6 +85,13 @@ export default function Assignments() {
       toast.error('Please enter a title');
       return;
     }
+    // Open Byte review dialog
+    setPendingAssignment({ ...newAssignment });
+    setShowAddForm(false);
+    setShowByteReview(true);
+  };
+
+  const submitAssignment = async (finalAssignment) => {
     setSubmitting(true);
     try {
       // AI moderation check
@@ -89,8 +99,8 @@ export default function Assignments() {
         prompt: `You are a content moderator for a school assignment tracker app used by students. 
 Review this assignment suggestion and determine if it should be flagged for admin review.
 
-Title: "${newAssignment.title}"
-Description: "${newAssignment.description || 'No description'}"
+Title: "${finalAssignment.title}"
+Description: "${finalAssignment.description || 'No description'}"
 
 Flag the assignment if ANY of these apply:
 - Inappropriate, offensive, or vulgar language
@@ -110,19 +120,19 @@ Respond with JSON:`,
 
       // Set target based on subject and user's teacher
       let target = 'everyone';
-      if (newAssignment.subject === 'math') {
+      if (pendingAssignment.subject === 'math') {
         target = profile.mathTeacher;
-      } else if (newAssignment.subject === 'reading') {
+      } else if (pendingAssignment.subject === 'reading') {
         target = profile.readingTeacher;
       }
 
       const assignment = await base44.entities.Assignment.create({
-        title: newAssignment.title,
-        description: newAssignment.description,
-        subject: newAssignment.subject,
+        title: finalAssignment.title,
+        description: finalAssignment.description,
+        subject: pendingAssignment.subject,
         target: target,
         xpReward: 25,
-        dueDate: newAssignment.dueDate || null,
+        dueDate: pendingAssignment.dueDate || null,
         isApproved: true,
         isFlagged: moderationResult.shouldFlag || false,
         flagReason: moderationResult.shouldFlag ? moderationResult.reason : null
@@ -137,7 +147,8 @@ Respond with JSON:`,
       }
       
       setAssignments([assignment, ...assignments]);
-      setShowAddForm(false);
+      setShowByteReview(false);
+      setPendingAssignment(null);
       setNewAssignment({ title: '', description: '', dueDate: '', subject: 'everyone' });
     } catch (e) {
       toast.error('Failed to submit assignment');
@@ -260,7 +271,7 @@ Respond with JSON:`,
         <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Suggest an Assignment</DialogTitle>
+              <DialogTitle>Add an Assignment</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -268,7 +279,7 @@ Respond with JSON:`,
                 <Input
                   value={newAssignment.title}
                   onChange={(e) => setNewAssignment({ ...newAssignment, title: e.target.value })}
-                  placeholder="Assignment title"
+                  placeholder="Assignment title (or paste from Google Classroom)"
                 />
               </div>
               <div className="space-y-2">
@@ -292,7 +303,8 @@ Respond with JSON:`,
                 <Textarea
                   value={newAssignment.description}
                   onChange={(e) => setNewAssignment({ ...newAssignment, description: e.target.value })}
-                  placeholder="What needs to be done?"
+                  placeholder="Paste assignment details here - Byte will help simplify it!"
+                  className="min-h-[100px]"
                 />
               </div>
               <div className="space-y-2">
@@ -304,16 +316,33 @@ Respond with JSON:`,
                   min={new Date().toISOString().split('T')[0]}
                 />
               </div>
-              <p className="text-sm text-slate-500">Assignments are auto-approved. AI may flag suspicious ones for review (no XP until cleared).</p>
+              <p className="text-sm text-slate-500">🤖 Byte will review your assignment to make sure it's clear for everyone!</p>
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
               <Button onClick={handleAddAssignment} disabled={submitting} className="bg-emerald-600">
-                {submitting ? 'Submitting...' : 'Submit'}
+                Next: Byte Review
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Byte Review Dialog */}
+        <ByteReviewDialog
+          open={showByteReview}
+          onOpenChange={(open) => {
+            setShowByteReview(open);
+            if (!open) setPendingAssignment(null);
+          }}
+          assignment={pendingAssignment}
+          onAccept={(finalAssignment) => submitAssignment(finalAssignment)}
+          onRetry={() => {
+            setShowByteReview(false);
+            setNewAssignment(pendingAssignment);
+            setShowAddForm(true);
+          }}
+          onSkip={(originalAssignment) => submitAssignment(originalAssignment)}
+        />
 
         {/* Filters */}
         <motion.div

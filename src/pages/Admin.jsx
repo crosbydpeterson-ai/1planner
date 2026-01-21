@@ -675,52 +675,74 @@ White or transparent background, centered, high quality illustration.`;
                   className="bg-slate-800 rounded-xl p-4 border border-slate-700"
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-white flex items-center gap-2">
-                        {assignment.title}
-                        {!assignment.isApproved && (
-                          <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">
-                            Pending
-                          </span>
-                        )}
-                      </h3>
-                      <p className="text-sm text-slate-400">
-                        {assignment.subject === 'everyone' 
-                          ? 'All Students' 
-                          : `${assignment.subject}: ${assignment.target}`
-                        }
-                        {assignment.xpReward && ` • ${assignment.xpReward} XP`}
-                        {assignment.dueDate && ` • Due: ${assignment.dueDate}`}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-white flex items-center gap-2 flex-wrap">
+                      {assignment.title}
                       {!assignment.isApproved && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleApproveAssignment(assignment)}
-                          className="bg-emerald-600 hover:bg-emerald-700"
-                        >
-                          <Check className="w-4 h-4 mr-1" />
-                          Approve
-                        </Button>
+                        <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">
+                          Pending
+                        </span>
                       )}
+                      {assignment.isFlagged && (
+                        <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">
+                          🚩 Flagged
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-sm text-slate-400">
+                      {assignment.subject === 'everyone' 
+                        ? 'All Students' 
+                        : `${assignment.subject}: ${assignment.target}`
+                      }
+                      {assignment.xpReward && ` • ${assignment.xpReward} XP`}
+                      {assignment.dueDate && ` • Due: ${assignment.dueDate}`}
+                    </p>
+                    {assignment.isFlagged && assignment.flagReason && (
+                      <p className="text-xs text-red-400 mt-1">Reason: {assignment.flagReason}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    {assignment.isFlagged && (
                       <Button
                         size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingAssignment({ ...assignment })}
-                        className="text-slate-400 hover:text-white"
+                        onClick={async () => {
+                          await base44.entities.Assignment.update(assignment.id, { isFlagged: false, flagReason: null });
+                          setAssignments(assignments.map(a => a.id === assignment.id ? { ...a, isFlagged: false, flagReason: null } : a));
+                          toast.success('Assignment cleared! Users can now earn XP.');
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Check className="w-4 h-4 mr-1" />
+                        Clear Flag
                       </Button>
+                    )}
+                    {!assignment.isApproved && (
                       <Button
                         size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteAssignment(assignment)}
-                        className="text-red-400 hover:text-red-300"
+                        onClick={() => handleApproveAssignment(assignment)}
+                        className="bg-emerald-600 hover:bg-emerald-700"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Check className="w-4 h-4 mr-1" />
+                        Approve
                       </Button>
-                    </div>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingAssignment({ ...assignment })}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDeleteAssignment(assignment)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                   </div>
                 </motion.div>
               ))}
