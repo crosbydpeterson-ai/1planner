@@ -137,7 +137,19 @@ export default function Admin() {
 
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
-      if (profiles.length === 0 || profiles[0].username.toLowerCase() !== 'crosby') {
+      if (profiles.length === 0) {
+        navigate(createPageUrl('Dashboard'));
+        return;
+      }
+      
+      const currentProfile = profiles[0];
+      
+      // Check if user is "Crosby" OR the first user created
+      const isAdminUser = currentProfile.username.toLowerCase() === 'crosby';
+      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
+      const isFirstUser = allProfiles.length > 0 && allProfiles[0].id === currentProfile.id;
+      
+      if (!isAdminUser && !isFirstUser) {
         // Not admin user, redirect to dashboard
         navigate(createPageUrl('Dashboard'));
         return;
