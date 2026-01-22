@@ -8,51 +8,111 @@ const TUTORIAL_STEPS = [
   {
     id: 'welcome',
     title: 'Welcome to Quest Planner! 🎉',
-    description: 'Let me show you around! Complete this quick tutorial to earn your first 50 XP.',
+    description: 'Let me show you around! Complete this quick tutorial to earn 50 XP and 100 Quest Coins!',
     target: null,
-    position: 'center'
+    position: 'center',
+    page: 'Dashboard'
   },
   {
     id: 'xp',
     title: 'Your XP Progress',
     description: 'This shows your experience points and level. Complete assignments to earn XP!',
     target: '[data-tutorial="xp-widget"]',
-    position: 'bottom'
+    position: 'bottom',
+    page: 'Dashboard'
   },
   {
     id: 'pet',
     title: 'Your Pet Companion',
     description: 'This is your magical pet! Unlock new pets and themes as you level up.',
     target: '[data-tutorial="pet-widget"]',
-    position: 'bottom'
+    position: 'bottom',
+    page: 'Dashboard'
   },
   {
-    id: 'assignments',
+    id: 'widgets',
+    title: 'Customize Your Dashboard',
+    description: 'Tap this settings icon to customize which widgets you want to see on your dashboard!',
+    target: '[data-tutorial="widget-settings"]',
+    position: 'bottom',
+    page: 'Dashboard',
+    allowClick: true
+  },
+  {
+    id: 'assignments-intro',
     title: 'Your Quests',
-    description: 'Here you\'ll see your assignments. Tap "Quests" in the navigation to view and complete them.',
+    description: 'Here you\'ll see your assignments. Let\'s check them out! Tap "Quests" below.',
     target: '[data-tutorial="assignments-widget"]',
-    position: 'top'
+    position: 'top',
+    page: 'Dashboard'
   },
   {
-    id: 'nav',
-    title: 'Navigation',
-    description: 'Use these buttons to explore: Quests, Shop, Leaderboard, Collection, and Seasons!',
-    target: 'nav',
-    position: 'top'
-  },
-  {
-    id: 'practice',
-    title: 'Try It Out! 📝',
-    description: 'I\'ve created a practice assignment for you. Go to Quests and complete it to earn 50 XP!',
+    id: 'assignments-page',
+    title: 'Quest Page',
+    description: 'This is where all your assignments appear. Complete them to earn XP and Quest Coins!',
     target: null,
-    position: 'center'
+    position: 'center',
+    page: 'Assignments'
+  },
+  {
+    id: 'add-quest',
+    title: 'Add Your Own Quests',
+    description: 'You can add personal goals here! Tap this button to create your own assignments.',
+    target: '[data-tutorial="add-assignment"]',
+    position: 'bottom',
+    page: 'Assignments',
+    allowClick: true
+  },
+  {
+    id: 'rewards-nav',
+    title: 'Your Collection',
+    description: 'Now let\'s check out your pets and rewards! Tap "Collection" in the nav.',
+    target: 'a[href*="Rewards"]',
+    position: 'top',
+    page: 'Assignments',
+    allowClick: true
+  },
+  {
+    id: 'rewards-page',
+    title: 'Collection Page',
+    description: 'Here you can see all your pets, titles, and unlock new ones as you level up!',
+    target: null,
+    position: 'center',
+    page: 'Rewards'
+  },
+  {
+    id: 'shop-nav',
+    title: 'The Shop',
+    description: 'Let\'s visit the shop! You\'ll get some free Quest Coins to spend. Tap "Shop"!',
+    target: 'a[href*="Shop"]',
+    position: 'top',
+    page: 'Rewards',
+    allowClick: true
+  },
+  {
+    id: 'shop-page',
+    title: 'Shop - Buy Items! 🛍️',
+    description: 'I gave you 100 free Quest Coins! Try buying something - everyone gets this welcome bonus.',
+    target: null,
+    position: 'center',
+    page: 'Shop',
+    giveCoins: true
+  },
+  {
+    id: 'complete',
+    title: 'You\'re All Set! ✨',
+    description: 'Tutorial complete! Go to Quests and finish that practice assignment to earn 50 XP. Have fun!',
+    target: null,
+    position: 'center',
+    page: 'any'
   }
 ];
 
-export default function Tutorial({ profile, onComplete }) {
+export default function Tutorial({ profile, onComplete, currentPage }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
   const [highlightRect, setHighlightRect] = useState(null);
+  const [coinsGiven, setCoinsGiven] = useState(false);
 
   useEffect(() => {
     // Show tutorial if user hasn't completed it
@@ -88,7 +148,21 @@ export default function Tutorial({ profile, onComplete }) {
     };
   }, [currentStep, showTutorial]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    const step = TUTORIAL_STEPS[currentStep];
+    
+    // Give coins on shop page step
+    if (step.giveCoins && !coinsGiven && profile) {
+      try {
+        await base44.entities.UserProfile.update(profile.id, {
+          questCoins: (profile.questCoins || 0) + 100
+        });
+        setCoinsGiven(true);
+      } catch (e) {
+        console.error('Failed to give coins:', e);
+      }
+    }
+    
     if (currentStep < TUTORIAL_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -114,21 +188,33 @@ export default function Tutorial({ profile, onComplete }) {
   if (!showTutorial) return null;
 
   const step = TUTORIAL_STEPS[currentStep];
+  
+  // Check if we're on the right page for this step
+  if (step.page !== 'any' && currentPage && step.page !== currentPage) {
+    // Don't show tutorial if we're not on the right page
+    return null;
+  }
+  
   const isCenter = step.position === 'center';
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
       {/* Overlay with cutout */}
-      <div className="absolute inset-0 bg-black/60 pointer-events-auto" onClick={handleSkip}>
+      <div 
+        className="absolute inset-0 bg-black/60 pointer-events-auto" 
+        onClick={step.allowClick ? undefined : handleSkip}
+        style={step.allowClick ? { pointerEvents: 'none' } : {}}
+      >
         {highlightRect && (
           <div
-            className="absolute border-4 border-white rounded-xl shadow-2xl pointer-events-none"
+            className={step.allowClick ? "absolute border-4 border-white rounded-xl shadow-2xl pointer-events-auto" : "absolute border-4 border-white rounded-xl shadow-2xl pointer-events-none"}
             style={{
               left: highlightRect.left - 8,
               top: highlightRect.top - 8,
               width: highlightRect.width + 16,
               height: highlightRect.height + 16,
-              boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)'
+              boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)',
+              zIndex: 51
             }}
           />
         )}

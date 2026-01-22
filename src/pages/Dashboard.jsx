@@ -236,6 +236,7 @@ export default function Dashboard() {
               size="icon"
               onClick={() => setShowCustomizer(true)}
               className="text-slate-400 hover:text-slate-600"
+              data-tutorial="widget-settings"
             >
               <Settings className="w-5 h-5" />
             </Button>
@@ -274,7 +275,7 @@ export default function Dashboard() {
       <EventManager profile={profile} />
 
       {/* Tutorial */}
-      <Tutorial profile={profile} onComplete={handleTutorialComplete} />
+      <Tutorial profile={profile} currentPage="Dashboard" onComplete={handleTutorialComplete} />
       </div>
       );
       }
