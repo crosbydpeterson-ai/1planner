@@ -21,6 +21,7 @@ import SeasonProgressWidget from '@/components/dashboard/widgets/SeasonProgressW
 import QuickNavWidget from '@/components/dashboard/widgets/QuickNavWidget';
 
 const DEFAULT_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
+const ALL_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -57,9 +58,11 @@ export default function Dashboard() {
       const p = profiles[0];
       setProfile(p);
 
-      // Load widget config from profile or use default
+      // Load widget config from profile or use all widgets as default
       if (p.widgetConfig && Array.isArray(p.widgetConfig)) {
         setActiveWidgets(p.widgetConfig);
+      } else {
+        setActiveWidgets(ALL_WIDGETS);
       }
 
       // Get equipped pet and its theme
