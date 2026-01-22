@@ -2013,9 +2013,11 @@ Generate a pack_name and items array.`,
                   />
                 </div>
               )}
-              <div className="space-y-2">
-                <Label>Select {giftType === 'pet' ? 'Pet' : 'Theme'}</Label>
-                <Select value={giftItemId} onValueChange={setGiftItemId}>
+              
+              {giftType !== 'coins' && (
+                <div className="space-y-2">
+                  <Label>Select {giftType === 'pet' ? 'Pet' : 'Theme'}</Label>
+                  <Select value={giftItemId} onValueChange={setGiftItemId}>
                   <SelectTrigger className="bg-slate-700 border-slate-600">
                     <SelectValue placeholder={`Select a ${giftType}`} />
                   </SelectTrigger>
@@ -2049,7 +2051,8 @@ Generate a pack_name and items array.`,
                     )}
                   </SelectContent>
                 </Select>
-              </div>
+                </div>
+              )}
               
               <div className="flex gap-2 pt-2">
                 <Button
