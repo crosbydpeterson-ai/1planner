@@ -291,19 +291,7 @@ White or transparent background, centered, high quality illustration.`;
                     )}
                   </div>
                   
-                  {/* Regenerate Image Button */}
-                  {!generatingImage && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => generatePetImage(generatedPet)}
-                      className="mb-2 text-xs"
-                      style={{ color: generatedPet.theme?.primary }}
-                    >
-                      <RefreshCw className="w-3 h-3 mr-1" />
-                      {generatedImageUrl ? 'New Image' : 'Generate Image'}
-                    </Button>
-                  )}
+
                   
                   <h3 
                     className="text-xl font-bold mb-1"
@@ -329,23 +317,14 @@ White or transparent background, centered, high quality illustration.`;
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => { setStep('idea'); setGeneratedPet(null); setGeneratedImageUrl(null); }}
-                    className="flex-1"
-                  >
-                    Try Again
-                  </Button>
-                  <Button
-                    onClick={handleHatchPet}
-                    disabled={generatingImage}
-                    className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Hatch Pet!
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleHatchPet}
+                  disabled={generatingImage}
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Hatch Pet!
+                </Button>
               </motion.div>
             )}
 
