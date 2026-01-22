@@ -4,11 +4,12 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { ChevronRight, ClipboardList } from 'lucide-react';
 
-export default function RecentAssignmentsWidget({ assignments, completedIds }) {
+export default function RecentAssignmentsWidget({ assignments, completedIds, ...props }) {
   if (!assignments || assignments.length === 0) return null;
 
   return (
     <motion.div
+      {...props}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="relative rounded-2xl p-5 overflow-hidden bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg"

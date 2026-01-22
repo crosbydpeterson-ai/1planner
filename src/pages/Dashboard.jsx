@@ -19,6 +19,7 @@ import MiniLeaderboardWidget from '@/components/dashboard/widgets/MiniLeaderboar
 import RecentAssignmentsWidget from '@/components/dashboard/widgets/RecentAssignmentsWidget';
 import SeasonProgressWidget from '@/components/dashboard/widgets/SeasonProgressWidget';
 import QuickNavWidget from '@/components/dashboard/widgets/QuickNavWidget';
+import Tutorial from '@/components/tutorial/Tutorial';
 
 const DEFAULT_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
 const ALL_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
@@ -39,6 +40,11 @@ export default function Dashboard() {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  const handleTutorialComplete = async () => {
+    // Reload profile to reflect tutorial completion
+    loadProfile();
+  };
 
   const loadProfile = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
@@ -133,9 +139,9 @@ export default function Dashboard() {
   const renderWidget = (widgetId) => {
     switch (widgetId) {
       case 'xp':
-        return <XPWidget key={widgetId} xp={profile.xp} />;
+        return <XPWidget key={widgetId} xp={profile.xp} data-tutorial="xp-widget" />;
       case 'pet':
-        return <PetWidget key={widgetId} pet={currentPet} themeColors={themeColors} />;
+        return <PetWidget key={widgetId} pet={currentPet} themeColors={themeColors} data-tutorial="pet-widget" />;
       case 'stats':
         return (
           <StatsWidget 
@@ -153,6 +159,7 @@ export default function Dashboard() {
             key={widgetId}
             assignments={recentAssignments} 
             completedIds={profile.completedAssignments} 
+            data-tutorial="assignments-widget"
           />
         );
       case 'season':
@@ -248,6 +255,9 @@ export default function Dashboard() {
 
       {/* Event Manager */}
       <EventManager profile={profile} />
-    </div>
-  );
-}
+
+      {/* Tutorial */}
+      <Tutorial profile={profile} onComplete={handleTutorialComplete} />
+      </div>
+      );
+      }

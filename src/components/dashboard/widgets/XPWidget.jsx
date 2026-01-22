@@ -2,9 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import XPProgress from '@/components/quest/XPProgress';
 
-export default function XPWidget({ xp }) {
+export default function XPWidget({ xp, ...props }) {
   return (
     <motion.div
+      {...props}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="relative rounded-3xl p-6 overflow-hidden bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg"

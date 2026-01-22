@@ -4,9 +4,10 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { ChevronRight } from 'lucide-react';
 
-export default function PetWidget({ pet, themeColors }) {
+export default function PetWidget({ pet, themeColors, ...props }) {
   return (
     <motion.div
+      {...props}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="relative rounded-2xl p-4 overflow-hidden bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg"
