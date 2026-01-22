@@ -173,32 +173,62 @@ export default function Shop() {
       let newXP = profile.xp || 0;
 
       // Apply all item effects
+      console.log('Bundle items:', items);
       for (const itemArr of items) {
         const item = itemArr[0];
-        if (!item) continue;
+        if (!item) {
+          console.log('Skipping empty item');
+          continue;
+        }
+
+        console.log('Processing item:', item.name, 'type:', item.itemType, 'data:', item.itemData);
 
         if (item.itemType === 'pet') {
           const petId = item.itemData?.petId;
-          if (petId && !newUnlockedPets.includes(petId)) {
-            newUnlockedPets.push(petId);
+          console.log('Pet ID:', petId, 'Already unlocked?', newUnlockedPets.includes(petId));
+          if (petId) {
+            if (!newUnlockedPets.includes(petId)) {
+              newUnlockedPets.push(petId);
+              console.log('✓ Added pet:', petId);
+            } else {
+              console.log('Pet already unlocked, skipping');
+            }
+          } else {
+            console.log('ERROR: No petId in itemData!');
           }
         } else if (item.itemType === 'theme') {
           const themeId = item.itemData?.themeId;
-          if (themeId && !newUnlockedThemes.includes(themeId)) {
-            newUnlockedThemes.push(themeId);
+          console.log('Theme ID:', themeId, 'Already unlocked?', newUnlockedThemes.includes(themeId));
+          if (themeId) {
+            if (!newUnlockedThemes.includes(themeId)) {
+              newUnlockedThemes.push(themeId);
+              console.log('✓ Added theme:', themeId);
+            } else {
+              console.log('Theme already unlocked, skipping');
+            }
+          } else {
+            console.log('ERROR: No themeId in itemData!');
           }
         } else if (item.itemType === 'title') {
           const title = item.itemData?.title;
           if (title && !newUnlockedTitles.includes(title)) {
             newUnlockedTitles.push(title);
+            console.log('✓ Added title:', title);
           }
         } else if (item.itemType === 'xp_booster') {
           const xpAmount = item.itemData?.xpAmount || 0;
           newXP += xpAmount;
+          console.log('✓ Added XP:', xpAmount);
         } else if (item.itemType === 'magic_egg') {
           await base44.entities.MagicEgg.create({ userId: profile.userId });
+          console.log('✓ Created magic egg');
         }
       }
+      
+      console.log('Final unlocked pets:', newUnlockedPets);
+      console.log('Final unlocked themes:', newUnlockedThemes);
+      console.log('Final unlocked titles:', newUnlockedTitles);
+      console.log('Final XP:', newXP);
       
       const updates = {
         questCoins: newCoins,
