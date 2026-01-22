@@ -1534,6 +1534,7 @@ Generate a pack_name and items array.`,
                     Create Pack with AI
                   </Button>
                 </div>
+                </div>
               </div>
 
               {/* Bundles */}
