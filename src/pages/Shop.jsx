@@ -88,69 +88,70 @@ export default function Shop() {
     }
 
     try {
-      const newCoins = profile.questCoins - item.price;
-      const updates = { questCoins: newCoins };
+      // Build update object
+      const updates = {
+        questCoins: profile.questCoins - item.price,
+        unlockedPets: [...(profile.unlockedPets || [])],
+        unlockedThemes: [...(profile.unlockedThemes || [])],
+        unlockedTitles: [...(profile.unlockedTitles || [])],
+        xp: profile.xp || 0
+      };
 
-      // Apply item effect based on type
+      // Apply item effects
       if (item.itemType === 'pet') {
         const petId = item.itemData?.petId;
-        if (petId && !profile.unlockedPets?.includes(petId)) {
-          updates.unlockedPets = [...(profile.unlockedPets || []), petId];
+        if (petId && !updates.unlockedPets.includes(petId)) {
+          updates.unlockedPets.push(petId);
         }
       } else if (item.itemType === 'theme') {
         const themeId = item.itemData?.themeId;
-        if (themeId && !profile.unlockedThemes?.includes(themeId)) {
-          updates.unlockedThemes = [...(profile.unlockedThemes || []), themeId];
+        if (themeId && !updates.unlockedThemes.includes(themeId)) {
+          updates.unlockedThemes.push(themeId);
         }
       } else if (item.itemType === 'title') {
         const title = item.itemData?.title;
-        if (title && !profile.unlockedTitles?.includes(title)) {
-          updates.unlockedTitles = [...(profile.unlockedTitles || []), title];
+        if (title && !updates.unlockedTitles.includes(title)) {
+          updates.unlockedTitles.push(title);
         }
       } else if (item.itemType === 'xp_booster') {
-        const xpAmount = item.itemData?.xpAmount || 0;
-        updates.xp = (profile.xp || 0) + xpAmount;
+        updates.xp += (item.itemData?.xpAmount || 0);
       } else if (item.itemType === 'magic_egg') {
         await base44.entities.MagicEgg.create({ userId: profile.userId });
       }
 
+      // Save to database
       await base44.entities.UserProfile.update(profile.id, updates);
 
-      // Update stock if limited
+      // Update stock
       if (item.stockRemaining !== null) {
         const newStock = item.stockRemaining - 1;
-        await base44.entities.ShopItem.update(item.id, {
-          stockRemaining: newStock
-        });
-        // Remove item from list if out of stock
+        await base44.entities.ShopItem.update(item.id, { stockRemaining: newStock });
         if (newStock <= 0) {
           setShopItems(shopItems.filter(i => i.id !== item.id));
         }
       }
 
-      // Update profile state immediately
-      const updatedProfile = { ...profile, ...updates };
-      setProfile(updatedProfile);
+      // Update local state
+      setProfile(updates);
       
-      // Track item purchase
+      // Analytics
       base44.analytics.track({
         eventName: 'shop_item_purchased',
         properties: {
           item_name: item.name,
           item_type: item.itemType,
           item_price: item.price,
-          item_rarity: item.rarity,
-          coins_remaining: newCoins
+          coins_remaining: updates.questCoins
         }
       });
       
-      toast.success(`Purchased ${item.name}!`);
+      toast.success(`✓ ${item.name} purchased!`);
       
-      // Force reload to ensure everything is synced
-      setTimeout(() => loadData(), 500);
+      // Reload to sync
+      await loadData();
     } catch (e) {
-      console.error('Error purchasing item:', e);
-      toast.error('Purchase failed');
+      console.error('Purchase failed:', e);
+      toast.error('Purchase failed - please try again');
     }
   };
 
@@ -161,119 +162,84 @@ export default function Shop() {
     }
 
     try {
-      // Load all items in the bundle
-      const items = await Promise.all(
+      // Fetch all bundle items
+      const itemsData = await Promise.all(
         bundle.itemIds.map(id => base44.entities.ShopItem.filter({ id }))
       );
 
-      let newCoins = profile.questCoins - bundle.bundlePrice;
-      let newUnlockedPets = [...(profile.unlockedPets || [])];
-      let newUnlockedThemes = [...(profile.unlockedThemes || [])];
-      let newUnlockedTitles = [...(profile.unlockedTitles || [])];
-      let newXP = profile.xp || 0;
+      // Build complete update object
+      const updates = {
+        questCoins: profile.questCoins - bundle.bundlePrice,
+        unlockedPets: [...(profile.unlockedPets || [])],
+        unlockedThemes: [...(profile.unlockedThemes || [])],
+        unlockedTitles: [...(profile.unlockedTitles || [])],
+        xp: profile.xp || 0
+      };
 
-      // Apply all item effects
-      console.log('Bundle items:', items);
-      for (const itemArr of items) {
+      let itemCount = 0;
+
+      // Process each item
+      for (const itemArr of itemsData) {
         const item = itemArr[0];
-        if (!item) {
-          console.log('Skipping empty item');
-          continue;
-        }
+        if (!item) continue;
 
-        console.log('Processing item:', item.name, 'type:', item.itemType, 'data:', item.itemData);
+        itemCount++;
 
         if (item.itemType === 'pet') {
           const petId = item.itemData?.petId;
-          console.log('Pet ID:', petId, 'Already unlocked?', newUnlockedPets.includes(petId));
-          if (petId) {
-            if (!newUnlockedPets.includes(petId)) {
-              newUnlockedPets.push(petId);
-              console.log('✓ Added pet:', petId);
-            } else {
-              console.log('Pet already unlocked, skipping');
-            }
-          } else {
-            console.log('ERROR: No petId in itemData!');
+          if (petId && !updates.unlockedPets.includes(petId)) {
+            updates.unlockedPets.push(petId);
           }
         } else if (item.itemType === 'theme') {
           const themeId = item.itemData?.themeId;
-          console.log('Theme ID:', themeId, 'Already unlocked?', newUnlockedThemes.includes(themeId));
-          if (themeId) {
-            if (!newUnlockedThemes.includes(themeId)) {
-              newUnlockedThemes.push(themeId);
-              console.log('✓ Added theme:', themeId);
-            } else {
-              console.log('Theme already unlocked, skipping');
-            }
-          } else {
-            console.log('ERROR: No themeId in itemData!');
+          if (themeId && !updates.unlockedThemes.includes(themeId)) {
+            updates.unlockedThemes.push(themeId);
           }
         } else if (item.itemType === 'title') {
           const title = item.itemData?.title;
-          if (title && !newUnlockedTitles.includes(title)) {
-            newUnlockedTitles.push(title);
-            console.log('✓ Added title:', title);
+          if (title && !updates.unlockedTitles.includes(title)) {
+            updates.unlockedTitles.push(title);
           }
         } else if (item.itemType === 'xp_booster') {
-          const xpAmount = item.itemData?.xpAmount || 0;
-          newXP += xpAmount;
-          console.log('✓ Added XP:', xpAmount);
+          updates.xp += (item.itemData?.xpAmount || 0);
         } else if (item.itemType === 'magic_egg') {
           await base44.entities.MagicEgg.create({ userId: profile.userId });
-          console.log('✓ Created magic egg');
         }
       }
-      
-      console.log('Final unlocked pets:', newUnlockedPets);
-      console.log('Final unlocked themes:', newUnlockedThemes);
-      console.log('Final unlocked titles:', newUnlockedTitles);
-      console.log('Final XP:', newXP);
-      
-      const updates = {
-        questCoins: newCoins,
-        unlockedPets: newUnlockedPets,
-        unlockedThemes: newUnlockedThemes,
-        unlockedTitles: newUnlockedTitles,
-        xp: newXP
-      };
 
+      // Save to database
       await base44.entities.UserProfile.update(profile.id, updates);
 
-      // Update stock if limited
+      // Update stock
       if (bundle.stockRemaining !== null) {
         const newStock = bundle.stockRemaining - 1;
-        await base44.entities.Bundle.update(bundle.id, {
-          stockRemaining: newStock
-        });
-        // Remove bundle from list if out of stock
+        await base44.entities.Bundle.update(bundle.id, { stockRemaining: newStock });
         if (newStock <= 0) {
           setBundles(bundles.filter(b => b.id !== bundle.id));
         }
       }
 
-      // Update profile state immediately
-      const updatedProfile = { ...profile, ...updates };
-      setProfile(updatedProfile);
+      // Update local state
+      setProfile(updates);
       
-      // Track bundle purchase
+      // Analytics
       base44.analytics.track({
         eventName: 'bundle_purchased',
         properties: {
           bundle_name: bundle.name,
           bundle_price: bundle.bundlePrice,
-          items_count: items.length,
-          coins_remaining: newCoins
+          items_count: itemCount,
+          coins_remaining: updates.questCoins
         }
       });
       
-      toast.success(`Purchased ${bundle.name}! Unlocked ${items.length} items!`);
+      toast.success(`✓ ${bundle.name} purchased! Got ${itemCount} items!`);
       
-      // Force reload to ensure everything is synced
-      setTimeout(() => loadData(), 500);
+      // Reload to sync
+      await loadData();
     } catch (e) {
-      console.error('Error purchasing bundle:', e);
-      toast.error('Purchase failed');
+      console.error('Bundle purchase failed:', e);
+      toast.error('Purchase failed - please try again');
     }
   };
 
