@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { PETS, RARITY_COLORS } from '@/components/quest/PetCatalog';
 import GlassIcon from '@/components/ui/GlassIcon';
 import MagicEggCreator from '@/components/rewards/MagicEggCreator';
+import Tutorial from '@/components/tutorial/Tutorial';
 import { toast } from 'sonner';
 
 export default function Rewards() {
@@ -359,6 +360,9 @@ export default function Rewards() {
           })}
         </motion.div>
       </div>
+      
+      {/* Tutorial */}
+      <Tutorial profile={profile} currentPage="Rewards" onComplete={() => {}} />
     </div>
   );
 }

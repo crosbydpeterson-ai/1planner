@@ -7,6 +7,7 @@ import { ShoppingBag, Coins, Sparkles, Clock, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GlassIcon from '@/components/ui/GlassIcon';
+import Tutorial from '@/components/tutorial/Tutorial';
 import { toast } from 'sonner';
 
 export default function Shop() {
@@ -447,6 +448,9 @@ export default function Shop() {
           </AnimatePresence>
         </div>
       </div>
+      
+      {/* Tutorial */}
+      <Tutorial profile={profile} currentPage="Shop" onComplete={() => {}} />
     </div>
   );
 }
