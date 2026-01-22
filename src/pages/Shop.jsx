@@ -109,7 +109,8 @@ export default function Shop() {
           updates.unlockedThemes.push(themeId);
         }
       } else if (item.itemType === 'title') {
-        const title = item.itemData?.title;
+        // Use the item name as the title if itemData.title is not set
+        const title = item.itemData?.title || item.name;
         if (title && !updates.unlockedTitles.includes(title)) {
           updates.unlockedTitles.push(title);
         }
@@ -196,7 +197,8 @@ export default function Shop() {
             updates.unlockedThemes.push(themeId);
           }
         } else if (item.itemType === 'title') {
-          const title = item.itemData?.title;
+          // Use the item name as the title if itemData.title is not set
+          const title = item.itemData?.title || item.name;
           if (title && !updates.unlockedTitles.includes(title)) {
             updates.unlockedTitles.push(title);
           }
