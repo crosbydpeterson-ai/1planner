@@ -3,20 +3,31 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Wand2, Loader2, Sparkles, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Wand2, Loader2, Sparkles, ArrowLeft, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 export default function PetCreator() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [petIdea, setPetIdea] = useState('');
-  const [generating, setGenerating] = useState(false);
-  const [generatedPet, setGeneratedPet] = useState(null);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState(null);
-  const [generatingImage, setGeneratingImage] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  // Form state
+  const [petName, setPetName] = useState('');
+  const [description, setDescription] = useState('');
+  const [emoji, setEmoji] = useState('');
+  const [rarity, setRarity] = useState('uncommon');
+  const [primaryColor, setPrimaryColor] = useState('#3b82f6');
+  const [secondaryColor, setSecondaryColor] = useState('#93c5fd');
+  const [accentColor, setAccentColor] = useState('#f59e0b');
+  const [bgColor, setBgColor] = useState('#f0f9ff');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     checkAccess();
@@ -44,104 +55,85 @@ export default function PetCreator() {
     setLoading(false);
   };
 
-  const handleGenerate = async () => {
-    if (!petIdea.trim()) {
-      toast.error('Describe your creature idea!');
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
       return;
     }
 
-    setGenerating(true);
-    setGeneratedPet(null);
-    setGeneratedImageUrl(null);
-
-    try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a magical creature designer for a KIDS school gamification app.
-
-Create a magical companion based on: "${petIdea}"
-
-WHAT YOU CAN CREATE:
-- Traditional pets, magical creatures, living objects, food creatures, nature spirits, abstract concepts, robots, mythical beings - ANYTHING fun!
-
-CONTENT RULES (FOR CHILDREN):
-- Must be appropriate for elementary/middle school kids
-- NO violence, weapons, scary monsters, demons, horror
-- NO inappropriate content
-- Keep it cute, fun, positive, school-friendly!
-- If idea is inappropriate, make a safe alternative
-
-Generate:
-- name: Creative 2-3 word name
-- description: Fun 1-2 sentence description
-- emoji: Single emoji that fits
-- rarity: uncommon, rare, or epic
-- theme: { primary, secondary, accent, bg } - all valid hex codes`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            description: { type: "string" },
-            emoji: { type: "string" },
-            rarity: { type: "string", enum: ["uncommon", "rare", "epic"] },
-            theme: {
-              type: "object",
-              properties: {
-                primary: { type: "string" },
-                secondary: { type: "string" },
-                accent: { type: "string" },
-                bg: { type: "string" }
-              }
-            }
-          }
-        }
-      });
-
-      setGeneratedPet(result);
-      generateImage(result);
-    } catch (e) {
-      toast.error('Generation failed, try again!');
-    }
-    setGenerating(false);
-  };
-
-  const generateImage = async (pet) => {
-    setGeneratingImage(true);
-    try {
-      const imgResult = await base44.integrations.Core.GenerateImage({
-        prompt: `Cute cartoon creature for kids game: ${pet.name}. ${pet.description}. Style: adorable, colorful, Pixar-style, game mascot, kid-friendly. Colors: ${pet.theme?.primary}, ${pet.theme?.secondary}. White background, centered, high quality.`
-      });
-      setGeneratedImageUrl(imgResult.url);
-    } catch (e) {
-      console.log('Image failed, using emoji');
-    }
-    setGeneratingImage(false);
+    setImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSavePet = async () => {
-    if (!generatedPet) return;
+    if (!petName.trim()) {
+      toast.error('Pet name is required');
+      return;
+    }
+    if (!description.trim()) {
+      toast.error('Description is required');
+      return;
+    }
+    if (!emoji.trim() && !imageFile) {
+      toast.error('Provide an emoji or upload an image');
+      return;
+    }
+
+    setSaving(true);
 
     try {
+      let imageUrl = '';
+      
+      // Upload image if provided
+      if (imageFile) {
+        const uploadResult = await base44.integrations.Core.UploadFile({ file: imageFile });
+        imageUrl = uploadResult.file_url;
+      }
+
       await base44.entities.CustomPet.create({
-        name: generatedPet.name,
-        description: generatedPet.description,
-        emoji: generatedPet.emoji,
-        imageUrl: generatedImageUrl || '',
-        rarity: generatedPet.rarity,
+        name: petName.trim(),
+        description: description.trim(),
+        emoji: emoji.trim(),
+        imageUrl: imageUrl,
+        rarity: rarity,
         xpRequired: 999999,
         isGiftOnly: true,
-        theme: generatedPet.theme
+        theme: {
+          primary: primaryColor,
+          secondary: secondaryColor,
+          accent: accentColor,
+          bg: bgColor
+        }
       });
 
-      toast.success(`🎉 ${generatedPet.name} created!`, {
-        description: 'Waiting for admin approval'
+      toast.success(`🎉 ${petName} created!`, {
+        description: 'Pet saved successfully'
       });
       
-      setPetIdea('');
-      setGeneratedPet(null);
-      setGeneratedImageUrl(null);
+      // Reset form
+      setPetName('');
+      setDescription('');
+      setEmoji('');
+      setRarity('uncommon');
+      setPrimaryColor('#3b82f6');
+      setSecondaryColor('#93c5fd');
+      setAccentColor('#f59e0b');
+      setBgColor('#f0f9ff');
+      setImageFile(null);
+      setImagePreview(null);
     } catch (e) {
       toast.error('Failed to save pet');
     }
+    setSaving(false);
   };
 
   if (loading) {
@@ -184,119 +176,196 @@ Generate:
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/40"
+          className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/40 space-y-4"
         >
           <div className="text-center mb-4">
             <span className="text-5xl">🥚✨</span>
           </div>
 
-          <Textarea
-            value={petIdea}
-            onChange={(e) => setPetIdea(e.target.value)}
-            placeholder="Describe your creature... (e.g., 'A rainbow slime that loves reading', 'A tiny robot made of pencils')"
-            className="min-h-[100px] bg-white/50 border-white/40 mb-4"
-          />
+          {/* Pet Name */}
+          <div className="space-y-2">
+            <Label>Pet Name</Label>
+            <Input
+              value={petName}
+              onChange={(e) => setPetName(e.target.value)}
+              placeholder="e.g., Sparkle Dragon"
+              className="bg-white/50"
+            />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="A fun description of your pet..."
+              className="min-h-[80px] bg-white/50"
+            />
+          </div>
+
+          {/* Emoji */}
+          <div className="space-y-2">
+            <Label>Emoji (optional if image provided)</Label>
+            <Input
+              value={emoji}
+              onChange={(e) => setEmoji(e.target.value)}
+              placeholder="🐉"
+              className="bg-white/50"
+              maxLength={2}
+            />
+          </div>
+
+          {/* Image Upload */}
+          <div className="space-y-2">
+            <Label>Pet Image (optional)</Label>
+            <div className="flex items-center gap-3">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="bg-white/50"
+              />
+              {imagePreview && (
+                <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded-lg border-2 border-white" />
+              )}
+            </div>
+          </div>
+
+          {/* Rarity */}
+          <div className="space-y-2">
+            <Label>Rarity</Label>
+            <Select value={rarity} onValueChange={setRarity}>
+              <SelectTrigger className="bg-white/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="uncommon">Uncommon</SelectItem>
+                <SelectItem value="rare">Rare</SelectItem>
+                <SelectItem value="epic">Epic</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Theme Colors */}
+          <div className="space-y-3">
+            <Label>Theme Colors</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-slate-500">Primary</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-12 h-10 p-1"
+                  />
+                  <Input
+                    type="text"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="flex-1 bg-white/50"
+                    placeholder="#3b82f6"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500">Secondary</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    className="w-12 h-10 p-1"
+                  />
+                  <Input
+                    type="text"
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    className="flex-1 bg-white/50"
+                    placeholder="#93c5fd"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500">Accent</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className="w-12 h-10 p-1"
+                  />
+                  <Input
+                    type="text"
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className="flex-1 bg-white/50"
+                    placeholder="#f59e0b"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500">Background</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={bgColor}
+                    onChange={(e) => setBgColor(e.target.value)}
+                    className="w-12 h-10 p-1"
+                  />
+                  <Input
+                    type="text"
+                    value={bgColor}
+                    onChange={(e) => setBgColor(e.target.value)}
+                    className="flex-1 bg-white/50"
+                    placeholder="#f0f9ff"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Preview */}
+          {petName && (
+            <div 
+              className="rounded-xl p-4 text-center"
+              style={{ backgroundColor: bgColor }}
+            >
+              <div className="text-4xl mb-2">
+                {imagePreview ? (
+                  <img src={imagePreview} alt={petName} className="w-20 h-20 mx-auto object-cover rounded-lg" />
+                ) : (
+                  emoji || '🐾'
+                )}
+              </div>
+              <h4 className="font-bold" style={{ color: primaryColor }}>{petName}</h4>
+              <div className="flex justify-center gap-1 mt-2">
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: primaryColor }} />
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: secondaryColor }} />
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: accentColor }} />
+              </div>
+            </div>
+          )}
 
           <Button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+            onClick={handleSavePet}
+            disabled={saving}
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
           >
-            {generating ? (
+            {saving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating Magic...
+                Saving...
               </>
             ) : (
               <>
-                <Wand2 className="w-4 h-4 mr-2" />
-                Generate Creature
+                <Sparkles className="w-4 h-4 mr-2" />
+                Create Pet
               </>
             )}
           </Button>
         </motion.div>
-
-        {/* Preview */}
-        {generatedPet && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mt-6 rounded-2xl p-6 text-center"
-            style={{ backgroundColor: generatedPet.theme?.bg || '#f8fafc' }}
-          >
-            {/* Image or Emoji */}
-            <div className="relative w-32 h-32 mx-auto mb-4">
-              {generatingImage ? (
-                <div className="w-full h-full rounded-2xl bg-white/50 flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 animate-spin" style={{ color: generatedPet.theme?.primary }} />
-                </div>
-              ) : generatedImageUrl ? (
-                <img 
-                  src={generatedImageUrl} 
-                  alt={generatedPet.name}
-                  className="w-full h-full object-cover rounded-2xl shadow-xl"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-7xl">
-                  {generatedPet.emoji}
-                </div>
-              )}
-            </div>
-
-            {!generatingImage && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => generateImage(generatedPet)}
-                className="mb-2"
-                style={{ color: generatedPet.theme?.primary }}
-              >
-                <RefreshCw className="w-3 h-3 mr-1" />
-                {generatedImageUrl ? 'New Image' : 'Generate Image'}
-              </Button>
-            )}
-
-            <h3 
-              className="text-xl font-bold mb-1"
-              style={{ color: generatedPet.theme?.primary }}
-            >
-              {generatedPet.name}
-            </h3>
-            <p className="text-sm text-slate-600 mb-3">{generatedPet.description}</p>
-            
-            <div 
-              className="inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize text-white mb-4"
-              style={{ backgroundColor: generatedPet.theme?.secondary }}
-            >
-              {generatedPet.rarity}
-            </div>
-
-            {/* Theme preview */}
-            <div className="flex justify-center gap-2 mb-4">
-              <div className="w-6 h-6 rounded-full shadow" style={{ backgroundColor: generatedPet.theme?.primary }} />
-              <div className="w-6 h-6 rounded-full shadow" style={{ backgroundColor: generatedPet.theme?.secondary }} />
-              <div className="w-6 h-6 rounded-full shadow" style={{ backgroundColor: generatedPet.theme?.accent }} />
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => { setGeneratedPet(null); setGeneratedImageUrl(null); }}
-                className="flex-1"
-              >
-                Try Again
-              </Button>
-              <Button
-                onClick={handleSavePet}
-                disabled={generatingImage}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Save Pet
-              </Button>
-            </div>
-          </motion.div>
-        )}
       </div>
     </div>
   );
