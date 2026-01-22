@@ -7,6 +7,7 @@ import PetCreator from './pages/PetCreator';
 import Rewards from './pages/Rewards';
 import Season from './pages/Season';
 import UserSettings from './pages/UserSettings';
+import Shop from './pages/Shop';
 import __Layout from './Layout.jsx';
 
 
@@ -20,6 +21,7 @@ export const PAGES = {
     "Rewards": Rewards,
     "Season": Season,
     "UserSettings": UserSettings,
+    "Shop": Shop,
 }
 
 export const pagesConfig = {

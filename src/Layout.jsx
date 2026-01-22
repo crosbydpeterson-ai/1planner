@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield } from 'lucide-react';
+import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 import ThemedBackground from '@/components/theme/ThemedBackground';
@@ -71,6 +71,7 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: 'Dashboard', icon: Home, label: 'Home' },
     { name: 'Assignments', icon: ClipboardList, label: 'Quests' },
+    { name: 'Shop', icon: ShoppingBag, label: 'Shop' },
     { name: 'Leaderboard', icon: Trophy, label: 'Rank' },
     { name: 'Rewards', icon: Gem, label: 'Collection' },
     { name: 'Season', icon: Sparkles, label: 'Season' },

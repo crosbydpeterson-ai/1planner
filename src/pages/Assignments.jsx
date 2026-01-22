@@ -122,7 +122,9 @@ export default function Assignments() {
     try {
       const completedAssignments = [...(profile.completedAssignments || []), assignment.id];
       const xpToAdd = 25;
+      const coinsToAdd = 1;
       const newXp = (profile.xp || 0) + xpToAdd;
+      const newCoins = (profile.questCoins || 0) + coinsToAdd;
       
       // Get a random pet as reward
       const currentPets = profile.unlockedPets || ['starter_slime'];
@@ -132,6 +134,7 @@ export default function Assignments() {
 
       await base44.entities.UserProfile.update(profile.id, {
         xp: newXp,
+        questCoins: newCoins,
         completedAssignments,
         unlockedPets: newUnlockedPets
       });
@@ -139,6 +142,7 @@ export default function Assignments() {
       setProfile({
         ...profile,
         xp: newXp,
+        questCoins: newCoins,
         completedAssignments,
         unlockedPets: newUnlockedPets
       });
@@ -155,7 +159,7 @@ export default function Assignments() {
         }
       });
 
-      toast.success(`+25 XP earned!`, {
+      toast.success(`+25 XP & +1 Quest Coin earned!`, {
         description: `Assignment "${assignment.title}" completed`
       });
 
