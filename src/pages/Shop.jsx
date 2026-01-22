@@ -106,6 +106,9 @@ export default function Shop() {
         if (title && !profile.unlockedTitles?.includes(title)) {
           updates.unlockedTitles = [...(profile.unlockedTitles || []), title];
         }
+      } else if (item.itemType === 'xp_booster') {
+        const xpAmount = item.itemData?.xpAmount || 0;
+        updates.xp = (profile.xp || 0) + xpAmount;
       } else if (item.itemType === 'magic_egg') {
         await base44.entities.MagicEgg.create({ userId: profile.userId });
       }
@@ -140,10 +143,11 @@ export default function Shop() {
         bundle.itemIds.map(id => base44.entities.ShopItem.filter({ id }))
       );
 
-      const newCoins = profile.questCoins - bundle.bundlePrice;
+      let newCoins = profile.questCoins - bundle.bundlePrice;
       let newUnlockedPets = [...(profile.unlockedPets || [])];
       let newUnlockedThemes = [...(profile.unlockedThemes || [])];
       let newUnlockedTitles = [...(profile.unlockedTitles || [])];
+      let newXP = profile.xp || 0;
 
       // Apply all item effects
       for (const itemArr of items) {
@@ -165,6 +169,9 @@ export default function Shop() {
           if (title && !newUnlockedTitles.includes(title)) {
             newUnlockedTitles.push(title);
           }
+        } else if (item.itemType === 'xp_booster') {
+          const xpAmount = item.itemData?.xpAmount || 0;
+          newXP += xpAmount;
         } else if (item.itemType === 'magic_egg') {
           await base44.entities.MagicEgg.create({ userId: profile.userId });
         }
@@ -174,7 +181,8 @@ export default function Shop() {
         questCoins: newCoins,
         unlockedPets: newUnlockedPets,
         unlockedThemes: newUnlockedThemes,
-        unlockedTitles: newUnlockedTitles
+        unlockedTitles: newUnlockedTitles,
+        xp: newXP
       };
 
       await base44.entities.UserProfile.update(profile.id, updates);
