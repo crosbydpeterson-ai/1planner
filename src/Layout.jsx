@@ -29,7 +29,19 @@ export default function Layout({ children, currentPageName }) {
     
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
-      if (profiles.length > 0 && profiles[0].username.toLowerCase() === 'crosby') {
+      if (profiles.length === 0) return;
+      
+      const currentProfile = profiles[0];
+      
+      // Admin if username is "Crosby" OR if they're the first user created
+      if (currentProfile.username === 'Crosby') {
+        setIsAdmin(true);
+        return;
+      }
+      
+      // Check if this is the first user
+      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
+      if (allProfiles.length > 0 && allProfiles[0].id === currentProfile.id) {
         setIsAdmin(true);
       }
     } catch (e) {
