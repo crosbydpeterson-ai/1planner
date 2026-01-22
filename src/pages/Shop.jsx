@@ -40,10 +40,19 @@ export default function Shop() {
       // Load shop items and bundles
       const items = await base44.entities.ShopItem.filter({ isActive: true });
       const bundleList = await base44.entities.Bundle.filter({ isActive: true });
+      
+      // Get all item IDs that are in bundles
+      const bundledItemIds = new Set();
+      bundleList.forEach(bundle => {
+        bundle.itemIds?.forEach(id => bundledItemIds.add(id));
+      });
 
-      // Filter active items (within date range)
+      // Filter active items (within date range and not in bundles)
       const now = new Date();
       const activeItems = items.filter(item => {
+        // Exclude items that are in bundles
+        if (bundledItemIds.has(item.id)) return false;
+        
         if (!item.isLimited) return true;
         const start = item.startDate ? new Date(item.startDate) : null;
         const end = item.endDate ? new Date(item.endDate) : null;
@@ -132,7 +141,9 @@ export default function Shop() {
       );
 
       const newCoins = profile.questCoins - bundle.bundlePrice;
-      const updates = { questCoins: newCoins };
+      let newUnlockedPets = [...(profile.unlockedPets || [])];
+      let newUnlockedThemes = [...(profile.unlockedThemes || [])];
+      let newUnlockedTitles = [...(profile.unlockedTitles || [])];
 
       // Apply all item effects
       for (const itemArr of items) {
@@ -141,23 +152,30 @@ export default function Shop() {
 
         if (item.itemType === 'pet') {
           const petId = item.itemData?.petId;
-          if (petId && !profile.unlockedPets?.includes(petId)) {
-            updates.unlockedPets = [...(updates.unlockedPets || profile.unlockedPets || []), petId];
+          if (petId && !newUnlockedPets.includes(petId)) {
+            newUnlockedPets.push(petId);
           }
         } else if (item.itemType === 'theme') {
           const themeId = item.itemData?.themeId;
-          if (themeId && !profile.unlockedThemes?.includes(themeId)) {
-            updates.unlockedThemes = [...(updates.unlockedThemes || profile.unlockedThemes || []), themeId];
+          if (themeId && !newUnlockedThemes.includes(themeId)) {
+            newUnlockedThemes.push(themeId);
           }
         } else if (item.itemType === 'title') {
           const title = item.itemData?.title;
-          if (title && !profile.unlockedTitles?.includes(title)) {
-            updates.unlockedTitles = [...(updates.unlockedTitles || profile.unlockedTitles || []), title];
+          if (title && !newUnlockedTitles.includes(title)) {
+            newUnlockedTitles.push(title);
           }
         } else if (item.itemType === 'magic_egg') {
           await base44.entities.MagicEgg.create({ userId: profile.userId });
         }
       }
+      
+      const updates = {
+        questCoins: newCoins,
+        unlockedPets: newUnlockedPets,
+        unlockedThemes: newUnlockedThemes,
+        unlockedTitles: newUnlockedTitles
+      };
 
       await base44.entities.UserProfile.update(profile.id, updates);
 
