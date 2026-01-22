@@ -99,7 +99,11 @@ export default function Shop() {
 
       // Apply item effects
       if (item.itemType === 'pet') {
-        const petId = item.itemData?.petId;
+        let petId = item.itemData?.petId;
+        // Check if this is a custom pet ID (from CustomPet entity)
+        if (petId && petId.length === 24 && !petId.startsWith('custom_')) {
+          petId = `custom_${petId}`;
+        }
         if (petId && !updates.unlockedPets.includes(petId)) {
           updates.unlockedPets.push(petId);
         }
@@ -187,7 +191,11 @@ export default function Shop() {
         itemCount++;
 
         if (item.itemType === 'pet') {
-          const petId = item.itemData?.petId;
+          let petId = item.itemData?.petId;
+          // Check if this is a custom pet ID (from CustomPet entity)
+          if (petId && petId.length === 24 && !petId.startsWith('custom_')) {
+            petId = `custom_${petId}`;
+          }
           if (petId && !updates.unlockedPets.includes(petId)) {
             updates.unlockedPets.push(petId);
           }
