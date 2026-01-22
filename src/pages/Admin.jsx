@@ -384,17 +384,28 @@ White or transparent background, centered, high quality illustration.`;
 
   const handleGiftItem = async () => {
     if (!giftUser || !giftItemId) {
-      toast.error('Please select an item to gift');
+      toast.error('Please enter an amount or select an item');
       return;
     }
     try {
-      if (giftType === 'pet') {
+      if (giftType === 'coins') {
+        const amount = parseInt(giftItemId);
+        if (isNaN(amount) || amount <= 0) {
+          toast.error('Please enter a valid amount');
+          return;
+        }
+        const newCoins = (giftUser.questCoins || 0) + amount;
+        await base44.entities.UserProfile.update(giftUser.id, { questCoins: newCoins });
+        setUsers(users.map(u => u.id === giftUser.id ? { ...u, questCoins: newCoins } : u));
+        toast.success(`${amount} Quest Coins gifted to ${giftUser.username}!`);
+      } else if (giftType === 'pet') {
         const unlockedPets = [...(giftUser.unlockedPets || [])];
         if (!unlockedPets.includes(giftItemId)) {
           unlockedPets.push(giftItemId);
           await base44.entities.UserProfile.update(giftUser.id, { unlockedPets });
           setUsers(users.map(u => u.id === giftUser.id ? { ...u, unlockedPets } : u));
         }
+        toast.success(`Pet gifted to ${giftUser.username}!`);
       } else {
         const unlockedThemes = [...(giftUser.unlockedThemes || [])];
         if (!unlockedThemes.includes(giftItemId)) {
@@ -402,8 +413,8 @@ White or transparent background, centered, high quality illustration.`;
           await base44.entities.UserProfile.update(giftUser.id, { unlockedThemes });
           setUsers(users.map(u => u.id === giftUser.id ? { ...u, unlockedThemes } : u));
         }
+        toast.success(`Theme gifted to ${giftUser.username}!`);
       }
-      toast.success(`${giftType === 'pet' ? 'Pet' : 'Theme'} gifted to ${giftUser.username}!`);
       setShowGiftDialog(false);
       setGiftItemId('');
     } catch (e) {
@@ -658,6 +669,7 @@ White or transparent background, centered, high quality illustration.`;
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className="text-amber-400 font-bold">{user.xp || 0} XP</p>
+                          <p className="text-blue-400 text-sm">{user.questCoins || 0} 🪙</p>
                         </div>
                         <div className="flex gap-2">
                           <Button
@@ -695,6 +707,7 @@ White or transparent background, centered, high quality illustration.`;
                               setShowGiftDialog(true);
                             }}
                             className="text-purple-400 hover:text-purple-300"
+                            title="Gift Items/Coins"
                           >
                             <Gift className="w-4 h-4" />
                           </Button>
@@ -1285,6 +1298,218 @@ Generate:
                 </div>
               </div>
 
+              {/* Pack Builder */}
+              <div className="bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-500/20 rounded-2xl p-6 border border-white/10 mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">📦✨</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Custom Pack Builder</h3>
+                    <p className="text-slate-400 text-sm">AI-powered pack creator with unique items</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="Describe your pack idea... (e.g., 'Winter Holiday Bundle with snow pets and icy themes', 'Galaxy Pack with cosmic creatures and space themes')"
+                    className="bg-slate-800/50 border-white/10 text-white min-h-[100px]"
+                    id="packIdea"
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      type="number"
+                      placeholder="Original Price (coins)"
+                      className="bg-slate-800/50 border-white/10 text-white"
+                      id="packOriginalPrice"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Bundle Price (coins)"
+                      className="bg-slate-800/50 border-white/10 text-white"
+                      id="packBundlePrice"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Stock Limit (optional)"
+                      className="bg-slate-800/50 border-white/10 text-white"
+                      id="packStock"
+                    />
+                    <Input
+                      type="datetime-local"
+                      placeholder="End Date"
+                      className="bg-slate-800/50 border-white/10 text-white"
+                      id="packEndDate"
+                    />
+                  </div>
+                  <Button
+                    onClick={async () => {
+                      const idea = document.getElementById('packIdea').value;
+                      const originalPrice = parseInt(document.getElementById('packOriginalPrice').value) || 0;
+                      const bundlePrice = parseInt(document.getElementById('packBundlePrice').value) || 0;
+                      const stock = parseInt(document.getElementById('packStock').value) || null;
+                      const endDate = document.getElementById('packEndDate').value;
+                      
+                      if (!idea.trim() || !bundlePrice) {
+                        toast.error('Enter pack idea and bundle price');
+                        return;
+                      }
+                      
+                      const btn = event.target;
+                      btn.disabled = true;
+                      btn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-2 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Creating Pack...';
+                      
+                      try {
+                        // Generate pack items with AI
+                        const result = await base44.integrations.Core.InvokeLLM({
+                          prompt: `You are a game designer creating a LIMITED-TIME themed pack for a kids school app.
+
+Pack Theme: "${idea}"
+
+Create 3-5 unique items (pets/themes) that fit this theme:
+- Each item needs: name, description, type (pet/theme/title), emoji
+- For pets: include theme colors { primary, secondary, accent, bg }
+- Keep it school-appropriate and exciting
+- Make items feel exclusive and valuable
+
+Generate a pack_name and items array.`,
+                          response_json_schema: {
+                            type: "object",
+                            properties: {
+                              pack_name: { type: "string" },
+                              pack_description: { type: "string" },
+                              items: {
+                                type: "array",
+                                items: {
+                                  type: "object",
+                                  properties: {
+                                    name: { type: "string" },
+                                    description: { type: "string" },
+                                    type: { type: "string", enum: ["pet", "theme", "title"] },
+                                    emoji: { type: "string" },
+                                    theme: {
+                                      type: "object",
+                                      properties: {
+                                        primary: { type: "string" },
+                                        secondary: { type: "string" },
+                                        accent: { type: "string" },
+                                        bg: { type: "string" }
+                                      }
+                                    },
+                                    colors: {
+                                      type: "object",
+                                      properties: {
+                                        primary: { type: "string" },
+                                        secondary: { type: "string" },
+                                        accent: { type: "string" },
+                                        bg: { type: "string" }
+                                      }
+                                    },
+                                    title_text: { type: "string" }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        });
+                        
+                        // Create shop items
+                        const itemIds = [];
+                        for (const item of result.items) {
+                          let shopItem;
+                          if (item.type === 'pet') {
+                            const pet = await base44.entities.CustomPet.create({
+                              name: item.name,
+                              description: item.description,
+                              emoji: item.emoji,
+                              rarity: 'epic',
+                              xpRequired: 999999,
+                              isGiftOnly: true,
+                              theme: item.theme
+                            });
+                            shopItem = await base44.entities.ShopItem.create({
+                              name: item.name,
+                              description: item.description,
+                              itemType: 'pet',
+                              itemData: { petId: \`custom_\${pet.id}\` },
+                              price: 0,
+                              rarity: 'epic',
+                              isActive: false
+                            });
+                            setCustomPets([pet, ...customPets]);
+                          } else if (item.type === 'theme') {
+                            const theme = await base44.entities.CustomTheme.create({
+                              name: item.name,
+                              description: item.description,
+                              rarity: 'epic',
+                              xpRequired: 999999,
+                              primaryColor: item.colors?.primary || '#6366f1',
+                              secondaryColor: item.colors?.secondary || '#8b5cf6',
+                              accentColor: item.colors?.accent || '#f59e0b',
+                              bgColor: item.colors?.bg || '#f8fafc'
+                            });
+                            shopItem = await base44.entities.ShopItem.create({
+                              name: item.name,
+                              description: item.description,
+                              itemType: 'theme',
+                              itemData: { themeId: \`custom_\${theme.id}\` },
+                              price: 0,
+                              rarity: 'epic',
+                              isActive: false
+                            });
+                            setCustomThemes([theme, ...customThemes]);
+                          } else {
+                            shopItem = await base44.entities.ShopItem.create({
+                              name: item.name,
+                              description: item.description,
+                              itemType: 'title',
+                              itemData: { title: item.title_text || item.name },
+                              price: 0,
+                              rarity: 'rare',
+                              isActive: false
+                            });
+                          }
+                          itemIds.push(shopItem.id);
+                          setShopItems([shopItem, ...shopItems]);
+                        }
+                        
+                        // Create bundle
+                        const bundle = await base44.entities.Bundle.create({
+                          name: result.pack_name,
+                          description: result.pack_description,
+                          itemIds: itemIds,
+                          originalPrice: originalPrice,
+                          bundlePrice: bundlePrice,
+                          discountPercent: Math.round(((originalPrice - bundlePrice) / originalPrice) * 100),
+                          isLimited: true,
+                          stockLimit: stock,
+                          stockRemaining: stock,
+                          startDate: new Date().toISOString(),
+                          endDate: endDate,
+                          isActive: true
+                        });
+                        
+                        setBundles([bundle, ...bundles]);
+                        toast.success(\`🎉 \${result.pack_name} created with \${result.items.length} items!\`);
+                        
+                        document.getElementById('packIdea').value = '';
+                        document.getElementById('packOriginalPrice').value = '';
+                        document.getElementById('packBundlePrice').value = '';
+                        document.getElementById('packStock').value = '';
+                        document.getElementById('packEndDate').value = '';
+                      } catch (e) {
+                        console.error(e);
+                        toast.error('Failed to create pack');
+                      }
+                      
+                      btn.disabled = false;
+                      btn.innerHTML = '<svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>Create Pack with AI';
+                    }}
+                    className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Create Pack with AI
+                  </Button>
+                </div>
+              </div>
+
               {/* Bundles */}
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -1743,11 +1968,25 @@ Generate:
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="coins">Quest Coins</SelectItem>
                     <SelectItem value="pet">Pet</SelectItem>
                     <SelectItem value="theme">Theme</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              
+              {giftType === 'coins' && (
+                <div className="space-y-2">
+                  <Label>Amount of Quest Coins</Label>
+                  <Input
+                    type="number"
+                    value={giftItemId}
+                    onChange={(e) => setGiftItemId(e.target.value)}
+                    placeholder="100"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Select {giftType === 'pet' ? 'Pet' : 'Theme'}</Label>
                 <Select value={giftItemId} onValueChange={setGiftItemId}>
@@ -2089,35 +2328,70 @@ Generate:
                 </div>
               </div>
               
-              {(shopItemForm.itemType === 'pet' || shopItemForm.itemType === 'theme') && (
+              {shopItemForm.itemType === 'pet' && (
                 <div className="space-y-2">
-                  <Label>Select {shopItemForm.itemType === 'pet' ? 'Pet' : 'Theme'}</Label>
+                  <Label>Select Pet</Label>
                   <Select
-                    value={shopItemForm.itemData?.petId || shopItemForm.itemData?.themeId || ''}
-                    onValueChange={(v) => setShopItemForm({
-                      ...shopItemForm,
-                      itemData: shopItemForm.itemType === 'pet' ? { petId: v } : { themeId: v }
-                    })}
+                    value={shopItemForm.itemData?.petId || ''}
+                    onValueChange={(v) => setShopItemForm({ ...shopItemForm, itemData: { petId: v } })}
                   >
                     <SelectTrigger className="bg-slate-700 border-slate-600">
-                      <SelectValue placeholder={`Select ${shopItemForm.itemType}`} />
+                      <SelectValue placeholder="Select pet" />
                     </SelectTrigger>
                     <SelectContent>
-                      {shopItemForm.itemType === 'pet' ? (
-                        customPets.map(pet => (
-                          <SelectItem key={pet.id} value={`custom_${pet.id}`}>
-                            {pet.emoji || '🎁'} {pet.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        customThemes.map(theme => (
-                          <SelectItem key={theme.id} value={`custom_${theme.id}`}>
-                            {theme.name}
-                          </SelectItem>
-                        ))
-                      )}
+                      {customPets.map(pet => (
+                        <SelectItem key={pet.id} value={`custom_${pet.id}`}>
+                          {pet.emoji || '🎁'} {pet.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+              
+              {shopItemForm.itemType === 'theme' && (
+                <div className="space-y-2">
+                  <Label>Select Theme</Label>
+                  <Select
+                    value={shopItemForm.itemData?.themeId || ''}
+                    onValueChange={(v) => setShopItemForm({ ...shopItemForm, itemData: { themeId: v } })}
+                  >
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue placeholder="Select theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customThemes.map(theme => (
+                        <SelectItem key={theme.id} value={`custom_${theme.id}`}>
+                          {theme.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              {shopItemForm.itemType === 'title' && (
+                <div className="space-y-2">
+                  <Label>Title Text</Label>
+                  <Input
+                    value={shopItemForm.itemData?.title || ''}
+                    onChange={(e) => setShopItemForm({ ...shopItemForm, itemData: { title: e.target.value } })}
+                    placeholder="Epic Champion"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              )}
+              
+              {shopItemForm.itemType === 'xp_booster' && (
+                <div className="space-y-2">
+                  <Label>XP Boost Amount</Label>
+                  <Input
+                    type="number"
+                    value={shopItemForm.itemData?.xpAmount || ''}
+                    onChange={(e) => setShopItemForm({ ...shopItemForm, itemData: { xpAmount: parseInt(e.target.value) || 0 } })}
+                    placeholder="100"
+                    className="bg-slate-700 border-slate-600"
+                  />
                 </div>
               )}
 
