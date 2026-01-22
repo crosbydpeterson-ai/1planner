@@ -117,14 +117,24 @@ export default function Shop() {
 
       // Update stock if limited
       if (item.stockRemaining !== null) {
+        const newStock = item.stockRemaining - 1;
         await base44.entities.ShopItem.update(item.id, {
-          stockRemaining: item.stockRemaining - 1
+          stockRemaining: newStock
         });
+        // Remove item from list if out of stock
+        if (newStock <= 0) {
+          setShopItems(shopItems.filter(i => i.id !== item.id));
+        }
       }
 
-      setProfile({ ...profile, ...updates });
+      // Update profile state immediately
+      const updatedProfile = { ...profile, ...updates };
+      setProfile(updatedProfile);
+      
       toast.success(`Purchased ${item.name}!`);
-      loadData();
+      
+      // Force reload to ensure everything is synced
+      setTimeout(() => loadData(), 500);
     } catch (e) {
       console.error('Error purchasing item:', e);
       toast.error('Purchase failed');
@@ -189,14 +199,24 @@ export default function Shop() {
 
       // Update stock if limited
       if (bundle.stockRemaining !== null) {
+        const newStock = bundle.stockRemaining - 1;
         await base44.entities.Bundle.update(bundle.id, {
-          stockRemaining: bundle.stockRemaining - 1
+          stockRemaining: newStock
         });
+        // Remove bundle from list if out of stock
+        if (newStock <= 0) {
+          setBundles(bundles.filter(b => b.id !== bundle.id));
+        }
       }
 
-      setProfile({ ...profile, ...updates });
-      toast.success(`Purchased ${bundle.name}!`);
-      loadData();
+      // Update profile state immediately
+      const updatedProfile = { ...profile, ...updates };
+      setProfile(updatedProfile);
+      
+      toast.success(`Purchased ${bundle.name}! Unlocked ${items.length} items!`);
+      
+      // Force reload to ensure everything is synced
+      setTimeout(() => loadData(), 500);
     } catch (e) {
       console.error('Error purchasing bundle:', e);
       toast.error('Purchase failed');
