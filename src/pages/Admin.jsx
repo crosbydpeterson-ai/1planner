@@ -1428,7 +1428,7 @@ Generate a pack_name and items array.`,
                               name: item.name,
                               description: item.description,
                               itemType: 'pet',
-                              itemData: { petId: \`custom_\${pet.id}\` },
+                              itemData: { petId: `custom_${pet.id}` },
                               price: 0,
                               rarity: 'epic',
                               isActive: false
@@ -1449,7 +1449,7 @@ Generate a pack_name and items array.`,
                               name: item.name,
                               description: item.description,
                               itemType: 'theme',
-                              itemData: { themeId: \`custom_\${theme.id}\` },
+                              itemData: { themeId: `custom_${theme.id}` },
                               price: 0,
                               rarity: 'epic',
                               isActive: false
@@ -1487,7 +1487,7 @@ Generate a pack_name and items array.`,
                         });
                         
                         setBundles([bundle, ...bundles]);
-                        toast.success(\`🎉 \${result.pack_name} created with \${result.items.length} items!\`);
+                        toast.success(`🎉 ${result.pack_name} created with ${result.items.length} items!`);
                         
                         document.getElementById('packIdea').value = '';
                         document.getElementById('packOriginalPrice').value = '';
