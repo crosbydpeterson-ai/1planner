@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, ArrowLeft, Search, Users, ClipboardList, Plus, 
   Lock, Unlock, Eye, EyeOff, Key, Zap, Check, X, Edit2, Save,
-  Palette, Star, Image, Trash2, Gift, Calendar, Sparkles, Wand2, Loader2
+  Palette, Star, Image, Trash2, Gift, Calendar, Sparkles, Wand2, Loader2, ShoppingBag, Package
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,6 +91,22 @@ export default function Admin() {
     config: { bubbleCount: 15, eggChance: 10 }
   });
 
+  // Shop
+  const [shopItems, setShopItems] = useState([]);
+  const [bundles, setBundles] = useState([]);
+  const [showShopItemForm, setShowShopItemForm] = useState(false);
+  const [showBundleForm, setShowBundleForm] = useState(false);
+  const [shopItemForm, setShopItemForm] = useState({
+    name: '', description: '', itemType: 'pet', itemData: {}, price: 50, rarity: 'common',
+    isLimited: false, stockLimit: null, stockRemaining: null, startDate: '', endDate: '', isActive: true
+  });
+  const [bundleForm, setBundleForm] = useState({
+    name: '', description: '', itemIds: [], originalPrice: 0, bundlePrice: 0, discountPercent: 20,
+    isLimited: true, stockLimit: null, stockRemaining: null, startDate: '', endDate: '', isActive: true
+  });
+  const [editingShopItem, setEditingShopItem] = useState(null);
+  const [editingBundle, setEditingBundle] = useState(null);
+
   // Settings
   const [appSettings, setAppSettings] = useState([]);
   const [referralSettings, setReferralSettings] = useState({
@@ -146,7 +162,7 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings] = await Promise.all([
+      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings, allShopItems, allBundles] = await Promise.all([
         base44.entities.UserProfile.list('-created_date'),
         base44.entities.Assignment.list('-created_date'),
         base44.entities.CustomPet.list('-created_date'),
@@ -154,7 +170,9 @@ export default function Admin() {
         base44.entities.Season.list('-created_date'),
         base44.entities.MagicEgg.list('-created_date'),
         base44.entities.AdminEvent.list('-created_date'),
-        base44.entities.AppSetting.list()
+        base44.entities.AppSetting.list(),
+        base44.entities.ShopItem.list('-created_date'),
+        base44.entities.Bundle.list('-created_date')
       ]);
       setUsers(allUsers);
       setAssignments(allAssignments);
@@ -164,6 +182,8 @@ export default function Admin() {
       setMagicEggs(allEggs);
       setEvents(allEvents);
       setAppSettings(allSettings);
+      setShopItems(allShopItems);
+      setBundles(allBundles);
       const refSetting = allSettings.find(s => s.key === 'referral_settings');
       if (refSetting) {
         setReferralSettings(refSetting.value);
@@ -578,6 +598,10 @@ White or transparent background, centered, high quality illustration.`;
             <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">
               🫧
               Events
+            </TabsTrigger>
+            <TabsTrigger value="shop" className="data-[state=active]:bg-slate-700">
+              <ShoppingBag className="w-4 h-4 mr-2" />
+              Shop
             </TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">
               ⚙️
@@ -1207,6 +1231,110 @@ Generate:
               {customThemes.length === 0 && (
                 <div className="col-span-full text-center py-8 text-slate-400">No custom themes yet</div>
               )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="shop">
+            <div className="space-y-6">
+              {/* Shop Items */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Shop Items ({shopItems.length})</h3>
+                  <Button onClick={() => setShowShopItemForm(true)} className="bg-gradient-to-r from-purple-500 to-pink-600">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Item
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {shopItems.map((item) => (
+                    <div key={item.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <h4 className="text-white font-medium">{item.name}</h4>
+                          <p className="text-xs text-slate-400 capitalize">{item.itemType} • {item.price} coins</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => setEditingShopItem(item)} className="text-slate-400 hover:text-white">
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              await base44.entities.ShopItem.delete(item.id);
+                              setShopItems(shopItems.filter(i => i.id !== item.id));
+                              toast.success('Item deleted');
+                            }}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-500 mb-2">{item.description}</p>
+                      <div className="flex items-center gap-2 text-xs">
+                        {item.isLimited && <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Limited</span>}
+                        {!item.isActive && <span className="bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded">Inactive</span>}
+                        {item.stockRemaining !== null && <span className="text-slate-400">{item.stockRemaining} left</span>}
+                      </div>
+                    </div>
+                  ))}
+                  {shopItems.length === 0 && (
+                    <div className="col-span-full text-center py-8 text-slate-400">No shop items yet</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bundles */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Bundles ({bundles.length})</h3>
+                  <Button onClick={() => setShowBundleForm(true)} className="bg-gradient-to-r from-amber-500 to-orange-600">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Bundle
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {bundles.map((bundle) => (
+                    <div key={bundle.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-white font-medium flex items-center gap-2">
+                            <Package className="w-4 h-4" />
+                            {bundle.name}
+                            {bundle.isLimited && <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Limited</span>}
+                            {!bundle.isActive && <span className="text-xs bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded">Inactive</span>}
+                          </h4>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {bundle.itemIds?.length || 0} items • {bundle.bundlePrice} coins • {bundle.discountPercent}% off
+                            {bundle.stockRemaining !== null && ` • ${bundle.stockRemaining} left`}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => setEditingBundle(bundle)} className="text-slate-400 hover:text-white">
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              await base44.entities.Bundle.delete(bundle.id);
+                              setBundles(bundles.filter(b => b.id !== bundle.id));
+                              toast.success('Bundle deleted');
+                            }}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {bundles.length === 0 && (
+                    <div className="text-center py-8 text-slate-400">No bundles yet</div>
+                  )}
+                </div>
+              </div>
             </div>
           </TabsContent>
 
@@ -1889,6 +2017,450 @@ Generate:
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowSeasonForm(false)}>Cancel</Button>
               <Button onClick={handleCreateSeason} className="bg-amber-600">Create Season</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* New Shop Item Dialog */}
+        <Dialog open={showShopItemForm} onOpenChange={setShowShopItemForm}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create Shop Item</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    value={shopItemForm.name}
+                    onChange={(e) => setShopItemForm({ ...shopItemForm, name: e.target.value })}
+                    placeholder="Winter Fox"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Price (Quest Coins)</Label>
+                  <Input
+                    type="number"
+                    value={shopItemForm.price}
+                    onChange={(e) => setShopItemForm({ ...shopItemForm, price: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={shopItemForm.description}
+                  onChange={(e) => setShopItemForm({ ...shopItemForm, description: e.target.value })}
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Item Type</Label>
+                  <Select value={shopItemForm.itemType} onValueChange={(v) => setShopItemForm({ ...shopItemForm, itemType: v })}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pet">Pet</SelectItem>
+                      <SelectItem value="theme">Theme</SelectItem>
+                      <SelectItem value="title">Title</SelectItem>
+                      <SelectItem value="xp_booster">XP Booster</SelectItem>
+                      <SelectItem value="magic_egg">Magic Egg</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Rarity</Label>
+                  <Select value={shopItemForm.rarity} onValueChange={(v) => setShopItemForm({ ...shopItemForm, rarity: v })}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="common">Common</SelectItem>
+                      <SelectItem value="uncommon">Uncommon</SelectItem>
+                      <SelectItem value="rare">Rare</SelectItem>
+                      <SelectItem value="epic">Epic</SelectItem>
+                      <SelectItem value="legendary">Legendary</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {(shopItemForm.itemType === 'pet' || shopItemForm.itemType === 'theme') && (
+                <div className="space-y-2">
+                  <Label>Select {shopItemForm.itemType === 'pet' ? 'Pet' : 'Theme'}</Label>
+                  <Select
+                    value={shopItemForm.itemData?.petId || shopItemForm.itemData?.themeId || ''}
+                    onValueChange={(v) => setShopItemForm({
+                      ...shopItemForm,
+                      itemData: shopItemForm.itemType === 'pet' ? { petId: v } : { themeId: v }
+                    })}
+                  >
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue placeholder={`Select ${shopItemForm.itemType}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shopItemForm.itemType === 'pet' ? (
+                        customPets.map(pet => (
+                          <SelectItem key={pet.id} value={`custom_${pet.id}`}>
+                            {pet.emoji || '🎁'} {pet.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        customThemes.map(theme => (
+                          <SelectItem key={theme.id} value={`custom_${theme.id}`}>
+                            {theme.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isLimited"
+                  checked={shopItemForm.isLimited}
+                  onChange={(e) => setShopItemForm({ ...shopItemForm, isLimited: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="isLimited" className="cursor-pointer">Limited-Time Item</Label>
+              </div>
+
+              {shopItemForm.isLimited && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Start Date</Label>
+                    <Input
+                      type="datetime-local"
+                      value={shopItemForm.startDate}
+                      onChange={(e) => setShopItemForm({ ...shopItemForm, startDate: e.target.value })}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>End Date</Label>
+                    <Input
+                      type="datetime-local"
+                      value={shopItemForm.endDate}
+                      onChange={(e) => setShopItemForm({ ...shopItemForm, endDate: e.target.value })}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Stock Limit (optional)</Label>
+                    <Input
+                      type="number"
+                      value={shopItemForm.stockLimit || ''}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || null;
+                        setShopItemForm({ ...shopItemForm, stockLimit: val, stockRemaining: val });
+                      }}
+                      placeholder="Leave empty for unlimited"
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowShopItemForm(false)}>Cancel</Button>
+              <Button
+                onClick={async () => {
+                  if (!shopItemForm.name.trim()) {
+                    toast.error('Enter item name');
+                    return;
+                  }
+                  try {
+                    const newItem = await base44.entities.ShopItem.create(shopItemForm);
+                    setShopItems([newItem, ...shopItems]);
+                    setShowShopItemForm(false);
+                    setShopItemForm({
+                      name: '', description: '', itemType: 'pet', itemData: {}, price: 50, rarity: 'common',
+                      isLimited: false, stockLimit: null, stockRemaining: null, startDate: '', endDate: '', isActive: true
+                    });
+                    toast.success('Shop item created!');
+                  } catch (e) {
+                    toast.error('Failed to create item');
+                  }
+                }}
+                className="bg-purple-600"
+              >
+                Create Item
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Shop Item Dialog */}
+        <Dialog open={!!editingShopItem} onOpenChange={() => setEditingShopItem(null)}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Shop Item</DialogTitle>
+            </DialogHeader>
+            {editingShopItem && (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Name</Label>
+                    <Input
+                      value={editingShopItem.name}
+                      onChange={(e) => setEditingShopItem({ ...editingShopItem, name: e.target.value })}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Price</Label>
+                    <Input
+                      type="number"
+                      value={editingShopItem.price}
+                      onChange={(e) => setEditingShopItem({ ...editingShopItem, price: parseInt(e.target.value) || 0 })}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="editIsActive"
+                    checked={editingShopItem.isActive}
+                    onChange={(e) => setEditingShopItem({ ...editingShopItem, isActive: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="editIsActive" className="cursor-pointer">Active</Label>
+                </div>
+                {editingShopItem.stockLimit !== null && (
+                  <div className="space-y-2">
+                    <Label>Stock Remaining</Label>
+                    <Input
+                      type="number"
+                      value={editingShopItem.stockRemaining || 0}
+                      onChange={(e) => setEditingShopItem({ ...editingShopItem, stockRemaining: parseInt(e.target.value) || 0 })}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setEditingShopItem(null)}>Cancel</Button>
+              <Button
+                onClick={async () => {
+                  try {
+                    await base44.entities.ShopItem.update(editingShopItem.id, editingShopItem);
+                    setShopItems(shopItems.map(i => i.id === editingShopItem.id ? editingShopItem : i));
+                    setEditingShopItem(null);
+                    toast.success('Item updated');
+                  } catch (e) {
+                    toast.error('Failed to update');
+                  }
+                }}
+                className="bg-purple-600"
+              >
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* New Bundle Dialog */}
+        <Dialog open={showBundleForm} onOpenChange={setShowBundleForm}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create Bundle</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Bundle Name</Label>
+                <Input
+                  value={bundleForm.name}
+                  onChange={(e) => setBundleForm({ ...bundleForm, name: e.target.value })}
+                  placeholder="Winter Crew Pack"
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={bundleForm.description}
+                  onChange={(e) => setBundleForm({ ...bundleForm, description: e.target.value })}
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Original Price</Label>
+                  <Input
+                    type="number"
+                    value={bundleForm.originalPrice}
+                    onChange={(e) => setBundleForm({ ...bundleForm, originalPrice: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Bundle Price</Label>
+                  <Input
+                    type="number"
+                    value={bundleForm.bundlePrice}
+                    onChange={(e) => setBundleForm({ ...bundleForm, bundlePrice: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Discount %</Label>
+                  <Input
+                    type="number"
+                    value={bundleForm.discountPercent}
+                    onChange={(e) => setBundleForm({ ...bundleForm, discountPercent: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Select Items (paste Shop Item IDs, comma-separated)</Label>
+                <Textarea
+                  value={bundleForm.itemIds.join(', ')}
+                  onChange={(e) => setBundleForm({ ...bundleForm, itemIds: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                  placeholder="item_id_1, item_id_2, item_id_3"
+                  className="bg-slate-700 border-slate-600"
+                />
+                <p className="text-xs text-slate-400">Tip: Create shop items first, then use their IDs here</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Input
+                    type="datetime-local"
+                    value={bundleForm.startDate}
+                    onChange={(e) => setBundleForm({ ...bundleForm, startDate: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <Input
+                    type="datetime-local"
+                    value={bundleForm.endDate}
+                    onChange={(e) => setBundleForm({ ...bundleForm, endDate: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Stock Limit (optional)</Label>
+                  <Input
+                    type="number"
+                    value={bundleForm.stockLimit || ''}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || null;
+                      setBundleForm({ ...bundleForm, stockLimit: val, stockRemaining: val });
+                    }}
+                    placeholder="Leave empty for unlimited"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowBundleForm(false)}>Cancel</Button>
+              <Button
+                onClick={async () => {
+                  if (!bundleForm.name.trim() || bundleForm.itemIds.length === 0) {
+                    toast.error('Enter bundle name and items');
+                    return;
+                  }
+                  try {
+                    const newBundle = await base44.entities.Bundle.create(bundleForm);
+                    setBundles([newBundle, ...bundles]);
+                    setShowBundleForm(false);
+                    setBundleForm({
+                      name: '', description: '', itemIds: [], originalPrice: 0, bundlePrice: 0, discountPercent: 20,
+                      isLimited: true, stockLimit: null, stockRemaining: null, startDate: '', endDate: '', isActive: true
+                    });
+                    toast.success('Bundle created!');
+                  } catch (e) {
+                    toast.error('Failed to create bundle');
+                  }
+                }}
+                className="bg-amber-600"
+              >
+                Create Bundle
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Bundle Dialog */}
+        <Dialog open={!!editingBundle} onOpenChange={() => setEditingBundle(null)}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Bundle</DialogTitle>
+            </DialogHeader>
+            {editingBundle && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    value={editingBundle.name}
+                    onChange={(e) => setEditingBundle({ ...editingBundle, name: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Bundle Price</Label>
+                    <Input
+                      type="number"
+                      value={editingBundle.bundlePrice}
+                      onChange={(e) => setEditingBundle({ ...editingBundle, bundlePrice: parseInt(e.target.value) || 0 })}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                  {editingBundle.stockLimit !== null && (
+                    <div className="space-y-2">
+                      <Label>Stock Remaining</Label>
+                      <Input
+                        type="number"
+                        value={editingBundle.stockRemaining || 0}
+                        onChange={(e) => setEditingBundle({ ...editingBundle, stockRemaining: parseInt(e.target.value) || 0 })}
+                        className="bg-slate-700 border-slate-600"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="editBundleActive"
+                    checked={editingBundle.isActive}
+                    onChange={(e) => setEditingBundle({ ...editingBundle, isActive: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="editBundleActive" className="cursor-pointer">Active</Label>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setEditingBundle(null)}>Cancel</Button>
+              <Button
+                onClick={async () => {
+                  try {
+                    await base44.entities.Bundle.update(editingBundle.id, editingBundle);
+                    setBundles(bundles.map(b => b.id === editingBundle.id ? editingBundle : b));
+                    setEditingBundle(null);
+                    toast.success('Bundle updated');
+                  } catch (e) {
+                    toast.error('Failed to update');
+                  }
+                }}
+                className="bg-amber-600"
+              >
+                Save Changes
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
