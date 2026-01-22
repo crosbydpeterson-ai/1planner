@@ -33,8 +33,8 @@ export default function Layout({ children, currentPageName }) {
       
       const currentProfile = profiles[0];
       
-      // Admin if username is "Crosby" OR if they're the first user created
-      if (currentProfile.username === 'Crosby') {
+      // Admin if username is "Crosby" (case-insensitive) OR if they're the first user created
+      if (currentProfile.username.toLowerCase() === 'crosby') {
         setIsAdmin(true);
         return;
       }
