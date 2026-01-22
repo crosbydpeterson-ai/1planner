@@ -24,12 +24,20 @@ export default function Home() {
   const [referralCode, setReferralCode] = useState(null);
 
   useEffect(() => {
-    // Check for referral code in URL and store it
+    // Check for referral code in URL and store it in localStorage to persist across redirects
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get('ref');
     if (ref) {
+      localStorage.setItem('pending_referral', ref);
       setReferralCode(ref);
       setMode('signup'); // Auto-switch to signup if there's a referral link
+    } else {
+      // Check if there's a stored referral code
+      const storedRef = localStorage.getItem('pending_referral');
+      if (storedRef) {
+        setReferralCode(storedRef);
+        setMode('signup');
+      }
     }
     checkAuth();
   }, []);
@@ -40,6 +48,7 @@ export default function Home() {
       try {
         const profiles = await base44.entities.UserProfile.filter({ id: profileId });
         if (profiles.length > 0) {
+          // Don't redirect if already logged in - just in case they're sharing a link
           navigate(createPageUrl('Dashboard'));
           return;
         }
@@ -202,6 +211,9 @@ export default function Home() {
       localStorage.setItem('quest_user_id', uniqueId);
       localStorage.setItem('quest_profile_id', profile.id);
       localStorage.setItem('quest_username', profile.username);
+      
+      // Clear pending referral
+      localStorage.removeItem('pending_referral');
       
       navigate(createPageUrl('Dashboard'));
     } catch (e) {
