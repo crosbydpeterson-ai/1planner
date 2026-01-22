@@ -21,8 +21,16 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [referralCode, setReferralCode] = useState(null);
 
   useEffect(() => {
+    // Check for referral code in URL and store it
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    if (ref) {
+      setReferralCode(ref);
+      setMode('signup'); // Auto-switch to signup if there's a referral link
+    }
     checkAuth();
   }, []);
 
@@ -129,10 +137,6 @@ export default function Home() {
       const referralMode = refSetting?.value?.referralMode || false;
       const referrerRewardXP = refSetting?.value?.referrerRewardXP || 50;
       const referredRewardXP = refSetting?.value?.referredRewardXP || 25;
-
-      // Check for referral code in URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const referralCode = urlParams.get('ref');
 
       // If referral mode is ON, require a referral link
       if (referralMode && !referralCode) {
