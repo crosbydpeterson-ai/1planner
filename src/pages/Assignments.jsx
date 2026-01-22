@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import AssignmentCard from '@/components/quest/AssignmentCard';
 import GlassIcon from '@/components/ui/GlassIcon';
+import Tutorial from '@/components/tutorial/Tutorial';
 
 import { toast } from 'sonner';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
@@ -227,6 +228,7 @@ export default function Assignments() {
             onClick={() => setShowAddForm(true)}
             size="sm"
             className="bg-gradient-to-r from-emerald-500 to-teal-600"
+            data-tutorial="add-assignment"
           >
             <Plus className="w-4 h-4 mr-1" />
             ADD
@@ -371,6 +373,9 @@ export default function Assignments() {
           </AnimatePresence>
         </div>
       </div>
+      
+      {/* Tutorial */}
+      <Tutorial profile={profile} currentPage="Assignments" onComplete={() => {}} />
     </div>
   );
 }
