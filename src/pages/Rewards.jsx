@@ -19,6 +19,7 @@ export default function Rewards() {
 
   useEffect(() => {
     loadData();
+    base44.analytics.track({ eventName: 'rewards_viewed' });
   }, []);
 
   const loadData = async () => {

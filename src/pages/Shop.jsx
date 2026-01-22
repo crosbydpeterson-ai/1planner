@@ -19,6 +19,7 @@ export default function Shop() {
 
   useEffect(() => {
     loadData();
+    base44.analytics.track({ eventName: 'shop_viewed' });
   }, []);
 
   const loadData = async () => {
@@ -131,6 +132,18 @@ export default function Shop() {
       const updatedProfile = { ...profile, ...updates };
       setProfile(updatedProfile);
       
+      // Track item purchase
+      base44.analytics.track({
+        eventName: 'shop_item_purchased',
+        properties: {
+          item_name: item.name,
+          item_type: item.itemType,
+          item_price: item.price,
+          item_rarity: item.rarity,
+          coins_remaining: newCoins
+        }
+      });
+      
       toast.success(`Purchased ${item.name}!`);
       
       // Force reload to ensure everything is synced
@@ -212,6 +225,17 @@ export default function Shop() {
       // Update profile state immediately
       const updatedProfile = { ...profile, ...updates };
       setProfile(updatedProfile);
+      
+      // Track bundle purchase
+      base44.analytics.track({
+        eventName: 'bundle_purchased',
+        properties: {
+          bundle_name: bundle.name,
+          bundle_price: bundle.bundlePrice,
+          items_count: items.length,
+          coins_remaining: newCoins
+        }
+      });
       
       toast.success(`Purchased ${bundle.name}! Unlocked ${items.length} items!`);
       

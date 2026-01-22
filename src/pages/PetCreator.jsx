@@ -20,6 +20,7 @@ export default function PetCreator() {
 
   useEffect(() => {
     checkAccess();
+    base44.analytics.track({ eventName: 'pet_creator_viewed' });
   }, []);
 
   const checkAccess = async () => {

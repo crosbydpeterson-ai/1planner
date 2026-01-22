@@ -19,6 +19,7 @@ export default function Season() {
 
   useEffect(() => {
     loadData();
+    base44.analytics.track({ eventName: 'season_page_viewed' });
   }, []);
 
   const loadData = async () => {

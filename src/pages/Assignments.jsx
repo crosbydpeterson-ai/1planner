@@ -30,6 +30,7 @@ export default function Assignments() {
 
   useEffect(() => {
     loadData();
+    base44.analytics.track({ eventName: 'assignments_viewed' });
   }, []);
 
   const loadData = async () => {
