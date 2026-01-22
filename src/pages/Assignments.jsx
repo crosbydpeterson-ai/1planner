@@ -143,6 +143,18 @@ export default function Assignments() {
         unlockedPets: newUnlockedPets
       });
 
+      // Track XP gain
+      base44.analytics.track({
+        eventName: "assignment_completed_xp_gained",
+        properties: {
+          xp_gained: xpToAdd,
+          assignment_title: assignment.title,
+          assignment_subject: assignment.subject,
+          new_total_xp: newXp,
+          new_pet_unlocked: isNewPet
+        }
+      });
+
       toast.success(`+25 XP earned!`, {
         description: `Assignment "${assignment.title}" completed`
       });
