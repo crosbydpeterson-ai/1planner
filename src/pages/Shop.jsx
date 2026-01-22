@@ -132,7 +132,7 @@ export default function Shop() {
       }
 
       // Update local state
-      setProfile(updates);
+      setProfile({ ...profile, ...updates });
       
       // Analytics
       base44.analytics.track({
@@ -220,7 +220,7 @@ export default function Shop() {
       }
 
       // Update local state
-      setProfile(updates);
+      setProfile({ ...profile, ...updates });
       
       // Analytics
       base44.analytics.track({
