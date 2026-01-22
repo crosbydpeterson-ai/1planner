@@ -1592,6 +1592,21 @@ Generate a pack_name and items array.`,
 
           <TabsContent value="settings">
             <div className="space-y-6">
+              {/* Referral-Only Mode Banner */}
+              {referralSettings.referralMode && (
+                <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-2xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
+                      <Lock className="w-6 h-6 text-red-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-white">🔒 Referral-Only Mode Active</h4>
+                      <p className="text-sm text-red-200">New users must have a referral link to sign up</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-gradient-to-br from-purple-500/20 via-indigo-500/20 to-blue-500/20 rounded-2xl p-6 border border-white/10">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-4xl">🔗</span>
