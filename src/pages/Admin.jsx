@@ -120,6 +120,8 @@ export default function Admin() {
     referrerRewardXP: 50,
     referredRewardXP: 25,
   });
+  const [adminReferralLinks, setAdminReferralLinks] = useState([]);
+  const [newLinkMaxUses, setNewLinkMaxUses] = useState(10);
 
   useEffect(() => {
     checkAdminAccess();
@@ -168,7 +170,7 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings, allShopItems, allBundles] = await Promise.all([
+      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings, allShopItems, allBundles, allReferralLinks] = await Promise.all([
         base44.entities.UserProfile.list('-created_date'),
         base44.entities.Assignment.list('-created_date'),
         base44.entities.CustomPet.list('-created_date'),
@@ -178,7 +180,8 @@ export default function Admin() {
         base44.entities.AdminEvent.list('-created_date'),
         base44.entities.AppSetting.list(),
         base44.entities.ShopItem.list('-created_date'),
-        base44.entities.Bundle.list('-created_date')
+        base44.entities.Bundle.list('-created_date'),
+        base44.entities.ReferralLink.list('-created_date')
       ]);
       setUsers(allUsers);
       setAssignments(allAssignments);
@@ -190,6 +193,7 @@ export default function Admin() {
       setAppSettings(allSettings);
       setShopItems(allShopItems);
       setBundles(allBundles);
+      setAdminReferralLinks(allReferralLinks.filter(link => link.isAdminLink));
       const refSetting = allSettings.find(s => s.key === 'referral_settings');
       if (refSetting) {
         setReferralSettings(refSetting.value);
@@ -1689,6 +1693,111 @@ Generate a pack_name and items array.`,
                     <Save className="w-4 h-4 mr-2" />
                     Save Referral Settings
                   </Button>
+                </div>
+              </div>
+
+              {/* Admin Referral Links */}
+              <div className="bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 rounded-2xl p-6 border border-white/10">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">🎟️</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Admin Referral Links</h3>
+                    <p className="text-slate-400 text-sm">Create multi-use invite links for early access</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <Label className="text-slate-300 mb-2 block">Max Uses</Label>
+                      <Input
+                        type="number"
+                        value={newLinkMaxUses}
+                        onChange={(e) => setNewLinkMaxUses(parseInt(e.target.value) || 1)}
+                        min="1"
+                        placeholder="10"
+                        className="bg-slate-800/50 border-white/10 text-white"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const profileId = localStorage.getItem('quest_profile_id');
+                            const newLink = await base44.entities.ReferralLink.create({
+                              referrerId: profileId,
+                              usedBy: [],
+                              maxUses: newLinkMaxUses,
+                              isAdminLink: true
+                            });
+                            setAdminReferralLinks([newLink, ...adminReferralLinks]);
+                            toast.success(`Created link with ${newLinkMaxUses} uses!`);
+                          } catch (e) {
+                            toast.error('Failed to create link');
+                          }
+                        }}
+                        className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Link
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Active Admin Links</Label>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {adminReferralLinks.map((link) => {
+                        const usedCount = link.usedBy?.length || 0;
+                        const remaining = link.maxUses - usedCount;
+                        const linkUrl = `${window.location.origin}?ref=${link.id}`;
+                        
+                        return (
+                          <div key={link.id} className="bg-slate-800/50 rounded-lg p-3 flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-sm font-medium ${remaining > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                  {remaining}/{link.maxUses} uses remaining
+                                </span>
+                                {remaining === 0 && (
+                                  <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Expired</span>
+                                )}
+                              </div>
+                              <code className="text-xs text-slate-400 block truncate">{linkUrl}</code>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(linkUrl);
+                                  toast.success('Link copied!');
+                                }}
+                                className="text-emerald-400 hover:text-emerald-300"
+                              >
+                                Copy
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={async () => {
+                                  await base44.entities.ReferralLink.delete(link.id);
+                                  setAdminReferralLinks(adminReferralLinks.filter(l => l.id !== link.id));
+                                  toast.success('Link deleted');
+                                }}
+                                className="text-red-400 hover:text-red-300"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {adminReferralLinks.length === 0 && (
+                        <p className="text-sm text-slate-400 text-center py-4">No admin links created yet</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
