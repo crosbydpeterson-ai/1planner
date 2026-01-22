@@ -22,11 +22,14 @@ export default function Home() {
   const [error, setError] = useState('');
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [referralCode, setReferralCode] = useState(null);
+  const [rewardCode, setRewardCode] = useState(null);
 
   useEffect(() => {
     // Check for referral code in URL and store it in localStorage to persist across redirects
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get('ref');
+    const reward = urlParams.get('reward');
+    
     if (ref) {
       localStorage.setItem('pending_referral', ref);
       setReferralCode(ref);
@@ -39,6 +42,19 @@ export default function Home() {
         setMode('signup');
       }
     }
+
+    if (reward) {
+      localStorage.setItem('pending_reward', reward);
+      setRewardCode(reward);
+      setMode('signup');
+    } else {
+      const storedReward = localStorage.getItem('pending_reward');
+      if (storedReward) {
+        setRewardCode(storedReward);
+        setMode('signup');
+      }
+    }
+    
     checkAuth();
   }, []);
 
@@ -204,6 +220,49 @@ export default function Home() {
         });
       }
 
+      // Handle reward link
+      if (rewardCode) {
+        try {
+          const rewardLinks = await base44.entities.RewardLink.filter({ id: rewardCode });
+          if (rewardLinks.length > 0) {
+            const rewardLink = rewardLinks[0];
+            const usedCount = rewardLink.usedBy?.length || 0;
+            const isExpired = rewardLink.expiresAt && new Date(rewardLink.expiresAt) < new Date();
+            const hasUsesLeft = !rewardLink.maxUses || usedCount < rewardLink.maxUses;
+            
+            if (rewardLink.isActive && !isExpired && hasUsesLeft) {
+              // Apply reward
+              let updates = {};
+              
+              if (rewardLink.rewardType === 'xp') {
+                updates.xp = (profile.xp || 0) + (rewardLink.rewardValue || 0);
+              } else if (rewardLink.rewardType === 'coins') {
+                updates.questCoins = (profile.questCoins || 0) + (rewardLink.rewardValue || 0);
+              } else if (rewardLink.rewardType === 'magic_egg') {
+                await base44.entities.MagicEgg.create({ userId: uniqueId });
+              } else if (rewardLink.rewardType === 'pet' && rewardLink.rewardData?.petId) {
+                updates.unlockedPets = [...(profile.unlockedPets || []), rewardLink.rewardData.petId];
+              } else if (rewardLink.rewardType === 'theme' && rewardLink.rewardData?.themeId) {
+                updates.unlockedThemes = [...(profile.unlockedThemes || []), rewardLink.rewardData.themeId];
+              } else if (rewardLink.rewardType === 'title' && rewardLink.rewardData?.title) {
+                updates.unlockedTitles = [...(profile.unlockedTitles || []), rewardLink.rewardData.title];
+              }
+              
+              if (Object.keys(updates).length > 0) {
+                await base44.entities.UserProfile.update(profile.id, updates);
+              }
+              
+              // Mark as used
+              await base44.entities.RewardLink.update(rewardLink.id, {
+                usedBy: [...(rewardLink.usedBy || []), uniqueId]
+              });
+            }
+          }
+        } catch (e) {
+          console.error('Error applying reward:', e);
+        }
+      }
+
       // Store PIN hash
       localStorage.setItem(`pin_${uniqueId}`, btoa(pin));
       
@@ -212,8 +271,9 @@ export default function Home() {
       localStorage.setItem('quest_profile_id', profile.id);
       localStorage.setItem('quest_username', profile.username);
       
-      // Clear pending referral
+      // Clear pending referral and reward
       localStorage.removeItem('pending_referral');
+      localStorage.removeItem('pending_reward');
       
       navigate(createPageUrl('Dashboard'));
     } catch (e) {

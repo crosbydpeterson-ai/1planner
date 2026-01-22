@@ -123,6 +123,20 @@ export default function Admin() {
   const [adminReferralLinks, setAdminReferralLinks] = useState([]);
   const [newLinkMaxUses, setNewLinkMaxUses] = useState(10);
 
+  // Reward Links
+  const [rewardLinks, setRewardLinks] = useState([]);
+  const [showRewardLinkForm, setShowRewardLinkForm] = useState(false);
+  const [rewardLinkForm, setRewardLinkForm] = useState({
+    name: '',
+    rewardType: 'xp',
+    rewardValue: 100,
+    rewardData: {},
+    maxUses: 10,
+    usedBy: [],
+    expiresAt: '',
+    isActive: true
+  });
+
   useEffect(() => {
     checkAdminAccess();
   }, []);
@@ -182,7 +196,7 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings, allShopItems, allBundles, allReferralLinks] = await Promise.all([
+      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings, allShopItems, allBundles, allReferralLinks, allRewardLinks] = await Promise.all([
         base44.entities.UserProfile.list('-created_date'),
         base44.entities.Assignment.list('-created_date'),
         base44.entities.CustomPet.list('-created_date'),
@@ -193,7 +207,8 @@ export default function Admin() {
         base44.entities.AppSetting.list(),
         base44.entities.ShopItem.list('-created_date'),
         base44.entities.Bundle.list('-created_date'),
-        base44.entities.ReferralLink.list('-created_date')
+        base44.entities.ReferralLink.list('-created_date'),
+        base44.entities.RewardLink.list('-created_date')
       ]);
       setUsers(allUsers);
       setAssignments(allAssignments);
@@ -206,6 +221,7 @@ export default function Admin() {
       setShopItems(allShopItems);
       setBundles(allBundles);
       setAdminReferralLinks(allReferralLinks.filter(link => link.isAdminLink));
+      setRewardLinks(allRewardLinks);
       const refSetting = allSettings.find(s => s.key === 'referral_settings');
       if (refSetting) {
         setReferralSettings(refSetting.value);
@@ -1708,6 +1724,112 @@ Generate a pack_name and items array.`,
                 </div>
               </div>
 
+              {/* Reward Links */}
+              <div className="bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-indigo-500/20 rounded-2xl p-6 border border-white/10">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">🎁</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Reward Links</h3>
+                    <p className="text-slate-400 text-sm">Create special links that give XP, coins, pets, etc.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Button
+                    onClick={() => setShowRewardLinkForm(true)}
+                    className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Reward Link
+                  </Button>
+
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Active Reward Links ({rewardLinks.filter(l => l.isActive).length})</Label>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {rewardLinks.map((link) => {
+                        const usedCount = link.usedBy?.length || 0;
+                        const remaining = link.maxUses ? link.maxUses - usedCount : '∞';
+                        const isExpired = link.expiresAt && new Date(link.expiresAt) < new Date();
+                        const linkUrl = `${window.location.origin}?reward=${link.id}`;
+                        
+                        return (
+                          <div key={link.id} className="bg-slate-800/50 rounded-lg p-3 flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="text-white font-medium">{link.name}</span>
+                                <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded">
+                                  {link.rewardType === 'xp' && `${link.rewardValue} XP`}
+                                  {link.rewardType === 'coins' && `${link.rewardValue} 🪙`}
+                                  {link.rewardType === 'magic_egg' && '🥚 Magic Egg'}
+                                  {link.rewardType === 'pet' && '🐾 Pet'}
+                                  {link.rewardType === 'theme' && '🎨 Theme'}
+                                  {link.rewardType === 'title' && '👑 Title'}
+                                </span>
+                                <span className={`text-xs font-medium ${remaining === 0 || isExpired ? 'text-red-400' : 'text-emerald-400'}`}>
+                                  {remaining}/{link.maxUses || '∞'} uses
+                                </span>
+                                {isExpired && (
+                                  <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Expired</span>
+                                )}
+                                {!link.isActive && (
+                                  <span className="text-xs bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded">Inactive</span>
+                                )}
+                              </div>
+                              <code className="text-xs text-slate-400 block truncate">{linkUrl}</code>
+                              {link.expiresAt && (
+                                <p className="text-xs text-slate-500 mt-1">
+                                  Expires: {new Date(link.expiresAt).toLocaleString()}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(linkUrl);
+                                  toast.success('Link copied!');
+                                }}
+                                className="text-purple-400 hover:text-purple-300"
+                              >
+                                Copy
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={async () => {
+                                  await base44.entities.RewardLink.update(link.id, { isActive: !link.isActive });
+                                  setRewardLinks(rewardLinks.map(l => l.id === link.id ? { ...l, isActive: !l.isActive } : l));
+                                  toast.success(link.isActive ? 'Link deactivated' : 'Link activated');
+                                }}
+                                className={link.isActive ? 'text-yellow-400 hover:text-yellow-300' : 'text-emerald-400 hover:text-emerald-300'}
+                              >
+                                {link.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={async () => {
+                                  await base44.entities.RewardLink.delete(link.id);
+                                  setRewardLinks(rewardLinks.filter(l => l.id !== link.id));
+                                  toast.success('Link deleted');
+                                }}
+                                className="text-red-400 hover:text-red-300"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {rewardLinks.length === 0 && (
+                        <p className="text-sm text-slate-400 text-center py-4">No reward links created yet</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Admin Referral Links */}
               <div className="bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 rounded-2xl p-6 border border-white/10">
                 <div className="flex items-center gap-3 mb-4">
@@ -3083,6 +3205,173 @@ Generate a pack_name and items array.`,
                 className="bg-amber-600"
               >
                 Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reward Link Form Dialog */}
+        <Dialog open={showRewardLinkForm} onOpenChange={setShowRewardLinkForm}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create Reward Link</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Link Name</Label>
+                <Input
+                  value={rewardLinkForm.name}
+                  onChange={(e) => setRewardLinkForm({ ...rewardLinkForm, name: e.target.value })}
+                  placeholder="Welcome Bonus"
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Reward Type</Label>
+                  <Select
+                    value={rewardLinkForm.rewardType}
+                    onValueChange={(v) => setRewardLinkForm({ ...rewardLinkForm, rewardType: v, rewardValue: v === 'magic_egg' ? 0 : 100, rewardData: {} })}
+                  >
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="xp">XP</SelectItem>
+                      <SelectItem value="coins">Quest Coins</SelectItem>
+                      <SelectItem value="magic_egg">Magic Egg</SelectItem>
+                      <SelectItem value="pet">Pet</SelectItem>
+                      <SelectItem value="theme">Theme</SelectItem>
+                      <SelectItem value="title">Title</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {(rewardLinkForm.rewardType === 'xp' || rewardLinkForm.rewardType === 'coins') && (
+                  <div className="space-y-2">
+                    <Label>Amount</Label>
+                    <Input
+                      type="number"
+                      value={rewardLinkForm.rewardValue}
+                      onChange={(e) => setRewardLinkForm({ ...rewardLinkForm, rewardValue: parseInt(e.target.value) || 0 })}
+                      placeholder="100"
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                )}
+
+                {rewardLinkForm.rewardType === 'pet' && (
+                  <div className="space-y-2">
+                    <Label>Select Pet</Label>
+                    <Select
+                      value={rewardLinkForm.rewardData?.petId || ''}
+                      onValueChange={(v) => setRewardLinkForm({ ...rewardLinkForm, rewardData: { petId: v } })}
+                    >
+                      <SelectTrigger className="bg-slate-700 border-slate-600">
+                        <SelectValue placeholder="Choose pet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PETS.map(pet => (
+                          <SelectItem key={pet.id} value={pet.id}>
+                            {pet.emoji} {pet.name}
+                          </SelectItem>
+                        ))}
+                        {customPets.map(pet => (
+                          <SelectItem key={pet.id} value={`custom_${pet.id}`}>
+                            {pet.emoji || '🎁'} {pet.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {rewardLinkForm.rewardType === 'theme' && (
+                  <div className="space-y-2">
+                    <Label>Select Theme</Label>
+                    <Select
+                      value={rewardLinkForm.rewardData?.themeId || ''}
+                      onValueChange={(v) => setRewardLinkForm({ ...rewardLinkForm, rewardData: { themeId: v } })}
+                    >
+                      <SelectTrigger className="bg-slate-700 border-slate-600">
+                        <SelectValue placeholder="Choose theme" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {THEMES.map(theme => (
+                          <SelectItem key={theme.id} value={theme.id}>
+                            {theme.name}
+                          </SelectItem>
+                        ))}
+                        {customThemes.map(theme => (
+                          <SelectItem key={theme.id} value={`custom_${theme.id}`}>
+                            {theme.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {rewardLinkForm.rewardType === 'title' && (
+                  <div className="space-y-2">
+                    <Label>Title Text</Label>
+                    <Input
+                      value={rewardLinkForm.rewardData?.title || ''}
+                      onChange={(e) => setRewardLinkForm({ ...rewardLinkForm, rewardData: { title: e.target.value } })}
+                      placeholder="VIP Member"
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Max Uses (leave empty for unlimited)</Label>
+                  <Input
+                    type="number"
+                    value={rewardLinkForm.maxUses || ''}
+                    onChange={(e) => setRewardLinkForm({ ...rewardLinkForm, maxUses: parseInt(e.target.value) || null })}
+                    placeholder="10"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Expires At (optional)</Label>
+                  <Input
+                    type="datetime-local"
+                    value={rewardLinkForm.expiresAt}
+                    onChange={(e) => setRewardLinkForm({ ...rewardLinkForm, expiresAt: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowRewardLinkForm(false)}>Cancel</Button>
+              <Button
+                onClick={async () => {
+                  if (!rewardLinkForm.name.trim()) {
+                    toast.error('Enter link name');
+                    return;
+                  }
+                  try {
+                    const newLink = await base44.entities.RewardLink.create(rewardLinkForm);
+                    setRewardLinks([newLink, ...rewardLinks]);
+                    setShowRewardLinkForm(false);
+                    setRewardLinkForm({
+                      name: '', rewardType: 'xp', rewardValue: 100, rewardData: {},
+                      maxUses: 10, usedBy: [], expiresAt: '', isActive: true
+                    });
+                    toast.success('Reward link created!');
+                  } catch (e) {
+                    toast.error('Failed to create link');
+                  }
+                }}
+                className="bg-gradient-to-r from-pink-500 to-purple-500"
+              >
+                Create Link
               </Button>
             </DialogFooter>
           </DialogContent>
