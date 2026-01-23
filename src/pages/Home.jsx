@@ -163,8 +163,9 @@ export default function Home() {
       const referrerRewardXP = refSetting?.value?.referrerRewardXP || 50;
       const referredRewardXP = refSetting?.value?.referredRewardXP || 25;
 
-      // If referral mode is ON, require a referral link
-      if (referralMode && !referralCode) {
+      // If referral mode is ON, require a referral link (check both URL param and stored)
+      const hasReferral = referralCode || localStorage.getItem('pending_referral');
+      if (referralMode && !hasReferral) {
         setError('Sign-ups require a referral link. Ask a friend to share their link with you!');
         setLoading(false);
         return;
@@ -182,12 +183,34 @@ export default function Home() {
         return;
       }
 
-      // If there's a referral code, validate it
+      // If there's a referral code, validate it (use stored code if not in state)
       let referrerProfile = null;
-      if (referralCode) {
-        referrerProfile = existing.find(p => p.id === referralCode);
+      const activeReferralCode = referralCode || localStorage.getItem('pending_referral');
+      if (activeReferralCode) {
+        // First check if it's a user profile ID
+        referrerProfile = existing.find(p => p.id === activeReferralCode);
+        
+        // If not found, check if it's an admin referral link
         if (!referrerProfile) {
-          setError('Invalid referral link');
+          const referralLinks = await base44.entities.ReferralLink.filter({ id: activeReferralCode });
+          if (referralLinks.length > 0) {
+            const link = referralLinks[0];
+            const usedCount = link.usedBy?.length || 0;
+            const hasUsesLeft = !link.maxUses || usedCount < link.maxUses;
+            
+            if (hasUsesLeft && link.isAdminLink) {
+              // Get the referrer profile from the link
+              referrerProfile = existing.find(p => p.id === link.referrerId);
+              // Update the link usage
+              await base44.entities.ReferralLink.update(link.id, {
+                usedBy: [...(link.usedBy || []), uniqueId]
+              });
+            }
+          }
+        }
+        
+        if (!referrerProfile && referralMode) {
+          setError('Invalid or expired referral link');
           setLoading(false);
           return;
         }
