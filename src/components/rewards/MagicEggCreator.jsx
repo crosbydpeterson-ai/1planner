@@ -28,73 +28,14 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
     setGenerating(true);
 
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a magical creature designer for a KIDS school gamification app called Quest Planner.
-
-      A student wants to create their own custom magical companion using a Magic Egg!
-
-      Their idea: "${petIdea}"
-
-      WHAT YOU CAN CREATE (be creative!):
-      - Traditional pets (cats, dogs, dragons, etc.)
-      - Magical creatures (sprites, fairies, elementals)
-      - Living objects (a friendly book, a dancing pencil, a wise calculator)
-      - Food creatures (a happy pizza slice, a brave taco warrior)
-      - Nature spirits (cloud beings, flower sprites, rock guardians)
-      - Abstract concepts (a helpful star, a friendly rainbow, a cozy blanket ghost)
-      - Robots and tech creatures (friendly AI, pixel pets)
-      - Mythical beings (mini phoenix, baby unicorn, tiny kraken)
-
-      CONTENT RULES (VERY IMPORTANT - THIS IS FOR CHILDREN):
-      - The creature MUST be appropriate for elementary/middle school kids
-      - NO violence, weapons, scary monsters, demons, or horror themes
-      - NO inappropriate body parts or suggestive content
-      - NO drugs, alcohol, or adult themes
-      - NO mean, bullying, or negative personalities
-      - If the user's idea is inappropriate, create a SAFE alternative (like a friendly version)
-      - Keep it cute, fun, positive, and school-friendly!
-
-      Generate a fun, school-appropriate magical companion based on their idea. It should:
-      - Have a creative, catchy name (2-3 words max)
-      - Be cute, friendly, and have personality
-      - Have a fun description (1-2 sentences)
-      - Have a single emoji that fits (just ONE emoji character - can be any emoji!)
-      - Have a cohesive color theme with 4 HEX color codes
-
-      IMPORTANT for theme colors:
-      - primary: Main color (vibrant, saturated) - MUST be a valid hex like #3b82f6
-      - secondary: Lighter/complementary color - MUST be a valid hex like #93c5fd  
-      - accent: Pop color for highlights - MUST be a valid hex like #f59e0b
-      - bg: Background color (light for light themes like #f0f9ff, dark for dark themes like #1e1b4b)
-
-      Make sure all colors work well together and match the creature's personality!`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            name: { type: "string", description: "Pet name, 2-3 words" },
-            description: { type: "string", description: "Fun 1-2 sentence description" },
-            emoji: { type: "string", description: "Single emoji character" },
-            rarity: { type: "string", enum: ["uncommon", "rare", "epic"] },
-            theme: {
-              type: "object",
-              properties: {
-                primary: { type: "string", description: "Main hex color like #3b82f6" },
-                secondary: { type: "string", description: "Secondary hex color like #93c5fd" },
-                accent: { type: "string", description: "Accent hex color like #f59e0b" },
-                bg: { type: "string", description: "Background hex color like #f0f9ff or #1e1b4b" }
-              },
-              required: ["primary", "secondary", "accent", "bg"]
-            }
-          },
-          required: ["name", "description", "emoji", "rarity", "theme"]
-        }
+      const response = await base44.functions.invoke('generateMagicPet', {
+        petIdea,
+        generateImage: true
       });
 
-      setGeneratedPet(result);
+      setGeneratedPet(response.data.pet);
+      setGeneratedImageUrl(response.data.imageUrl);
       setStep('preview');
-      
-      // Auto-generate image
-      generatePetImage(result);
     } catch (e) {
       toast.error('Magic failed! Try again.');
       setStep('idea');
@@ -102,27 +43,7 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
     setGenerating(false);
   };
 
-  const generatePetImage = async (pet) => {
-    if (!pet) return;
-    setGeneratingImage(true);
-    try {
-      const imagePrompt = `Cute cartoon pet character for a CHILDREN'S educational game: ${pet.name}. ${pet.description}. 
-Style: adorable, friendly, colorful digital art, game mascot style, simple clean design, kid-friendly, Pixar-style cuteness.
-MUST BE: Safe for children, no scary elements, bright and cheerful.
-Color scheme: primary ${pet.theme?.primary}, secondary ${pet.theme?.secondary}, accent ${pet.theme?.accent}.
-White or transparent background, centered, high quality illustration.`;
-      
-      const result = await base44.integrations.Core.GenerateImage({
-        prompt: imagePrompt
-      });
-      
-      setGeneratedImageUrl(result.url);
-    } catch (e) {
-      console.error('Image generation failed:', e);
-      // Continue without image - emoji fallback
-    }
-    setGeneratingImage(false);
-  };
+
 
   const handleHatchPet = async () => {
     if (!generatedPet) return;
@@ -271,14 +192,7 @@ White or transparent background, centered, high quality illustration.`;
                 >
                   {/* Pet Image or Emoji */}
                   <div className="relative w-32 h-32 mx-auto mb-3">
-                    {generatingImage ? (
-                      <div className="w-full h-full rounded-2xl bg-white/50 flex items-center justify-center">
-                        <div className="text-center">
-                          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" style={{ color: generatedPet.theme?.primary }} />
-                          <p className="text-xs text-slate-500">Creating art...</p>
-                        </div>
-                      </div>
-                    ) : generatedImageUrl ? (
+                    {generatedImageUrl ? (
                       <img 
                         src={generatedImageUrl} 
                         alt={generatedPet.name}
@@ -319,7 +233,6 @@ White or transparent background, centered, high quality illustration.`;
 
                 <Button
                   onClick={handleHatchPet}
-                  disabled={generatingImage}
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
