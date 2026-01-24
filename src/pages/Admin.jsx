@@ -1884,7 +1884,7 @@ Generate a pack_name and items array.`,
                       {adminReferralLinks.map((link) => {
                         const usedCount = link.usedBy?.length || 0;
                         const remaining = link.maxUses - usedCount;
-                        const linkUrl = `${window.location.origin}?ref=${link.id}`;
+                        const linkUrl = `${window.location.origin}/Home?ref=${link.id}`;
                         
                         return (
                           <div key={link.id} className="bg-slate-800/50 rounded-lg p-3 flex items-center justify-between gap-3">
