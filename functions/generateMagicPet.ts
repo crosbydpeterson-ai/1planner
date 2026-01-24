@@ -106,7 +106,18 @@ White or transparent background, centered, high quality illustration.`;
         quality: "standard"
       });
 
-      imageUrl = imageResponse.data[0].url;
+      const tempImageUrl = imageResponse.data[0].url;
+      
+      // Download the image from OpenAI and upload to Base44 storage
+      const imageData = await fetch(tempImageUrl);
+      const imageBlob = await imageData.blob();
+      
+      // Upload to Base44
+      const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
+        file: imageBlob
+      });
+      
+      imageUrl = uploadResult.file_url;
     }
 
     return Response.json({
