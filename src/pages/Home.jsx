@@ -183,13 +183,17 @@ export default function Home() {
         return;
       }
 
+      // Create unique ID for demo
+      const uniqueId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
       // If there's a referral code, validate it (use stored code if not in state)
       let referrerProfile = null;
+      let adminReferralLink = null;
       const activeReferralCode = referralCode || localStorage.getItem('pending_referral');
       if (activeReferralCode) {
         // First check if it's a user profile ID
         referrerProfile = existing.find(p => p.id === activeReferralCode);
-        
+
         // If not found, check if it's an admin referral link
         if (!referrerProfile) {
           const referralLinks = await base44.entities.ReferralLink.filter({ id: activeReferralCode });
@@ -197,27 +201,21 @@ export default function Home() {
             const link = referralLinks[0];
             const usedCount = link.usedBy?.length || 0;
             const hasUsesLeft = !link.maxUses || usedCount < link.maxUses;
-            
+
             if (hasUsesLeft && link.isAdminLink) {
               // Get the referrer profile from the link
               referrerProfile = existing.find(p => p.id === link.referrerId);
-              // Update the link usage
-              await base44.entities.ReferralLink.update(link.id, {
-                usedBy: [...(link.usedBy || []), uniqueId]
-              });
+              adminReferralLink = link;
             }
           }
         }
-        
+
         if (!referrerProfile && referralMode) {
           setError('Invalid or expired referral link');
           setLoading(false);
           return;
         }
       }
-
-      // Create unique ID for demo
-      const uniqueId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Create user profile with referral XP if applicable
       const profile = await base44.entities.UserProfile.create({
@@ -240,6 +238,13 @@ export default function Home() {
       if (referrerProfile) {
         await base44.entities.UserProfile.update(referrerProfile.id, {
           xp: (referrerProfile.xp || 0) + referrerRewardXP
+        });
+      }
+
+      // Update admin referral link usage
+      if (adminReferralLink) {
+        await base44.entities.ReferralLink.update(adminReferralLink.id, {
+          usedBy: [...(adminReferralLink.usedBy || []), uniqueId]
         });
       }
 
