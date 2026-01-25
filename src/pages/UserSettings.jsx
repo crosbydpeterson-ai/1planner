@@ -4,8 +4,9 @@ import { createPageUrl } from '@/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Link, useNavigate } from 'react-router-dom';
-import { Copy, Check, ArrowLeft } from 'lucide-react';
+import { Copy, Check, ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function UserSettings() {
@@ -13,6 +14,8 @@ export default function UserSettings() {
   const [loading, setLoading] = useState(true);
   const [referralLink, setReferralLink] = useState('');
   const [copied, setCopied] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,11 +38,24 @@ export default function UserSettings() {
       }
       const userProfile = profiles[0];
       setProfile(userProfile);
+      setStatusMessage(userProfile.statusMessage || '');
       setReferralLink(`${window.location.origin}${createPageUrl('Home')}?ref=${userProfile.id}`);
     } catch (e) {
       console.error('Error loading profile:', e);
     }
     setLoading(false);
+  };
+
+  const handleSaveStatus = async () => {
+    setSaving(true);
+    try {
+      await base44.entities.UserProfile.update(profile.id, { statusMessage });
+      setProfile({ ...profile, statusMessage });
+      toast.success('Status message updated!');
+    } catch (e) {
+      toast.error('Failed to update status');
+    }
+    setSaving(false);
   };
 
   const handleCopy = () => {
@@ -88,11 +104,42 @@ export default function UserSettings() {
         <p className="text-sm text-slate-500 mt-2">Your unique referral ID: <span className="font-mono text-slate-700">{profile.id}</span></p>
       </div>
 
+      <div className="bg-white rounded-xl p-6 shadow-md border border-slate-200 mb-6">
+        <h2 className="text-xl font-semibold mb-4 text-slate-700">💬 Status Message</h2>
+        <p className="text-slate-600 mb-4 text-sm">Set a custom status that shows on your profile!</p>
+        <div className="space-y-3">
+          <Textarea
+            value={statusMessage}
+            onChange={(e) => setStatusMessage(e.target.value.slice(0, 100))}
+            placeholder="What's on your mind?"
+            className="bg-slate-50 border-slate-300 resize-none"
+            rows={3}
+            maxLength={100}
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-500">{statusMessage.length}/100</span>
+            <Button
+              onClick={handleSaveStatus}
+              disabled={saving}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              {saving ? 'Saving...' : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Status
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl p-6 shadow-md border border-slate-200">
         <h2 className="text-xl font-semibold mb-2 text-slate-700">Profile Info</h2>
         <div className="space-y-2 text-slate-600">
           <p><span className="font-medium">Username:</span> {profile.username}</p>
           <p><span className="font-medium">XP:</span> {profile.xp || 0}</p>
+          <p><span className="font-medium">Quest Coins:</span> {profile.questCoins || 0} 🪙</p>
           <p><span className="font-medium">Math Teacher:</span> {profile.mathTeacher}</p>
           <p><span className="font-medium">Reading Teacher:</span> {profile.readingTeacher}</p>
         </div>
