@@ -3,6 +3,7 @@ import { Crown, Medal, Award, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getLevelInfo } from './XPProgress';
+import PetAvatar from './PetAvatar';
 
 const RANK_ICONS = {
   1: { icon: Crown, color: "text-amber-500", bg: "bg-amber-50" },
@@ -37,12 +38,16 @@ export default function LeaderboardRow({ user, rank, isCurrentUser }) {
         )}
       </div>
       
+      {/* Pet Avatar */}
+      <PetAvatar 
+        petId={user.equippedPetId} 
+        cosmeticIds={user.equippedCosmetics || []}
+        size="md"
+      />
+      
       {/* User info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          {user.equippedPetEmoji && (
-            <span className="text-xl">{user.equippedPetEmoji}</span>
-          )}
+        <div className="flex items-center gap-2 flex-wrap">
           <h3 className={cn(
             "font-bold text-slate-800 truncate",
             isCurrentUser && "text-indigo-700"
@@ -61,6 +66,9 @@ export default function LeaderboardRow({ user, rank, isCurrentUser }) {
         <p className="text-xs text-slate-400">
           Level {currentLevel.level} • {currentLevel.title}
         </p>
+        {user.statusMessage && (
+          <p className="text-xs text-slate-500 italic mt-0.5 truncate">"{user.statusMessage}"</p>
+        )}
       </div>
       
       {/* XP */}
