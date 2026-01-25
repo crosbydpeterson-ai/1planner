@@ -52,8 +52,10 @@ export default function Admin() {
   // Custom Pets & Themes
   const [customPets, setCustomPets] = useState([]);
   const [customThemes, setCustomThemes] = useState([]);
+  const [petCosmetics, setPetCosmetics] = useState([]);
   const [showPetForm, setShowPetForm] = useState(false);
   const [showThemeForm, setShowThemeForm] = useState(false);
+  const [showCosmeticForm, setShowCosmeticForm] = useState(false);
   const [petForm, setPetForm] = useState({
     name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '', isGiftOnly: false,
     theme: { primary: '#6366f1', secondary: '#a855f7', accent: '#f59e0b', bg: '#f8fafc' }
@@ -62,6 +64,9 @@ export default function Admin() {
   const [themeForm, setThemeForm] = useState({
     name: '', rarity: 'common', xpRequired: 0, description: '',
     primaryColor: '#6366f1', secondaryColor: '#8b5cf6', accentColor: '#f59e0b', bgColor: '#f8fafc'
+  });
+  const [cosmeticForm, setCosmeticForm] = useState({
+    name: '', description: '', cosmeticType: 'hat', imageUrl: '', price: 50, rarity: 'common', isLimited: false, isActive: true
   });
 
   // Gifting
@@ -196,7 +201,7 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings, allShopItems, allBundles, allReferralLinks, allRewardLinks] = await Promise.all([
+      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings, allShopItems, allBundles, allReferralLinks, allRewardLinks, allCosmetics] = await Promise.all([
         base44.entities.UserProfile.list('-created_date'),
         base44.entities.Assignment.list('-created_date'),
         base44.entities.CustomPet.list('-created_date'),
@@ -208,7 +213,8 @@ export default function Admin() {
         base44.entities.ShopItem.list('-created_date'),
         base44.entities.Bundle.list('-created_date'),
         base44.entities.ReferralLink.list('-created_date'),
-        base44.entities.RewardLink.list('-created_date')
+        base44.entities.RewardLink.list('-created_date'),
+        base44.entities.PetCosmetic.list('-created_date')
       ]);
       setUsers(allUsers);
       setAssignments(allAssignments);
@@ -222,6 +228,7 @@ export default function Admin() {
       setBundles(allBundles);
       setAdminReferralLinks(allReferralLinks.filter(link => link.isAdminLink));
       setRewardLinks(allRewardLinks);
+      setPetCosmetics(allCosmetics);
       const refSetting = allSettings.find(s => s.key === 'referral_settings');
       if (refSetting) {
         setReferralSettings(refSetting.value);
@@ -635,6 +642,10 @@ White or transparent background, centered, high quality illustration.`;
             <TabsTrigger value="themes" className="data-[state=active]:bg-slate-700">
               <Palette className="w-4 h-4 mr-2" />
               Themes ({customThemes.length})
+            </TabsTrigger>
+            <TabsTrigger value="cosmetics" className="data-[state=active]:bg-slate-700">
+              👒
+              Cosmetics ({petCosmetics.length})
             </TabsTrigger>
             <TabsTrigger value="seasons" className="data-[state=active]:bg-slate-700">
               <Sparkles className="w-4 h-4 mr-2" />
@@ -1281,6 +1292,50 @@ Generate:
               ))}
               {customThemes.length === 0 && (
                 <div className="col-span-full text-center py-8 text-slate-400">No custom themes yet</div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="cosmetics">
+            <div className="flex justify-end mb-4">
+              <Button onClick={() => setShowCosmeticForm(true)} className="bg-gradient-to-r from-pink-500 to-purple-600">
+                <Plus className="w-4 h-4 mr-2" />
+                New Cosmetic
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {petCosmetics.map((cosmetic) => (
+                <div key={cosmetic.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      {cosmetic.imageUrl && (
+                        <img src={cosmetic.imageUrl} alt={cosmetic.name} className="w-12 h-12 object-contain" />
+                      )}
+                      <div>
+                        <h3 className="font-semibold text-white">{cosmetic.name}</h3>
+                        <p className="text-xs text-slate-400 capitalize">
+                          {cosmetic.cosmeticType} • {cosmetic.rarity} • {cosmetic.price} 🪙
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={async () => {
+                        await base44.entities.PetCosmetic.delete(cosmetic.id);
+                        setPetCosmetics(petCosmetics.filter(c => c.id !== cosmetic.id));
+                        toast.success('Cosmetic deleted');
+                      }}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {cosmetic.description && <p className="text-sm text-slate-500">{cosmetic.description}</p>}
+                </div>
+              ))}
+              {petCosmetics.length === 0 && (
+                <div className="col-span-full text-center py-8 text-slate-400">No pet cosmetics yet</div>
               )}
             </div>
           </TabsContent>
@@ -3372,6 +3427,145 @@ Generate a pack_name and items array.`,
                 className="bg-gradient-to-r from-pink-500 to-purple-500"
               >
                 Create Link
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* New Cosmetic Dialog */}
+        <Dialog open={showCosmeticForm} onOpenChange={setShowCosmeticForm}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create Pet Cosmetic</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    value={cosmeticForm.name}
+                    onChange={(e) => setCosmeticForm({ ...cosmeticForm, name: e.target.value })}
+                    placeholder="Cool Sunglasses"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cosmetic Type</Label>
+                  <Select value={cosmeticForm.cosmeticType} onValueChange={(v) => setCosmeticForm({ ...cosmeticForm, cosmeticType: v })}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hat">Hat</SelectItem>
+                      <SelectItem value="glasses">Glasses</SelectItem>
+                      <SelectItem value="accessory">Accessory</SelectItem>
+                      <SelectItem value="background">Background</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={cosmeticForm.description}
+                  onChange={(e) => setCosmeticForm({ ...cosmeticForm, description: e.target.value })}
+                  placeholder="Stylish shades for your pet"
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Price (Coins)</Label>
+                  <Input
+                    type="number"
+                    value={cosmeticForm.price}
+                    onChange={(e) => setCosmeticForm({ ...cosmeticForm, price: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rarity</Label>
+                  <Select value={cosmeticForm.rarity} onValueChange={(v) => setCosmeticForm({ ...cosmeticForm, rarity: v })}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="common">Common</SelectItem>
+                      <SelectItem value="uncommon">Uncommon</SelectItem>
+                      <SelectItem value="rare">Rare</SelectItem>
+                      <SelectItem value="epic">Epic</SelectItem>
+                      <SelectItem value="legendary">Legendary</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="cosmeticLimited"
+                      checked={cosmeticForm.isLimited}
+                      onChange={(e) => setCosmeticForm({ ...cosmeticForm, isLimited: e.target.checked })}
+                      className="rounded"
+                    />
+                    <Label htmlFor="cosmeticLimited" className="cursor-pointer">Limited</Label>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Upload Image (PNG/SVG with transparent background)</Label>
+                <Input
+                  type="file"
+                  accept="image/png,image/svg+xml"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setCosmeticForm({ ...cosmeticForm, imageUrl: reader.result });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="bg-slate-700 border-slate-600"
+                />
+                {cosmeticForm.imageUrl && (
+                  <div className="flex items-center gap-3 p-4 bg-slate-700 rounded-lg">
+                    <img src={cosmeticForm.imageUrl} alt="Preview" className="w-16 h-16 object-contain" />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setCosmeticForm({ ...cosmeticForm, imageUrl: '' })}
+                      className="text-red-400"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowCosmeticForm(false)}>Cancel</Button>
+              <Button
+                onClick={async () => {
+                  if (!cosmeticForm.name.trim() || !cosmeticForm.imageUrl) {
+                    toast.error('Enter name and upload image');
+                    return;
+                  }
+                  try {
+                    const newCosmetic = await base44.entities.PetCosmetic.create(cosmeticForm);
+                    setPetCosmetics([newCosmetic, ...petCosmetics]);
+                    setShowCosmeticForm(false);
+                    setCosmeticForm({
+                      name: '', description: '', cosmeticType: 'hat', imageUrl: '', price: 50, rarity: 'common', isLimited: false, isActive: true
+                    });
+                    toast.success('Cosmetic created!');
+                  } catch (e) {
+                    toast.error('Failed to create cosmetic');
+                  }
+                }}
+                className="bg-pink-600"
+              >
+                Create Cosmetic
               </Button>
             </DialogFooter>
           </DialogContent>
