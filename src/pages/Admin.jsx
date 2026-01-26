@@ -20,6 +20,7 @@ import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
 import { toast } from 'sonner';
 import AdminChatWidget from '@/components/admin/AdminChatWidget';
+import PetAvatar from '@/components/quest/PetAvatar';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
@@ -731,6 +732,7 @@ White or transparent background, centered, high quality illustration.`;
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
+                        <PetAvatar petId={user.equippedPetId} cosmeticIds={user.equippedCosmetics || []} cosmeticPositions={user.cosmeticPositions || {}} size="sm" />
                         <div>
                           <h3 className="font-semibold text-white flex items-center gap-2">
                             {user.username}

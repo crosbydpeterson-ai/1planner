@@ -42,6 +42,7 @@ export default function LeaderboardRow({ user, rank, isCurrentUser }) {
       <PetAvatar 
         petId={user.equippedPetId} 
         cosmeticIds={user.equippedCosmetics || []}
+        cosmeticPositions={user.cosmeticPositions || {}}
         size="md"
       />
       

@@ -22,6 +22,8 @@ export default function UserSettings() {
   const [saving, setSaving] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState('');
   const [customPets, setCustomPets] = useState([]);
+  const [selectedPetId, setSelectedPetId] = useState('');
+  const [customPets, setCustomPets] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -84,6 +86,17 @@ export default function UserSettings() {
     }
   };
 
+  const handleSavePet = async () => {
+    try {
+      await base44.entities.UserProfile.update(profile.id, { equippedPetId: selectedPetId });
+      setProfile({ ...profile, equippedPetId: selectedPetId });
+      toast.success('Pet icon updated!');
+      window.dispatchEvent(new Event('themeUpdated'));
+    } catch (e) {
+      toast.error('Failed to update pet');
+    }
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);
     setCopied(true);
@@ -110,6 +123,37 @@ export default function UserSettings() {
           </Button>
         </Link>
         <h1 className="text-3xl font-bold text-slate-800">Settings</h1>
+      </div>
+
+      {/* Pet Icon + Cosmetics */}
+      <div className="bg-white rounded-xl p-6 shadow-md border border-slate-200 mb-6">
+        <h2 className="text-xl font-semibold mb-4 text-slate-700">🐾 Your Pet Icon</h2>
+        <div className="flex items-center gap-4 mb-4">
+          <PetAvatar petId={selectedPetId} cosmeticIds={profile.equippedCosmetics || []} cosmeticPositions={profile.cosmeticPositions || {}} size="xl" />
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="mb-1 block">Choose Pet</Label>
+              <Select value={selectedPetId} onValueChange={setSelectedPetId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a pet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PETS.filter(p => (profile.unlockedPets || []).includes(p.id)).map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                  {customPets.map(cp => (
+                    <SelectItem key={cp.id} value={`custom_${cp.id}`}>⭐ {cp.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button onClick={handleSavePet} className="bg-indigo-600 hover:bg-indigo-700">Save Pet</Button>
+            </div>
+          </div>
+        </div>
+        <p className="text-sm text-slate-600 mb-3">This icon shows on the leaderboard and Admin panel.</p>
+        <PetCosmeticCustomizer profile={profile} onUpdate={loadProfile} />
       </div>
 
       <div className="bg-white rounded-xl p-6 shadow-md border border-slate-200 mb-6">
