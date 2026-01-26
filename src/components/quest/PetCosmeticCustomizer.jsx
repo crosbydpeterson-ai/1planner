@@ -132,7 +132,7 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
         onMouseLeave={stopDrag}
         onTouchMove={handleTouchMove}
         onTouchEnd={stopDrag}
-        className="relative w-full h-80 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border-2 border-dashed border-slate-300 mb-4 overflow-hidden"
+        className="relative w-full h-80 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border-2 border-dashed border-slate-300 mb-4 overflow-hidden select-none"
       >
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div style={{ transform: 'scale(3)', opacity: 0.95 }}>

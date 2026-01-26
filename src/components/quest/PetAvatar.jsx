@@ -76,7 +76,7 @@ export default function PetAvatar({ petId, cosmeticIds = [], cosmeticPositions =
       {cosmetics.map((cosmetic, index) => {
         // Use custom position if available, otherwise use default based on type
         const customPos = cosmeticPositions[cosmetic.id];
-        const zIndex = cosmetic.cosmeticType === 'background' ? 'z-0' : 'z-20';
+        const zIndex = cosmetic.cosmeticType === 'background' ? 'z-0' : 'z-30';
 
         // Default positions if no custom position set
         const defaultPositions = {
