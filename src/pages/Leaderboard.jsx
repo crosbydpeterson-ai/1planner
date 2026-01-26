@@ -24,6 +24,7 @@ export default function Leaderboard() {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) {
       navigate(createPageUrl('Home'));
+      setLoading(false);
       return;
     }
 

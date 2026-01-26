@@ -72,6 +72,7 @@ export default function Admin() {
   // Gifting
   const [showGiftDialog, setShowGiftDialog] = useState(false);
   const [giftUser, setGiftUser] = useState(null);
+  const [giftUsername, setGiftUsername] = useState('');
   const [giftType, setGiftType] = useState('pet');
   const [giftItemId, setGiftItemId] = useState('');
 
@@ -304,7 +305,7 @@ export default function Admin() {
         isApproved: true, // Admin-created assignments are auto-approved
         target: assignmentForm.subject === 'everyone' ? 'everyone' : assignmentForm.target
       });
-      setAssignments([newAssignment, ...assignments]);
+      setAssignments((prevAssignments) => [newAssignment, ...prevAssignments]);
       setShowAssignmentForm(false);
       setAssignmentForm({
         title: '',
@@ -427,8 +428,33 @@ White or transparent background, centered, high quality illustration.`;
     setGeneratingPetImage(false);
   };
 
+  const resolveGiftRecipient = () => {
+    if (giftUser) {
+      return giftUser;
+    }
+
+    const username = giftUsername.trim();
+    if (!username) {
+      toast.error('Please select a user');
+      return null;
+    }
+
+    const matchedUser = users.find(
+      (user) => user.username?.toLowerCase() === username.toLowerCase()
+    );
+
+    if (!matchedUser) {
+      toast.error(`User "${username}" not found`);
+      return null;
+    }
+
+    setGiftUser(matchedUser);
+    return matchedUser;
+  };
+
   const handleGiftItem = async () => {
-    if (!giftUser || !giftItemId) {
+    const recipient = resolveGiftRecipient();
+    if (!recipient || !giftItemId) {
       toast.error('Please enter an amount or select an item');
       return;
     }
@@ -439,26 +465,34 @@ White or transparent background, centered, high quality illustration.`;
           toast.error('Please enter a valid amount');
           return;
         }
-        const newCoins = (giftUser.questCoins || 0) + amount;
-        await base44.entities.UserProfile.update(giftUser.id, { questCoins: newCoins });
-        setUsers(users.map(u => u.id === giftUser.id ? { ...u, questCoins: newCoins } : u));
-        toast.success(`${amount} Quest Coins gifted to ${giftUser.username}!`);
+        const newCoins = (recipient.questCoins || 0) + amount;
+        await base44.entities.UserProfile.update(recipient.id, { questCoins: newCoins });
+        setUsers(users.map(u => u.id === recipient.id ? { ...u, questCoins: newCoins } : u));
+        toast.success(`${amount} Quest Coins gifted to ${recipient.username}!`);
       } else if (giftType === 'pet') {
-        const unlockedPets = [...(giftUser.unlockedPets || [])];
+        const unlockedPets = [...(recipient.unlockedPets || [])];
         if (!unlockedPets.includes(giftItemId)) {
           unlockedPets.push(giftItemId);
-          await base44.entities.UserProfile.update(giftUser.id, { unlockedPets });
-          setUsers(users.map(u => u.id === giftUser.id ? { ...u, unlockedPets } : u));
+          await base44.entities.UserProfile.update(recipient.id, { unlockedPets });
+          setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedPets } : u));
         }
-        toast.success(`Pet gifted to ${giftUser.username}!`);
-      } else {
-        const unlockedThemes = [...(giftUser.unlockedThemes || [])];
+        toast.success(`Pet gifted to ${recipient.username}!`);
+      } else if (giftType === 'theme') {
+        const unlockedThemes = [...(recipient.unlockedThemes || [])];
         if (!unlockedThemes.includes(giftItemId)) {
           unlockedThemes.push(giftItemId);
-          await base44.entities.UserProfile.update(giftUser.id, { unlockedThemes });
-          setUsers(users.map(u => u.id === giftUser.id ? { ...u, unlockedThemes } : u));
+          await base44.entities.UserProfile.update(recipient.id, { unlockedThemes });
+          setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedThemes } : u));
         }
-        toast.success(`Theme gifted to ${giftUser.username}!`);
+        toast.success(`Theme gifted to ${recipient.username}!`);
+      } else if (giftType === 'cosmetic') {
+        const equippedCosmetics = [...(recipient.equippedCosmetics || [])];
+        if (!equippedCosmetics.includes(giftItemId)) {
+          equippedCosmetics.push(giftItemId);
+          await base44.entities.UserProfile.update(recipient.id, { equippedCosmetics });
+          setUsers(users.map(u => u.id === recipient.id ? { ...u, equippedCosmetics } : u));
+        }
+        toast.success(`Cosmetic gifted to ${recipient.username}!`);
       }
       setShowGiftDialog(false);
       setGiftItemId('');
@@ -753,6 +787,7 @@ White or transparent background, centered, high quality illustration.`;
                             variant="ghost"
                             onClick={() => {
                               setGiftUser(user);
+                              setGiftUsername(user.username || '');
                               setShowGiftDialog(true);
                             }}
                             className="text-purple-400 hover:text-purple-300"
@@ -2298,9 +2333,34 @@ Generate a pack_name and items array.`,
         <Dialog open={showGiftDialog} onOpenChange={setShowGiftDialog}>
           <DialogContent className="bg-slate-800 border-slate-700 text-white">
             <DialogHeader>
-              <DialogTitle>Gift Item to {giftUser?.username}</DialogTitle>
+              <DialogTitle>Gift Item to {giftUser?.username || giftUsername || 'User'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Gift to Username</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={giftUsername}
+                    onChange={(e) => setGiftUsername(e.target.value)}
+                    placeholder="Enter username"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={resolveGiftRecipient}
+                    className="border-purple-500 text-purple-300 hover:bg-purple-500/20"
+                  >
+                    Find
+                  </Button>
+                </div>
+                {giftUser && (
+                  <p className="text-xs text-slate-400">
+                    Selected: <span className="text-purple-200">{giftUser.username}</span>
+                  </p>
+                )}
+              </div>
               <div className="space-y-2">
                 <Label>Gift Type</Label>
                 <Select value={giftType} onValueChange={(v) => { setGiftType(v); setGiftItemId(''); }}>
@@ -2311,6 +2371,7 @@ Generate a pack_name and items array.`,
                     <SelectItem value="coins">Quest Coins</SelectItem>
                     <SelectItem value="pet">Pet</SelectItem>
                     <SelectItem value="theme">Theme</SelectItem>
+                    <SelectItem value="cosmetic">Cosmetic</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2330,7 +2391,9 @@ Generate a pack_name and items array.`,
               
               {giftType !== 'coins' && (
                 <div className="space-y-2">
-                  <Label>Select {giftType === 'pet' ? 'Pet' : 'Theme'}</Label>
+                  <Label>
+                    Select {giftType === 'pet' ? 'Pet' : giftType === 'theme' ? 'Theme' : 'Cosmetic'}
+                  </Label>
                   <Select value={giftItemId} onValueChange={setGiftItemId}>
                   <SelectTrigger className="bg-slate-700 border-slate-600">
                     <SelectValue placeholder={`Select a ${giftType}`} />
@@ -2349,7 +2412,7 @@ Generate a pack_name and items array.`,
                           </SelectItem>
                         ))}
                       </>
-                    ) : (
+                    ) : giftType === 'theme' ? (
                       <>
                         {THEMES.map(theme => (
                           <SelectItem key={theme.id} value={theme.id}>
@@ -2359,6 +2422,14 @@ Generate a pack_name and items array.`,
                         {customThemes.map(theme => (
                           <SelectItem key={theme.id} value={`custom_${theme.id}`}>
                             {theme.name} (Custom)
+                          </SelectItem>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        {petCosmetics.map((cosmetic) => (
+                          <SelectItem key={cosmetic.id} value={cosmetic.id}>
+                            {cosmetic.name} ({cosmetic.cosmeticType})
                           </SelectItem>
                         ))}
                       </>
@@ -2373,11 +2444,12 @@ Generate a pack_name and items array.`,
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    if (!giftUser) return;
+                    const recipient = resolveGiftRecipient();
+                    if (!recipient) return;
                     const allPetIds = [...PETS.map(p => p.id), ...customPets.map(p => `custom_${p.id}`)];
-                    await base44.entities.UserProfile.update(giftUser.id, { unlockedPets: allPetIds });
-                    setUsers(users.map(u => u.id === giftUser.id ? { ...u, unlockedPets: allPetIds } : u));
-                    toast.success(`All pets gifted to ${giftUser.username}!`);
+                    await base44.entities.UserProfile.update(recipient.id, { unlockedPets: allPetIds });
+                    setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedPets: allPetIds } : u));
+                    toast.success(`All pets gifted to ${recipient.username}!`);
                   }}
                   className="flex-1 border-purple-500 text-purple-400 hover:bg-purple-500/20"
                 >
@@ -2387,11 +2459,12 @@ Generate a pack_name and items array.`,
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    if (!giftUser) return;
+                    const recipient = resolveGiftRecipient();
+                    if (!recipient) return;
                     const allThemeIds = [...THEMES.map(t => t.id), ...customThemes.map(t => `custom_${t.id}`)];
-                    await base44.entities.UserProfile.update(giftUser.id, { unlockedThemes: allThemeIds });
-                    setUsers(users.map(u => u.id === giftUser.id ? { ...u, unlockedThemes: allThemeIds } : u));
-                    toast.success(`All themes gifted to ${giftUser.username}!`);
+                    await base44.entities.UserProfile.update(recipient.id, { unlockedThemes: allThemeIds });
+                    setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedThemes: allThemeIds } : u));
+                    toast.success(`All themes gifted to ${recipient.username}!`);
                   }}
                   className="flex-1 border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
                 >
@@ -2403,9 +2476,10 @@ Generate a pack_name and items array.`,
                 variant="outline"
                 size="sm"
                 onClick={async () => {
-                  if (!giftUser) return;
-                  await base44.entities.MagicEgg.create({ userId: giftUser.userId });
-                  toast.success(`🥚 Magic Egg gifted to ${giftUser.username}!`, {
+                  const recipient = resolveGiftRecipient();
+                  if (!recipient) return;
+                  await base44.entities.MagicEgg.create({ userId: recipient.userId });
+                  toast.success(`🥚 Magic Egg gifted to ${recipient.username}!`, {
                     description: 'They can now create their own custom pet!'
                   });
                 }}

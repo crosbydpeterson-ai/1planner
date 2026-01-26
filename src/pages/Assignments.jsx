@@ -38,6 +38,7 @@ export default function Assignments() {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) {
       navigate(createPageUrl('Home'));
+      setLoading(false);
       return;
     }
 
@@ -45,6 +46,7 @@ export default function Assignments() {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length === 0) {
         navigate(createPageUrl('Home'));
+        setLoading(false);
         return;
       }
 
@@ -109,7 +111,7 @@ export default function Assignments() {
 
       toast.success('Assignment added!');
       
-      setAssignments([assignment, ...assignments]);
+      setAssignments((prevAssignments) => [assignment, ...prevAssignments]);
       setShowAddForm(false);
       setNewAssignment({ title: '', description: '', dueDate: '', subject: 'everyone' });
     } catch (e) {
