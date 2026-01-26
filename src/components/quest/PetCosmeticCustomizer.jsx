@@ -1,16 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Save, RotateCcw } from 'lucide-react';
-import { PETS } from './PetCatalog';
+import PetAvatar from '@/components/quest/PetAvatar';
 
 export default function PetCosmeticCustomizer({ profile, onUpdate }) {
   const [positions, setPositions] = useState({});
   const [cosmetics, setCosmetics] = useState([]);
   const [dragging, setDragging] = useState(null);
   const [saving, setSaving] = useState(false);
+  const containerRef = useRef(null);
+
+  const startDrag = (e, id) => {
+    e.preventDefault();
+    setDragging(id);
+  };
+  const stopDrag = () => setDragging(null);
+
+  const updatePosFromPoint = (clientX, clientY) => {
+    if (!dragging || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 100;
+    const y = ((clientY - rect.top) / rect.height) * 100;
+    const nx = Math.max(0, Math.min(100, x));
+    const ny = Math.max(0, Math.min(100, y));
+    setPositions(prev => ({ ...prev, [dragging]: { x: nx, y: ny } }));
+  };
+
+  const handleMouseMove = (e) => updatePosFromPoint(e.clientX, e.clientY);
+  const handleTouchMove = (e) => {
+    if (!e.touches?.[0]) return;
+    updatePosFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+  };
 
   useEffect(() => {
     setPositions(profile.cosmeticPositions || {});
@@ -30,14 +53,7 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
     }
   };
 
-  const onDrag = (e, cosmeticId) => {
-    if (e.clientX === 0 && e.clientY === 0) return;
-    const container = e.currentTarget.parentElement;
-    const rect = container.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setPositions(prev => ({ ...prev, [cosmeticId]: { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) } }));
-  };
+  // HTML5 drag removed for smoother cross-browser behavior
 
   const handleReset = () => {
     setPositions({});
@@ -67,6 +83,16 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
     return map[cosmetic.cosmeticType] || { x: 50, y: 30 + (idx * 15) };
   };
 
+  const sizeFor = (type) => {
+    switch (type) {
+      case 'hat': return 'w-24 h-24';
+      case 'glasses': return 'w-20 h-20';
+      case 'accessory': return 'w-20 h-20';
+      case 'background': return 'w-72 h-72';
+      default: return 'w-20 h-20';
+    }
+  };
+
   return (
     <Card className="bg-white rounded-xl p-6 shadow-md border border-slate-200">
       <div className="flex items-center justify-between mb-4">
@@ -83,9 +109,19 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
 
       <p className="text-sm text-slate-600 mb-4">Drag your cosmetics to position them perfectly on your pet. This is how you appear on the leaderboard and in the Admin panel.</p>
 
-      <div className="relative w-full h-80 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border-2 border-dashed border-slate-300 mb-4 overflow-hidden">
+      <div
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onMouseUp={stopDrag}
+        onMouseLeave={stopDrag}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={stopDrag}
+        className="relative w-full h-80 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border-2 border-dashed border-slate-300 mb-4 overflow-hidden"
+      >
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-9xl opacity-90">{petEmoji}</div>
+          <div className="scale-150">
+            <PetAvatar petId={profile?.equippedPetId} cosmeticIds={[]} size="xl" />
+          </div>
         </div>
 
         {cosmetics.map((c, idx) => {

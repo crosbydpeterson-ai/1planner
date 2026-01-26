@@ -7,10 +7,10 @@ export default function PetAvatar({ petId, cosmeticIds = [], cosmeticPositions =
   const [customPet, setCustomPet] = useState(null);
 
   const sizes = {
-    sm: { container: 'w-8 h-8', pet: 'text-lg', cosmetic: 'w-5 h-5' },
-    md: { container: 'w-12 h-12', pet: 'text-2xl', cosmetic: 'w-8 h-8' },
-    lg: { container: 'w-16 h-16', pet: 'text-3xl', cosmetic: 'w-12 h-12' },
-    xl: { container: 'w-24 h-24', pet: 'text-5xl', cosmetic: 'w-16 h-16' }
+    sm: { container: 'w-8 h-8', pet: 'text-lg', cosmetic: 'w-4 h-4' },
+    md: { container: 'w-12 h-12', pet: 'text-2xl', cosmetic: 'w-6 h-6' },
+    lg: { container: 'w-16 h-16', pet: 'text-3xl', cosmetic: 'w-8 h-8' },
+    xl: { container: 'w-24 h-24', pet: 'text-5xl', cosmetic: 'w-12 h-12' }
   };
 
   const sizeClasses = sizes[size];
@@ -68,7 +68,7 @@ export default function PetAvatar({ petId, cosmeticIds = [], cosmeticPositions =
   return (
     <div className={`relative ${sizeClasses.container} ${className}`}>
       {/* Pet */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center z-10">
         {petDisplay}
       </div>
       
