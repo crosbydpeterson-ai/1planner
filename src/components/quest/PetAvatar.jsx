@@ -7,10 +7,10 @@ export default function PetAvatar({ petId, cosmeticIds = [], cosmeticPositions =
   const [customPet, setCustomPet] = useState(null);
 
   const sizes = {
-    sm: { container: 'w-8 h-8', pet: 'text-lg', cosmetic: 'w-5 h-5' },
-    md: { container: 'w-12 h-12', pet: 'text-2xl', cosmetic: 'w-8 h-8' },
-    lg: { container: 'w-16 h-16', pet: 'text-3xl', cosmetic: 'w-12 h-12' },
-    xl: { container: 'w-24 h-24', pet: 'text-5xl', cosmetic: 'w-16 h-16' }
+    sm: { container: 'w-8 h-8', pet: 'text-lg', cosmetic: 'w-6 h-6' },
+    md: { container: 'w-12 h-12', pet: 'text-2xl', cosmetic: 'w-9 h-9' },
+    lg: { container: 'w-16 h-16', pet: 'text-3xl', cosmetic: 'w-14 h-14' },
+    xl: { container: 'w-24 h-24', pet: 'text-5xl', cosmetic: 'w-20 h-20' }
   };
 
   const sizeClasses = sizes[size];

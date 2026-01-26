@@ -36,9 +36,25 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
 
   const handleMouseMove = (e) => updatePosFromPoint(e.clientX, e.clientY);
   const handleTouchMove = (e) => {
+    e.preventDefault?.();
     if (!e.touches?.[0]) return;
     updatePosFromPoint(e.touches[0].clientX, e.touches[0].clientY);
   };
+
+  // Track dragging globally so cursor can move outside the box
+  useEffect(() => {
+    if (!dragging) return;
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', stopDrag);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', stopDrag);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', stopDrag);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', stopDrag);
+    };
+  }, [dragging]);
 
   useEffect(() => {
     setPositions(profile.cosmeticPositions || {});
@@ -90,11 +106,11 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
 
   const sizeFor = (type) => {
     switch (type) {
-      case 'hat': return 'w-24 h-24';
-      case 'glasses': return 'w-20 h-20';
-      case 'accessory': return 'w-20 h-20';
-      case 'background': return 'w-72 h-72';
-      default: return 'w-20 h-20';
+      case 'hat': return 'w-32 h-32';
+      case 'glasses': return 'w-28 h-28';
+      case 'accessory': return 'w-28 h-28';
+      case 'background': return 'w-[28rem] h-[28rem]';
+      default: return 'w-28 h-28';
     }
   };
 
@@ -124,7 +140,7 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
         className="relative w-full h-80 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border-2 border-dashed border-slate-300 mb-4 overflow-hidden"
       >
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="scale-150">
+          <div style={{ transform: 'scale(3)', opacity: 0.95 }}>
             <PetAvatar petId={profile?.equippedPetId} cosmeticIds={[]} size="xl" />
           </div>
         </div>
