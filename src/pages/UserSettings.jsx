@@ -48,9 +48,13 @@ export default function UserSettings() {
       setSelectedPetId(userProfile.equippedPetId || PETS[0]?.id);
 
       // load custom pets referenced in unlockedPets (ids like custom_<id>)
-      const customIds = (userProfile.unlockedPets || []).filter(id => id.startsWith('custom_')).map(id => id.replace('custom_', ''));
+      const customIds = (userProfile.unlockedPets || [])
+        .filter(id => id.startsWith('custom_'))
+        .map(id => id.replace('custom_', ''));
       if (customIds.length) {
-        const fetched = await Promise.all(customIds.map(id => base44.entities.CustomPet.filter({ id }).then(r => r[0]).catch(() => null)));
+        const fetched = await Promise.all(
+          customIds.map(id => base44.entities.CustomPet.filter({ id }).then(r => r[0]).catch(() => null))
+        );
         setCustomPets(fetched.filter(Boolean));
       }
 
@@ -73,7 +77,7 @@ export default function UserSettings() {
     setSaving(false);
   };
 
-  
+  const handleSavePet = async () => {
     try {
       await base44.entities.UserProfile.update(profile.id, { equippedPetId: selectedPetId });
       setProfile({ ...profile, equippedPetId: selectedPetId });
