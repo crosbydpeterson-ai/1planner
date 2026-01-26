@@ -61,6 +61,20 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
     loadCosmetics();
   }, [profile?.equippedCosmetics, profile?.equippedPetId]);
 
+  useEffect(() => {
+    if (!dragging) return;
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', stopDrag);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', stopDrag);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', stopDrag);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', stopDrag);
+    };
+  }, [dragging]);
+
   const loadCosmetics = async () => {
     const ids = profile?.equippedCosmetics || [];
     if (!ids.length) { setCosmetics([]); return; }
