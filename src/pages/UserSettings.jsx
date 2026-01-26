@@ -8,6 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Link, useNavigate } from 'react-router-dom';
 import { Copy, Check, ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import PetAvatar from '@/components/quest/PetAvatar';
+import PetCosmeticCustomizer from '@/components/quest/PetCosmeticCustomizer';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PETS } from '@/components/quest/PetCatalog';
 
 export default function UserSettings() {
   const [profile, setProfile] = useState(null);
@@ -16,6 +20,8 @@ export default function UserSettings() {
   const [copied, setCopied] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [selectedPetId, setSelectedPetId] = useState('');
+  const [customPets, setCustomPets] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,6 +45,15 @@ export default function UserSettings() {
       const userProfile = profiles[0];
       setProfile(userProfile);
       setStatusMessage(userProfile.statusMessage || '');
+      setSelectedPetId(userProfile.equippedPetId || PETS[0]?.id);
+
+      // load custom pets referenced in unlockedPets (ids like custom_<id>)
+      const customIds = (userProfile.unlockedPets || []).filter(id => id.startsWith('custom_')).map(id => id.replace('custom_', ''));
+      if (customIds.length) {
+        const fetched = await Promise.all(customIds.map(id => base44.entities.CustomPet.filter({ id }).then(r => r[0]).catch(() => null)));
+        setCustomPets(fetched.filter(Boolean));
+      }
+
       setReferralLink(`${window.location.origin}${createPageUrl('Home')}?ref=${userProfile.id}`);
     } catch (e) {
       console.error('Error loading profile:', e);
@@ -56,6 +71,17 @@ export default function UserSettings() {
       toast.error('Failed to update status');
     }
     setSaving(false);
+  };
+
+  const handleSavePet = async () => {
+    try {
+      await base44.entities.UserProfile.update(profile.id, { equippedPetId: selectedPetId });
+      setProfile({ ...profile, equippedPetId: selectedPetId });
+      toast.success('Pet icon updated!');
+      window.dispatchEvent(new Event('themeUpdated'));
+    } catch (e) {
+      toast.error('Failed to update pet');
+    }
   };
 
   const handleCopy = () => {
