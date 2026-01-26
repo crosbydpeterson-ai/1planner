@@ -134,13 +134,13 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
           return (
             <div
               key={c.id}
-              draggable
-              onDrag={(e) => onDrag(e, c.id)}
-              style={{ position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)', cursor: 'grab', zIndex: c.cosmeticType === 'background' ? 0 : 10 }}
+              onMouseDown={(e) => startDrag(e, c.id)}
+              onTouchStart={(e) => startDrag(e, c.id)}
+              style={{ position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)', cursor: dragging === c.id ? 'grabbing' : 'grab', zIndex: c.cosmeticType === 'background' ? 0 : 20 }}
               className="transition-opacity hover:opacity-80"
             >
               {c.imageUrl ? (
-                <img src={c.imageUrl} alt={c.name} className="w-16 h-16 pointer-events-none object-contain" />
+                <img src={c.imageUrl} alt={c.name} className={`${sizeFor(c.cosmeticType)} pointer-events-none object-contain`} />
               ) : (
                 <div className="text-4xl pointer-events-none">🎨</div>
               )}
