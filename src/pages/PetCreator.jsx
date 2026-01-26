@@ -32,6 +32,31 @@ export default function PetCreator() {
   useEffect(() => {
     checkAccess();
     base44.analytics.track({ eventName: 'pet_creator_viewed' });
+
+    // Add paste event listener
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          if (blob) {
+            setImageFile(blob);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(blob);
+            toast.success('Image pasted! 📋');
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
   }, []);
 
   const checkAccess = async () => {
@@ -219,6 +244,11 @@ export default function PetCreator() {
           {/* Image Upload */}
           <div className="space-y-2">
             <Label>Pet Image (optional)</Label>
+            <div className="bg-indigo-50 rounded-lg p-3 mb-2">
+              <p className="text-xs text-indigo-700">
+                💡 <strong>Tip:</strong> Copy an image from Canva and press Ctrl+V (or Cmd+V) to paste it here!
+              </p>
+            </div>
             <div className="flex items-center gap-3">
               <Input
                 type="file"
