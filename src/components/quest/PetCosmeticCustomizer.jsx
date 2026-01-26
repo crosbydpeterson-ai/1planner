@@ -93,11 +93,6 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
     setSaving(false);
   };
 
-  const petEmoji = (() => {
-    if (profile?.equippedPetId?.startsWith('custom_')) return '🐾';
-    const pet = PETS.find(p => p.id === profile?.equippedPetId);
-    return pet?.emoji || '🟢';
-  })();
 
   const defaultPosFor = (cosmetic, idx) => {
     const map = { hat: { x: 50, y: 20 }, glasses: { x: 50, y: 45 }, accessory: { x: 50, y: 65 }, background: { x: 50, y: 50 } };
