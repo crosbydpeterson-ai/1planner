@@ -73,17 +73,6 @@ export default function UserSettings() {
     setSaving(false);
   };
 
-  const handleSavePet = async () => {
-    try {
-      await base44.entities.UserProfile.update(profile.id, { equippedPetId: selectedPetId });
-      setProfile({ ...profile, equippedPetId: selectedPetId });
-      toast.success('Pet icon updated!');
-      window.dispatchEvent(new Event('themeUpdated'));
-    } catch (e) {
-      toast.error('Failed to update pet');
-    }
-  };
-
   
     try {
       await base44.entities.UserProfile.update(profile.id, { equippedPetId: selectedPetId });
