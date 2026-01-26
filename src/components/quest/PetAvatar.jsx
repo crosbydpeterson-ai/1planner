@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { PETS } from './PetCatalog';
 
-export default function PetAvatar({ petId, cosmeticIds = [], size = 'md', className = '' }) {
+export default function PetAvatar({ petId, cosmeticIds = [], cosmeticPositions = {}, size = 'md', className = '' }) {
   const [cosmetics, setCosmetics] = useState([]);
   const [customPet, setCustomPet] = useState(null);
 
@@ -73,25 +73,31 @@ export default function PetAvatar({ petId, cosmeticIds = [], size = 'md', classN
       </div>
       
       {/* Cosmetics overlay */}
-      {cosmetics.map((cosmetic) => {
-        // Position cosmetics based on type
-        const positions = {
-          hat: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/4',
-          glasses: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-          accessory: 'bottom-0 right-0',
-          background: 'inset-0'
+      {cosmetics.map((cosmetic, index) => {
+        // Use custom position if available, otherwise use default based on type
+        const customPos = cosmeticPositions[cosmetic.id];
+        const zIndex = cosmetic.cosmeticType === 'background' ? 'z-0' : 'z-10';
+
+        // Default positions if no custom position set
+        const defaultPositions = {
+          hat: { x: 50, y: 20 },
+          glasses: { x: 50, y: 45 },
+          accessory: { x: 50, y: 65 },
+          background: { x: 50, y: 50 }
         };
 
-        const position = positions[cosmetic.cosmeticType] || 'top-0 right-0';
-        const zIndex = cosmetic.cosmeticType === 'background' ? 'z-0' : 'z-10';
+        const pos = customPos || defaultPositions[cosmetic.cosmeticType] || { x: 50, y: 30 + (index * 15) };
 
         return (
           <img
             key={cosmetic.id}
             src={cosmetic.imageUrl}
             alt={cosmetic.name}
-            className={`absolute ${position} ${sizeClasses.cosmetic} ${zIndex} pointer-events-none`}
+            className={`absolute ${sizeClasses.cosmetic} ${zIndex} pointer-events-none`}
             style={{ 
+              left: `${pos.x}%`,
+              top: `${pos.y}%`,
+              transform: 'translate(-50%, -50%)',
               filter: cosmetic.cosmeticType === 'background' ? 'opacity(0.3)' : 'none'
             }}
           />
