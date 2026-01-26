@@ -90,6 +90,25 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
 
   // HTML5 drag removed for smoother cross-browser behavior
 
+  // Continue dragging even if pointer leaves the canvas
+  useEffect(() => {
+    if (!dragging) return;
+    const mm = (e) => handleMouseMove(e);
+    const mu = () => stopDrag();
+    const tm = (e) => handleTouchMove(e);
+    const tu = () => stopDrag();
+    window.addEventListener('mousemove', mm);
+    window.addEventListener('mouseup', mu);
+    window.addEventListener('touchmove', tm, { passive: false });
+    window.addEventListener('touchend', tu);
+    return () => {
+      window.removeEventListener('mousemove', mm);
+      window.removeEventListener('mouseup', mu);
+      window.removeEventListener('touchmove', tm);
+      window.removeEventListener('touchend', tu);
+    };
+  }, [dragging]);
+
   const handleReset = () => {
     setPositions({});
     toast.success('Positions reset to default');
