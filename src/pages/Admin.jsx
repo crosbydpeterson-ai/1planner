@@ -486,11 +486,11 @@ White or transparent background, centered, high quality illustration.`;
         }
         toast.success(`Theme gifted to ${recipient.username}!`);
       } else if (giftType === 'cosmetic') {
-        const equippedCosmetics = [...(recipient.equippedCosmetics || [])];
-        if (!equippedCosmetics.includes(giftItemId)) {
-          equippedCosmetics.push(giftItemId);
-          await base44.entities.UserProfile.update(recipient.id, { equippedCosmetics });
-          setUsers(users.map(u => u.id === recipient.id ? { ...u, equippedCosmetics } : u));
+        const unlockedCosmetics = [...(recipient.unlockedCosmetics || [])];
+        if (!unlockedCosmetics.includes(giftItemId)) {
+          unlockedCosmetics.push(giftItemId);
+          await base44.entities.UserProfile.update(recipient.id, { unlockedCosmetics });
+          setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedCosmetics } : u));
         }
         toast.success(`Cosmetic gifted to ${recipient.username}!`);
       }
