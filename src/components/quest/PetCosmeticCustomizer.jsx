@@ -16,6 +16,11 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
   const startDrag = (e, id) => {
     e.preventDefault();
     setDragging(id);
+    if ('touches' in e && e.touches?.[0]) {
+      updatePosFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+    } else if ('clientX' in e) {
+      updatePosFromPoint(e.clientX, e.clientY);
+    }
   };
   const stopDrag = () => setDragging(null);
 
