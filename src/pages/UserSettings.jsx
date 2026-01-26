@@ -22,8 +22,6 @@ export default function UserSettings() {
   const [saving, setSaving] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState('');
   const [customPets, setCustomPets] = useState([]);
-  const [selectedPetId, setSelectedPetId] = useState('');
-  const [customPets, setCustomPets] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -86,7 +84,7 @@ export default function UserSettings() {
     }
   };
 
-  const handleSavePet = async () => {
+  
     try {
       await base44.entities.UserProfile.update(profile.id, { equippedPetId: selectedPetId });
       setProfile({ ...profile, equippedPetId: selectedPetId });
