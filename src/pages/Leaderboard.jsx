@@ -20,6 +20,16 @@ export default function Leaderboard() {
     loadData();
   }, []);
 
+  // Live update leaderboard when user profiles change (e.g., cosmetic positions)
+  useEffect(() => {
+    const unsubscribe = base44.entities.UserProfile.subscribe((event) => {
+      if (event.type === 'update') {
+        setLeaderboard(prev => prev.map(u => u.id === event.id ? { ...u, ...event.data } : u));
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   const loadData = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) {

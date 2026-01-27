@@ -148,6 +148,17 @@ export default function Admin() {
     checkAdminAccess();
   }, []);
 
+  // Reflect cosmetic position updates live in Admin users list
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const unsubscribe = base44.entities.UserProfile.subscribe((event) => {
+      if (event.type === 'update') {
+        setUsers(prev => prev.map(u => u.id === event.id ? { ...u, ...event.data } : u));
+      }
+    });
+    return unsubscribe;
+  }, [isAuthenticated]);
+
   const checkAdminAccess = async () => {
     // First check if user is logged in and is admin
     const profileId = localStorage.getItem('quest_profile_id');
