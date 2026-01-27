@@ -37,7 +37,6 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
   const handleMouseMove = (e) => updatePosFromPoint(e.clientX, e.clientY);
   const handleTouchMove = (e) => {
     e.preventDefault?.();
-    e.preventDefault?.();
     if (!e.touches?.[0]) return;
     updatePosFromPoint(e.touches[0].clientX, e.touches[0].clientY);
   };
@@ -62,134 +61,25 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
     loadCosmetics();
   }, [profile?.equippedCosmetics, profile?.equippedPetId]);
 
-  useEffect(() => {
-    if (!dragging) return;
-    const mm = (e) => handleMouseMove(e);
-    const mu = () => stopDrag();
-    const tm = (e) => handleTouchMove(e);
-    const tu = () => stopDrag();
-    window.addEventListener('mousemove', mm);
-    window.addEventListener('mouseup', mu);
-    window.addEventListener('touchmove', tm, { passive: false });
-    window.addEventListener('touchend', tu);
-    return () => {
-      window.removeEventListener('mousemove', mm);
-      window.removeEventListener('mouseup', mu);
-      window.removeEventListener('touchmove', tm);
-      window.removeEventListener('touchend', tu);
-    };
-  }, [dragging]);
+
 
   // Keep dragging active even if pointer leaves the canvas
-  useEffect(() => {
-    if (!dragging) return;
-    const mm = (e) => handleMouseMove(e);
-    const mu = () => stopDrag();
-    const tm = (e) => handleTouchMove(e);
-    const tu = () => stopDrag();
-    window.addEventListener('mousemove', mm);
-    window.addEventListener('mouseup', mu);
-    window.addEventListener('touchmove', tm, { passive: false });
-    window.addEventListener('touchend', tu);
-    return () => {
-      window.removeEventListener('mousemove', mm);
-      window.removeEventListener('mouseup', mu);
-      window.removeEventListener('touchmove', tm);
-      window.removeEventListener('touchend', tu);
-    };
-  }, [dragging]);
+
 
   // Keep dragging active even if pointer leaves the canvas
-  useEffect(() => {
-    if (!dragging) return;
-    const mm = (e) => handleMouseMove(e);
-    const mu = () => stopDrag();
-    const tm = (e) => handleTouchMove(e);
-    const tu = () => stopDrag();
-    window.addEventListener('mousemove', mm);
-    window.addEventListener('mouseup', mu);
-    window.addEventListener('touchmove', tm, { passive: false });
-    window.addEventListener('touchend', tu);
-    return () => {
-      window.removeEventListener('mousemove', mm);
-      window.removeEventListener('mouseup', mu);
-      window.removeEventListener('touchmove', tm);
-      window.removeEventListener('touchend', tu);
-    };
-  }, [dragging]);
+
 
   // Keep dragging when pointer leaves the canvas
-  React.useEffect(() => {
-    if (!dragging) return;
-    const mm = (e) => handleMouseMove(e);
-    const mu = () => stopDrag();
-    const tm = (e) => handleTouchMove(e);
-    const tu = () => stopDrag();
-    window.addEventListener('mousemove', mm);
-    window.addEventListener('mouseup', mu);
-    window.addEventListener('touchmove', tm, { passive: false });
-    window.addEventListener('touchend', tu);
-    return () => {
-      window.removeEventListener('mousemove', mm);
-      window.removeEventListener('mouseup', mu);
-      window.removeEventListener('touchmove', tm);
-      window.removeEventListener('touchend', tu);
-    };
-  }, [dragging]);
+
 
   // Continue dragging even when leaving the canvas
-  useEffect(() => {
-    if (!dragging) return;
-    const mm = (e) => handleMouseMove(e);
-    const mu = () => stopDrag();
-    const tm = (e) => handleTouchMove(e);
-    const tu = () => stopDrag();
-    window.addEventListener('mousemove', mm);
-    window.addEventListener('mouseup', mu);
-    window.addEventListener('touchmove', tm, { passive: false });
-    window.addEventListener('touchend', tu);
-    return () => {
-      window.removeEventListener('mousemove', mm);
-      window.removeEventListener('mouseup', mu);
-      window.removeEventListener('touchmove', tm);
-      window.removeEventListener('touchend', tu);
-    };
-  }, [dragging]);
+
 
   // Keep dragging active even if pointer leaves the canvas
-  useEffect(() => {
-    if (!dragging) return;
-    const mm = (e) => handleMouseMove(e);
-    const mu = () => stopDrag();
-    const tm = (e) => handleTouchMove(e);
-    const tu = () => stopDrag();
-    window.addEventListener('mousemove', mm);
-    window.addEventListener('mouseup', mu);
-    window.addEventListener('touchmove', tm, { passive: false });
-    window.addEventListener('touchend', tu);
-    return () => {
-      window.removeEventListener('mousemove', mm);
-      window.removeEventListener('mouseup', mu);
-      window.removeEventListener('touchmove', tm);
-      window.removeEventListener('touchend', tu);
-    };
-  }, [dragging]);
 
-  useEffect(() => {
-    if (!dragging) return;
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', stopDrag);
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', stopDrag);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', stopDrag);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', stopDrag);
-    };
-  }, [dragging]);
 
-  const loadCosmetics = async () => {
+
+    const loadCosmetics = async () => {
     const ids = profile?.equippedCosmetics || [];
     if (!ids.length) { setCosmetics([]); return; }
     try {
@@ -205,23 +95,7 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
   // HTML5 drag removed for smoother cross-browser behavior
 
   // Continue dragging even if pointer leaves the canvas
-  useEffect(() => {
-    if (!dragging) return;
-    const mm = (e) => handleMouseMove(e);
-    const mu = () => stopDrag();
-    const tm = (e) => handleTouchMove(e);
-    const tu = () => stopDrag();
-    window.addEventListener('mousemove', mm);
-    window.addEventListener('mouseup', mu);
-    window.addEventListener('touchmove', tm, { passive: false });
-    window.addEventListener('touchend', tu);
-    return () => {
-      window.removeEventListener('mousemove', mm);
-      window.removeEventListener('mouseup', mu);
-      window.removeEventListener('touchmove', tm);
-      window.removeEventListener('touchend', tu);
-    };
-  }, [dragging]);
+
 
   const handleReset = () => {
     setPositions({});
