@@ -105,7 +105,8 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.entities.UserProfile.update(profile.id, { cosmeticPositions: positions });
+      const updated = await base44.entities.UserProfile.update(profile.id, { cosmeticPositions: positions });
+      window.dispatchEvent(new CustomEvent('profileUpdated', { detail: { id: profile.id } }));
       toast.success('Cosmetic positions saved!');
       onUpdate?.();
     } catch (e) {
@@ -113,6 +114,16 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
     }
     setSaving(false);
   };
+
+  // Re-sync when profile updates elsewhere (live reflect saved positions)
+  useEffect(() => {
+    const unsub = base44.entities.UserProfile.subscribe((event) => {
+      if (event.type === 'update' && event.id === profile.id) {
+        if (event.data?.cosmeticPositions) setPositions(event.data.cosmeticPositions);
+      }
+    });
+    return unsub;
+  }, [profile?.id]);
 
 
   const defaultPosFor = (cosmetic, idx) => {
