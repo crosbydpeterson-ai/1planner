@@ -29,7 +29,7 @@ export default function Home() {
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get('ref');
     const reward = urlParams.get('reward');
-    
+
     if (ref) {
       localStorage.setItem('pending_referral', ref);
       setReferralCode(ref);
@@ -54,7 +54,7 @@ export default function Home() {
         setMode('signup');
       }
     }
-    
+
     checkAuth();
   }, []);
 
@@ -69,10 +69,10 @@ export default function Home() {
           return;
         }
       } catch (e) {
+
+
         // Profile not found
-      }
-    }
-    setCheckingAuth(false);
+      }}setCheckingAuth(false);
   };
 
   const handleLogin = async () => {
@@ -91,8 +91,8 @@ export default function Home() {
     try {
       // Find user profile by username (case-insensitive)
       const profiles = await base44.entities.UserProfile.list();
-      const profile = profiles.find(p => 
-        p.username.toLowerCase() === username.trim().toLowerCase()
+      const profile = profiles.find((p) =>
+      p.username.toLowerCase() === username.trim().toLowerCase()
       );
 
       if (!profile) {
@@ -104,7 +104,7 @@ export default function Home() {
       // Verify PIN (stored as hashed in localStorage for demo)
       const storedHash = localStorage.getItem(`pin_${profile.userId}`);
       const inputHash = btoa(pin); // Simple encoding for demo
-      
+
       if (storedHash && storedHash !== inputHash) {
         setError('Incorrect PIN');
         setLoading(false);
@@ -122,7 +122,7 @@ export default function Home() {
       localStorage.setItem('quest_user_id', profile.userId);
       localStorage.setItem('quest_profile_id', profile.id);
       localStorage.setItem('quest_username', profile.username);
-      
+
       navigate(createPageUrl('Dashboard'));
     } catch (e) {
       setError('Login failed. Please try again.');
@@ -158,7 +158,7 @@ export default function Home() {
     try {
       // Get referral settings
       const settings = await base44.entities.AppSetting.list();
-      const refSetting = settings.find(s => s.key === 'referral_settings');
+      const refSetting = settings.find((s) => s.key === 'referral_settings');
       const referralMode = refSetting?.value?.referralMode || false;
       const referrerRewardXP = refSetting?.value?.referrerRewardXP || 50;
       const referredRewardXP = refSetting?.value?.referredRewardXP || 25;
@@ -173,8 +173,8 @@ export default function Home() {
 
       // Check if username already exists (case-insensitive)
       const existing = await base44.entities.UserProfile.list();
-      const taken = existing.find(p => 
-        p.username.toLowerCase() === username.trim().toLowerCase()
+      const taken = existing.find((p) =>
+      p.username.toLowerCase() === username.trim().toLowerCase()
       );
 
       if (taken) {
@@ -192,7 +192,7 @@ export default function Home() {
       const activeReferralCode = referralCode || localStorage.getItem('pending_referral');
       if (activeReferralCode) {
         // First check if it's a user profile ID
-        referrerProfile = existing.find(p => p.id === activeReferralCode);
+        referrerProfile = existing.find((p) => p.id === activeReferralCode);
 
         // If not found, check if it's an admin referral link
         if (!referrerProfile) {
@@ -204,7 +204,7 @@ export default function Home() {
 
             if (hasUsesLeft && link.isAdminLink) {
               // Get the referrer profile from the link
-              referrerProfile = existing.find(p => p.id === link.referrerId);
+              referrerProfile = existing.find((p) => p.id === link.referrerId);
               adminReferralLink = link;
             }
           }
@@ -216,7 +216,7 @@ export default function Home() {
           return;
         }
       }
-      
+
       // Create user profile with referral XP if applicable
       const profile = await base44.entities.UserProfile.create({
         userId: uniqueId,
@@ -257,11 +257,11 @@ export default function Home() {
             const usedCount = rewardLink.usedBy?.length || 0;
             const isExpired = rewardLink.expiresAt && new Date(rewardLink.expiresAt) < new Date();
             const hasUsesLeft = !rewardLink.maxUses || usedCount < rewardLink.maxUses;
-            
+
             if (rewardLink.isActive && !isExpired && hasUsesLeft) {
               // Apply reward
               let updates = {};
-              
+
               if (rewardLink.rewardType === 'xp') {
                 updates.xp = (profile.xp || 0) + (rewardLink.rewardValue || 0);
               } else if (rewardLink.rewardType === 'coins') {
@@ -275,11 +275,11 @@ export default function Home() {
               } else if (rewardLink.rewardType === 'title' && rewardLink.rewardData?.title) {
                 updates.unlockedTitles = [...(profile.unlockedTitles || []), rewardLink.rewardData.title];
               }
-              
+
               if (Object.keys(updates).length > 0) {
                 await base44.entities.UserProfile.update(profile.id, updates);
               }
-              
+
               // Mark as used
               await base44.entities.RewardLink.update(rewardLink.id, {
                 usedBy: [...(rewardLink.usedBy || []), uniqueId]
@@ -293,16 +293,16 @@ export default function Home() {
 
       // Store PIN hash
       localStorage.setItem(`pin_${uniqueId}`, btoa(pin));
-      
+
       // Store session
       localStorage.setItem('quest_user_id', uniqueId);
       localStorage.setItem('quest_profile_id', profile.id);
       localStorage.setItem('quest_username', profile.username);
-      
+
       // Clear pending referral and reward
       localStorage.removeItem('pending_referral');
       localStorage.removeItem('pending_reward');
-      
+
       navigate(createPageUrl('Dashboard'));
     } catch (e) {
       setError('Signup failed. Please try again.');
@@ -314,8 +314,8 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -323,20 +323,20 @@ export default function Home() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
+        className="w-full max-w-md">
+
         {/* Logo */}
         <div className="text-center mb-8">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", delay: 0.2 }}
-            className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl"
-          >
+            className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl">
+
             <Sword className="w-10 h-10 text-white" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-slate-800">Quest Planner</h1>
-          <p className="text-slate-500 mt-2">Your adventure begins here</p>
+          <h1 className="text-3xl font-bold text-slate-800">1Planner</h1>
+          <p className="text-slate-500 mt-2">make your homework fun</p>
         </div>
 
         {/* Card */}
@@ -344,23 +344,23 @@ export default function Home() {
           {/* Mode tabs */}
           <div className="flex bg-slate-100 rounded-xl p-1 mb-6">
             <button
-              onClick={() => { setMode('login'); setError(''); }}
+              onClick={() => {setMode('login');setError('');}}
               className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${
-                mode === 'login' 
-                  ? 'bg-white text-slate-800 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
+              mode === 'login' ?
+              'bg-white text-slate-800 shadow-sm' :
+              'text-slate-500 hover:text-slate-700'}`
+              }>
+
               Login
             </button>
             <button
-              onClick={() => { setMode('signup'); setError(''); }}
+              onClick={() => {setMode('signup');setError('');}}
               className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${
-                mode === 'signup' 
-                  ? 'bg-white text-slate-800 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
+              mode === 'signup' ?
+              'bg-white text-slate-800 shadow-sm' :
+              'text-slate-500 hover:text-slate-700'}`
+              }>
+
               Sign Up
             </button>
           </div>
@@ -371,8 +371,8 @@ export default function Home() {
               initial={{ opacity: 0, x: mode === 'login' ? -20 : 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: mode === 'login' ? 20 : -20 }}
-              className="space-y-5"
-            >
+              className="space-y-5">
+
               {/* Username */}
               <div className="space-y-2">
                 <Label className="text-slate-700">Username</Label>
@@ -382,8 +382,8 @@ export default function Home() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Enter your username"
-                    className="pl-10 h-12 rounded-xl border-slate-200"
-                  />
+                    className="pl-10 h-12 rounded-xl border-slate-200" />
+
                 </div>
               </div>
 
@@ -401,21 +401,21 @@ export default function Home() {
                     }}
                     placeholder="••••"
                     maxLength={4}
-                    className="pl-10 pr-10 h-12 rounded-xl border-slate-200 text-center text-2xl tracking-[0.5em] font-mono"
-                  />
+                    className="pl-10 pr-10 h-12 rounded-xl border-slate-200 text-center text-2xl tracking-[0.5em] font-mono" />
+
                   <button
                     type="button"
                     onClick={() => setShowPin(!showPin)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+
                     {showPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
 
               {/* Teacher selections (signup only) */}
-              {mode === 'signup' && (
-                <>
+              {mode === 'signup' &&
+              <>
                   <div className="space-y-2">
                     <Label className="text-slate-700 flex items-center gap-2">
                       <Calculator className="w-4 h-4" />
@@ -426,9 +426,9 @@ export default function Home() {
                         <SelectValue placeholder="Select your Math teacher" />
                       </SelectTrigger>
                       <SelectContent>
-                        {MATH_TEACHERS.map(teacher => (
-                          <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
-                        ))}
+                        {MATH_TEACHERS.map((teacher) =>
+                      <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
+                      )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -443,40 +443,40 @@ export default function Home() {
                         <SelectValue placeholder="Select your Reading teacher" />
                       </SelectTrigger>
                       <SelectContent>
-                        {READING_TEACHERS.map(teacher => (
-                          <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
-                        ))}
+                        {READING_TEACHERS.map((teacher) =>
+                      <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
+                      )}
                       </SelectContent>
                     </Select>
                   </div>
                 </>
-              )}
+              }
 
               {/* Error */}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600"
-                >
+              {error &&
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+
                   {error}
                 </motion.div>
-              )}
+              }
 
               {/* Submit */}
               <Button
                 onClick={mode === 'login' ? handleLogin : handleSignup}
                 disabled={loading}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-lg"
-              >
-                {loading ? (
-                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-                ) : (
-                  <>
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-lg">
+
+                {loading ?
+                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" /> :
+
+                <>
                     {mode === 'login' ? 'Start Your Quest' : 'Create Account'}
                     <ChevronRight className="w-5 h-5 ml-2" />
                   </>
-                )}
+                }
               </Button>
             </motion.div>
           </AnimatePresence>
@@ -488,6 +488,6 @@ export default function Home() {
           Earn XP, unlock pets & themes, compete on the leaderboard!
         </div>
       </motion.div>
-    </div>
-  );
+    </div>);
+
 }
