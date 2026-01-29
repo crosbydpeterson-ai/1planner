@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -144,6 +145,16 @@ export default function Admin() {
     isActive: true
   });
 
+  const defaultFeatureLocks = {
+    global: { shop: false, battlePass: false, pets: false, xpGain: false },
+    classes: { math: {}, reading: {} },
+    users: {}
+  };
+  const [featureLocks, setFeatureLocks] = useState(defaultFeatureLocks);
+  const [lockSubject, setLockSubject] = useState('math');
+  const [lockTeacher, setLockTeacher] = useState('');
+  const [lockUserId, setLockUserId] = useState('');
+
   useEffect(() => {
     checkAdminAccess();
   }, []);
@@ -246,6 +257,10 @@ export default function Admin() {
       if (refSetting) {
         setReferralSettings(refSetting.value);
       }
+      const locksSetting = allSettings.find(s => s.key === 'feature_locks');
+      if (locksSetting) {
+        setFeatureLocks(locksSetting.value || defaultFeatureLocks);
+      }
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -303,6 +318,22 @@ export default function Admin() {
     localStorage.setItem(`pin_${selectedUser.userId}`, btoa(newPin));
     toast.success('PIN reset successfully');
     setNewPin('');
+  };
+
+  const saveFeatureLocks = async () => {
+    try {
+      const existingSetting = appSettings.find(s => s.key === 'feature_locks');
+      if (existingSetting) {
+        await base44.entities.AppSetting.update(existingSetting.id, { value: featureLocks });
+        setAppSettings(appSettings.map(s => s.key === 'feature_locks' ? { ...s, value: featureLocks } : s));
+      } else {
+        const newSetting = await base44.entities.AppSetting.create({ key: 'feature_locks', value: featureLocks });
+        setAppSettings([...appSettings, newSetting]);
+      }
+      toast.success('Locks saved!');
+    } catch (e) {
+      toast.error('Failed to save locks');
+    }
   };
 
   const handleCreateAssignment = async () => {
@@ -708,6 +739,10 @@ White or transparent background, centered, high quality illustration.`;
             <TabsTrigger value="shop" className="data-[state=active]:bg-slate-700">
               <ShoppingBag className="w-4 h-4 mr-2" />
               Shop
+            </TabsTrigger>
+            <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700">
+              <Lock className="w-4 h-4 mr-2" />
+              Locks
             </TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">
               ⚙️
@@ -1720,6 +1755,220 @@ Generate a pack_name and items array.`,
                   {bundles.length === 0 && (
                     <div className="text-center py-8 text-slate-400">No bundles yet</div>
                   )}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="locks">
+            <div className="space-y-6">
+              {/* Global Locks */}
+              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <h3 className="text-white font-semibold mb-3">Global Locks</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                    <Label className="text-slate-200">Shop</Label>
+                    <Switch
+                      checked={featureLocks.global.shop}
+                      onCheckedChange={(v) => setFeatureLocks(prev => ({ ...prev, global: { ...prev.global, shop: v } }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                    <Label className="text-slate-200">Battle Pass</Label>
+                    <Switch
+                      checked={featureLocks.global.battlePass}
+                      onCheckedChange={(v) => setFeatureLocks(prev => ({ ...prev, global: { ...prev.global, battlePass: v } }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                    <Label className="text-slate-200">Pets</Label>
+                    <Switch
+                      checked={featureLocks.global.pets}
+                      onCheckedChange={(v) => setFeatureLocks(prev => ({ ...prev, global: { ...prev.global, pets: v } }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                    <Label className="text-slate-200">XP Gain</Label>
+                    <Switch
+                      checked={featureLocks.global.xpGain}
+                      onCheckedChange={(v) => setFeatureLocks(prev => ({ ...prev, global: { ...prev.global, xpGain: v } }))}
+                    />
+                  </div>
+                </div>
+                <div className="text-right mt-3">
+                  <Button onClick={saveFeatureLocks} className="bg-indigo-600 hover:bg-indigo-700">Save Global Locks</Button>
+                </div>
+              </div>
+
+              {/* Class Locks */}
+              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <h3 className="text-white font-semibold mb-3">Class Locks</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <Label className="text-slate-300">Subject</Label>
+                    <Select value={lockSubject} onValueChange={(v) => { setLockSubject(v); setLockTeacher(''); }}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="math">Math</SelectItem>
+                        <SelectItem value="reading">Reading</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label className="text-slate-300">Teacher</Label>
+                    <Select value={lockTeacher} onValueChange={setLockTeacher}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectValue placeholder="Select teacher" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(lockSubject === 'math' ? MATH_TEACHERS : READING_TEACHERS).map(t => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {lockTeacher ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(() => {
+                      const cls = (featureLocks.classes?.[lockSubject]?.[lockTeacher]) || { shop: false, battlePass: false, pets: false, xpGain: false };
+                      return (
+                        <>
+                          <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                            <Label className="text-slate-200">Shop</Label>
+                            <Switch
+                              checked={!!cls.shop}
+                              onCheckedChange={(v) => setFeatureLocks(prev => {
+                                const subjectMap = { ...(prev.classes?.[lockSubject] || {}) };
+                                const current = subjectMap[lockTeacher] || { shop: false, battlePass: false, pets: false, xpGain: false };
+                                subjectMap[lockTeacher] = { ...current, shop: v };
+                                return { ...prev, classes: { ...prev.classes, [lockSubject]: subjectMap } };
+                              })}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                            <Label className="text-slate-200">Battle Pass</Label>
+                            <Switch
+                              checked={!!cls.battlePass}
+                              onCheckedChange={(v) => setFeatureLocks(prev => {
+                                const subjectMap = { ...(prev.classes?.[lockSubject] || {}) };
+                                const current = subjectMap[lockTeacher] || { shop: false, battlePass: false, pets: false, xpGain: false };
+                                subjectMap[lockTeacher] = { ...current, battlePass: v };
+                                return { ...prev, classes: { ...prev.classes, [lockSubject]: subjectMap } };
+                              })}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                            <Label className="text-slate-200">Pets</Label>
+                            <Switch
+                              checked={!!cls.pets}
+                              onCheckedChange={(v) => setFeatureLocks(prev => {
+                                const subjectMap = { ...(prev.classes?.[lockSubject] || {}) };
+                                const current = subjectMap[lockTeacher] || { shop: false, battlePass: false, pets: false, xpGain: false };
+                                subjectMap[lockTeacher] = { ...current, pets: v };
+                                return { ...prev, classes: { ...prev.classes, [lockSubject]: subjectMap } };
+                              })}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                            <Label className="text-slate-200">XP Gain</Label>
+                            <Switch
+                              checked={!!cls.xpGain}
+                              onCheckedChange={(v) => setFeatureLocks(prev => {
+                                const subjectMap = { ...(prev.classes?.[lockSubject] || {}) };
+                                const current = subjectMap[lockTeacher] || { shop: false, battlePass: false, pets: false, xpGain: false };
+                                subjectMap[lockTeacher] = { ...current, xpGain: v };
+                                return { ...prev, classes: { ...prev.classes, [lockSubject]: subjectMap } };
+                              })}
+                            />
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400">Select a teacher to configure class locks.</p>
+                )}
+                <div className="text-right mt-3">
+                  <Button onClick={saveFeatureLocks} className="bg-indigo-600 hover:bg-indigo-700" disabled={!lockTeacher}>Save Class Locks</Button>
+                </div>
+              </div>
+
+              {/* User Locks */}
+              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <h3 className="text-white font-semibold mb-3">User Locks</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                  <div className="sm:col-span-2">
+                    <Label className="text-slate-300">User</Label>
+                    <Select value={lockUserId} onValueChange={setLockUserId}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectValue placeholder="Select user" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map(u => (
+                          <SelectItem key={u.id} value={u.id}>{u.username}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {lockUserId ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(() => {
+                      const ul = (featureLocks.users?.[lockUserId]) || { shop: false, battlePass: false, pets: false, xpGain: false };
+                      return (
+                        <>
+                          <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                            <Label className="text-slate-200">Shop</Label>
+                            <Switch
+                              checked={!!ul.shop}
+                              onCheckedChange={(v) => setFeatureLocks(prev => ({
+                                ...prev,
+                                users: { ...(prev.users || {}), [lockUserId]: { ...(prev.users?.[lockUserId] || { shop: false, battlePass: false, pets: false, xpGain: false }), shop: v } }
+                              }))}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                            <Label className="text-slate-200">Battle Pass</Label>
+                            <Switch
+                              checked={!!ul.battlePass}
+                              onCheckedChange={(v) => setFeatureLocks(prev => ({
+                                ...prev,
+                                users: { ...(prev.users || {}), [lockUserId]: { ...(prev.users?.[lockUserId] || { shop: false, battlePass: false, pets: false, xpGain: false }), battlePass: v } }
+                              }))}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                            <Label className="text-slate-200">Pets</Label>
+                            <Switch
+                              checked={!!ul.pets}
+                              onCheckedChange={(v) => setFeatureLocks(prev => ({
+                                ...prev,
+                                users: { ...(prev.users || {}), [lockUserId]: { ...(prev.users?.[lockUserId] || { shop: false, battlePass: false, pets: false, xpGain: false }), pets: v } }
+                              }))}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                            <Label className="text-slate-200">XP Gain</Label>
+                            <Switch
+                              checked={!!ul.xpGain}
+                              onCheckedChange={(v) => setFeatureLocks(prev => ({
+                                ...prev,
+                                users: { ...(prev.users || {}), [lockUserId]: { ...(prev.users?.[lockUserId] || { shop: false, battlePass: false, pets: false, xpGain: false }), xpGain: v } }
+                              }))}
+                            />
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400">Select a user to configure user-specific locks.</p>
+                )}
+                <div className="text-right mt-3">
+                  <Button onClick={saveFeatureLocks} className="bg-indigo-600 hover:bg-indigo-700" disabled={!lockUserId}>Save User Locks</Button>
                 </div>
               </div>
             </div>
