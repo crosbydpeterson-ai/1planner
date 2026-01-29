@@ -66,7 +66,20 @@ export default function EventManager({ profile }) {
 
   const handleClose = async () => {
     setShowEvent(false);
-    // Optionally mark as participated
+    try {
+      if (activeEvent?.id && profile?.userId && activeEvent.startTime) {
+        const recs = await base44.entities.EventParticipation.filter({
+          eventId: activeEvent.id,
+          userId: profile.userId,
+          eventStartTime: activeEvent.startTime
+        });
+        if (recs[0]) {
+          await base44.entities.EventParticipation.update(recs[0].id, { completed: true });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to mark event completed', e);
+    }
   };
 
   if (!showEvent || !activeEvent) return null;
