@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { AnimatePresence } from 'framer-motion';
 import BubblePopEvent from './BubblePopEvent';
+import BalloonPopEvent from './BalloonPopEvent';
 
 export default function EventManager({ profile }) {
   const [activeEvent, setActiveEvent] = useState(null);
@@ -15,7 +16,6 @@ export default function EventManager({ profile }) {
       if (event.type === 'create' || event.type === 'update') {
         if (event.data.isActive) {
           setActiveEvent(event.data);
-          setShowEvent(true);
         }
       }
     });
@@ -28,12 +28,41 @@ export default function EventManager({ profile }) {
       const events = await base44.entities.AdminEvent.filter({ isActive: true });
       if (events.length > 0) {
         setActiveEvent(events[0]);
-        setShowEvent(true);
       }
     } catch (e) {
       console.error('Error checking events:', e);
     }
   };
+
+  useEffect(() => {
+    const run = async () => {
+      if (!activeEvent?.isActive || !profile?.userId) return;
+      if (!activeEvent.startTime) return;
+      try {
+        const existing = await base44.entities.EventParticipation.filter({
+          eventId: activeEvent.id,
+          userId: profile.userId,
+          eventStartTime: activeEvent.startTime
+        });
+        if (existing.length === 0) {
+          await base44.entities.EventParticipation.create({
+            eventId: activeEvent.id,
+            userId: profile.userId,
+            eventStartTime: activeEvent.startTime,
+            seen: true,
+            completed: false,
+            seenAt: new Date().toISOString()
+          });
+          setShowEvent(true);
+        } else {
+          setShowEvent(false);
+        }
+      } catch (e) {
+        console.error('Event participation check failed:', e);
+      }
+    };
+    run();
+  }, [activeEvent?.id, activeEvent?.startTime, profile?.userId]);
 
   const handleClose = async () => {
     setShowEvent(false);
@@ -47,6 +76,13 @@ export default function EventManager({ profile }) {
       {activeEvent.type === 'bubble_pop' && (
         <BubblePopEvent 
           event={activeEvent} 
+          profile={profile}
+          onClose={handleClose}
+        />
+      )}
+      {activeEvent.type === 'balloon_pop' && (
+        <BalloonPopEvent 
+          event={activeEvent}
           profile={profile}
           onClose={handleClose}
         />

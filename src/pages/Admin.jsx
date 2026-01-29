@@ -1313,7 +1313,8 @@ Generate:
                             variant="ghost"
                             onClick={async () => {
                               const newActive = !event.isActive;
-                              await base44.entities.AdminEvent.update(event.id, { isActive: newActive });
+                              const patch = newActive ? { isActive: true, startTime: new Date().toISOString() } : { isActive: false };
+                              await base44.entities.AdminEvent.update(event.id, patch);
                               setEvents(events.map(e => e.id === event.id ? { ...e, isActive: newActive } : e));
                               toast.success(newActive ? 'Event activated!' : 'Event stopped');
                             }}
