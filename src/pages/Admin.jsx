@@ -2050,7 +2050,6 @@ Generate a pack_name and items array.`,
                               />
                             </div>
                           )}
-                          </div>
                         </>
                       );
                     })()}
