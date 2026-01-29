@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award, Palette } from 'lucide-react';
+import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PETS, RARITY_COLORS } from '@/components/quest/PetCatalog';
@@ -23,6 +24,8 @@ export default function Rewards() {
   const [magicEggs, setMagicEggs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pets');
+  const [locks, setLocks] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -48,7 +51,19 @@ export default function Rewards() {
         navigate(createPageUrl('Home'));
         return;
       }
-      setProfile(profiles[0]);
+      const me = profiles[0];
+      setProfile(me);
+
+      // Admin check
+      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
+      const adminUser = me.username?.toLowerCase?.() === 'crosby' || (allProfiles[0] && allProfiles[0].id === me.id);
+      setIsAdmin(!!adminUser);
+
+      // Locks
+      const settings = await base44.entities.AppSetting.list();
+      const fl = settings.find(s => s.key === 'feature_locks');
+      setLocks(fl ? fl.value : null);
+
       setCustomPets(dbCustomPets);
       setCustomThemes(dbCustomThemes);
       setPetCosmetics(dbCosmetics);
@@ -169,6 +184,13 @@ export default function Rewards() {
   }
 
   if (!profile) return null;
+
+  const userLock = locks?.users?.[profile.id]?.pets;
+  const isLocked = !isAdmin && ((typeof userLock === 'object' ? userLock.locked : !!userLock));
+  const lockMsg = typeof userLock === 'object' ? (userLock.message || '') : '';
+  if (isLocked) {
+    return <LockedOverlay featureLabel="Collection" message={lockMsg} />;
+  }
 
   const userXp = profile.xp || 0;
   const unlockedPetIds = profile.unlockedPets || ['starter_slime'];

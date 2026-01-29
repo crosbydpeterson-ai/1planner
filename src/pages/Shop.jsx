@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Coins, Sparkles, Clock, Package } from 'lucide-react';
+import { ShoppingBag, Coins, Sparkles, Clock, Package, Shield } from 'lucide-react';
+import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GlassIcon from '@/components/ui/GlassIcon';
@@ -16,6 +17,8 @@ export default function Shop() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [shopItems, setShopItems] = useState([]);
+  const [locks, setLocks] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [bundles, setBundles] = useState([]);
 
   useEffect(() => {
@@ -37,7 +40,18 @@ export default function Shop() {
         return;
       }
 
-      setProfile(profiles[0]);
+      const me = profiles[0];
+      setProfile(me);
+
+      // Admin check (Crosby or first profile)
+      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
+      const adminUser = me.username?.toLowerCase?.() === 'crosby' || (allProfiles[0] && allProfiles[0].id === me.id);
+      setIsAdmin(!!adminUser);
+
+      // Load locks
+      const settings = await base44.entities.AppSetting.list();
+      const fl = settings.find(s => s.key === 'feature_locks');
+      setLocks(fl ? fl.value : null);
 
       // Load shop items and bundles
       const items = await base44.entities.ShopItem.filter({ isActive: true });
@@ -277,6 +291,13 @@ export default function Shop() {
   }
 
   if (!profile) return null;
+
+  const userLock = locks?.users?.[profile.id]?.shop;
+  const isLocked = !isAdmin && ((typeof userLock === 'object' ? userLock.locked : !!userLock));
+  const lockMsg = typeof userLock === 'object' ? (userLock.message || '') : '';
+  if (isLocked) {
+    return <LockedOverlay featureLabel="Shop" message={lockMsg} />;
+  }
 
   const filteredItems = filter === 'all' 
     ? shopItems 

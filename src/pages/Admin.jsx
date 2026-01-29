@@ -1918,7 +1918,13 @@ Generate a pack_name and items array.`,
                 {lockUserId ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {(() => {
-                      const ul = (featureLocks.users?.[lockUserId]) || { shop: false, battlePass: false, pets: false, xpGain: false };
+                      const raw = (featureLocks.users?.[lockUserId]) || { shop: false, battlePass: false, pets: false, xpGain: false };
+                      const ul = {
+                        shop: typeof raw.shop === 'object' ? !!raw.shop.locked : !!raw.shop,
+                        battlePass: typeof raw.battlePass === 'object' ? !!raw.battlePass.locked : !!raw.battlePass,
+                        pets: typeof raw.pets === 'object' ? !!raw.pets.locked : !!raw.pets,
+                        xpGain: typeof raw.xpGain === 'object' ? !!raw.xpGain.locked : !!raw.xpGain,
+                      };
                       return (
                         <>
                           <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
@@ -1927,9 +1933,37 @@ Generate a pack_name and items array.`,
                               checked={!!ul.shop}
                               onCheckedChange={(v) => setFeatureLocks(prev => ({
                                 ...prev,
-                                users: { ...(prev.users || {}), [lockUserId]: { ...(prev.users?.[lockUserId] || { shop: false, battlePass: false, pets: false, xpGain: false }), shop: v } }
+                                users: {
+                                  ...(prev.users || {}),
+                                  [lockUserId]: {
+                                    ...(prev.users?.[lockUserId] || {}),
+                                    shop: typeof (prev.users?.[lockUserId]?.shop) === 'object' ? { ...prev.users[lockUserId].shop, locked: v } : { locked: v, message: '' }
+                                  }
+                                }
                               }))}
                             />
+                          </div>
+                          {ul.shop && (
+                            <div className="col-span-2 -mt-2">
+                              <Input
+                                placeholder="Reason (shown to the user)"
+                                value={typeof (featureLocks.users?.[lockUserId]?.shop) === 'object' ? (featureLocks.users[lockUserId].shop.message || '') : ''}
+                                onChange={(e) => setFeatureLocks(prev => ({
+                                  ...prev,
+                                  users: {
+                                    ...(prev.users || {}),
+                                    [lockUserId]: {
+                                      ...(prev.users?.[lockUserId] || {}),
+                                      shop: typeof (prev.users?.[lockUserId]?.shop) === 'object'
+                                        ? { ...prev.users[lockUserId].shop, message: e.target.value }
+                                        : { locked: true, message: e.target.value }
+                                    }
+                                  }
+                                }))}
+                                className="bg-slate-700 border-slate-600"
+                              />
+                            </div>
+                          )}
                           </div>
                           <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
                             <Label className="text-slate-200">Battle Pass</Label>
@@ -1947,9 +1981,37 @@ Generate a pack_name and items array.`,
                               checked={!!ul.pets}
                               onCheckedChange={(v) => setFeatureLocks(prev => ({
                                 ...prev,
-                                users: { ...(prev.users || {}), [lockUserId]: { ...(prev.users?.[lockUserId] || { shop: false, battlePass: false, pets: false, xpGain: false }), pets: v } }
+                                users: {
+                                  ...(prev.users || {}),
+                                  [lockUserId]: {
+                                    ...(prev.users?.[lockUserId] || {}),
+                                    pets: typeof (prev.users?.[lockUserId]?.pets) === 'object' ? { ...prev.users[lockUserId].pets, locked: v } : { locked: v, message: '' }
+                                  }
+                                }
                               }))}
                             />
+                          </div>
+                          {ul.pets && (
+                            <div className="col-span-2 -mt-2">
+                              <Input
+                                placeholder="Reason (shown to the user)"
+                                value={typeof (featureLocks.users?.[lockUserId]?.pets) === 'object' ? (featureLocks.users[lockUserId].pets.message || '') : ''}
+                                onChange={(e) => setFeatureLocks(prev => ({
+                                  ...prev,
+                                  users: {
+                                    ...(prev.users || {}),
+                                    [lockUserId]: {
+                                      ...(prev.users?.[lockUserId] || {}),
+                                      pets: typeof (prev.users?.[lockUserId]?.pets) === 'object'
+                                        ? { ...prev.users[lockUserId].pets, message: e.target.value }
+                                        : { locked: true, message: e.target.value }
+                                    }
+                                  }
+                                }))}
+                                className="bg-slate-700 border-slate-600"
+                              />
+                            </div>
+                          )}
                           </div>
                           <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
                             <Label className="text-slate-200">XP Gain</Label>
@@ -1957,9 +2019,37 @@ Generate a pack_name and items array.`,
                               checked={!!ul.xpGain}
                               onCheckedChange={(v) => setFeatureLocks(prev => ({
                                 ...prev,
-                                users: { ...(prev.users || {}), [lockUserId]: { ...(prev.users?.[lockUserId] || { shop: false, battlePass: false, pets: false, xpGain: false }), xpGain: v } }
+                                users: {
+                                  ...(prev.users || {}),
+                                  [lockUserId]: {
+                                    ...(prev.users?.[lockUserId] || {}),
+                                    xpGain: typeof (prev.users?.[lockUserId]?.xpGain) === 'object' ? { ...prev.users[lockUserId].xpGain, locked: v } : { locked: v, message: '' }
+                                  }
+                                }
                               }))}
                             />
+                          </div>
+                          {ul.xpGain && (
+                            <div className="col-span-2 -mt-2">
+                              <Input
+                                placeholder="Reason (shown to the user)"
+                                value={typeof (featureLocks.users?.[lockUserId]?.xpGain) === 'object' ? (featureLocks.users[lockUserId].xpGain.message || '') : ''}
+                                onChange={(e) => setFeatureLocks(prev => ({
+                                  ...prev,
+                                  users: {
+                                    ...(prev.users || {}),
+                                    [lockUserId]: {
+                                      ...(prev.users?.[lockUserId] || {}),
+                                      xpGain: typeof (prev.users?.[lockUserId]?.xpGain) === 'object'
+                                        ? { ...prev.users[lockUserId].xpGain, message: e.target.value }
+                                        : { locked: true, message: e.target.value }
+                                    }
+                                  }
+                                }))}
+                                className="bg-slate-700 border-slate-600"
+                              />
+                            </div>
+                          )}
                           </div>
                         </>
                       );

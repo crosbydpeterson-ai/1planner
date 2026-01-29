@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowLeft, Calendar, Zap } from 'lucide-react';
+import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
 import SeasonRewards from '@/components/quest/SeasonRewards';
@@ -16,6 +17,8 @@ export default function Season() {
   const [profile, setProfile] = useState(null);
   const [season, setSeason] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [locks, setLocks] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -35,7 +38,18 @@ export default function Season() {
         navigate(createPageUrl('Home'));
         return;
       }
-      setProfile(profiles[0]);
+      const me = profiles[0];
+      setProfile(me);
+
+      // Admin check
+      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
+      const adminUser = me.username?.toLowerCase?.() === 'crosby' || (allProfiles[0] && allProfiles[0].id === me.id);
+      setIsAdmin(!!adminUser);
+
+      // Locks
+      const settings = await base44.entities.AppSetting.list();
+      const fl = settings.find(s => s.key === 'feature_locks');
+      setLocks(fl ? fl.value : null);
 
       // Load active season
       const seasons = await base44.entities.Season.filter({ isActive: true });
@@ -106,6 +120,13 @@ export default function Season() {
   }
 
   if (!profile) return null;
+
+  const userLock = locks?.users?.[profile.id]?.battlePass;
+  const isLocked = !isAdmin && ((typeof userLock === 'object' ? userLock.locked : !!userLock));
+  const lockMsg = typeof userLock === 'object' ? (userLock.message || '') : '';
+  if (isLocked) {
+    return <LockedOverlay featureLabel="Season Pass" message={lockMsg} />;
+  }
 
   const userXp = profile.xp || 0;
   const daysLeft = season ? differenceInDays(new Date(season.endDate), new Date()) : 0;
