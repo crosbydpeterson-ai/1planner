@@ -2011,7 +2011,6 @@ Generate a pack_name and items array.`,
                               />
                             </div>
                           )}
-                          </div>
                           <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
                             <Label className="text-slate-200">XP Gain</Label>
                             <Switch
