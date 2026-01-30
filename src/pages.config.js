@@ -57,6 +57,7 @@ import Rewards from './pages/Rewards';
 import Season from './pages/Season';
 import Shop from './pages/Shop';
 import UserSettings from './pages/UserSettings';
+import CosmeticGenerator from './pages/CosmeticGenerator';
 import __Layout from './Layout.jsx';
 
 
@@ -71,6 +72,7 @@ export const PAGES = {
     "Season": Season,
     "Shop": Shop,
     "UserSettings": UserSettings,
+    "CosmeticGenerator": CosmeticGenerator,
 }
 
 export const pagesConfig = {
