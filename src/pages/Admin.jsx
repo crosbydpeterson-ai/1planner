@@ -1121,35 +1121,35 @@ White or transparent background, centered, high quality illustration.`;
             </div>
           </TabsContent>
 
-          {isSuperAdmin && (
+          {isSuperAdmin ? (
             <TabsContent value="eggs">
-            <div className="space-y-6">
-              {/* Admin Magic Egg Creator */}
-              <div className="bg-gradient-to-br from-amber-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-white/10">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-4xl">🥚✨</span>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">Admin Magic Egg</h3>
-                    <p className="text-slate-400 text-sm">Create unlimited custom creatures with AI</p>
+              <div className="space-y-6">
+                {/* Admin Magic Egg Creator */}
+                <div className="bg-gradient-to-br from-amber-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-white/10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-4xl">🥚✨</span>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Admin Magic Egg</h3>
+                      <p className="text-slate-400 text-sm">Create unlimited custom creatures with AI</p>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-4">
-                  <Textarea
-                    value={adminEggIdea}
-                    onChange={(e) => setAdminEggIdea(e.target.value)}
-                    placeholder="Describe your creature idea... (e.g., 'A cosmic pizza that shoots cheese stars', 'A friendly cloud robot that rains candy')"
-                    className="bg-slate-800/50 border-white/10 text-white min-h-[100px]"
-                  />
-                  <Button
-                    onClick={async () => {
-                      if (!adminEggIdea.trim()) {
-                        toast.error('Enter a creature idea!');
-                        return;
-                      }
-                      setGeneratingAdminPet(true);
-                      try {
-                        const result = await base44.integrations.Core.InvokeLLM({
-                          prompt: `You are a magical creature designer for a KIDS school gamification app.
+                  <div className="space-y-4">
+                    <Textarea
+                      value={adminEggIdea}
+                      onChange={(e) => setAdminEggIdea(e.target.value)}
+                      placeholder="Describe your creature idea... (e.g., 'A cosmic pizza that shoots cheese stars', 'A friendly cloud robot that rains candy')"
+                      className="bg-slate-800/50 border-white/10 text-white min-h-[100px]"
+                    />
+                    <Button
+                      onClick={async () => {
+                        if (!adminEggIdea.trim()) {
+                          toast.error('Enter a creature idea!');
+                          return;
+                        }
+                        setGeneratingAdminPet(true);
+                        try {
+                          const result = await base44.integrations.Core.InvokeLLM({
+                            prompt: `You are a magical creature designer for a KIDS school gamification app.
 
 Create a magical companion based on: "${adminEggIdea}"
 
@@ -1167,122 +1167,121 @@ Generate:
 - emoji: Single emoji that fits
 - rarity: uncommon, rare, or epic
 - theme: { primary, secondary, accent, bg } - all valid hex codes`,
-                          response_json_schema: {
-                            type: "object",
-                            properties: {
-                              name: { type: "string" },
-                              description: { type: "string" },
-                              emoji: { type: "string" },
-                              rarity: { type: "string", enum: ["uncommon", "rare", "epic"] },
-                              theme: {
-                                type: "object",
-                                properties: {
-                                  primary: { type: "string" },
-                                  secondary: { type: "string" },
-                                  accent: { type: "string" },
-                                  bg: { type: "string" }
+                            response_json_schema: {
+                              type: "object",
+                              properties: {
+                                name: { type: "string" },
+                                description: { type: "string" },
+                                emoji: { type: "string" },
+                                rarity: { type: "string", enum: ["uncommon", "rare", "epic"] },
+                                theme: {
+                                  type: "object",
+                                  properties: {
+                                    primary: { type: "string" },
+                                    secondary: { type: "string" },
+                                    accent: { type: "string" },
+                                    bg: { type: "string" }
+                                  }
                                 }
                               }
                             }
-                          }
-                        });
-
-                        // Generate image
-                        let imageUrl = '';
-                        try {
-                          const imgResult = await base44.integrations.Core.GenerateImage({
-                            prompt: `Cute cartoon creature for kids game: ${result.name}. ${result.description}. Style: adorable, colorful, Pixar-style, game mascot. Colors: ${result.theme?.primary}, ${result.theme?.secondary}. White background, centered.`
                           });
-                          imageUrl = imgResult.url;
+
+                          // Generate image
+                          let imageUrl = '';
+                          try {
+                            const imgResult = await base44.integrations.Core.GenerateImage({
+                              prompt: `Cute cartoon creature for kids game: ${result.name}. ${result.description}. Style: adorable, colorful, Pixar-style, game mascot. Colors: ${result.theme?.primary}, ${result.theme?.secondary}. White background, centered.`
+                            });
+                            imageUrl = imgResult.url;
+                          } catch (e) {
+                            console.log('Image generation failed, using emoji');
+                          }
+
+                          // Create the pet
+                          const newPet = await base44.entities.CustomPet.create({
+                            name: result.name,
+                            description: result.description,
+                            emoji: result.emoji,
+                            imageUrl: imageUrl,
+                            rarity: result.rarity,
+                            xpRequired: 999999,
+                            isGiftOnly: true,
+                            theme: result.theme
+                          });
+
+                          setCustomPets([newPet, ...customPets]);
+                          toast.success(`🎉 ${result.name} created!`, {
+                            description: 'Pet added to your collection'
+                          });
+                          setAdminEggIdea('');
                         } catch (e) {
-                          console.log('Image generation failed, using emoji');
+                          toast.error('Magic failed! Try again.');
                         }
-
-                        // Create the pet
-                        const newPet = await base44.entities.CustomPet.create({
-                          name: result.name,
-                          description: result.description,
-                          emoji: result.emoji,
-                          imageUrl: imageUrl,
-                          rarity: result.rarity,
-                          xpRequired: 999999,
-                          isGiftOnly: true,
-                          theme: result.theme
-                        });
-
-                        setCustomPets([newPet, ...customPets]);
-                        toast.success(`🎉 ${result.name} created!`, {
-                          description: 'Pet added to your collection'
-                        });
-                        setAdminEggIdea('');
-                      } catch (e) {
-                        toast.error('Magic failed! Try again.');
-                      }
-                      setGeneratingAdminPet(false);
-                    }}
-                    disabled={generatingAdminPet}
-                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                  >
-                    {generatingAdminPet ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Creating Magic...
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="w-4 h-4 mr-2" />
-                        Create Creature with AI
-                      </>
-                    )}
-                  </Button>
+                        setGeneratingAdminPet(false);
+                      }}
+                      disabled={generatingAdminPet}
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                    >
+                      {generatingAdminPet ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Creating Magic...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-4 h-4 mr-2" />
+                          Create Creature with AI
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Existing Magic Eggs */}
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-4">User Magic Eggs ({magicEggs.length})</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {magicEggs.map((egg) => {
-                    const owner = users.find(u => u.userId === egg.userId);
-                    return (
-                      <div key={egg.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span className="text-3xl">{egg.isUsed ? '🐣' : '🥚'}</span>
-                            <div>
-                              <p className="text-white font-medium">{owner?.username || 'Unknown User'}</p>
-                              <p className="text-xs text-slate-400">
-                                {egg.isUsed ? 'Hatched' : 'Unused'}
-                              </p>
+                {/* Existing Magic Eggs */}
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-4">User Magic Eggs ({magicEggs.length})</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {magicEggs.map((egg) => {
+                      const owner = users.find(u => u.userId === egg.userId);
+                      return (
+                        <div key={egg.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-3xl">{egg.isUsed ? '🐣' : '🥚'}</span>
+                              <div>
+                                <p className="text-white font-medium">{owner?.username || 'Unknown User'}</p>
+                                <p className="text-xs text-slate-400">
+                                  {egg.isUsed ? 'Hatched' : 'Unused'}
+                                </p>
+                              </div>
                             </div>
+                            {isSuperAdmin && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={async () => {
+                                  await base44.entities.MagicEgg.delete(egg.id);
+                                  setMagicEggs(magicEggs.filter(e => e.id !== egg.id));
+                                  toast.success('Egg deleted');
+                                }}
+                                className="text-red-400 hover:text-red-300"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
-                          {isSuperAdmin && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={async () => {
-                                await base44.entities.MagicEgg.delete(egg.id);
-                                setMagicEggs(magicEggs.filter(e => e.id !== egg.id));
-                                toast.success('Egg deleted');
-                              }}
-                              className="text-red-400 hover:text-red-300"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
                         </div>
-                      </div>
-                    );
-                  })}
-                  {magicEggs.length === 0 && (
-                    <div className="col-span-full text-center py-8 text-slate-400">No magic eggs yet</div>
-                  )}
+                      );
+                    })}
+                    {magicEggs.length === 0 && (
+                      <div className="col-span-full text-center py-8 text-slate-400">No magic eggs yet</div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </TabsContent>
-
-        )}
+            </TabsContent>
+          ) : null}
           <TabsContent value="events">
             <div className="space-y-6">
               {/* Create Event */}
