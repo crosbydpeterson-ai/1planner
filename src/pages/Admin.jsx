@@ -3829,7 +3829,7 @@ Generate a pack_name and items array.`,
                     <SelectContent>
                       <SelectItem value="xp">XP</SelectItem>
                       <SelectItem value="coins">Quest Coins</SelectItem>
-                      <SelectItem value="magic_egg">Magic Egg</SelectItem>
+                      {isSuperAdmin && <SelectItem value="magic_egg">Magic Egg</SelectItem>}
                       <SelectItem value="pet">Pet</SelectItem>
                       <SelectItem value="theme">Theme</SelectItem>
                       <SelectItem value="title">Title</SelectItem>
