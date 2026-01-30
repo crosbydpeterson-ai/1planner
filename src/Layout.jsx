@@ -11,7 +11,6 @@ import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const [themeColors, setThemeColors] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   
   useEffect(() => {
     loadUserTheme();
