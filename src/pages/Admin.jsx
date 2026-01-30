@@ -22,6 +22,8 @@ import { THEMES } from '@/components/quest/ThemeCatalog';
 import { toast } from 'sonner';
 import AdminChatWidget from '@/components/admin/AdminChatWidget';
 import PetAvatar from '@/components/quest/PetAvatar';
+import CosmeticGeneratorPanel from '@/components/admin/CosmeticGeneratorPanel';
+import BulkPetCreatorPanel from '@/components/admin/BulkPetCreatorPanel';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
