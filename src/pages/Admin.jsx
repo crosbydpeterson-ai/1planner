@@ -2179,7 +2179,13 @@ Generate a pack_name and items array.`,
                 <h3 className="text-white font-semibold mb-2">Cosmetics Generator</h3>
                 <p className="text-slate-400 text-sm mb-3">Generate no-background cosmetics, auto-saved; edit any field to auto-update.</p>
                 <div className="mt-3">
-                  {/* inline panel */}
+                  <div className="bg-slate-900/40 rounded-xl p-3">
+                    <CosmeticGeneratorPanel onCreated={(created) => {
+                      if (Array.isArray(created) && created.length) {
+                        setPetCosmetics((prev) => [...created, ...prev]);
+                      }
+                    }} />
+                  </div>
                 </div>
               </div>
 
