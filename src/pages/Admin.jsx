@@ -1105,9 +1105,11 @@ White or transparent background, centered, high quality illustration.`;
                       <p className="text-xs text-slate-400">{season.startDate} to {season.endDate}</p>
                     </div>
                     {isSuperAdmin && (
-                      <Button size="sm" variant="ghost" onClick={() => handleDeleteSeason(season)} className="text-red-400 hover:text-red-300">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {isSuperAdmin && (
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteSeason(season)} className="text-red-400 hover:text-red-300">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     )}
                   </div>
                   {season.rewards?.length > 0 && (
@@ -1501,18 +1503,20 @@ Generate:
                       </div>
                     </div>
                     {isSuperAdmin && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={async () => {
-                          await base44.entities.PetCosmetic.delete(cosmetic.id);
-                          setPetCosmetics(petCosmetics.filter(c => c.id !== cosmetic.id));
-                          toast.success('Cosmetic deleted');
-                        }}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {isSuperAdmin && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            await base44.entities.PetCosmetic.delete(cosmetic.id);
+                            setPetCosmetics(petCosmetics.filter(c => c.id !== cosmetic.id));
+                            toast.success('Cosmetic deleted');
+                          }}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     )}
                   </div>
                   {cosmetic.description && <p className="text-sm text-slate-500">{cosmetic.description}</p>}
