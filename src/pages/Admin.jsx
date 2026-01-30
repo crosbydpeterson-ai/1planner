@@ -895,6 +895,23 @@ White or transparent background, centered, high quality illustration.`;
                           >
                             <Gift className="w-4 h-4" />
                           </Button>
+                          {isSuperAdmin && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                const add = 10;
+                                const newTokens = (user.adminTokens || 0) + add;
+                                await base44.entities.UserProfile.update(user.id, { adminTokens: newTokens });
+                                setUsers(users.map(u => u.id === user.id ? { ...u, adminTokens: newTokens } : u));
+                                toast.success(`Granted ${add} admin tokens to ${user.username}`);
+                              }}
+                              className="text-emerald-400 hover:text-emerald-300"
+                              title="Grant 10 Admin Tokens"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -2876,36 +2893,40 @@ Generate a pack_name and items array.`,
               )}
               
               <div className="flex gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    const recipient = resolveGiftRecipient();
-                    if (!recipient) return;
-                    const allPetIds = [...PETS.map(p => p.id), ...customPets.map(p => `custom_${p.id}`)];
-                    await base44.entities.UserProfile.update(recipient.id, { unlockedPets: allPetIds });
-                    setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedPets: allPetIds } : u));
-                    toast.success(`All pets gifted to ${recipient.username}!`);
-                  }}
-                  className="flex-1 border-purple-500 text-purple-400 hover:bg-purple-500/20"
-                >
-                  Gift ALL Pets
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    const recipient = resolveGiftRecipient();
-                    if (!recipient) return;
-                    const allThemeIds = [...THEMES.map(t => t.id), ...customThemes.map(t => `custom_${t.id}`)];
-                    await base44.entities.UserProfile.update(recipient.id, { unlockedThemes: allThemeIds });
-                    setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedThemes: allThemeIds } : u));
-                    toast.success(`All themes gifted to ${recipient.username}!`);
-                  }}
-                  className="flex-1 border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
-                >
-                  Gift ALL Themes
-                </Button>
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const recipient = resolveGiftRecipient();
+                      if (!recipient) return;
+                      const allPetIds = [...PETS.map(p => p.id), ...customPets.map(p => `custom_${p.id}`)];
+                      await base44.entities.UserProfile.update(recipient.id, { unlockedPets: allPetIds });
+                      setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedPets: allPetIds } : u));
+                      toast.success(`All pets gifted to ${recipient.username}!`);
+                    }}
+                    className="flex-1 border-purple-500 text-purple-400 hover:bg-purple-500/20"
+                  >
+                    Gift ALL Pets
+                  </Button>
+                )}
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const recipient = resolveGiftRecipient();
+                      if (!recipient) return;
+                      const allThemeIds = [...THEMES.map(t => t.id), ...customThemes.map(t => `custom_${t.id}`)];
+                      await base44.entities.UserProfile.update(recipient.id, { unlockedThemes: allThemeIds });
+                      setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedThemes: allThemeIds } : u));
+                      toast.success(`All themes gifted to ${recipient.username}!`);
+                    }}
+                    className="flex-1 border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
+                  >
+                    Gift ALL Themes
+                  </Button>
+                )}
               </div>
               
               {isSuperAdmin && (
