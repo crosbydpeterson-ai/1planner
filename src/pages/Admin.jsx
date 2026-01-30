@@ -31,6 +31,9 @@ export default function Admin() {
   const [adminPin, setAdminPin] = useState('');
   const [tab, setTab] = useState('users');
   const [loading, setLoading] = useState(false);
+  const [adminProfile, setAdminProfile] = useState(null);
+  const [isAdminRole, setIsAdminRole] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   
   // Users
   const [users, setUsers] = useState([]);
@@ -187,16 +190,18 @@ export default function Admin() {
       
       const currentProfile = profiles[0];
       
-      // Check if user is "Crosby" OR the first user created
-      const isAdminUser = currentProfile.username.toLowerCase() === 'crosby';
-      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
-      const isFirstUser = allProfiles.length > 0 && allProfiles[0].id === currentProfile.id;
-      
-      if (!isAdminUser && !isFirstUser) {
-        // Not admin user, redirect to dashboard
+      // Role-based access
+      const username = (currentProfile.username || '').toLowerCase();
+      const superByName = username === 'crosby';
+      const role = currentProfile.rank || (superByName ? 'super_admin' : 'user');
+      const allow = role === 'admin' || role === 'super_admin' || superByName;
+      if (!allow) {
         navigate(createPageUrl('Dashboard'));
         return;
       }
+      setIsSuperAdmin(superByName || role === 'super_admin');
+      setIsAdminRole(true);
+      setAdminProfile(currentProfile);
       
       // Check if already authenticated with password
       const adminAuth = localStorage.getItem('quest_admin_auth');
@@ -498,10 +503,35 @@ White or transparent background, centered, high quality illustration.`;
   const handleGiftItem = async () => {
     const recipient = resolveGiftRecipient();
     if (!recipient || !giftItemId) {
-      toast.error('Please enter an amount or select an item');
-      return;
-    }
-    try {
+        toast.error('Please enter an amount or select an item');
+        return;
+      }
+      // Admin-only gifting constraints
+      if (!isSuperAdmin) {
+        const today = new Date().toDateString();
+        let lastDate = adminProfile?.lastGiftDate || '';
+        let dailyCount = adminProfile?.dailyGiftCount || 0;
+        // Reset daily counter if day changed
+        if (lastDate !== today) {
+          dailyCount = 0;
+          lastDate = today;
+          await base44.entities.UserProfile.update(adminProfile.id, { dailyGiftCount: dailyCount, lastGiftDate: today });
+          setAdminProfile({ ...adminProfile, dailyGiftCount: dailyCount, lastGiftDate: today });
+        }
+        if (dailyCount >= 50) {
+          toast.error('Daily gift limit reached (50). Ask super admin for more.');
+          return;
+        }
+        if ((adminProfile?.adminTokens || 0) <= 0) {
+          toast.error('No admin tokens left. Ask super admin.');
+          return;
+        }
+        if ((adminProfile?.questCoins || 0) < 25) {
+          toast.error('Not enough Quest Coins (need 25).');
+          return;
+        }
+      }
+      try {
       if (giftType === 'coins') {
         const amount = parseInt(giftItemId);
         if (isNaN(amount) || amount <= 0) {
@@ -536,6 +566,26 @@ White or transparent background, centered, high quality illustration.`;
           setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedCosmetics } : u));
         }
         toast.success(`Cosmetic gifted to ${recipient.username}!`);
+      }
+      // Deduct admin costs (only for admins)
+      if (!isSuperAdmin) {
+        const newCoins = (adminProfile?.questCoins || 0) - 25;
+        const newTokens = (adminProfile?.adminTokens || 0) - 1;
+        const today2 = new Date().toDateString();
+        const newDaily = ((adminProfile?.dailyGiftCount || 0) + 1);
+        await base44.entities.UserProfile.update(adminProfile.id, {
+          questCoins: newCoins,
+          adminTokens: newTokens,
+          dailyGiftCount: newDaily,
+          lastGiftDate: today2
+        });
+        setAdminProfile({
+          ...adminProfile,
+          questCoins: newCoins,
+          adminTokens: newTokens,
+          dailyGiftCount: newDaily,
+          lastGiftDate: today2
+        });
       }
       setShowGiftDialog(false);
       setGiftItemId('');
@@ -666,7 +716,7 @@ White or transparent background, centered, high quality illustration.`;
 
   return (
     <div className="min-h-screen bg-slate-900">
-      <AdminChatWidget />
+      {isSuperAdmin && <AdminChatWidget />}
       <div className="max-w-6xl mx-auto p-4 pb-8">
         {/* Header */}
         <motion.div
@@ -728,10 +778,12 @@ White or transparent background, centered, high quality illustration.`;
               <Sparkles className="w-4 h-4 mr-2" />
               Seasons ({seasons.length})
             </TabsTrigger>
-            <TabsTrigger value="eggs" className="data-[state=active]:bg-slate-700">
-              🥚
-              Magic Eggs
-            </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="eggs" className="data-[state=active]:bg-slate-700">
+                🥚
+                Magic Eggs
+              </TabsTrigger>
+            )}
             <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">
               🫧
               Events
@@ -857,6 +909,22 @@ White or transparent background, centered, high quality illustration.`;
                           >
                             <Wand2 className="w-4 h-4" />
                           </Button>
+                          {isSuperAdmin && (user.username?.toLowerCase() !== 'crosby') && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                const newRank = user.rank === 'admin' ? 'user' : 'admin';
+                                await base44.entities.UserProfile.update(user.id, { rank: newRank });
+                                setUsers(users.map(u => u.id === user.id ? { ...u, rank: newRank } : u));
+                                toast.success(newRank === 'admin' ? `${user.username} is now ADMIN` : `Admin removed from ${user.username}`);
+                              }}
+                              className="text-emerald-400 hover:text-emerald-300"
+                              title="Toggle Admin"
+                            >
+                              <Shield className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -945,14 +1013,16 @@ White or transparent background, centered, high quality illustration.`;
                     >
                       <Edit2 className="w-4 h-4" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDeleteAssignment(assignment)}
-                      className="text-red-400 hover:text-red-300"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {isSuperAdmin && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteAssignment(assignment)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                   </div>
                 </motion.div>
@@ -984,9 +1054,11 @@ White or transparent background, centered, high quality illustration.`;
                         </p>
                       </div>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => handleDeletePet(pet)} className="text-red-400 hover:text-red-300">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {isSuperAdmin && (
+                      <Button size="sm" variant="ghost" onClick={() => handleDeletePet(pet)} className="text-red-400 hover:text-red-300">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                   {pet.description && <p className="text-sm text-slate-500">{pet.description}</p>}
                 </div>
@@ -1164,18 +1236,20 @@ Generate:
                               </p>
                             </div>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={async () => {
-                              await base44.entities.MagicEgg.delete(egg.id);
-                              setMagicEggs(magicEggs.filter(e => e.id !== egg.id));
-                              toast.success('Egg deleted');
-                            }}
-                            className="text-red-400 hover:text-red-300"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {isSuperAdmin && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                await base44.entities.MagicEgg.delete(egg.id);
+                                setMagicEggs(magicEggs.filter(e => e.id !== egg.id));
+                                toast.success('Egg deleted');
+                              }}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     );
@@ -1322,18 +1396,20 @@ Generate:
                           >
                             {event.isActive ? <X className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={async () => {
-                              await base44.entities.AdminEvent.delete(event.id);
-                              setEvents(events.filter(e => e.id !== event.id));
-                              toast.success('Event deleted');
-                            }}
-                            className="text-red-400 hover:text-red-300"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {isSuperAdmin && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                await base44.entities.AdminEvent.delete(event.id);
+                                setEvents(events.filter(e => e.id !== event.id));
+                                toast.success('Event deleted');
+                              }}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1361,9 +1437,11 @@ Generate:
                       <h3 className="font-semibold text-white">{theme.name}</h3>
                       <p className="text-xs text-slate-400 capitalize">{theme.rarity} • {theme.xpRequired} XP</p>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => handleDeleteTheme(theme)} className="text-red-400 hover:text-red-300">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {isSuperAdmin && (
+                     <Button size="sm" variant="ghost" onClick={() => handleDeleteTheme(theme)} className="text-red-400 hover:text-red-300">
+                       <Trash2 className="w-4 h-4" />
+                     </Button>
+                    )}
                   </div>
                   <div className="flex gap-2 mb-2">
                     <div className="w-8 h-8 rounded" style={{ backgroundColor: theme.primaryColor }} />
@@ -1447,18 +1525,20 @@ Generate:
                           <Button size="sm" variant="ghost" onClick={() => setEditingShopItem(item)} className="text-slate-400 hover:text-white">
                             <Edit2 className="w-4 h-4" />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={async () => {
-                              await base44.entities.ShopItem.delete(item.id);
-                              setShopItems(shopItems.filter(i => i.id !== item.id));
-                              toast.success('Item deleted');
-                            }}
-                            className="text-red-400 hover:text-red-300"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {isSuperAdmin && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                await base44.entities.ShopItem.delete(item.id);
+                                setShopItems(shopItems.filter(i => i.id !== item.id));
+                                toast.success('Item deleted');
+                              }}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                       <p className="text-sm text-slate-500 mb-2">{item.description}</p>
@@ -1737,18 +1817,20 @@ Generate a pack_name and items array.`,
                           <Button size="sm" variant="ghost" onClick={() => setEditingBundle(bundle)} className="text-slate-400 hover:text-white">
                             <Edit2 className="w-4 h-4" />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={async () => {
-                              await base44.entities.Bundle.delete(bundle.id);
-                              setBundles(bundles.filter(b => b.id !== bundle.id));
-                              toast.success('Bundle deleted');
-                            }}
-                            className="text-red-400 hover:text-red-300"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {isSuperAdmin && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                await base44.entities.Bundle.delete(bundle.id);
+                                setBundles(bundles.filter(b => b.id !== bundle.id));
+                                toast.success('Bundle deleted');
+                              }}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2246,18 +2328,20 @@ Generate a pack_name and items array.`,
                               >
                                 {link.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={async () => {
-                                  await base44.entities.RewardLink.delete(link.id);
-                                  setRewardLinks(rewardLinks.filter(l => l.id !== link.id));
-                                  toast.success('Link deleted');
-                                }}
-                                className="text-red-400 hover:text-red-300"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                              {isSuperAdmin && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={async () => {
+                                    await base44.entities.RewardLink.delete(link.id);
+                                    setRewardLinks(rewardLinks.filter(l => l.id !== link.id));
+                                    toast.success('Link deleted');
+                                  }}
+                                  className="text-red-400 hover:text-red-300"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         );
@@ -2351,18 +2435,20 @@ Generate a pack_name and items array.`,
                               >
                                 Copy
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={async () => {
-                                  await base44.entities.ReferralLink.delete(link.id);
-                                  setAdminReferralLinks(adminReferralLinks.filter(l => l.id !== link.id));
-                                  toast.success('Link deleted');
-                                }}
-                                className="text-red-400 hover:text-red-300"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                              {isSuperAdmin && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={async () => {
+                                    await base44.entities.ReferralLink.delete(link.id);
+                                    setAdminReferralLinks(adminReferralLinks.filter(l => l.id !== link.id));
+                                    toast.success('Link deleted');
+                                  }}
+                                  className="text-red-400 hover:text-red-300"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         );
@@ -2822,21 +2908,23 @@ Generate a pack_name and items array.`,
                 </Button>
               </div>
               
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  const recipient = resolveGiftRecipient();
-                  if (!recipient) return;
-                  await base44.entities.MagicEgg.create({ userId: recipient.userId });
-                  toast.success(`🥚 Magic Egg gifted to ${recipient.username}!`, {
-                    description: 'They can now create their own custom pet!'
-                  });
-                }}
-                className="w-full border-amber-500 text-amber-400 hover:bg-amber-500/20"
-              >
-                🥚 Gift Magic Egg
-              </Button>
+              {isSuperAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const recipient = resolveGiftRecipient();
+                    if (!recipient) return;
+                    await base44.entities.MagicEgg.create({ userId: recipient.userId });
+                    toast.success(`🥚 Magic Egg gifted to ${recipient.username}!`, {
+                      description: 'They can now create their own custom pet!'
+                    });
+                  }}
+                  className="w-full border-amber-500 text-amber-400 hover:bg-amber-500/20"
+                >
+                  🥚 Gift Magic Egg
+                </Button>
+              )}
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowGiftDialog(false)}>Cancel</Button>

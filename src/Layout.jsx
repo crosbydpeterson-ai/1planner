@@ -33,16 +33,10 @@ export default function Layout({ children, currentPageName }) {
       
       const currentProfile = profiles[0];
       
-      // Admin if username is "Crosby" (case-insensitive) OR if they're the first user created
-      if (typeof currentProfile.username === 'string' && currentProfile.username.toLowerCase() === 'crosby') {
+      // Admin if rank is admin/super_admin or username is "Crosby" (case-insensitive)
+      if (currentProfile.rank === 'admin' || currentProfile.rank === 'super_admin' || (typeof currentProfile.username === 'string' && currentProfile.username.toLowerCase() === 'crosby')) {
         setIsAdmin(true);
         return;
-      }
-      
-      // Check if this is the first user
-      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
-      if (allProfiles.length > 0 && allProfiles[0].id === currentProfile.id) {
-        setIsAdmin(true);
       }
     } catch (e) {
       console.error('Error checking admin status:', e);
