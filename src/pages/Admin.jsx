@@ -1105,13 +1105,9 @@ White or transparent background, centered, high quality illustration.`;
                       <p className="text-xs text-slate-400">{season.startDate} to {season.endDate}</p>
                     </div>
                     {isSuperAdmin && (
-                      {isSuperAdmin && (
-                        {isSuperAdmin && (
-                          <Button size="sm" variant="ghost" onClick={() => handleDeleteSeason(season)} className="text-red-400 hover:text-red-300">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      )}
+                      <Button size="sm" variant="ghost" onClick={() => handleDeleteSeason(season)} className="text-red-400 hover:text-red-300">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     )}
                   </div>
                   {season.rewards?.length > 0 && (
@@ -1506,26 +1502,18 @@ Generate:
                     </div>
                     {isSuperAdmin && (
                       {isSuperAdmin && (
-                        {isSuperAdmin && (
-                          {isSuperAdmin && (
-                            {isSuperAdmin && (
-                              {isSuperAdmin && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={async () => {
-                                    await base44.entities.PetCosmetic.delete(cosmetic.id);
-                                    setPetCosmetics(petCosmetics.filter(c => c.id !== cosmetic.id));
-                                    toast.success('Cosmetic deleted');
-                                  }}
-                                  className="text-red-400 hover:text-red-300"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              )}
-                            )}
-                          )}
-                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            await base44.entities.PetCosmetic.delete(cosmetic.id);
+                            setPetCosmetics(petCosmetics.filter(c => c.id !== cosmetic.id));
+                            toast.success('Cosmetic deleted');
+                          }}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       )}
                     )}
                   </div>
@@ -3202,7 +3190,7 @@ Generate a pack_name and items array.`,
                       <SelectItem value="theme">Theme</SelectItem>
                       <SelectItem value="title">Title</SelectItem>
                       <SelectItem value="xp_booster">XP Booster</SelectItem>
-                      {isSuperAdmin && {isSuperAdmin && {isSuperAdmin && <SelectItem value="magic_egg">Magic Egg</SelectItem>}}}
+                      {isSuperAdmin && <SelectItem value="magic_egg">Magic Egg</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
@@ -3847,7 +3835,7 @@ Generate a pack_name and items array.`,
                     <SelectContent>
                       <SelectItem value="xp">XP</SelectItem>
                       <SelectItem value="coins">Quest Coins</SelectItem>
-                      {isSuperAdmin && {isSuperAdmin && {isSuperAdmin && {isSuperAdmin && <SelectItem value="magic_egg">Magic Egg</SelectItem>}}}}
+                      {isSuperAdmin && <SelectItem value="magic_egg">Magic Egg</SelectItem>}
                       <SelectItem value="pet">Pet</SelectItem>
                       <SelectItem value="theme">Theme</SelectItem>
                       <SelectItem value="title">Title</SelectItem>
