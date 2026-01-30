@@ -1119,7 +1119,8 @@ White or transparent background, centered, high quality illustration.`;
             </div>
           </TabsContent>
 
-          <TabsContent value="eggs">
+          {isSuperAdmin && (
+            <TabsContent value="eggs">
             <div className="space-y-6">
               {/* Admin Magic Egg Creator */}
               <div className="bg-gradient-to-br from-amber-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-white/10">
