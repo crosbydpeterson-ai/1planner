@@ -738,7 +738,7 @@ White or transparent background, centered, high quality illustration.`;
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-                <p className="text-sm text-slate-400">Manage users & assignments</p>
+                <p className="text-sm text-slate-400">Manage users, assets, AI tools</p>
               </div>
             </div>
           </div>
