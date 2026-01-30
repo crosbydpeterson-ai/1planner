@@ -774,6 +774,10 @@ White or transparent background, centered, high quality illustration.`;
               👒
               Cosmetics ({petCosmetics.length})
             </TabsTrigger>
+            <TabsTrigger value="ai" className="data-[state=active]:bg-slate-700">
+              ✨
+              AI Tools
+            </TabsTrigger>
             <TabsTrigger value="seasons" className="data-[state=active]:bg-slate-700">
               <Sparkles className="w-4 h-4 mr-2" />
               Seasons ({seasons.length})
