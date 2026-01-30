@@ -2170,6 +2170,28 @@ Generate a pack_name and items array.`,
             </div>
           </TabsContent>
 
+          <TabsContent value="ai">
+            <div className="space-y-8">
+              {/* AI Cosmetic Generator (with autosave) */}
+              <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
+                <h3 className="text-white font-semibold mb-2">Cosmetics Generator</h3>
+                <p className="text-slate-400 text-sm mb-3">Generate no-background cosmetics, auto-saved; edit any field to auto-update.</p>
+                <div className="mt-3">
+                  {/* inline panel */}
+                </div>
+              </div>
+
+              {/* Bulk Pet Creator */}
+              <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
+                <h3 className="text-white font-semibold mb-2">Bulk Pet Creator</h3>
+                <p className="text-slate-400 text-sm mb-3">Upload 1–10 pet images, add lore, auto-generate details, quick-edit, and save.</p>
+                <div className="mt-3">
+                  {/* inline panel */}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
           <TabsContent value="settings">
             <div className="space-y-6">
               {/* Referral-Only Mode Banner */}
