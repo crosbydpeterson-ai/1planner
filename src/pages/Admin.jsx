@@ -1639,7 +1639,7 @@ Generate:
                     />
                   </div>
                   <Button
-                    onClick={async () => {
+                    onClick={async (e) => {
                       const idea = document.getElementById('packIdea').value;
                       const originalPrice = parseInt(document.getElementById('packOriginalPrice').value) || 0;
                       const bundlePrice = parseInt(document.getElementById('packBundlePrice').value) || 0;
