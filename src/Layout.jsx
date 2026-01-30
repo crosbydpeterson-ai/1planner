@@ -74,8 +74,6 @@ export default function Layout({ children, currentPageName }) {
   // Don't show navigation on Home (login) page or Admin page
   const hideNav = currentPageName === 'Home' || currentPageName === 'Admin';
 
-  // Compute admin visibility from rank
-  const [isAdmin, setIsAdmin] = useState(false);
   
   const navItems = [
     { name: 'Dashboard', icon: Home, label: 'Home' },
