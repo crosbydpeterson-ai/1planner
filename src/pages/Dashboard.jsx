@@ -31,7 +31,7 @@ export default function Dashboard() {
   const [recentAssignments, setRecentAssignments] = useState([]);
   const [currentPet, setCurrentPet] = useState(null);
   const [petTheme, setPetTheme] = useState(null);
-  
+
   // Widget state
   const [activeWidgets, setActiveWidgets] = useState(DEFAULT_WIDGETS);
   const [editMode, setEditMode] = useState(false);
@@ -72,13 +72,13 @@ export default function Dashboard() {
       }
 
       // Get equipped pet and its theme
-      const pet = PETS.find(pet => pet.id === p.equippedPetId) || PETS[0];
+      const pet = PETS.find((pet) => pet.id === p.equippedPetId) || PETS[0];
       setCurrentPet(pet);
       setPetTheme(pet.theme);
 
       // Load visible assignments
       const assignments = await base44.entities.Assignment.filter({ isApproved: true });
-      let visible = assignments.filter(a => {
+      let visible = assignments.filter((a) => {
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
         if (a.subject === 'math' && a.target === p.mathTeacher) return true;
         if (a.subject === 'reading' && a.target === p.readingTeacher) return true;
@@ -89,7 +89,7 @@ export default function Dashboard() {
 
       // Create tutorial assignment if user hasn't completed tutorial
       if (!p.tutorialCompleted) {
-        const tutorialExists = assignments.find(a => a.title === '📚 Practice Assignment (Tutorial)');
+        const tutorialExists = assignments.find((a) => a.title === '📚 Practice Assignment (Tutorial)');
         if (!tutorialExists) {
           await base44.entities.Assignment.create({
             title: '📚 Practice Assignment (Tutorial)',
@@ -116,9 +116,9 @@ export default function Dashboard() {
   };
 
   const handleToggleWidget = (widgetId) => {
-    setActiveWidgets(prev => {
+    setActiveWidgets((prev) => {
       if (prev.includes(widgetId)) {
-        return prev.filter(id => id !== widgetId);
+        return prev.filter((id) => id !== widgetId);
       } else {
         return [...prev, widgetId];
       }
@@ -145,8 +145,8 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
-      </div>
-    );
+      </div>);
+
   }
 
   if (!profile) return null;
@@ -161,32 +161,32 @@ export default function Dashboard() {
         return <PetWidget key={widgetId} pet={currentPet} themeColors={themeColors} data-tutorial="pet-widget" />;
       case 'stats':
         return (
-          <StatsWidget 
+          <StatsWidget
             key={widgetId}
-            xp={profile.xp} 
-            petsCount={profile.unlockedPets?.length} 
-            completedCount={profile.completedAssignments?.length} 
-          />
-        );
+            xp={profile.xp}
+            petsCount={profile.unlockedPets?.length}
+            completedCount={profile.completedAssignments?.length} />);
+
+
       case 'leaderboard':
         return <MiniLeaderboardWidget key={widgetId} currentUserId={profile.id} />;
       case 'assignments':
         return (
-          <RecentAssignmentsWidget 
+          <RecentAssignmentsWidget
             key={widgetId}
-            assignments={recentAssignments} 
-            completedIds={profile.completedAssignments} 
-            data-tutorial="assignments-widget"
-          />
-        );
+            assignments={recentAssignments}
+            completedIds={profile.completedAssignments}
+            data-tutorial="assignments-widget" />);
+
+
       case 'season':
         return (
-          <SeasonProgressWidget 
+          <SeasonProgressWidget
             key={widgetId}
-            userXp={profile.xp} 
-            claimedRewards={profile.claimedSeasonRewards} 
-          />
-        );
+            userXp={profile.xp}
+            claimedRewards={profile.claimedSeasonRewards} />);
+
+
       case 'nav':
         return <QuickNavWidget key={widgetId} />;
       default:
@@ -201,81 +201,81 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-6"
-        >
+          className="flex items-center justify-between mb-6">
+
           <div className="flex items-center gap-3">
             <GlassIcon icon={Sword} color="primary" />
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Quest Planner</h1>
+              <h1 className="text-xl font-bold text-slate-800">1Planner</h1>
               <p className="text-sm text-slate-500">Welcome back, {profile.username}!</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {profile.isPetCreator && (
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => navigate(createPageUrl('PetCreator'))}
-                className="text-pink-400 hover:text-pink-600"
-                title="Pet Creator"
-              >
+            {profile.isPetCreator &&
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(createPageUrl('PetCreator'))}
+              className="text-pink-400 hover:text-pink-600"
+              title="Pet Creator">
+
                 <Wand2 className="w-5 h-5" />
               </Button>
-            )}
-            <Button 
-              variant="ghost" 
+            }
+            <Button
+              variant="ghost"
               size="icon"
               onClick={() => navigate(createPageUrl('UserSettings'))}
               className="text-slate-400 hover:text-slate-600"
-              title="User Settings"
-            >
+              title="User Settings">
+
               <User className="w-5 h-5" />
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
               onClick={() => setShowCustomizer(true)}
               className="text-slate-400 hover:text-slate-600"
-              data-tutorial="widget-settings"
-            >
+              data-tutorial="widget-settings">
+
               <Settings className="w-5 h-5" />
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
               onClick={handleLogout}
-              className="text-slate-400 hover:text-slate-600"
-            >
+              className="text-slate-400 hover:text-slate-600">
+
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
         </motion.div>
 
         {/* Widgets */}
-        <WidgetGrid 
-          widgets={activeWidgets} 
+        <WidgetGrid
+          widgets={activeWidgets}
           onReorder={handleReorderWidgets}
-          editMode={editMode}
-        >
-          {activeWidgets.map(widgetId => renderWidget(widgetId))}
+          editMode={editMode}>
+
+          {activeWidgets.map((widgetId) => renderWidget(widgetId))}
         </WidgetGrid>
       </div>
 
       {/* Customizer Modal */}
-      {showCustomizer && (
-        <WidgetCustomizer
-          activeWidgets={activeWidgets}
-          onToggleWidget={handleToggleWidget}
-          onClose={() => setShowCustomizer(false)}
-          onSave={handleSaveWidgets}
-        />
-      )}
+      {showCustomizer &&
+      <WidgetCustomizer
+        activeWidgets={activeWidgets}
+        onToggleWidget={handleToggleWidget}
+        onClose={() => setShowCustomizer(false)}
+        onSave={handleSaveWidgets} />
+
+      }
 
       {/* Event Manager */}
       <EventManager profile={profile} />
 
       {/* Tutorial */}
       <Tutorial profile={profile} currentPage="Dashboard" onComplete={handleTutorialComplete} />
-      </div>
-      );
-      }
+      </div>);
+
+}
