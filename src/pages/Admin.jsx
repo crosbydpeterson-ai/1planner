@@ -1282,6 +1282,7 @@ Generate:
             </div>
           </TabsContent>
 
+        )}
           <TabsContent value="events">
             <div className="space-y-6">
               {/* Create Event */}
