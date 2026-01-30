@@ -2194,7 +2194,13 @@ Generate a pack_name and items array.`,
                 <h3 className="text-white font-semibold mb-2">Bulk Pet Creator</h3>
                 <p className="text-slate-400 text-sm mb-3">Upload 1–10 pet images, add lore, auto-generate details, quick-edit, and save.</p>
                 <div className="mt-3">
-                  {/* inline panel */}
+                  <div className="bg-slate-900/40 rounded-xl p-3">
+                    <BulkPetCreatorPanel onCreated={(created) => {
+                      if (Array.isArray(created) && created.length) {
+                        setCustomPets((prev) => [...created, ...prev]);
+                      }
+                    }} />
+                  </div>
                 </div>
               </div>
             </div>
