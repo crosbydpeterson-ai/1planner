@@ -49,6 +49,7 @@
  */
 import Admin from './pages/Admin';
 import Assignments from './pages/Assignments';
+import BulkPetCreator from './pages/BulkPetCreator';
 import CosmeticGenerator from './pages/CosmeticGenerator';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
@@ -58,13 +59,13 @@ import Rewards from './pages/Rewards';
 import Season from './pages/Season';
 import Shop from './pages/Shop';
 import UserSettings from './pages/UserSettings';
-import BulkPetCreator from './pages/BulkPetCreator';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "Admin": Admin,
     "Assignments": Assignments,
+    "BulkPetCreator": BulkPetCreator,
     "CosmeticGenerator": CosmeticGenerator,
     "Dashboard": Dashboard,
     "Home": Home,
@@ -74,7 +75,6 @@ export const PAGES = {
     "Season": Season,
     "Shop": Shop,
     "UserSettings": UserSettings,
-    "BulkPetCreator": BulkPetCreator,
 }
 
 export const pagesConfig = {

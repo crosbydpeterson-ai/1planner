@@ -80,7 +80,7 @@ export default function PetAvatar({ petId, cosmeticIds = [], cosmeticPositions =
 
         // Default positions if no custom position set
         const defaultPositions = {
-          hat: { x: 50, y: 35 },
+          hat: { x: 50, y: 40 },
           glasses: { x: 50, y: 52 },
           accessory: { x: 50, y: 70 },
           background: { x: 50, y: 50 }
@@ -97,7 +97,7 @@ export default function PetAvatar({ petId, cosmeticIds = [], cosmeticPositions =
             style={{ 
               left: `${pos.x}%`,
               top: `${pos.y}%`,
-              transform: cosmetic.cosmeticType === 'hat' ? 'translate(-50%, -100%)' : 'translate(-50%, -50%)'
+              transform: 'translate(-50%, -50%)'
             }}
           />
         );

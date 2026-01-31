@@ -21,6 +21,7 @@ import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
 import { toast } from 'sonner';
 import AdminChatWidget from '@/components/admin/AdminChatWidget';
+import DebugChatWidget from '@/components/admin/DebugChatWidget';
 import PetAvatar from '@/components/quest/PetAvatar';
 import CosmeticGeneratorPanel from '@/components/admin/CosmeticGeneratorPanel';
 import BulkPetCreatorPanel from '@/components/admin/BulkPetCreatorPanel';
@@ -2174,6 +2175,11 @@ Generate a pack_name and items array.`,
 
           <TabsContent value="ai">
             <div className="space-y-8">
+              {isSuperAdmin && (
+                <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
+                  <DebugChatWidget />
+                </div>
+              )}
               {/* AI Cosmetic Generator (with autosave) */}
               <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
                 <h3 className="text-white font-semibold mb-2">Cosmetics Generator</h3>
