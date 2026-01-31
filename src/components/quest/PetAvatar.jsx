@@ -97,8 +97,7 @@ export default function PetAvatar({ petId, cosmeticIds = [], cosmeticPositions =
             style={{ 
               left: `${pos.x}%`,
               top: `${pos.y}%`,
-              transform: 'translate(-50%, -50%)',
-              filter: cosmetic.cosmeticType === 'background' ? 'opacity(0.3)' : 'none'
+              transform: 'translate(-50%, -50%)'
             }}
           />
         );
