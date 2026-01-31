@@ -1,8 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-// Helper: encode email to base64url for Gmail API
+// Helper: encode email to base64url for Gmail API (UTF-8 safe)
 function toBase64Url(str) {
-  const base64 = btoa(unescape(encodeURIComponent(str)));
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binary);
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
