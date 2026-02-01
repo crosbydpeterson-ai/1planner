@@ -25,6 +25,7 @@ import DebugChatWidget from '@/components/admin/DebugChatWidget';
 import PetAvatar from '@/components/quest/PetAvatar';
 import CosmeticGeneratorPanel from '@/components/admin/CosmeticGeneratorPanel';
 import BulkPetCreatorPanel from '@/components/admin/BulkPetCreatorPanel';
+import EconomyCharts from '@/components/admin/EconomyCharts';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
@@ -799,7 +800,11 @@ White or transparent background, centered, high quality illustration.`;
               <ShoppingBag className="w-4 h-4 mr-2" />
               Shop
             </TabsTrigger>
-            <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700">
+             <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">
+               📊
+               Analytics
+             </TabsTrigger>
+             <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700">
               <Lock className="w-4 h-4 mr-2" />
               Locks
             </TabsTrigger>
@@ -1872,6 +1877,11 @@ Generate a pack_name and items array.`,
             </div>
           </TabsContent>
 
+          <TabsContent value="analytics">
+            <div className="space-y-6">
+              <EconomyCharts users={users} assignments={assignments} shopItems={shopItems} bundles={bundles} events={events} />
+            </div>
+          </TabsContent>
           <TabsContent value="locks">
             <div className="space-y-6">
               {/* Global Locks */}
