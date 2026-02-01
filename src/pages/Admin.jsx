@@ -809,6 +809,10 @@ White or transparent background, centered, high quality illustration.`;
               <Lock className="w-4 h-4 mr-2" />
               Locks
             </TabsTrigger>
+            <TabsTrigger value="bans_flags" className="data-[state=active]:bg-slate-700">
+              <Ban className="w-4 h-4 mr-2" />
+              Bans & Flags
+            </TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">
               ⚙️
               Settings
@@ -1886,6 +1890,130 @@ Generate a pack_name and items array.`,
           <TabsContent value="email">
             <AdminEmailBroadcast />
           </TabsContent>
+          <TabsContent value="bans_flags">
+            <div className="space-y-6">
+              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                  <Ban className="w-4 h-4" /> Ban a User
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-300 mb-1 block">User</Label>
+                    <Select value={selectedModerationUserId} onValueChange={(v) => {
+                      setSelectedModerationUserId(v);
+                      const u = users.find(x => x.id === v);
+                      setBanReasonInput(u?.banReason || '');
+                      setBanEndInput(u?.banEndDate ? new Date(u.banEndDate).toISOString().slice(0,16) : '');
+                      setFlagMessageInput(u?.flagMessage || '');
+                    }}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectValue placeholder="Select user" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map(u => (
+                          <SelectItem key={u.id} value={u.id}>{u.username}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="p-3 bg-slate-700/40 rounded-lg text-sm text-slate-300">
+                    {(() => {
+                      const u = users.find(x => x.id === selectedModerationUserId);
+                      if (!u) return <span>Select a user to manage.</span>;
+                      return (
+                        <div className="space-y-1">
+                          <div><span className="text-slate-400">Status:</span> {u.isBanned ? <span className="text-red-400">BANNED</span> : <span className="text-emerald-400">Not banned</span>}</div>
+                          {u.isBanned && (
+                            <>
+                              <div><span className="text-slate-400">Reason:</span> {u.banReason || '—'}</div>
+                              <div><span className="text-slate-400">Unbans at:</span> {u.banEndDate ? new Date(u.banEndDate).toLocaleString() : '—'}</div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <Label className="text-slate-300">Ban Reason</Label>
+                    <Input value={banReasonInput} onChange={(e) => setBanReasonInput(e.target.value)} className="bg-slate-700 border-slate-600" placeholder="e.g., Spam assignments" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Unban Date/Time</Label>
+                    <Input type="datetime-local" value={banEndInput} onChange={(e) => setBanEndInput(e.target.value)} className="bg-slate-700 border-slate-600" />
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <Button
+                      onClick={async () => {
+                        const u = users.find(x => x.id === selectedModerationUserId);
+                        if (!u) { toast.error('Select a user'); return; }
+                        if (!banReasonInput.trim() || !banEndInput) { toast.error('Enter reason and end time'); return; }
+                        await base44.entities.UserProfile.update(u.id, { isBanned: true, banReason: banReasonInput.trim(), banEndDate: new Date(banEndInput).toISOString() });
+                        setUsers(users.map(x => x.id === u.id ? { ...x, isBanned: true, banReason: banReasonInput.trim(), banEndDate: new Date(banEndInput).toISOString() } : x));
+                        toast.success(`${u.username} banned.`);
+                      }}
+                      className="bg-red-600"
+                    >
+                      <Ban className="w-4 h-4 mr-1" /> Ban User
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        const u = users.find(x => x.id === selectedModerationUserId);
+                        if (!u) { toast.error('Select a user'); return; }
+                        await base44.entities.UserProfile.update(u.id, { isBanned: false, banReason: null, banEndDate: null });
+                        setUsers(users.map(x => x.id === u.id ? { ...x, isBanned: false, banReason: null, banEndDate: null } : x));
+                        toast.success(`${u.username} unbanned.`);
+                      }}
+                    >
+                      <Gavel className="w-4 h-4 mr-1" /> Unban
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" /> Flags (One-time Warning)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <Label className="text-slate-300">Custom Warning Message</Label>
+                    <Textarea value={flagMessageInput} onChange={(e) => setFlagMessageInput(e.target.value)} className="bg-slate-700 border-slate-600 min-h-[80px]" placeholder="⚠️ Please NO spam assignments... (admin custom message)" />
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <Button
+                      onClick={async () => {
+                        const u = users.find(x => x.id === selectedModerationUserId);
+                        if (!u) { toast.error('Select a user'); return; }
+                        if (!flagMessageInput.trim()) { toast.error('Enter flag message'); return; }
+                        await base44.entities.UserProfile.update(u.id, { flagged: true, flagMessage: flagMessageInput.trim(), flagAcknowledged: false });
+                        setUsers(users.map(x => x.id === u.id ? { ...x, flagged: true, flagMessage: flagMessageInput.trim(), flagAcknowledged: false } : x));
+                        toast.success(`Flag set for ${u.username}`);
+                      }}
+                      className="bg-yellow-600 hover:bg-yellow-700"
+                    >
+                      Set Flag
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        const u = users.find(x => x.id === selectedModerationUserId);
+                        if (!u) { toast.error('Select a user'); return; }
+                        await base44.entities.UserProfile.update(u.id, { flagged: false, flagMessage: null, flagAcknowledged: false });
+                        setUsers(users.map(x => x.id === u.id ? { ...x, flagged: false, flagMessage: null, flagAcknowledged: false } : x));
+                        toast.success(`Flag cleared for ${u.username}`);
+                      }}
+                    >
+                      Clear Flag
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
           <TabsContent value="locks">
             <div className="space-y-6">
               {/* Global Locks */}

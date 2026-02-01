@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ClipboardList, ArrowLeft, CheckCircle, Plus } from 'lucide-react';
+import { ClipboardList, ArrowLeft, CheckCircle, Plus, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ export default function Assignments() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAssignment, setNewAssignment] = useState({ title: '', description: '', dueDate: '', subject: 'everyone' });
   const [submitting, setSubmitting] = useState(false);
+  const [showFlagDialog, setShowFlagDialog] = useState(false);
 
 
   useEffect(() => {
@@ -52,6 +53,11 @@ export default function Assignments() {
 
       const p = profiles[0];
       setProfile(p);
+
+      // Show one-time warning if flagged and not acknowledged
+      if (p.flagged && !p.flagAcknowledged) {
+        setShowFlagDialog(true);
+      }
 
       // Load all assignments (approved by default now)
       const allAssignments = await base44.entities.Assignment.list('-created_date');
@@ -84,6 +90,10 @@ export default function Assignments() {
   };
 
   const handleAddAssignment = async () => {
+    if (profile?.isBanned) {
+      toast.error(`Sorry, you are banned${profile.banReason ? `: ${profile.banReason}` : ''}. Unbans at ${profile.banEndDate ? new Date(profile.banEndDate).toLocaleString() : 'N/A'}. For appeals contact an admin.`);
+      return;
+    }
     if (!newAssignment.title.trim()) {
       toast.error('Please enter a title');
       return;
@@ -125,8 +135,9 @@ export default function Assignments() {
 
     try {
       const completedAssignments = [...(profile.completedAssignments || []), assignment.id];
-      const xpToAdd = 25;
-      const coinsToAdd = 1;
+      let xpToAdd = 25;
+      let coinsToAdd = 1;
+      if (profile.isBanned) { xpToAdd = 0; coinsToAdd = 0; }
       const newXp = (profile.xp || 0) + xpToAdd;
       const newCoins = (profile.questCoins || 0) + coinsToAdd;
       
@@ -167,14 +178,14 @@ export default function Assignments() {
         description: `Assignment "${assignment.title}" completed`
       });
 
-      if (isNewPet) {
+      if (isNewPet && !profile.isBanned) {
         setTimeout(() => {
           toast.success(`${randomPet.emoji} New pet unlocked: ${randomPet.name}!`, {
             description: `You got a ${randomPet.rarity} pet with its own exclusive theme!`,
             duration: 5000
           });
         }, 500);
-      } else {
+      } else if (!profile.isBanned) {
         setTimeout(() => {
           toast(`${randomPet.emoji} You already have ${randomPet.name}`, {
             description: 'Keep completing assignments to collect more pets!'
@@ -212,7 +223,7 @@ export default function Assignments() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 mb-6"
+          className="flex items-center gap-4 mb-2"
         >
           <Link to={createPageUrl('Dashboard')}>
             <Button variant="ghost" size="icon" className="rounded-xl">
@@ -237,7 +248,14 @@ export default function Assignments() {
           </Button>
         </motion.div>
 
-        {/* Add Assignment Dialog */}
+        {profile.isBanned && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3">
+            <div className="font-semibold">Sorry, you have been BANNED{profile.banReason ? ` for ${profile.banReason}` : ''}.</div>
+            <div>Unbanned at: {profile.banEndDate ? new Date(profile.banEndDate).toLocaleString() : 'N/A'} • For appeals contact an admin.</div>
+          </div>
+        )}
+
+         {/* Add Assignment Dialog */}
         <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
           <DialogContent>
             <DialogHeader>
@@ -290,7 +308,7 @@ export default function Assignments() {
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
-              <Button onClick={handleAddAssignment} disabled={submitting} className="bg-emerald-600">
+              <Button onClick={handleAddAssignment} disabled={submitting || profile?.isBanned} className="bg-emerald-600">
                 {submitting ? 'Adding...' : 'Add Assignment'}
               </Button>
             </DialogFooter>
@@ -376,8 +394,40 @@ export default function Assignments() {
         </div>
       </div>
       
+      {/* One-time Flag Warning */}
+      <Dialog open={showFlagDialog} onOpenChange={(v) => setShowFlagDialog(v)}>
+        <DialogContent>
+          <DialogHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mb-2">
+              <AlertTriangle className="w-6 h-6 text-yellow-600" />
+            </div>
+            <DialogTitle>Warning</DialogTitle>
+          </DialogHeader>
+          <div className="text-slate-600 text-center whitespace-pre-wrap">
+            {profile?.flagMessage || '⚠️ Please NO spam assignments. More violations can lead to bans or account loss.'}
+          </div>
+          <DialogFooter className="justify-center">
+            <Button
+              onClick={async () => {
+                if (!profile) return;
+                try {
+                  await base44.entities.UserProfile.update(profile.id, { flagAcknowledged: true });
+                  setProfile({ ...profile, flagAcknowledged: true });
+                  setShowFlagDialog(false);
+                } catch (e) {
+                  // ignore
+                }
+              }}
+              className="bg-yellow-600 hover:bg-yellow-700"
+            >
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Tutorial */}
-      <Tutorial profile={profile} currentPage="Assignments" onComplete={() => {}} />
+       <Tutorial profile={profile} currentPage="Assignments" onComplete={() => {}} />
     </div>
   );
 }
