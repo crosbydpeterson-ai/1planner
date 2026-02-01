@@ -94,6 +94,12 @@ export default function Admin() {
   });
   const [editingAssignment, setEditingAssignment] = useState(null);
 
+  // Moderation (Bans & Flags)
+  const [selectedModerationUserId, setSelectedModerationUserId] = useState('');
+  const [banReasonInput, setBanReasonInput] = useState('');
+  const [banEndInput, setBanEndInput] = useState('');
+  const [flagMessageInput, setFlagMessageInput] = useState('');
+
   // Magic Eggs
   const [magicEggs, setMagicEggs] = useState([]);
   const [adminEggIdea, setAdminEggIdea] = useState('');
