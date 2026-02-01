@@ -2228,6 +2228,7 @@ Generate a pack_name and items array.`,
 
           <TabsContent value="settings">
             <div className="space-y-6">
+              <AdminEmailBroadcast />
               {/* Referral-Only Mode Banner */}
               {referralSettings.referralMode && (
                 <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-2xl p-4">
