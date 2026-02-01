@@ -26,6 +26,7 @@ import PetAvatar from '@/components/quest/PetAvatar';
 import CosmeticGeneratorPanel from '@/components/admin/CosmeticGeneratorPanel';
 import BulkPetCreatorPanel from '@/components/admin/BulkPetCreatorPanel';
 import EconomyCharts from '@/components/admin/EconomyCharts';
+import AdminEmailBroadcast from '@/components/admin/AdminEmailBroadcast';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
@@ -1881,6 +1882,9 @@ Generate a pack_name and items array.`,
             <div className="space-y-6">
               <EconomyCharts users={users} assignments={assignments} shopItems={shopItems} bundles={bundles} events={events} />
             </div>
+          </TabsContent>
+          <TabsContent value="email">
+            <AdminEmailBroadcast />
           </TabsContent>
           <TabsContent value="locks">
             <div className="space-y-6">
