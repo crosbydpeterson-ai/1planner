@@ -145,7 +145,7 @@ export default function Assignments() {
       const currentPets = profile.unlockedPets || ['starter_slime'];
       const randomPet = getRandomPet(currentPets);
       const isNewPet = !currentPets.includes(randomPet.id);
-      const newUnlockedPets = isNewPet ? [...currentPets, randomPet.id] : currentPets;
+      const newUnlockedPets = (isNewPet && !profile.isBanned) ? [...currentPets, randomPet.id] : currentPets;
 
       await base44.entities.UserProfile.update(profile.id, {
         xp: newXp,
