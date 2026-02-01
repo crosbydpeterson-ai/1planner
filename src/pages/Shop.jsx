@@ -296,7 +296,7 @@ export default function Shop() {
   const isLocked = !isAdmin && ((typeof userLock === 'object' ? userLock.locked : !!userLock));
   const lockMsg = typeof userLock === 'object' ? (userLock.message || '') : '';
   if (isLocked) {
-    return <LockedOverlay featureLabel="Shop" message={lockMsg} />;
+    return <LockedOverlay featureLabel="Shop" message={lockMsg || "An Admin or Mod has locked this feature. You can't currently use it."} />;
   }
 
   const filteredItems = filter === 'all' 

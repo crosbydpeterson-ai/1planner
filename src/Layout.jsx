@@ -19,11 +19,14 @@ export default function Layout({ children, currentPageName }) {
         const [contactEmail, setContactEmail] = useState('');
         const [savingEmail, setSavingEmail] = useState(false);
         const [profileIdState, setProfileIdState] = useState(null);
+        const [featureLocks, setFeatureLocks] = useState(null);
+        const [currentProfile, setCurrentProfile] = useState(null);
   
   useEffect(() => {
     loadUserTheme();
     checkAdminStatus();
     checkContactEmail();
+    loadFeatureLocks();
 
     // Listen for theme updates
     const handleThemeUpdate = () => loadUserTheme();
@@ -34,15 +37,16 @@ export default function Layout({ children, currentPageName }) {
   const checkAdminStatus = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) return;
-    
+
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length === 0) return;
-      
-      const currentProfile = profiles[0];
-      
+
+      const profile = profiles[0];
+      setCurrentProfile(profile);
+
       // Admin if rank is admin/super_admin or username is "Crosby" (case-insensitive)
-      if (currentProfile.rank === 'admin' || currentProfile.rank === 'super_admin' || (typeof currentProfile.username === 'string' && currentProfile.username.toLowerCase() === 'crosby')) {
+      if (profile.rank === 'admin' || profile.rank === 'super_admin' || (typeof profile.username === 'string' && profile.username.toLowerCase() === 'crosby')) {
         setIsAdmin(true);
         return;
       }
@@ -95,6 +99,27 @@ export default function Layout({ children, currentPageName }) {
     }
   };
 
+  const loadFeatureLocks = async () => {
+    try {
+      const settings = await base44.entities.AppSetting.list();
+      const locksSetting = settings.find(s => s.key === 'feature_locks');
+      setFeatureLocks(locksSetting ? locksSetting.value : null);
+    } catch (e) {
+      console.error('Error loading feature locks:', e);
+    }
+  };
+
+  const isFeatureLockedForUser = (feature) => {
+    if (isAdmin) return false;
+    if (!featureLocks || !currentProfile) return false;
+    const globalLocked = !!featureLocks.global?.[feature];
+    const mathLock = !!(featureLocks.classes?.math?.[currentProfile.mathTeacher]?.[feature]);
+    const readingLock = !!(featureLocks.classes?.reading?.[currentProfile.readingTeacher]?.[feature]);
+    const userEntry = featureLocks.users?.[currentProfile.id]?.[feature];
+    const userLocked = typeof userEntry === 'object' ? !!userEntry.locked : !!userEntry;
+    return globalLocked || mathLock || readingLock || userLocked;
+  };
+
   const saveContactEmail = async () => {
     if (!contactEmail?.trim()) return;
     const profileId = profileIdState || localStorage.getItem('quest_profile_id');
@@ -123,6 +148,14 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Season', icon: Sparkles, label: 'Season' },
   ];
 
+  const visibleNavItems = navItems.filter((item) => {
+    if (isAdmin) return true;
+    if (item.name === 'Shop') return !isFeatureLockedForUser('shop');
+    if (item.name === 'Rewards') return !isFeatureLockedForUser('pets');
+    if (item.name === 'Season') return !isFeatureLockedForUser('battlePass');
+    return true;
+  });
+
   return (
     <div className="min-h-screen pb-20 relative">
       <ThemedBackground colors={themeColors} />
@@ -132,7 +165,7 @@ export default function Layout({ children, currentPageName }) {
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 safe-area-pb">
           <div className="max-w-md mx-auto flex items-center justify-around">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive = currentPageName === item.name;
               return (
                 <Link
