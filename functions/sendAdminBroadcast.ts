@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     const { subject, body } = await req.json();
     if (!subject || !body) return Response.json({ error: 'Missing subject or body' }, { status: 400 });
 
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+    
 
     // Fetch all profiles and filter to those with contactEmail
     const profiles = await base44.asServiceRole.entities.UserProfile.list();
@@ -55,7 +55,12 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     for (const to of recipients) {
-      await sendGmail(accessToken, '1planner@factvsfalse.com', to, subject, body);
+      await base44.integrations.Core.SendEmail({
+        to,
+        subject,
+        body,
+        from_name: '1Planner'
+      });
       sent += 1;
     }
 

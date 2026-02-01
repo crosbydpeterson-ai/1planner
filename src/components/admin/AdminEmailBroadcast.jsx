@@ -27,7 +27,7 @@ export default function AdminEmailBroadcast() {
     <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
       <div className="flex items-baseline justify-between mb-3">
         <h3 className="text-lg font-semibold">Email All Users</h3>
-        <span className="text-xs text-slate-500">From: 1planner@factvsfalse.com (Gmail)</span>
+        <span className="text-xs text-slate-500">From: 1planner@factvsfalse.com (No-Reply via Base44)</span>
       </div>
       <div className="space-y-3">
         <Input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
