@@ -242,6 +242,7 @@ export default function Assignments() {
             size="sm"
             className="bg-gradient-to-r from-emerald-500 to-teal-600"
             data-tutorial="add-assignment"
+            disabled={profile?.isBanned}
           >
             <Plus className="w-4 h-4 mr-1" />
             ADD
