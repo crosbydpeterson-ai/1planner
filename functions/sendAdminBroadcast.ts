@@ -14,10 +14,10 @@ Deno.serve(async (req) => {
 
     
 
-    // Fetch all profiles and filter to those with contactEmail
-    const profiles = await base44.asServiceRole.entities.UserProfile.list();
-    const recipients = (profiles || [])
-      .map(p => p.contactEmail?.trim())
+    // Fetch all app users (send only to registered user emails)
+    const users = await base44.asServiceRole.entities.User.list();
+    const recipients = (users || [])
+      .map(u => u.email?.trim())
       .filter(e => !!e);
 
     let sent = 0;
