@@ -4,6 +4,9 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    // Use Gmail app connector to send emails (authorized in app)
+    const gmailToken = await base44.asServiceRole.connectors.getAccessToken("gmail");
+
     // Use service role for scheduled job
     const users = await base44.asServiceRole.entities.UserProfile.list();
     const assignments = await base44.asServiceRole.entities.Assignment.list();
@@ -44,12 +47,23 @@ Deno.serve(async (req) => {
         <p>Good luck!<br/>— 1Planner</p>
       `;
 
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: email,
-        subject: 'Your assignments reminder from 1Planner',
-        body,
-        from_name: '1Planner Reminders'
+      // Build MIME email and send via Gmail API
+      const mime = `To: ${email}\nSubject: Your assignments reminder from 1Planner\nContent-Type: text/html; charset=UTF-8\nMIME-Version: 1.0\n\n${body}`;
+      const raw = btoa(unescape(encodeURIComponent(mime)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/,'');
+
+      const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${gmailToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ raw })
       });
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Gmail send failed', res.status, errText);
+      }
 
       sentCount += 1;
     }
