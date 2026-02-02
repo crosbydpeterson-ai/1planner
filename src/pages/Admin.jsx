@@ -97,6 +97,7 @@ export default function Admin() {
 
   // Moderation (Bans & Flags)
   const [selectedModerationUserId, setSelectedModerationUserId] = useState('');
+  const [selectedFlagUserId, setSelectedFlagUserId] = useState('');
   const [banReasonInput, setBanReasonInput] = useState('');
   const [banEndInput, setBanEndInput] = useState('');
   const [flagMessageInput, setFlagMessageInput] = useState('');
@@ -1985,37 +1986,54 @@ Generate a pack_name and items array.`,
                   <AlertTriangle className="w-4 h-4" /> Flags (One-time Warning)
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-slate-300 mb-1 block">User</Label>
+                    <Select value={selectedFlagUserId} onValueChange={(v) => {
+                      setSelectedFlagUserId(v);
+                      const u = users.find(x => x.id === v);
+                      setFlagMessageInput(u?.flagMessage || '');
+                    }}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectValue placeholder="Select user to flag" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map(u => (
+                          <SelectItem key={u.id} value={u.id}>{u.username}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="md:col-span-2">
                     <Label className="text-slate-300">Custom Warning Message</Label>
                     <Textarea value={flagMessageInput} onChange={(e) => setFlagMessageInput(e.target.value)} className="bg-slate-700 border-slate-600 min-h-[80px]" placeholder="⚠️ Please NO spam assignments... (admin custom message)" />
                   </div>
-                  <div className="flex items-end gap-2">
-                    <Button
-                      onClick={async () => {
-                        const u = users.find(x => x.id === selectedModerationUserId);
-                        if (!u) { toast.error('Select a user'); return; }
-                        if (!flagMessageInput.trim()) { toast.error('Enter flag message'); return; }
-                        await base44.entities.UserProfile.update(u.id, { flagged: true, flagMessage: flagMessageInput.trim(), flagAcknowledged: false });
-                        setUsers(users.map(x => x.id === u.id ? { ...x, flagged: true, flagMessage: flagMessageInput.trim(), flagAcknowledged: false } : x));
-                        toast.success(`Flag set for ${u.username}`);
-                      }}
-                      className="bg-yellow-600 hover:bg-yellow-700"
-                    >
-                      Set Flag
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        const u = users.find(x => x.id === selectedModerationUserId);
-                        if (!u) { toast.error('Select a user'); return; }
-                        await base44.entities.UserProfile.update(u.id, { flagged: false, flagMessage: null, flagAcknowledged: false });
-                        setUsers(users.map(x => x.id === u.id ? { ...x, flagged: false, flagMessage: null, flagAcknowledged: false } : x));
-                        toast.success(`Flag cleared for ${u.username}`);
-                      }}
-                    >
-                      Clear Flag
-                    </Button>
-                  </div>
+                </div>
+                <div className="flex items-end gap-2 mt-4">
+                  <Button
+                    onClick={async () => {
+                      const u = users.find(x => x.id === selectedFlagUserId);
+                      if (!u) { toast.error('Select a user'); return; }
+                      if (!flagMessageInput.trim()) { toast.error('Enter flag message'); return; }
+                      await base44.entities.UserProfile.update(u.id, { flagged: true, flagMessage: flagMessageInput.trim(), flagAcknowledged: false });
+                      setUsers(users.map(x => x.id === u.id ? { ...x, flagged: true, flagMessage: flagMessageInput.trim(), flagAcknowledged: false } : x));
+                      toast.success(`Flag set for ${u.username}`);
+                    }}
+                    className="bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    Set Flag
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      const u = users.find(x => x.id === selectedFlagUserId);
+                      if (!u) { toast.error('Select a user'); return; }
+                      await base44.entities.UserProfile.update(u.id, { flagged: false, flagMessage: null, flagAcknowledged: false });
+                      setUsers(users.map(x => x.id === u.id ? { ...x, flagged: false, flagMessage: null, flagAcknowledged: false } : x));
+                      toast.success(`Flag cleared for ${u.username}`);
+                    }}
+                  >
+                    Clear Flag
+                  </Button>
                 </div>
               </div>
             </div>
