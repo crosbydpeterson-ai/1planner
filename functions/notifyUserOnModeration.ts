@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true });
     }
 
-    const email = data.contactEmail;
+    const email = data.userId;
     if (!email) {
       return Response.json({ skipped: true, reason: 'no contactEmail' });
     }
