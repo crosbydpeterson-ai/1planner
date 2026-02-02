@@ -12,24 +12,28 @@ Deno.serve(async (req) => {
     }
 
     // Use service role for scheduled job
-    const users = await base44.asServiceRole.entities.UserProfile.list();
-    const assignments = await base44.asServiceRole.entities.Assignment.list();
+    const userProfiles = await base44.asServiceRole.entities.UserProfile.list();
+    const allAssignments = await base44.asServiceRole.entities.Assignment.list();
+    const allBaseUsers = await base44.asServiceRole.entities.User.list();
+    const baseUserMap = new Map(allBaseUsers.map(u => [u.email, u]));
 
     let sentCount = 0;
 
-    for (const user of users) {
-      const email = user?.userId;
-      if (!email) continue;
+    for (const userProfile of userProfiles) {
+      const userEmail = userProfile?.userId;
+      const baseUser = baseUserMap.get(userEmail);
+      if (!baseUser || !baseUser.email) continue;
+      const recipientEmail = baseUser.email;
 
       // Find visible, not-completed assignments for this user
-      const completed = Array.isArray(user.completedAssignments) ? user.completedAssignments : [];
-      const relevant = assignments.filter((a) => {
+      const completed = Array.isArray(userProfile.completedAssignments) ? userProfile.completedAssignments : [];
+      const relevant = allAssignments.filter((a) => {
         if (!a.isApproved) return false;
         if (completed.includes(a.id)) return false;
         if (a.subject === 'everyone' || a.target === 'everyone') return true;
-        if (a.target === user.userId) return true;
-        if (a.subject === 'math' && a.target === user.mathTeacher) return true;
-        if (a.subject === 'reading' && a.target === user.readingTeacher) return true;
+        if (a.target === userProfile.userId) return true;
+        if (a.subject === 'math' && a.target === userProfile.mathTeacher) return true;
+        if (a.subject === 'reading' && a.target === userProfile.readingTeacher) return true;
         return false;
       });
 
@@ -45,14 +49,14 @@ Deno.serve(async (req) => {
         .join('');
 
       const body = `
-        <p>Hi ${user.username || 'there'},</p>
+        <p>Hi ${userProfile.username || 'there'},</p>
         <p>You have the following assignments:</p>
         <ul>${listItems}</ul>
         <p>Good luck!<br/>— 1Planner</p>
       `;
 
       await base44.asServiceRole.integrations.Core.SendEmail({
-        to: email,
+        to: recipientEmail,
         subject: 'Your assignments reminder from 1Planner',
         body,
         from_name: '1Planner Reminders'
