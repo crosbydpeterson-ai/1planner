@@ -4,6 +4,13 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    // Optional admin check when invoked from UI
+    let authUser = null;
+    try { authUser = await base44.auth.me(); } catch (_) {}
+    if (authUser && authUser.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
+
     // Use service role for scheduled job
     const users = await base44.asServiceRole.entities.UserProfile.list();
     const assignments = await base44.asServiceRole.entities.Assignment.list();
