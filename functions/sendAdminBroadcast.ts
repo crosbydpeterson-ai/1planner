@@ -22,13 +22,17 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     for (const to of recipients) {
-      await base44.integrations.Core.SendEmail({
-        to,
-        subject,
-        body,
-        from_name: '1Planner'
-      });
-      sent += 1;
+      try {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to,
+          subject,
+          body,
+          from_name: '1Planner'
+        });
+        sent += 1;
+      } catch (e) {
+        console.warn('Failed to send to', to, e?.message || e);
+      }
     }
 
     return Response.json({ success: true, sent });

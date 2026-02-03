@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       // Find visible, not-completed assignments for this user
       const completed = Array.isArray(userProfile.completedAssignments) ? userProfile.completedAssignments : [];
       const relevant = allAssignments.filter((a) => {
-        if (!a.isApproved) return false;
+        if (a.isApproved === false) return false;
         if (completed.includes(a.id)) return false;
         if (a.subject === 'everyone' || a.target === 'everyone') return true;
         if (a.target === userProfile.userId) return true;
