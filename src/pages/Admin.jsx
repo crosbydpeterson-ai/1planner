@@ -1178,25 +1178,25 @@ White or transparent background, centered, high quality illustration.`;
                         setGeneratingAdminPet(true);
                         try {
                           const result = await base44.integrations.Core.InvokeLLM({
-                            prompt: `You are a magical creature designer for a KIDS school gamification app.
+                          prompt: `You are a creative designer for a school-safe game. Follow the idea closely and choose a style that fits the concept (it can be cute, serious, spooky-but-safe, sci‑fi, abstract, realistic, etc.).
 
-Create a magical companion based on: "${adminEggIdea}"
+                          Design based on: "${adminEggIdea}"
 
-WHAT YOU CAN CREATE:
-- Traditional pets, magical creatures, living objects, food creatures, nature spirits, abstract concepts, robots, mythical beings - ANYTHING fun!
+                          WHAT YOU CAN CREATE (broad, pick what fits the idea):
+                          - Creatures, characters, companions, robots, artifacts, tools, vehicles, locations, nature spirits, living objects, abstract symbols, mythical beings, and more.
 
-CONTENT RULES (FOR CHILDREN):
-- Must be appropriate for elementary/middle school kids
-- NO violence, weapons, scary monsters, demons, horror
-- Keep it cute, fun, positive, school-friendly!
+                          CONTENT GUIDELINES (school-appropriate):
+                          - Must be appropriate for elementary/middle school students
+                          - Avoid gore/graphic violence and explicit content
+                          - Tone can vary (not required to be cute) as long as it remains school-friendly
 
-Generate:
-- name: Creative 2-3 word name
-- description: Fun 1-2 sentence description
-- emoji: Single emoji that fits
-- rarity: uncommon, rare, or epic
-- theme: { primary, secondary, accent, bg } - all valid hex codes`,
-                            response_json_schema: {
+                          Generate:
+                          - name: Creative 2–3 word name
+                          - description: 1–2 sentence description that matches the idea and chosen style
+                          - emoji: A single fitting emoji (or best approximation)
+                          - rarity: uncommon, rare, or epic
+                          - theme: { primary, secondary, accent, bg } — valid hex colors that suit the concept`,
+                          response_json_schema: {
                               type: "object",
                               properties: {
                                 name: { type: "string" },
