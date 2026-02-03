@@ -7,7 +7,7 @@ import {
   Shield, ArrowLeft, Search, Users, ClipboardList, Plus, 
   Lock, Unlock, Eye, EyeOff, Key, Zap, Check, X, Edit2, Save,
   Palette, Star, Image, Trash2, Gift, Calendar, Sparkles, Wand2, Loader2, ShoppingBag, Package,
-  Ban, Gavel, AlertTriangle, Mail
+  Ban, Gavel, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,8 +40,6 @@ export default function Admin() {
   const [adminProfile, setAdminProfile] = useState(null);
   const [isAdminRole, setIsAdminRole] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [sendingReminders, setSendingReminders] = useState(false);
-  const [remindersSent, setRemindersSent] = useState(null);
   
   // Users
   const [users, setUsers] = useState([]);
@@ -812,13 +810,9 @@ White or transparent background, centered, high quality illustration.`;
               Shop
             </TabsTrigger>
              <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">
-                           📊
-                           Analytics
-                         </TabsTrigger>
-                         <TabsTrigger value="email" className="data-[state=active]:bg-slate-700">
-                           <Mail className="w-4 h-4 mr-2" />
-                           Email
-                         </TabsTrigger>
+               📊
+               Analytics
+             </TabsTrigger>
              <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700">
               <Lock className="w-4 h-4 mr-2" />
               Locks
@@ -1902,40 +1896,7 @@ Generate a pack_name and items array.`,
             </div>
           </TabsContent>
           <TabsContent value="email">
-            <div className="space-y-6">
-              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-white font-semibold">Daily Assignment Reminders</h3>
-                    <p className="text-slate-400 text-sm">Run the reminder emails immediately for all users.</p>
-                  </div>
-                  <Button
-                    onClick={async () => {
-                      try {
-                        setSendingReminders(true);
-                        const res = await base44.functions.invoke('sendDailyAssignmentReminders', {});
-                        const sent = res?.data?.sent ?? 0;
-                        setRemindersSent(sent);
-                        toast.success(`Sent ${sent} reminder email${sent === 1 ? '' : 's'}`);
-                      } catch (e) {
-                        toast.error('Failed to send reminders');
-                      } finally {
-                        setSendingReminders(false);
-                      }
-                    }}
-                    disabled={sendingReminders}
-                    className="bg-indigo-600 hover:bg-indigo-700"
-                  >
-                    <Zap className="w-4 h-4 mr-2" />
-                    {sendingReminders ? 'Sending...' : 'Send Reminders Now'}
-                  </Button>
-                </div>
-                {remindersSent !== null && (
-                  <p className="text-xs text-slate-500 mt-3">Last run sent {remindersSent} emails.</p>
-                )}
-              </div>
-              <AdminEmailBroadcast />
-            </div>
+            <AdminEmailBroadcast />
           </TabsContent>
           <TabsContent value="bans_flags">
             <div className="space-y-6">
