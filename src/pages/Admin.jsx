@@ -813,6 +813,10 @@ White or transparent background, centered, high quality illustration.`;
                📊
                Analytics
              </TabsTrigger>
+             <TabsTrigger value="email" className="data-[state=active]:bg-slate-700">
+               ✉️
+               Email
+             </TabsTrigger>
              <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700">
               <Lock className="w-4 h-4 mr-2" />
               Locks
