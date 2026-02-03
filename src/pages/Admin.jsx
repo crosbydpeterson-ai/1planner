@@ -1220,7 +1220,7 @@ White or transparent background, centered, high quality illustration.`;
                           let imageUrl = '';
                           try {
                             const imgResult = await base44.integrations.Core.GenerateImage({
-                              prompt: `Cute cartoon creature for kids game: ${result.name}. ${result.description}. Style: adorable, colorful, Pixar-style, game mascot. Colors: ${result.theme?.primary}, ${result.theme?.secondary}. White background, centered.`
+                              prompt: `School-safe illustration aligned to the concept (not required to be cute). Subject: ${result.name}. ${result.description}. Style: choose a fitting genre (e.g., sci‑fi, minimal, abstract, realistic, whimsical) based on the idea; high quality; cohesive with theme. Colors: ${result.theme?.primary}, ${result.theme?.secondary}, ${result.theme?.accent}. Background: white or transparent, centered, no text.`
                             });
                             imageUrl = imgResult.url;
                           } catch (e) {
