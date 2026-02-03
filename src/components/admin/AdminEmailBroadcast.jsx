@@ -17,7 +17,8 @@ export default function AdminEmailBroadcast() {
       const res = await base44.functions.invoke('sendAdminBroadcast', { subject, body });
       setResult(res.data);
     } catch (e) {
-      setResult({ error: e.message });
+      const apiError = e?.response?.data?.error;
+      setResult({ error: apiError || e.message });
     } finally {
       setSending(false);
     }
