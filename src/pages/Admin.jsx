@@ -31,6 +31,7 @@ import AdminEmailBroadcast from '@/components/admin/AdminEmailBroadcast';
 import SuperAssignmentCreator from '@/components/admin/super/SuperAssignmentCreator';
 import SuperAssignmentsAnalytics from '@/components/admin/super/SuperAssignmentsAnalytics';
 import PetEditorDialog from '@/components/pets/PetEditorDialog';
+import RolesManager from '@/components/admin/RolesManager';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
@@ -211,7 +212,8 @@ export default function Admin() {
       const username = (currentProfile.username || '').toLowerCase();
       const superByName = username === 'crosby';
       const role = currentProfile.rank || (superByName ? 'super_admin' : 'user');
-      const allow = role === 'admin' || role === 'super_admin' || superByName;
+      const hasCustomRole = Array.isArray(currentProfile.assignedRoleIds) && currentProfile.assignedRoleIds.length > 0;
+      const allow = role === 'admin' || role === 'super_admin' || superByName || hasCustomRole;
       if (!allow) {
         navigate(createPageUrl('Dashboard'));
         return;
@@ -235,7 +237,8 @@ export default function Admin() {
 
   const handleAdminLogin = () => {
     // Simple password verification (in production, this would be server-side with hashing)
-    if (adminPin === ADMIN_PASSWORD) {
+    const ok = adminPin === ADMIN_PASSWORD || (adminProfile?.adminPanelPassword && adminPin === adminProfile.adminPanelPassword);
+    if (ok) {
       setIsAuthenticated(true);
       localStorage.setItem('quest_admin_auth', 'true');
       loadData();
@@ -829,6 +832,12 @@ White or transparent background, centered, high quality illustration.`;
                ✉️
                Email
              </TabsTrigger>
+             {isSuperAdmin && (
+               <TabsTrigger value="roles" className="data-[state=active]:bg-slate-700">
+                 <Shield className="w-4 h-4 mr-2" />
+                 Roles
+               </TabsTrigger>
+             )}
              {isSuperAdmin && (
               <TabsTrigger value="super_assignments" className="data-[state=active]:bg-slate-700">
                 ⭐
@@ -1944,6 +1953,11 @@ Generate a pack_name and items array.`,
           <TabsContent value="email">
             <AdminEmailBroadcast />
           </TabsContent>
+          {isSuperAdmin && (
+            <TabsContent value="roles">
+              <RolesManager />
+            </TabsContent>
+          )}
           {isSuperAdmin && (
             <TabsContent value="super_assignments">
               <SuperAssignmentsAnalytics />
