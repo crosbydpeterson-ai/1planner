@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
@@ -28,6 +29,8 @@ import CosmeticGeneratorPanel from '@/components/admin/CosmeticGeneratorPanel';
 import BulkPetCreatorPanel from '@/components/admin/BulkPetCreatorPanel';
 import EconomyCharts from '@/components/admin/EconomyCharts';
 import AdminEmailBroadcast from '@/components/admin/AdminEmailBroadcast';
+import SuperAssignmentCreator from '@/components/admin/super/SuperAssignmentCreator';
+import SuperAssignmentsAnalytics from '@/components/admin/super/SuperAssignmentsAnalytics';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
@@ -817,6 +820,12 @@ White or transparent background, centered, high quality illustration.`;
                ✉️
                Email
              </TabsTrigger>
+             {isSuperAdmin && (
+              <TabsTrigger value="super_assignments" className="data-[state=active]:bg-slate-700">
+                ⭐
+                Super Assignments
+              </TabsTrigger>
+            )}
              <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700">
               <Lock className="w-4 h-4 mr-2" />
               Locks
@@ -981,6 +990,15 @@ White or transparent background, centered, high quality illustration.`;
           </TabsContent>
 
           <TabsContent value="assignments">
+            <div className="mb-4">
+              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 mb-4">
+                <h3 className="text-white font-semibold mb-2">Super Assignments</h3>
+                <p className="text-slate-400 text-sm mb-3">Create polls, short answers, or suggestion boxes.</p>
+                <div className="mt-2">
+                  <SuperAssignmentCreator />
+                </div>
+              </div>
+            </div>
             <div className="flex justify-end mb-4">
               <Button
                 onClick={() => setShowAssignmentForm(true)}
@@ -1895,13 +1913,21 @@ Generate a pack_name and items array.`,
           </TabsContent>
 
           <TabsContent value="analytics">
-            <div className="space-y-6">
+            <div className="space-y-6 mb-6">
               <EconomyCharts users={users} assignments={assignments} shopItems={shopItems} bundles={bundles} events={events} />
+            </div>
+            <div className="space-y-6">
+              <SuperAssignmentsAnalytics />
             </div>
           </TabsContent>
           <TabsContent value="email">
             <AdminEmailBroadcast />
           </TabsContent>
+          {isSuperAdmin && (
+            <TabsContent value="super_assignments">
+              <SuperAssignmentsAnalytics />
+            </TabsContent>
+          )}
           <TabsContent value="bans_flags">
             <div className="space-y-6">
               <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
