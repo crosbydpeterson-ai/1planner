@@ -20,8 +20,8 @@ export default function DebugChatWidget() {
   useEffect(() => { scrollToBottom(); }, [messages]);
 
   useEffect(() => {
-    if (isOpen && !conversation) initConversation();
-  }, [isOpen]);
+    if (!conversation) initConversation();
+  }, []);
 
   useEffect(() => {
     if (!conversation?.id) return;
@@ -44,12 +44,30 @@ export default function DebugChatWidget() {
     }
   };
 
+  const ensureConversation = async () => {
+    if (conversation?.id) return conversation;
+    try {
+      const conv = await base44.agents.createConversation({
+        agent_name: 'debug_worker',
+        metadata: { name: 'Debug Worker' }
+      });
+      setConversation(conv);
+      setMessages(conv.messages || []);
+      return conv;
+    } catch (e) {
+      console.error('Failed to create debug conversation:', e);
+      return null;
+    }
+  };
+
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text || !conversation) return;
+    if (!text) return;
+    const conv = conversation?.id ? conversation : await ensureConversation();
+    if (!conv) return;
     setInput('');
     try {
-      await base44.agents.addMessage(conversation, { role: 'user', content: text });
+      await base44.agents.addMessage(conv, { role: 'user', content: text });
     } catch (e) { console.error('Failed to send message:', e); }
   };
 
@@ -105,7 +123,7 @@ export default function DebugChatWidget() {
               placeholder="e.g., Adjust glasses y +4% for @student"
               className="flex-1 bg-white/10 border-white/10 text-white placeholder:text-slate-400"
             />
-            <Button onClick={sendMessage} disabled={!input.trim() || !conversation} size="icon" className="bg-red-500 hover:bg-red-600">
+            <Button onClick={sendMessage} disabled={!input.trim()} size="icon" className="bg-red-500 hover:bg-red-600">
               <Send className="w-4 h-4" />
             </Button>
           </div>

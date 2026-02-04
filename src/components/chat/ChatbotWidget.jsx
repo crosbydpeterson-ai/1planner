@@ -55,16 +55,32 @@ export default function ChatbotWidget() {
     setLoading(false);
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || !conversation) return;
-    
-    const userMessage = input.trim();
-    setInput('');
-    
+  const ensureConversation = async () => {
+    if (conversation?.id) return conversation;
     try {
-      await base44.agents.addMessage(conversation, {
+      const conv = await base44.agents.createConversation({
+        agent_name: "guide_chatbot",
+        metadata: { name: "Guide Chat" }
+      });
+      setConversation(conv);
+      setMessages(conv.messages || []);
+      return conv;
+    } catch (e) {
+      console.error('Failed to create conversation:', e);
+      return null;
+    }
+  };
+
+  const sendMessage = async () => {
+    const text = input.trim();
+    if (!text) return;
+    const conv = conversation?.id ? conversation : await ensureConversation();
+    if (!conv) return;
+    setInput('');
+    try {
+      await base44.agents.addMessage(conv, {
         role: "user",
-        content: userMessage
+        content: text
       });
     } catch (e) {
       console.error('Failed to send message:', e);
@@ -158,7 +174,7 @@ export default function ChatbotWidget() {
                 />
                 <Button
                   onClick={sendMessage}
-                  disabled={!input.trim() || !conversation}
+                  disabled={!input.trim()}
                   size="icon"
                   className="bg-sky-500 hover:bg-sky-600"
                 >
