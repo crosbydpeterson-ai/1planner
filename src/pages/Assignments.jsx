@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import AssignmentCard from '@/components/quest/AssignmentCard';
+import SuperAssignmentCard from '@/components/quest/SuperAssignmentCard';
 import GlassIcon from '@/components/ui/GlassIcon';
 import Tutorial from '@/components/tutorial/Tutorial';
 
@@ -22,6 +23,8 @@ export default function Assignments() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [assignments, setAssignments] = useState([]);
+  const [superAssignments, setSuperAssignments] = useState([]);
+  const [superResponses, setSuperResponses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -83,6 +86,30 @@ export default function Assignments() {
       }
       
       setAssignments(visible);
+
+      // Load Super Assignments for this user
+      const [allSuper, userResponses] = await Promise.all([
+        base44.entities.SuperAssignment.list('-created_date'),
+        base44.entities.SuperAssignmentResponse.filter({ userProfileId: p.id })
+      ]);
+      const now = new Date();
+      const visibleSuper = allSuper.filter((sa) => {
+        if (sa.isActive === false) return false;
+        if (sa.startDate && new Date(sa.startDate) > now) return false;
+        if (sa.endDate && new Date(sa.endDate) < now) return false;
+        if (sa.recipientsScope === 'everyone') return true;
+        if (sa.recipientsScope === 'class') {
+          if (sa.subject === 'math' && sa.targetTeacher === p.mathTeacher) return true;
+          if (sa.subject === 'reading' && sa.targetTeacher === p.readingTeacher) return true;
+          return false;
+        }
+        if (sa.recipientsScope === 'users') {
+          return Array.isArray(sa.specificUserProfileIds) && sa.specificUserProfileIds.includes(p.id);
+        }
+        return false;
+      });
+      setSuperAssignments(visibleSuper);
+      setSuperResponses(userResponses);
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -362,6 +389,35 @@ export default function Assignments() {
             <p className="text-sm text-slate-500 relative z-10">Remaining</p>
           </div>
         </motion.div>
+
+        {/* Super Assignments Section */}
+        {superAssignments.length > 0 && (
+          <div className="space-y-4 mb-6">
+            <h2 className="text-lg font-semibold text-slate-800">Super Assignments</h2>
+            <AnimatePresence>
+              {superAssignments.map((sa, index) => (
+                <motion.div
+                  key={sa.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <SuperAssignmentCard
+                    assignment={sa}
+                    profile={profile}
+                    userResponse={superResponses.find(r => r.assignmentId === sa.id && r.userProfileId === profile.id)}
+                    onResponded={(resp) => {
+                      setSuperResponses(prev => {
+                        const filtered = prev.filter(r => !(r.assignmentId === sa.id && r.userProfileId === profile.id));
+                        return [resp, ...filtered];
+                      });
+                    }}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
 
         {/* Assignment List */}
         <div className="space-y-4">
