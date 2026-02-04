@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
@@ -31,6 +30,7 @@ import EconomyCharts from '@/components/admin/EconomyCharts';
 import AdminEmailBroadcast from '@/components/admin/AdminEmailBroadcast';
 import SuperAssignmentCreator from '@/components/admin/super/SuperAssignmentCreator';
 import SuperAssignmentsAnalytics from '@/components/admin/super/SuperAssignmentsAnalytics';
+import PetEditorDialog from '@/components/pets/PetEditorDialog';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
@@ -65,6 +65,7 @@ export default function Admin() {
 
   // Custom Pets & Themes
   const [customPets, setCustomPets] = useState([]);
+  const [editingPet, setEditingPet] = useState(null);
   const [customThemes, setCustomThemes] = useState([]);
   const [petCosmetics, setPetCosmetics] = useState([]);
   const [showPetForm, setShowPetForm] = useState(false);
@@ -405,7 +406,15 @@ export default function Admin() {
       return;
     }
     try {
-      const newPet = await base44.entities.CustomPet.create(petForm);
+      const imageSource = petForm.imageUrl ? (petForm.imageUrl.startsWith('data:') ? 'uploaded' : 'ai_generated') : 'emoji_only';
+      const createPayload = {
+        ...petForm,
+        createdBy: adminProfile?.userId || 'admin',
+        createdByProfileId: adminProfile?.id,
+        createdSourceTab: 'admin_pets',
+        imageSource
+      };
+      const newPet = await base44.entities.CustomPet.create(createPayload);
       setCustomPets([newPet, ...customPets]);
       setShowPetForm(false);
       setPetForm({ 
@@ -1118,13 +1127,21 @@ White or transparent background, centered, high quality illustration.`;
                         </p>
                       </div>
                     </div>
-                    {isSuperAdmin && (
-                      <Button size="sm" variant="ghost" onClick={() => handleDeletePet(pet)} className="text-red-400 hover:text-red-300">
-                        <Trash2 className="w-4 h-4" />
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setEditingPet(pet)} className="text-slate-400 hover:text-white">
+                        <Edit2 className="w-4 h-4" />
                       </Button>
-                    )}
+                      {isSuperAdmin && (
+                        <Button size="sm" variant="ghost" onClick={() => handleDeletePet(pet)} className="text-red-400 hover:text-red-300">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {pet.description && <p className="text-sm text-slate-500">{pet.description}</p>}
+                  <p className="text-xs text-slate-500 mt-1">
+                    By: {pet.createdBy || '—'} • {pet.created_date ? new Date(pet.created_date).toLocaleString() : '—'} • How: {pet.imageSource || '—'} • Tab: {pet.createdSourceTab || '—'}
+                  </p>
                 </div>
               ))}
               {customPets.length === 0 && (
@@ -1254,7 +1271,11 @@ White or transparent background, centered, high quality illustration.`;
                             rarity: result.rarity,
                             xpRequired: 999999,
                             isGiftOnly: true,
-                            theme: result.theme
+                            theme: result.theme,
+                            createdBy: adminProfile?.userId || 'admin',
+                            createdByProfileId: adminProfile?.id,
+                            createdSourceTab: 'admin_eggs',
+                            imageSource: imageUrl ? 'ai_generated' : 'emoji_only'
                           });
 
                           setCustomPets([newPet, ...customPets]);
@@ -3030,6 +3051,13 @@ Generate a pack_name and items array.`,
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <PetEditorDialog
+          open={!!editingPet}
+          pet={editingPet}
+          onOpenChange={(open) => { if (!open) setEditingPet(null); }}
+          onSaved={(updated) => { setCustomPets(prev => prev.map(p => p.id === updated.id ? updated : p)); setEditingPet(null); }}
+        />
 
         {/* Gift Dialog */}
         <Dialog open={showGiftDialog} onOpenChange={setShowGiftDialog}>
