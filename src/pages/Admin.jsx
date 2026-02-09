@@ -44,6 +44,23 @@ export default function Admin() {
   const [adminProfile, setAdminProfile] = useState(null);
   const [isAdminRole, setIsAdminRole] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState({
+    accessAI: false,
+    deleteAssets: false,
+    grantAdminTokens: false,
+    toggleAdminRole: false,
+    manageLocks: false,
+    banFlagUsers: false,
+    manageShop: false,
+    manageEvents: false,
+    viewAnalytics: false,
+    manageAssignments: false,
+    manageSuperAssignments: false,
+    managePets: false,
+    manageThemes: false,
+    manageCosmetics: false,
+  });
+  const can = (key) => isSuperAdmin || !!permissions[key];
   
   // Users
   const [users, setUsers] = useState([]);
@@ -221,6 +238,44 @@ export default function Admin() {
       setIsSuperAdmin(superByName || role === 'super_admin');
       setIsAdminRole(true);
       setAdminProfile(currentProfile);
+
+      // Load permissions from assigned roles (super admin = all)
+      const basePerms = {
+        accessAI: false,
+        deleteAssets: false,
+        grantAdminTokens: false,
+        toggleAdminRole: false,
+        manageLocks: false,
+        banFlagUsers: false,
+        manageShop: false,
+        manageEvents: false,
+        viewAnalytics: false,
+        manageAssignments: false,
+        manageSuperAssignments: false,
+        managePets: false,
+        manageThemes: false,
+        manageCosmetics: false,
+      };
+      if (superByName || role === 'super_admin') {
+        const allTrue = Object.fromEntries(Object.keys(basePerms).map(k => [k, true]));
+        setPermissions(allTrue);
+      } else if (Array.isArray(currentProfile.assignedRoleIds) && currentProfile.assignedRoleIds.length > 0) {
+        try {
+          const allRoles = await base44.entities.Role.list();
+          const myRoles = allRoles.filter(r => currentProfile.assignedRoleIds.includes(r.id));
+          const merged = { ...basePerms };
+          myRoles.forEach(r => {
+            const p = r.permissions || {};
+            Object.keys(merged).forEach(k => { merged[k] = merged[k] || !!p[k]; });
+          });
+          setPermissions(merged);
+        } catch (e) {
+          console.error('Failed loading roles', e);
+          setPermissions(basePerms);
+        }
+      } else {
+        setPermissions(basePerms);
+      }
       
       // Check if already authenticated with password
       const adminAuth = localStorage.getItem('quest_admin_auth');
@@ -786,26 +841,36 @@ White or transparent background, centered, high quality illustration.`;
               <Users className="w-4 h-4 mr-2" />
               Users ({users.length})
             </TabsTrigger>
-            <TabsTrigger value="assignments" className="data-[state=active]:bg-slate-700">
-              <ClipboardList className="w-4 h-4 mr-2" />
-              Assignments ({assignments.length})
-            </TabsTrigger>
-            <TabsTrigger value="pets" className="data-[state=active]:bg-slate-700">
-              <Star className="w-4 h-4 mr-2" />
-              Pets ({customPets.length})
-            </TabsTrigger>
-            <TabsTrigger value="themes" className="data-[state=active]:bg-slate-700">
-              <Palette className="w-4 h-4 mr-2" />
-              Themes ({customThemes.length})
-            </TabsTrigger>
-            <TabsTrigger value="cosmetics" className="data-[state=active]:bg-slate-700">
-              👒
-              Cosmetics ({petCosmetics.length})
-            </TabsTrigger>
-            <TabsTrigger value="ai" className="data-[state=active]:bg-slate-700">
-              ✨
-              AI Tools
-            </TabsTrigger>
+            {can('manageAssignments') && (
+              <TabsTrigger value="assignments" className="data-[state=active]:bg-slate-700">
+                <ClipboardList className="w-4 h-4 mr-2" />
+                Assignments ({assignments.length})
+              </TabsTrigger>
+            )}
+            {can('managePets') && (
+              <TabsTrigger value="pets" className="data-[state=active]:bg-slate-700">
+                <Star className="w-4 h-4 mr-2" />
+                Pets ({customPets.length})
+              </TabsTrigger>
+            )}
+            {can('manageThemes') && (
+              <TabsTrigger value="themes" className="data-[state=active]:bg-slate-700">
+                <Palette className="w-4 h-4 mr-2" />
+                Themes ({customThemes.length})
+              </TabsTrigger>
+            )}
+            {can('manageCosmetics') && (
+              <TabsTrigger value="cosmetics" className="data-[state=active]:bg-slate-700">
+                👒
+                Cosmetics ({petCosmetics.length})
+              </TabsTrigger>
+            )}
+            {can('accessAI') && (
+              <TabsTrigger value="ai" className="data-[state=active]:bg-slate-700">
+                ✨
+                AI Tools
+              </TabsTrigger>
+            )}
             <TabsTrigger value="seasons" className="data-[state=active]:bg-slate-700">
               <Sparkles className="w-4 h-4 mr-2" />
               Seasons ({seasons.length})
@@ -816,42 +881,52 @@ White or transparent background, centered, high quality illustration.`;
                 Magic Eggs
               </TabsTrigger>
             )}
-            <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">
-              🫧
-              Events
-            </TabsTrigger>
-            <TabsTrigger value="shop" className="data-[state=active]:bg-slate-700">
-              <ShoppingBag className="w-4 h-4 mr-2" />
-              Shop
-            </TabsTrigger>
-             <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">
-               📊
-               Analytics
-             </TabsTrigger>
+            {can('manageEvents') && (
+              <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">
+                🫧
+                Events
+              </TabsTrigger>
+            )}
+            {can('manageShop') && (
+              <TabsTrigger value="shop" className="data-[state=active]:bg-slate-700">
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                Shop
+              </TabsTrigger>
+            )}
+             {can('viewAnalytics') && (
+               <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">
+                 📊
+                 Analytics
+               </TabsTrigger>
+             )}
              <TabsTrigger value="email" className="data-[state=active]:bg-slate-700">
                ✉️
                Email
              </TabsTrigger>
-             {isSuperAdmin && (
+             {(isSuperAdmin || permissions.toggleAdminRole) && (
                <TabsTrigger value="roles" className="data-[state=active]:bg-slate-700">
                  <Shield className="w-4 h-4 mr-2" />
                  Roles
                </TabsTrigger>
              )}
-             {isSuperAdmin && (
+             {(isSuperAdmin || can('manageSuperAssignments')) && (
               <TabsTrigger value="super_assignments" className="data-[state=active]:bg-slate-700">
                 ⭐
                 Super Assignments
               </TabsTrigger>
             )}
-             <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700">
-              <Lock className="w-4 h-4 mr-2" />
-              Locks
-            </TabsTrigger>
-            <TabsTrigger value="bans_flags" className="data-[state=active]:bg-slate-700">
-              <Ban className="w-4 h-4 mr-2" />
-              Bans & Flags
-            </TabsTrigger>
+             {(isSuperAdmin || can('manageLocks')) && (
+              <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700">
+                <Lock className="w-4 h-4 mr-2" />
+                Locks
+              </TabsTrigger>
+            )}
+            {(isSuperAdmin || can('banFlagUsers')) && (
+              <TabsTrigger value="bans_flags" className="data-[state=active]:bg-slate-700">
+                <Ban className="w-4 h-4 mr-2" />
+                Bans & Flags
+              </TabsTrigger>
+            )}
             <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">
               ⚙️
               Settings
@@ -951,7 +1026,7 @@ White or transparent background, centered, high quality illustration.`;
                           >
                             <Gift className="w-4 h-4" />
                           </Button>
-                          {isSuperAdmin && (
+                          {(isSuperAdmin || permissions.grantAdminTokens) && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -982,7 +1057,7 @@ White or transparent background, centered, high quality illustration.`;
                           >
                             <Wand2 className="w-4 h-4" />
                           </Button>
-                          {isSuperAdmin && (user.username?.toLowerCase() !== 'crosby') && (
+                          {(isSuperAdmin || permissions.toggleAdminRole) && (user.username?.toLowerCase() !== 'crosby') && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -1077,7 +1152,7 @@ White or transparent background, centered, high quality illustration.`;
                         Clear Flag
                       </Button>
                     )}
-                    {!assignment.isApproved && (
+                    {!assignment.isApproved && can('manageAssignments') && (
                       <Button
                         size="sm"
                         onClick={() => handleApproveAssignment(assignment)}
@@ -1095,7 +1170,7 @@ White or transparent background, centered, high quality illustration.`;
                     >
                       <Edit2 className="w-4 h-4" />
                     </Button>
-                    {isSuperAdmin && (
+                    {(isSuperAdmin || permissions.deleteAssets || can('manageAssignments')) && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -1140,7 +1215,7 @@ White or transparent background, centered, high quality illustration.`;
                       <Button size="sm" variant="ghost" onClick={() => setEditingPet(pet)} className="text-slate-400 hover:text-white">
                         <Edit2 className="w-4 h-4" />
                       </Button>
-                      {isSuperAdmin && (
+                      {(isSuperAdmin || permissions.deleteAssets) && (
                         <Button size="sm" variant="ghost" onClick={() => handleDeletePet(pet)} className="text-red-400 hover:text-red-300">
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -1333,11 +1408,11 @@ White or transparent background, centered, high quality illustration.`;
                                 </p>
                               </div>
                             </div>
-                            {isSuperAdmin && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={async () => {
+                            {(isSuperAdmin || permissions.deleteAssets) && (
+                             <Button
+                               size="sm"
+                               variant="ghost"
+                               onClick={async () => {
                                   await base44.entities.MagicEgg.delete(egg.id);
                                   setMagicEggs(magicEggs.filter(e => e.id !== egg.id));
                                   toast.success('Egg deleted');
@@ -1359,6 +1434,7 @@ White or transparent background, centered, high quality illustration.`;
               </div>
             </TabsContent>
           ) : null}
+          {can('manageEvents') && (
           <TabsContent value="events">
             <div className="space-y-6">
               {/* Create Event */}
@@ -1534,7 +1610,7 @@ White or transparent background, centered, high quality illustration.`;
                       <h3 className="font-semibold text-white">{theme.name}</h3>
                       <p className="text-xs text-slate-400 capitalize">{theme.rarity} • {theme.xpRequired} XP</p>
                     </div>
-                    {isSuperAdmin && (
+                    {(isSuperAdmin || permissions.deleteAssets) && (
                      <Button size="sm" variant="ghost" onClick={() => handleDeleteTheme(theme)} className="text-red-400 hover:text-red-300">
                        <Trash2 className="w-4 h-4" />
                      </Button>
@@ -1577,7 +1653,7 @@ White or transparent background, centered, high quality illustration.`;
                         </p>
                       </div>
                     </div>
-                    {isSuperAdmin && (
+                    {(isSuperAdmin || permissions.deleteAssets) && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -1601,6 +1677,7 @@ White or transparent background, centered, high quality illustration.`;
             </div>
           </TabsContent>
 
+          {can('manageShop') && (
           <TabsContent value="shop">
             <div className="space-y-6">
               {/* Shop Items */}
@@ -1942,6 +2019,7 @@ Generate a pack_name and items array.`,
             </div>
           </TabsContent>
 
+          {can('viewAnalytics') && (
           <TabsContent value="analytics">
             <div className="space-y-6 mb-6">
               <EconomyCharts users={users} assignments={assignments} shopItems={shopItems} bundles={bundles} events={events} />
@@ -1953,16 +2031,17 @@ Generate a pack_name and items array.`,
           <TabsContent value="email">
             <AdminEmailBroadcast />
           </TabsContent>
-          {isSuperAdmin && (
+          {(isSuperAdmin || permissions.toggleAdminRole) && (
             <TabsContent value="roles">
               <RolesManager />
             </TabsContent>
           )}
-          {isSuperAdmin && (
+          {(isSuperAdmin || can('manageSuperAssignments')) && (
             <TabsContent value="super_assignments">
               <SuperAssignmentsAnalytics />
             </TabsContent>
           )}
+          {(isSuperAdmin || can('banFlagUsers')) && (
           <TabsContent value="bans_flags">
             <div className="space-y-6">
               <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
@@ -2104,6 +2183,7 @@ Generate a pack_name and items array.`,
             </div>
           </TabsContent>
 
+          {(isSuperAdmin || can('manageLocks')) && (
           <TabsContent value="locks">
             <div className="space-y-6">
               {/* Global Locks */}
@@ -2405,6 +2485,7 @@ Generate a pack_name and items array.`,
             </div>
           </TabsContent>
 
+          {can('accessAI') && (
           <TabsContent value="ai">
             <div className="space-y-8">
               {isSuperAdmin && (
