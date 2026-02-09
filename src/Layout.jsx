@@ -15,6 +15,7 @@ export default function Layout({ children, currentPageName }) {
         const navigate = useNavigate();
         const [themeColors, setThemeColors] = useState(null);
         const [isAdmin, setIsAdmin] = useState(false);
+      const [roleLabel, setRoleLabel] = useState('Admin');
         const [showEmailDialog, setShowEmailDialog] = useState(false);
         const [contactEmail, setContactEmail] = useState('');
         const [savingEmail, setSavingEmail] = useState(false);
@@ -46,8 +47,15 @@ export default function Layout({ children, currentPageName }) {
       setCurrentProfile(profile);
 
       // Admin if rank is admin/super_admin or username is "Crosby" (case-insensitive)
-      if (profile.rank === 'admin' || profile.rank === 'super_admin' || (typeof profile.username === 'string' && profile.username.toLowerCase() === 'crosby')) {
+      const nameIsCrosby = (typeof profile.username === 'string' && profile.username.toLowerCase() === 'crosby');
+      if (profile.rank === 'super_admin' || nameIsCrosby) {
         setIsAdmin(true);
+        setRoleLabel('Super Admin');
+        return;
+      }
+      if (profile.rank === 'admin') {
+        setIsAdmin(true);
+        setRoleLabel('Admin');
         return;
       }
     } catch (e) {
@@ -194,7 +202,7 @@ export default function Layout({ children, currentPageName }) {
                 )}
               >
                 <Shield className="w-5 h-5" />
-                <span className="text-xs mt-1 font-medium">Admin</span>
+                <span className="text-xs mt-1 font-medium">{roleLabel}</span>
               </Link>
               )}
           </div>
