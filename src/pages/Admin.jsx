@@ -1434,11 +1434,6 @@ White or transparent background, centered, high quality illustration.`;
               </div>
             </TabsContent>
           ) : null}
-          {can('manageEvents') && (
-          <TabsContent value="events">
-          ...
-          </TabsContent>
-          )}
 
           <TabsContent value="themes">
             <div className="flex justify-end mb-4">
@@ -1522,11 +1517,6 @@ White or transparent background, centered, high quality illustration.`;
             </div>
           </TabsContent>
 
-          {can('manageShop') && (
-          <TabsContent value="shop">
-          ...
-          </TabsContent>
-          )}
 
           {can('viewAnalytics') && (
           <TabsContent value="analytics">
@@ -1546,23 +1536,8 @@ White or transparent background, centered, high quality illustration.`;
               <SuperAssignmentsAnalytics />
             </TabsContent>
           )}
-          {(isSuperAdmin || can('banFlagUsers')) && (
-          <TabsContent value="bans_flags">
-          ...
-          </TabsContent>
-          )}
 
-          {(isSuperAdmin || can('manageLocks')) && (
-          <TabsContent value="locks">
-          ...
-          </TabsContent>
-          )}
 
-          {can('accessAI') && (
-          <TabsContent value="ai">
-          ...
-          </TabsContent>
-          )}
 
           <TabsContent value="settings">
             <div className="space-y-6">
