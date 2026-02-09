@@ -1518,11 +1518,6 @@ White or transparent background, centered, high quality illustration.`;
           </TabsContent>
 
 
-          {can('viewAnalytics') && (
-          <TabsContent value="analytics">
-          ...
-          </TabsContent>
-          )}
           <TabsContent value="email">
             <AdminEmailBroadcast />
           </TabsContent>
