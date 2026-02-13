@@ -1191,6 +1191,13 @@ White or transparent background, centered, high quality illustration.`;
             </div>
           </TabsContent>
 
+          <TabsContent value="ai">
+            <div className="space-y-6">
+              <BulkPetCreatorPanel />
+              <CosmeticGeneratorPanel />
+            </div>
+          </TabsContent>
+
           <TabsContent value="pets">
             <div className="flex justify-end mb-4">
               <Button onClick={() => setShowPetForm(true)} className="bg-gradient-to-r from-purple-500 to-pink-600">
@@ -1439,6 +1446,32 @@ White or transparent background, centered, high quality illustration.`;
             </TabsContent>
           ) : null}
 
+          <TabsContent value="events">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold">Events ({events.length})</h3>
+              <Button onClick={() => setShowEventForm(true)} className="bg-blue-600">New Event</Button>
+            </div>
+            <div className="space-y-3">
+              {events.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">No events yet</div>
+              ) : (
+                events.map((evt) => (
+                  <div key={evt.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-white font-medium">{evt.name}</h4>
+                        <p className="text-xs text-slate-400 capitalize">{evt.type} {evt.isActive ? '• Active' : ''}</p>
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {evt.startTime && `Start: ${new Date(evt.startTime).toLocaleString()}`}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
           <TabsContent value="themes">
             <div className="flex justify-end mb-4">
               <Button onClick={() => setShowThemeForm(true)} className="bg-gradient-to-r from-cyan-500 to-blue-600">
@@ -1472,6 +1505,48 @@ White or transparent background, centered, high quality illustration.`;
               {customThemes.length === 0 && (
                 <div className="col-span-full text-center py-8 text-slate-400">No custom themes yet</div>
               )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="shop">
+            <div className="flex flex-wrap gap-2 justify-end mb-4">
+              <Button onClick={() => setShowShopItemForm(true)} className="bg-purple-600">New Item</Button>
+              <Button onClick={() => setShowBundleForm(true)} className="bg-amber-600">New Bundle</Button>
+              <Button onClick={() => setShowManualPackForm(true)} className="bg-blue-600">Build Custom Pack</Button>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <h3 className="text-white font-semibold mb-2">Shop Items ({shopItems.length})</h3>
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {shopItems.length === 0 ? (
+                    <div className="text-slate-400 text-sm">No items</div>
+                  ) : shopItems.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between bg-slate-700/60 rounded-lg px-3 py-2">
+                      <div className="text-sm text-white">{item.name} • {item.itemType} • {item.price} 🪙</div>
+                      <Button size="sm" variant="ghost" className="text-slate-300"
+                        onClick={() => setEditingShopItem(item)}>
+                        Edit
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <h3 className="text-white font-semibold mb-2">Bundles ({bundles.length})</h3>
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {bundles.length === 0 ? (
+                    <div className="text-slate-400 text-sm">No bundles</div>
+                  ) : bundles.map((b) => (
+                    <div key={b.id} className="flex items-center justify-between bg-slate-700/60 rounded-lg px-3 py-2">
+                      <div className="text-sm text-white">{b.name} • {b.bundlePrice} 🪙</div>
+                      <Button size="sm" variant="ghost" className="text-slate-300"
+                        onClick={() => setEditingBundle(b)}>
+                        Edit
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </TabsContent>
 
@@ -1522,6 +1597,9 @@ White or transparent background, centered, high quality illustration.`;
           </TabsContent>
 
 
+          <TabsContent value="analytics">
+            <EconomyCharts />
+          </TabsContent>
           <TabsContent value="email">
             <AdminEmailBroadcast />
           </TabsContent>
@@ -1762,6 +1840,30 @@ White or transparent background, centered, high quality illustration.`;
             </TabsContent>
           )}
 
+
+          <TabsContent value="locks">
+            <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
+              <h3 className="text-white font-semibold mb-3">Global Feature Locks</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {['shop','battlePass','pets','xpGain'].map((k) => (
+                  <label key={k} className="flex items-center gap-2 bg-slate-700/60 rounded-lg px-3 py-2 text-sm text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={!!featureLocks.global?.[k]}
+                      onChange={(e) => setFeatureLocks({
+                        ...featureLocks,
+                        global: { ...(featureLocks.global || {}), [k]: e.target.checked }
+                      })}
+                    />
+                    {k}
+                  </label>
+                ))}
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button onClick={saveFeatureLocks} className="bg-emerald-600">Save Locks</Button>
+              </div>
+            </div>
+          </TabsContent>
 
           <TabsContent value="settings">
             <div className="space-y-6">
