@@ -201,7 +201,7 @@ White or transparent background, centered, high quality illustration.`;
 
       {/* Creation Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="bg-white/90 backdrop-blur-xl border border-white/40 max-w-md">
+        <DialogContent hideClose onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} className="bg-white/90 backdrop-blur-xl border border-white/40 max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-slate-800">
               <Sparkles className="w-5 h-5 text-amber-500" />
