@@ -489,12 +489,12 @@ export default function Rewards() {
                     {/* Theme colors preview */}
                     <div className="relative z-10 mb-3">
                       <div className="flex justify-center gap-1">
-                        <div className="w-10 h-10 rounded-full shadow-lg ring-2 ring-white/30" style={{ backgroundColor: theme.primary }} />
-                        <div className="w-10 h-10 rounded-full shadow-lg ring-2 ring-white/30" style={{ backgroundColor: theme.secondary }} />
+                        <div className="w-10 h-10 rounded-full shadow-lg ring-2 ring-white/30" style={{ backgroundColor: theme.primary || '#6366f1' }} />
+                        <div className="w-10 h-10 rounded-full shadow-lg ring-2 ring-white/30" style={{ backgroundColor: theme.secondary || '#a78bfa' }} />
                       </div>
                       <div className="flex justify-center gap-1 mt-1">
-                        <div className="w-6 h-6 rounded-full shadow-lg ring-1 ring-white/30" style={{ backgroundColor: theme.accent }} />
-                        <div className="w-6 h-6 rounded-full shadow-lg ring-1 ring-white/30 border border-slate-300" style={{ backgroundColor: theme.bg }} />
+                        <div className="w-6 h-6 rounded-full shadow-lg ring-1 ring-white/30" style={{ backgroundColor: theme.accent || '#f59e0b' }} />
+                        <div className="w-6 h-6 rounded-full shadow-lg ring-1 ring-white/30 border border-slate-300" style={{ backgroundColor: theme.bg || '#f8fafc' }} />
                       </div>
                     </div>
                     
