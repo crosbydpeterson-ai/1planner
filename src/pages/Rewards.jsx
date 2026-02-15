@@ -222,9 +222,19 @@ export default function Rewards() {
     }))
   ];
 
-  // Combine built-in themes with custom themes
+  // Combine built-in themes with custom themes (normalize color fields)
   const allThemes = [
-    ...THEMES,
+    ...THEMES.map(t => ({
+      id: t.id,
+      name: t.name,
+      rarity: t.rarity,
+      description: t.description || '',
+      xpRequired: t.xpRequired,
+      primary: t.colors?.primary,
+      secondary: t.colors?.secondary,
+      accent: t.colors?.accent,
+      bg: t.colors?.bg
+    })),
     ...customThemes.map(ct => ({
       id: `custom_${ct.id}`,
       name: ct.name,
