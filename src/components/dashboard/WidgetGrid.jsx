@@ -14,7 +14,11 @@ export default function WidgetGrid({ widgets, onReorder, editMode, children }) {
   };
 
   if (!editMode) {
-    return <div className="space-y-4">{children}</div>;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {children}
+      </div>
+    );
   }
 
   return (
