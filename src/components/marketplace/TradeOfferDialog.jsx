@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import PetAvatar from '@/components/quest/PetAvatar';
+import { base44 } from '@/api/base44Client';
 
 export default function TradeOfferDialog({ open, onOpenChange, listing, buyerProfile, onCreated }) {
   const [selectedPet, setSelectedPet] = useState('');
