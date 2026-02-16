@@ -8,17 +8,22 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PetAvatar from '@/components/quest/PetAvatar';
-import { Coins, PlusCircle } from 'lucide-react';
+import { Coins, PlusCircle, Eye, Handshake } from 'lucide-react';
 
 export default function Marketplace() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [activeListings, setActiveListings] = useState([]);
   const [myListings, setMyListings] = useState([]);
+  const [incomingOffers, setIncomingOffers] = useState([]);
   const [creating, setCreating] = useState(false);
   const [petToSell, setPetToSell] = useState('');
   const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showOffer, setShowOffer] = useState(false);
+  const [offerListing, setOfferListing] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewPetId, setPreviewPetId] = useState('');
 
   useEffect(() => {
     loadAll();
@@ -44,6 +49,9 @@ export default function Marketplace() {
 
       const mine = await base44.entities.MarketplaceListing.filter({ sellerProfileId: p.id, status: 'active' }, '-created_date', 100);
       setMyListings(mine);
+
+      const incoming = await base44.entities.TradeOffer.filter({ receiverProfileId: p.id, status: 'pending' }, '-created_date', 50);
+      setIncomingOffers(incoming);
     } finally {
       setLoading(false);
     }
@@ -81,6 +89,16 @@ export default function Marketplace() {
 
   const handleCancel = async (listing) => {
     await base44.entities.MarketplaceListing.update(listing.id, { status: 'cancelled' });
+    await loadAll();
+  };
+
+  const handleAcceptOffer = async (offer) => {
+    const { data } = await base44.functions.invoke('acceptTradeOffer', { offerId: offer.id, receiverProfileId: profile.id });
+    if (data?.success) await loadAll();
+  };
+
+  const handleRejectOffer = async (offer) => {
+    await base44.entities.TradeOffer.update(offer.id, { status: 'rejected' });
     await loadAll();
   };
 
@@ -176,6 +194,37 @@ export default function Marketplace() {
           </div>
         )}
 
+        {incomingOffers.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold text-slate-700 mb-3">Incoming Offers</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {incomingOffers.map((o) => (
+                <Card key={o.id}>
+                  <CardHeader>
+                    <CardTitle className="text-base">Trade Offer</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-around">
+                      <div className="text-center">
+                        <div className="text-xs text-slate-500 mb-1">You Give</div>
+                        <PetAvatar petId={o.requestedPetId} size="md" />
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-slate-500 mb-1">You Get</div>
+                        <PetAvatar petId={o.offeredPetId} size="md" />
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="justify-end gap-2">
+                    <Button variant="outline" onClick={() => handleRejectOffer(o)}>Reject</Button>
+                    <Button onClick={() => handleAcceptOffer(o)}>Accept</Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <h2 className="text-lg font-semibold text-slate-700 mb-3">Active Listings</h2>
           {activeListings.length === 0 ? (
@@ -194,15 +243,23 @@ export default function Marketplace() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center justify-center py-2">
+                      <div className="flex items-center justify-center py-2 cursor-pointer" onClick={() => { setPreviewPetId(l.petId); setShowPreview(true); }}>
                         <PetAvatar petId={l.petId} size="md" />
                       </div>
                     </CardContent>
-                    <CardFooter className="justify-end">
+                    <CardFooter className="justify-between">
+                      <Button variant="ghost" className="gap-1" onClick={() => { setPreviewPetId(l.petId); setShowPreview(true); }}>
+                        <Eye className="w-4 h-4" /> Preview
+                      </Button>
                       {isMine ? (
                         <Button variant="outline" onClick={() => handleCancel(l)}>Cancel</Button>
                       ) : (
-                        <Button onClick={() => handleBuy(l)} disabled={!canAfford}>Buy</Button>
+                        <div className="flex gap-2">
+                          <Button variant="outline" className="gap-1" onClick={() => { setOfferListing(l); setShowOffer(true); }}>
+                            <Handshake className="w-4 h-4" /> Offer Trade
+                          </Button>
+                          <Button onClick={() => handleBuy(l)} disabled={!canAfford}>Buy</Button>
+                        </div>
                       )}
                     </CardFooter>
                   </Card>
@@ -212,6 +269,15 @@ export default function Marketplace() {
           )}
         </div>
       </div>
+      {/* Dialogs */}
+      <TradeOfferDialog
+        open={showOffer}
+        onOpenChange={setShowOffer}
+        listing={offerListing}
+        buyerProfile={profile}
+        onCreated={loadAll}
+      />
+      <PetPreviewDialog petId={previewPetId} open={showPreview} onOpenChange={setShowPreview} />
     </div>
   );
 }

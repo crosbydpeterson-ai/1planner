@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award, Palette } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PETS, RARITY_COLORS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
@@ -26,6 +27,8 @@ export default function Rewards() {
   const [activeTab, setActiveTab] = useState('pets');
   const [locks, setLocks] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [boothPrompt, setBoothPrompt] = useState('neon arcade booth with glowing sign, game stalls, vaporwave lights, 1024x512 banner');
+  const [genLoading, setGenLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -172,6 +175,38 @@ export default function Rewards() {
     } catch (e) {
       console.error('Error toggling cosmetic:', e);
       toast.error('Failed to toggle cosmetic');
+    }
+  };
+
+  const generateBoothSkin = async () => {
+    if (!profile) return;
+    try {
+      setGenLoading(true);
+      const prompt = `high quality stylized game booth banner, ${boothPrompt}`;
+      const { url } = await base44.integrations.Core.GenerateImage({ prompt });
+      // Create cosmetic
+      const cosmetic = await base44.entities.PetCosmetic.create({
+        name: `AI Booth Skin ${new Date().toLocaleDateString()}`,
+        description: 'AI generated booth background',
+        cosmeticType: 'background',
+        imageUrl: url,
+        price: 0,
+        rarity: 'rare',
+        isLimited: false,
+        isActive: true
+      });
+      // Unlock for user
+      const unlocked = Array.isArray(profile.unlockedCosmetics) ? profile.unlockedCosmetics : [];
+      const newUnlocked = [...unlocked, cosmetic.id];
+      await base44.entities.UserProfile.update(profile.id, { unlockedCosmetics: newUnlocked });
+      setProfile({ ...profile, unlockedCosmetics: newUnlocked });
+      setPetCosmetics([...(petCosmetics || []), cosmetic]);
+      toast.success('Booth skin generated and added to your cosmetics!');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to generate booth skin');
+    } finally {
+      setGenLoading(false);
     }
   };
 
@@ -514,7 +549,22 @@ export default function Rewards() {
           </TabsContent>
 
           {/* Cosmetics & Titles Tab */}
-          <TabsContent value="cosmetics">
+           <TabsContent value="cosmetics">
+             {/* AI Booth Skin Generator */}
+             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+               <div className="bg-white/30 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
+                 <div className="flex flex-col md:flex-row md:items-center gap-3">
+                   <div className="flex-1">
+                     <div className="text-sm text-slate-600 mb-1">AI Booth Skin Prompt</div>
+                     <Input value={boothPrompt} onChange={(e) => setBoothPrompt(e.target.value)} />
+                   </div>
+                   <Button onClick={generateBoothSkin} disabled={genLoading} className="md:w-44">
+                     {genLoading ? 'Generating...' : 'Generate Skin'}
+                   </Button>
+                 </div>
+                 <div className="text-xs text-slate-500 mt-2">Creates a background cosmetic you can equip on your pet avatar.</div>
+               </div>
+             </motion.div>
             {/* Titles Section */}
             {unlockedTitles.length > 0 && (
               <motion.div
