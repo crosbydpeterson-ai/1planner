@@ -8,6 +8,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PetAvatar from '@/components/quest/PetAvatar';
+import TradeOfferDialog from '@/components/marketplace/TradeOfferDialog';
+import PetPreviewDialog from '@/components/marketplace/PetPreviewDialog';
 import { Coins, PlusCircle, Eye, Handshake } from 'lucide-react';
 
 export default function Marketplace() {
