@@ -26,7 +26,7 @@ export default function PetPreviewDialog({ petId, open, onOpenChange }) {
         <div className="relative">
           <div className="h-40 w-full" style={{ background: `linear-gradient(135deg, ${theme?.bg || '#f8fafc'} 0%, ${theme?.secondary || '#a78bfa'} 100%)` }} />
           <div className="absolute inset-0 flex items-center justify-center">
-            <PetAvatar petId={petId} size="xl" />
+            <PetAvatar petId={petId} size="lg" />
           </div>
         </div>
         <DialogHeader>
