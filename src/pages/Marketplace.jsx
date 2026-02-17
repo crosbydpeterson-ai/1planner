@@ -20,6 +20,8 @@ export default function Marketplace() {
   const [activeListings, setActiveListings] = useState([]);
   const [myListings, setMyListings] = useState([]);
   const [incomingOffers, setIncomingOffers] = useState([]);
+  const [sellersMap, setSellersMap] = useState({});
+  const [skinsMap, setSkinsMap] = useState({});
   const [creating, setCreating] = useState(false);
   const [petToSell, setPetToSell] = useState('');
   const [price, setPrice] = useState('');
@@ -62,6 +64,25 @@ export default function Marketplace() {
       }
 
       const allActive = await base44.entities.MarketplaceListing.filter({ status: 'active' }, '-created_date', 100);
+
+      // Load seller profiles and their equipped booth skins
+      const sellerIds = Array.from(new Set(allActive.map(l => l.sellerProfileId)));
+      const sellers = await Promise.all(sellerIds.map(id => base44.entities.UserProfile.filter({ id })));
+      const sMap = {};
+      const skinIds = new Set();
+      sellers.forEach(arr => {
+        if (arr?.[0]) {
+          sMap[arr[0].id] = arr[0];
+          if (arr[0].equippedBoothSkinId) skinIds.add(arr[0].equippedBoothSkinId);
+        }
+      });
+      setSellersMap(sMap);
+      let kMap = {};
+      if (skinIds.size > 0) {
+        const skins = await Promise.all(Array.from(skinIds).map(id => base44.entities.BoothSkin.filter({ id })));
+        skins.forEach(arr => { if (arr?.[0]) kMap[arr[0].id] = arr[0]; });
+      }
+      setSkinsMap(kMap);
       setActiveListings(allActive);
 
       const mine = await base44.entities.MarketplaceListing.filter({ sellerProfileId: p.id, status: 'active' }, '-created_date', 100);
@@ -128,6 +149,7 @@ export default function Marketplace() {
   }
 
   const myPets = Array.isArray(profile?.unlockedPets) ? profile.unlockedPets : [];
+  const groupedBySeller = activeListings.reduce((acc, l) => { (acc[l.sellerProfileId] = acc[l.sellerProfileId] || []).push(l); return acc; }, {});
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 pb-24">
@@ -250,42 +272,63 @@ export default function Marketplace() {
           {activeListings.length === 0 ? (
             <div className="text-slate-500 text-sm">No listings yet. Be the first to list a pet!</div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeListings.map((l) => {
-                const isMine = l.sellerProfileId === profile.id;
-                const canAfford = (profile?.questCoins || 0) >= Number(l.priceCoins || 0);
-                return (
-                  <Card key={l.id} className="overflow-hidden">
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center justify-between">
-                        <span>Pet for Sale</span>
-                        <Badge className="gap-1" variant="outline"><Coins className="w-3 h-3" /> {l.priceCoins}</Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-center py-2 cursor-pointer" onClick={() => { setPreviewPetId(l.petId); setShowPreview(true); }}>
-                        <PetAvatar petId={l.petId} size="md" />
-                      </div>
-                    </CardContent>
-                    <CardFooter className="justify-between">
-                      <Button variant="ghost" className="gap-1" onClick={() => { setPreviewPetId(l.petId); setShowPreview(true); }}>
-                        <Eye className="w-4 h-4" /> Preview
-                      </Button>
-                      {isMine ? (
-                        <Button variant="outline" onClick={() => handleCancel(l)}>Cancel</Button>
-                      ) : (
-                        <div className="flex gap-2">
-                          <Button variant="outline" className="gap-1" onClick={() => { setOfferListing(l); setShowOffer(true); }}>
-                            <Handshake className="w-4 h-4" /> Offer Trade
-                          </Button>
-                          <Button onClick={() => handleBuy(l)} disabled={!canAfford}>Buy</Button>
-                        </div>
-                      )}
-                    </CardFooter>
-                  </Card>
-                );
-              })}
-            </div>
+            Object.entries(
+              activeListings.reduce((acc, l) => {
+                (acc[l.sellerProfileId] = acc[l.sellerProfileId] || []).push(l);
+                return acc;
+              }, {})
+            ).map(([sellerId, listings]) => {
+              const seller = sellersMap[sellerId] || {};
+              const banner = skinsMap[seller.equippedBoothSkinId];
+              return (
+                <div key={sellerId} className="mb-6 rounded-2xl overflow-hidden border border-slate-200">
+                  <div className="relative h-32 sm:h-40 w-full">
+                    {banner ? (
+                      <img src={banner.imageUrl} alt={banner.name} className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-purple-100" />
+                    )}
+                    <div className="absolute inset-0 bg-black/20" />
+                    <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-white">
+                      <div className="text-lg font-semibold">{seller.username || 'Seller'}</div>
+                      {banner && <div className="text-xs bg-white/20 rounded px-2 py-0.5">{banner.name}</div>}
+                    </div>
+                  </div>
+
+                  <div className="p-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-white">
+                    {listings.map((l) => {
+                      const isMine = l.sellerProfileId === profile.id;
+                      const canAfford = (profile?.questCoins || 0) >= Number(l.priceCoins || 0);
+                      return (
+                        <Card key={l.id} className="overflow-hidden">
+                          <CardContent className="pt-4">
+                            <div className="flex items-center justify-between">
+                              <PetAvatar petId={l.petId} size="md" />
+                              <Badge variant="secondary" className="gap-1"><Coins className="w-3 h-3" /> {l.priceCoins}</Badge>
+                            </div>
+                          </CardContent>
+                          <CardFooter className="justify-between">
+                            <Button variant="ghost" className="gap-1" onClick={() => { setPreviewPetId(l.petId); setShowPreview(true); }}>
+                              <Eye className="w-4 h-4" /> Preview
+                            </Button>
+                            {isMine ? (
+                              <Button variant="outline" onClick={() => handleCancel(l)}>Cancel</Button>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Button variant="outline" className="gap-1" onClick={() => { setOfferListing(l); setShowOffer(true); }}>
+                                  <Handshake className="w-4 h-4" /> Offer Trade
+                                </Button>
+                                <Button onClick={() => handleBuy(l)} disabled={!canAfford}>Buy</Button>
+                              </div>
+                            )}
+                          </CardFooter>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>

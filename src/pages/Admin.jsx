@@ -65,6 +65,11 @@ export default function Admin() {
   
   // Users
   const [users, setUsers] = useState([]);
+  const [showForceTrade, setShowForceTrade] = useState(false);
+  const [ftFrom, setFtFrom] = useState('');
+  const [ftTo, setFtTo] = useState('');
+  const [ftType, setFtType] = useState('pet');
+  const [ftItemId, setFtItemId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [editXp, setEditXp] = useState('');
@@ -943,14 +948,19 @@ White or transparent background, centered, high quality illustration.`;
 
           <TabsContent value="users">
             {/* Search */}
-            <div className="mb-4 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search users..."
-                className="pl-10 bg-slate-800 border-slate-700 text-white"
-              />
+            <div className="mb-4 flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search users..."
+                  className="pl-10 bg-slate-800 border-slate-700 text-white w-full"
+                />
+              </div>
+              {isSuperAdmin && (
+                <Button onClick={() => setShowForceTrade(true)} className="bg-red-600">Force Trade</Button>
+              )}
             </div>
 
             {/* Users list */}
@@ -2207,6 +2217,63 @@ White or transparent background, centered, high quality illustration.`;
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Force Trade Dialog */}
+        <Dialog open={showForceTrade} onOpenChange={setShowForceTrade}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white">
+            <DialogHeader>
+              <DialogTitle>Force Trade (Admin)</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
+              <div>
+                <Label>From User</Label>
+                <Select value={ftFrom} onValueChange={setFtFrom}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600"><SelectValue placeholder="Select user" /></SelectTrigger>
+                  <SelectContent>
+                    {users.map(u => (<SelectItem key={u.id} value={u.id}>{u.username || u.userId}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>To User</Label>
+                <Select value={ftTo} onValueChange={setFtTo}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600"><SelectValue placeholder="Select user" /></SelectTrigger>
+                  <SelectContent>
+                    {users.map(u => (<SelectItem key={u.id} value={u.id}>{u.username || u.userId}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Item Type</Label>
+                <Select value={ftType} onValueChange={setFtType}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pet">Pet</SelectItem>
+                    <SelectItem value="theme">Theme</SelectItem>
+                    <SelectItem value="title">Title</SelectItem>
+                    <SelectItem value="cosmetic">Cosmetic</SelectItem>
+                    <SelectItem value="boothskin">Booth Skin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Item ID</Label>
+                <Input value={ftItemId} onChange={(e) => setFtItemId(e.target.value)} className="bg-slate-700 border-slate-600" placeholder="e.g. starter_slime or custom_abc123" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowForceTrade(false)}>Cancel</Button>
+              <Button onClick={async () => {
+                if (!ftFrom || !ftTo || !ftItemId) return;
+                const { data } = await base44.functions.invoke('adminForceTrade', { fromProfileId: ftFrom, toProfileId: ftTo, itemType: ftType, itemId: ftItemId });
+                if (data?.success) {
+                  setShowForceTrade(false);
+                  setFtFrom(''); setFtTo(''); setFtType('pet'); setFtItemId('');
+                }
+              }} className="bg-red-600">Force Move</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit User Dialog */}
         <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>

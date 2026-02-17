@@ -6,7 +6,6 @@ import { motion } from 'framer-motion';
 import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award, Palette } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PETS, RARITY_COLORS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
@@ -27,8 +26,7 @@ export default function Rewards() {
   const [activeTab, setActiveTab] = useState('pets');
   const [locks, setLocks] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [boothPrompt, setBoothPrompt] = useState('neon arcade booth with glowing sign, game stalls, vaporwave lights, 1024x512 banner');
-  const [genLoading, setGenLoading] = useState(false);
+  const [boothSkins, setBoothSkins] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -43,12 +41,13 @@ export default function Rewards() {
     }
 
     try {
-      const [profiles, dbCustomPets, dbCustomThemes, dbCosmetics, dbMagicEggs] = await Promise.all([
+      const [profiles, dbCustomPets, dbCustomThemes, dbCosmetics, dbMagicEggs, dbBoothSkins] = await Promise.all([
         base44.entities.UserProfile.filter({ id: profileId }),
         base44.entities.CustomPet.list(),
         base44.entities.CustomTheme.list(),
         base44.entities.PetCosmetic.list(),
-        base44.entities.MagicEgg.list()
+        base44.entities.MagicEgg.list(),
+        base44.entities.BoothSkin.list()
       ]);
       if (profiles.length === 0) {
         navigate(createPageUrl('Home'));
@@ -70,6 +69,7 @@ export default function Rewards() {
       setCustomPets(dbCustomPets);
       setCustomThemes(dbCustomThemes);
       setPetCosmetics(dbCosmetics);
+      setBoothSkins(dbBoothSkins);
       // Filter eggs for this user that haven't been used
       const userEggs = dbMagicEggs.filter(e => e.userId === profiles[0].userId && !e.isUsed);
       setMagicEggs(userEggs);
@@ -178,36 +178,13 @@ export default function Rewards() {
     }
   };
 
-  const generateBoothSkin = async () => {
+  const toggleBoothSkin = async (skinId) => {
     if (!profile) return;
-    try {
-      setGenLoading(true);
-      const prompt = `high quality stylized game booth banner, ${boothPrompt}`;
-      const { url } = await base44.integrations.Core.GenerateImage({ prompt });
-      // Create cosmetic
-      const cosmetic = await base44.entities.PetCosmetic.create({
-        name: `AI Booth Skin ${new Date().toLocaleDateString()}`,
-        description: 'AI generated booth background',
-        cosmeticType: 'background',
-        imageUrl: url,
-        price: 0,
-        rarity: 'rare',
-        isLimited: false,
-        isActive: true
-      });
-      // Unlock for user
-      const unlocked = Array.isArray(profile.unlockedCosmetics) ? profile.unlockedCosmetics : [];
-      const newUnlocked = [...unlocked, cosmetic.id];
-      await base44.entities.UserProfile.update(profile.id, { unlockedCosmetics: newUnlocked });
-      setProfile({ ...profile, unlockedCosmetics: newUnlocked });
-      setPetCosmetics([...(petCosmetics || []), cosmetic]);
-      toast.success('Booth skin generated and added to your cosmetics!');
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to generate booth skin');
-    } finally {
-      setGenLoading(false);
-    }
+    const current = profile.equippedBoothSkinId;
+    const newId = current === skinId ? null : skinId;
+    await base44.entities.UserProfile.update(profile.id, { equippedBoothSkinId: newId });
+    setProfile({ ...profile, equippedBoothSkinId: newId });
+    toast.success(newId ? 'Booth skin equipped!' : 'Booth skin removed');
   };
 
   if (loading) {
@@ -550,20 +527,32 @@ export default function Rewards() {
 
           {/* Cosmetics & Titles Tab */}
            <TabsContent value="cosmetics">
-             {/* AI Booth Skin Generator */}
+             {/* Booth Skins */}
              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-               <div className="bg-white/30 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
-                 <div className="flex flex-col md:flex-row md:items-center gap-3">
-                   <div className="flex-1">
-                     <div className="text-sm text-slate-600 mb-1">AI Booth Skin Prompt</div>
-                     <Input value={boothPrompt} onChange={(e) => setBoothPrompt(e.target.value)} />
-                   </div>
-                   <Button onClick={generateBoothSkin} disabled={genLoading} className="md:w-44">
-                     {genLoading ? 'Generating...' : 'Generate Skin'}
-                   </Button>
-                 </div>
-                 <div className="text-xs text-slate-500 mt-2">Creates a background cosmetic you can equip on your pet avatar.</div>
+               <div className="flex items-center gap-2 mb-3">
+                 <Sparkles className="w-5 h-5 text-purple-500" />
+                 <h2 className="font-bold text-slate-800">Booth Skins</h2>
                </div>
+               {!(profile.unlockedBoothSkins || []).length ? (
+                 <div className="text-slate-500 text-sm">No booth skins unlocked yet.</div>
+               ) : (
+                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                   {(profile.unlockedBoothSkins || []).map((sid) => {
+                     const skin = boothSkins.find(s => s.id === sid);
+                     const isEquipped = profile.equippedBoothSkinId === sid;
+                     if (!skin) return null;
+                     return (
+                       <div key={sid} onClick={() => toggleBoothSkin(sid)} className={`relative rounded-2xl p-2 cursor-pointer border ${isEquipped ? 'border-purple-400' : 'border-white/20'} bg-white/20 backdrop-blur-xl`}>
+                         <div className="aspect-[2/1] w-full rounded-lg overflow-hidden">
+                           <img src={skin.imageUrl} alt={skin.name} className="w-full h-full object-cover" />
+                         </div>
+                         <div className="mt-2 text-sm text-slate-700 text-center font-medium">{skin.name}</div>
+                         {isEquipped && <div className="absolute -top-2 -right-2 w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center"><Check className="w-4 h-4" /></div>}
+                       </div>
+                     );
+                   })}
+                 </div>
+               )}
              </motion.div>
             {/* Titles Section */}
             {unlockedTitles.length > 0 && (
