@@ -1,13 +1,27 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import PetAvatar from '@/components/quest/PetAvatar';
 import { base44 } from '@/api/base44Client';
+import { getPetName, collectCustomIds } from '@/components/quest/petUtils';
 
 export default function TradeOfferDialog({ open, onOpenChange, listing, buyerProfile, onCreated }) {
   const [selectedPet, setSelectedPet] = useState('');
   const myPets = useMemo(() => Array.isArray(buyerProfile?.unlockedPets) ? buyerProfile.unlockedPets : [], [buyerProfile]);
+  const [customMap, setCustomMap] = useState({});
+
+  useEffect(() => {
+    const load = async () => {
+      const ids = collectCustomIds(myPets);
+      if (ids.length === 0) { setCustomMap({}); return; }
+      const results = await Promise.all(ids.map(id => base44.entities.CustomPet.filter({ id })));
+      const map = {};
+      results.forEach(arr => { if (arr?.[0]) map[arr[0].id] = arr[0]; });
+      setCustomMap(map);
+    };
+    load();
+  }, [myPets]);
 
   const submit = async () => {
     if (!selectedPet || !listing) return;
@@ -38,7 +52,7 @@ export default function TradeOfferDialog({ open, onOpenChange, listing, buyerPro
               <SelectTrigger className="mt-2"><SelectValue placeholder="Choose your pet" /></SelectTrigger>
               <SelectContent>
                 {myPets.map(pid => (
-                  <SelectItem key={pid} value={pid}>{pid}</SelectItem>
+                  <SelectItem key={pid} value={pid}>{getPetName(pid, customMap)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

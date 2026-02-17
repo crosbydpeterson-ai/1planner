@@ -54,12 +54,12 @@ import CosmeticGenerator from './pages/CosmeticGenerator';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
+import Marketplace from './pages/Marketplace';
 import PetCreator from './pages/PetCreator';
 import Rewards from './pages/Rewards';
 import Season from './pages/Season';
 import Shop from './pages/Shop';
 import UserSettings from './pages/UserSettings';
-import Marketplace from './pages/Marketplace';
 import __Layout from './Layout.jsx';
 
 
@@ -71,12 +71,12 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Home": Home,
     "Leaderboard": Leaderboard,
+    "Marketplace": Marketplace,
     "PetCreator": PetCreator,
     "Rewards": Rewards,
     "Season": Season,
     "Shop": Shop,
     "UserSettings": UserSettings,
-    "Marketplace": Marketplace,
 }
 
 export const pagesConfig = {

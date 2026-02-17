@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import PetAvatar from '@/components/quest/PetAvatar';
 import TradeOfferDialog from '@/components/marketplace/TradeOfferDialog';
 import PetPreviewDialog from '@/components/marketplace/PetPreviewDialog';
+import InventoriesDialog from '@/components/marketplace/InventoriesDialog';
+import { getPetName, collectCustomIds } from '@/components/quest/petUtils';
 import { Coins, PlusCircle, Eye, Handshake } from 'lucide-react';
 
 export default function Marketplace() {
@@ -26,6 +28,8 @@ export default function Marketplace() {
   const [offerListing, setOfferListing] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewPetId, setPreviewPetId] = useState('');
+  const [showInventories, setShowInventories] = useState(false);
+  const [customNameMap, setCustomNameMap] = useState({});
 
   useEffect(() => {
     loadAll();
@@ -45,6 +49,17 @@ export default function Marketplace() {
       }
       const p = profs[0];
       setProfile(p);
+
+      // Build custom pet name map for this user's pets
+      const customIds = collectCustomIds(Array.isArray(p.unlockedPets) ? p.unlockedPets : []);
+      if (customIds.length > 0) {
+        const results = await Promise.all(customIds.map(id => base44.entities.CustomPet.filter({ id })));
+        const map = {};
+        results.forEach(arr => { if (arr?.[0]) map[arr[0].id] = arr[0]; });
+        setCustomNameMap(map);
+      } else {
+        setCustomNameMap({});
+      }
 
       const allActive = await base44.entities.MarketplaceListing.filter({ status: 'active' }, '-created_date', 100);
       setActiveListings(allActive);
@@ -123,6 +138,9 @@ export default function Marketplace() {
             <Coins className="w-5 h-5" />
             <span className="font-semibold">{profile?.questCoins || 0}</span>
             <span className="text-sm">coins</span>
+            <Button variant="outline" size="sm" className="ml-3" onClick={() => setShowInventories(true)}>
+              Check Inventories
+            </Button>
           </div>
         </div>
 
@@ -144,7 +162,7 @@ export default function Marketplace() {
                   </SelectTrigger>
                   <SelectContent>
                     {myPets.map((pid) => (
-                      <SelectItem key={pid} value={pid}>{pid}</SelectItem>
+                      <SelectItem key={pid} value={pid}>{getPetName(pid, customNameMap)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -280,6 +298,7 @@ export default function Marketplace() {
         onCreated={loadAll}
       />
       <PetPreviewDialog petId={previewPetId} open={showPreview} onOpenChange={setShowPreview} />
+      <InventoriesDialog open={showInventories} onOpenChange={setShowInventories} currentProfileId={profile?.id} />
     </div>
   );
 }
