@@ -28,6 +28,7 @@ import CosmeticGeneratorPanel from '@/components/admin/CosmeticGeneratorPanel';
 import BulkPetCreatorPanel from '@/components/admin/BulkPetCreatorPanel';
 import EconomyCharts from '@/components/admin/EconomyCharts';
 import AdminEmailBroadcast from '@/components/admin/AdminEmailBroadcast';
+import BoothSkinManager from '@/components/admin/BoothSkinManager';
 import SuperAssignmentCreator from '@/components/admin/super/SuperAssignmentCreator';
 import SuperAssignmentsAnalytics from '@/components/admin/super/SuperAssignmentsAnalytics';
 import PetEditorDialog from '@/components/pets/PetEditorDialog';
@@ -86,6 +87,7 @@ export default function Admin() {
   const [editingPet, setEditingPet] = useState(null);
   const [customThemes, setCustomThemes] = useState([]);
   const [petCosmetics, setPetCosmetics] = useState([]);
+  const [boothSkins, setBoothSkins] = useState([]);
   const [showPetForm, setShowPetForm] = useState(false);
   const [showThemeForm, setShowThemeForm] = useState(false);
   const [showCosmeticForm, setShowCosmeticForm] = useState(false);
@@ -337,6 +339,8 @@ export default function Admin() {
       setAdminReferralLinks(allReferralLinks.filter(link => link.isAdminLink));
       setRewardLinks(allRewardLinks);
       setPetCosmetics(allCosmetics);
+      const allBoothSkins = await base44.entities.BoothSkin.list('-created_date');
+      setBoothSkins(allBoothSkins);
       const refSetting = allSettings.find(s => s.key === 'referral_settings');
       if (refSetting) {
         setReferralSettings(refSetting.value);
@@ -1007,16 +1011,30 @@ White or transparent background, centered, high quality illustration.`;
                             {user.hiddenFromLeaderboard ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                           </Button>
                           <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setEditXp(String(user.xp || 0));
-                            }}
-                            className="text-slate-400 hover:text-white"
+                           size="sm"
+                           variant="ghost"
+                           onClick={() => {
+                             setSelectedUser(user);
+                             setEditXp(String(user.xp || 0));
+                           }}
+                           className="text-slate-400 hover:text-white"
                           >
-                            <Edit2 className="w-4 h-4" />
+                           <Edit2 className="w-4 h-4" />
                           </Button>
+                          {isSuperAdmin && (
+                           <Button
+                             size="sm"
+                             variant="ghost"
+                             onClick={() => {
+                               localStorage.setItem('quest_profile_id', user.id);
+                               navigate(createPageUrl('Dashboard'));
+                             }}
+                             className="text-emerald-400 hover:text-emerald-300"
+                             title="Switch to this user"
+                           >
+                             Switch
+                           </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1596,6 +1614,10 @@ White or transparent background, centered, high quality illustration.`;
             </div>
           </TabsContent>
 
+
+          <TabsContent value="booths">
+            <BoothSkinManager />
+          </TabsContent>
 
           <TabsContent value="analytics">
             <EconomyCharts />
@@ -2529,15 +2551,16 @@ White or transparent background, centered, high quality illustration.`;
               <div className="space-y-2">
                 <Label>Gift Type</Label>
                 <Select value={giftType} onValueChange={(v) => { setGiftType(v); setGiftItemId(''); }}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="coins">Quest Coins</SelectItem>
-                    <SelectItem value="pet">Pet</SelectItem>
-                    <SelectItem value="theme">Theme</SelectItem>
-                    <SelectItem value="cosmetic">Cosmetic</SelectItem>
-                  </SelectContent>
+                 <SelectTrigger className="bg-slate-700 border-slate-600">
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="coins">Quest Coins</SelectItem>
+                   <SelectItem value="pet">Pet</SelectItem>
+                   <SelectItem value="theme">Theme</SelectItem>
+                   <SelectItem value="cosmetic">Cosmetic</SelectItem>
+                   <SelectItem value="boothskin">Booth Skin</SelectItem>
+                 </SelectContent>
                 </Select>
               </div>
               
@@ -2587,6 +2610,14 @@ White or transparent background, centered, high quality illustration.`;
                         {customThemes.map(theme => (
                           <SelectItem key={theme.id} value={`custom_${theme.id}`}>
                             {theme.name} (Custom)
+                          </SelectItem>
+                        ))}
+                      </>
+                    ) : giftType === 'boothskin' ? (
+                      <>
+                        {boothSkins.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
                           </SelectItem>
                         ))}
                       </>
