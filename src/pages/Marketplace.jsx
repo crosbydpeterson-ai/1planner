@@ -11,6 +11,7 @@ import PetAvatar from '@/components/quest/PetAvatar';
 import TradeOfferDialog from '@/components/marketplace/TradeOfferDialog';
 import PetPreviewDialog from '@/components/marketplace/PetPreviewDialog';
 import InventoriesDialog from '@/components/marketplace/InventoriesDialog';
+import LockedOverlay from '@/components/common/LockedOverlay';
 import { getPetName, collectCustomIds } from '@/components/quest/petUtils';
 import { Coins, PlusCircle, Eye, Handshake } from 'lucide-react';
 
@@ -32,6 +33,8 @@ export default function Marketplace() {
   const [previewPetId, setPreviewPetId] = useState('');
   const [showInventories, setShowInventories] = useState(false);
   const [customNameMap, setCustomNameMap] = useState({});
+  const [locks, setLocks] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     loadAll();
@@ -51,6 +54,17 @@ export default function Marketplace() {
       }
       const p = profs[0];
       setProfile(p);
+
+      // Admin check (Crosby, first profile, or admin rank)
+      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
+      const nameIsCrosby = (typeof p.username === 'string' && p.username.toLowerCase() === 'crosby');
+      const admin = nameIsCrosby || (allProfiles[0] && allProfiles[0].id === p.id) || p.rank === 'admin' || p.rank === 'super_admin';
+      setIsAdmin(!!admin);
+
+      // Load locks
+      const settings = await base44.entities.AppSetting.list();
+      const fl = settings.find(s => s.key === 'feature_locks');
+      setLocks(fl ? fl.value : null);
 
       // Build custom pet name map for this user's pets
       const customIds = collectCustomIds(Array.isArray(p.unlockedPets) ? p.unlockedPets : []);
@@ -146,6 +160,14 @@ export default function Marketplace() {
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
       </div>
     );
+  }
+
+  // Feature lock: Market/Trading
+  const userLock = locks?.users?.[profile.id]?.market ?? locks?.users?.[profile.id]?.trading;
+  const isLocked = !isAdmin && ((typeof userLock === 'object' ? userLock.locked : !!userLock));
+  const lockMsg = typeof userLock === 'object' ? (userLock.message || '') : '';
+  if (isLocked) {
+    return <LockedOverlay featureLabel="Market" message={lockMsg || "An Admin or Mod has locked this feature. You can't currently use it."} />;
   }
 
   const myPets = Array.isArray(profile?.unlockedPets) ? profile.unlockedPets : [];

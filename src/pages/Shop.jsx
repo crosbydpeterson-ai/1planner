@@ -371,9 +371,13 @@ export default function Shop() {
                           </span>
                         </div>
                       )}
-                      {bundle.stockRemaining !== null && (
+                      {bundle.stockRemaining !== null ? (
                         <p className="text-purple-100 text-xs mt-2">
                           Only {bundle.stockRemaining} remaining!
+                        </p>
+                      ) : (
+                        <p className="text-purple-100 text-xs mt-2">
+                          Unlimited stock
                         </p>
                       )}
                     </div>
@@ -443,9 +447,13 @@ export default function Shop() {
                     )}
                   </div>
                   
-                  {item.stockRemaining !== null && (
+                  {item.stockRemaining !== null ? (
                     <p className="text-xs text-amber-600 mb-2">
                       Only {item.stockRemaining} left!
+                    </p>
+                  ) : (
+                    <p className="text-xs text-emerald-600 mb-2">
+                      Unlimited stock
                     </p>
                   )}
 
