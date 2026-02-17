@@ -165,6 +165,21 @@ export default function Assignments() {
       let xpToAdd = 25;
       let coinsToAdd = 1;
       if (profile.isBanned) { xpToAdd = 0; coinsToAdd = 0; }
+
+      // Auto-flag rule: posted during school hours and completed within 30 minutes during school hours
+      const createdAt = assignment.created_date ? new Date(assignment.created_date) : null;
+      const now = new Date();
+      const minutesSincePost = createdAt ? Math.floor((now.getTime() - createdAt.getTime()) / 60000) : null;
+      const timeToMinutes = (d) => d.getHours() * 60 + d.getMinutes();
+      const schoolStartMin = 8 * 60 + 30; // 8:30
+      const schoolEndMin = 14 * 60 + 50;  // 2:50
+      const nowMin = timeToMinutes(now);
+      const postedMin = createdAt ? timeToMinutes(createdAt) : null;
+
+      const postedDuringSchool = createdAt ? (postedMin >= schoolStartMin && postedMin <= schoolEndMin) : false;
+      const nowDuringSchool = nowMin >= schoolStartMin && nowMin <= schoolEndMin;
+      const shouldFlagUser = Boolean(createdAt && postedDuringSchool && nowDuringSchool && minutesSincePost !== null && minutesSincePost <= 30);
+
       const newXp = (profile.xp || 0) + xpToAdd;
       const newCoins = (profile.questCoins || 0) + coinsToAdd;
       
@@ -174,19 +189,28 @@ export default function Assignments() {
       const isNewPet = !currentPets.includes(randomPet.id);
       const newUnlockedPets = (isNewPet && !profile.isBanned) ? [...currentPets, randomPet.id] : currentPets;
 
-      await base44.entities.UserProfile.update(profile.id, {
+      const userUpdate = {
         xp: newXp,
         questCoins: newCoins,
         completedAssignments,
         unlockedPets: newUnlockedPets
-      });
+      };
+      if (shouldFlagUser && !profile.flagged) {
+        userUpdate.flagged = true;
+        userUpdate.flagMessage = 'Unnatural completion detected: finished within 30 minutes during school hours';
+        userUpdate.flagAcknowledged = false;
+      }
+      await base44.entities.UserProfile.update(profile.id, userUpdate);
 
       setProfile({
         ...profile,
         xp: newXp,
         questCoins: newCoins,
         completedAssignments,
-        unlockedPets: newUnlockedPets
+        unlockedPets: newUnlockedPets,
+        flagged: shouldFlagUser ? true : profile.flagged,
+        flagMessage: shouldFlagUser ? 'Unnatural completion detected: finished within 30 minutes during school hours' : profile.flagMessage,
+        flagAcknowledged: shouldFlagUser ? false : profile.flagAcknowledged
       });
 
       // Track XP gain
