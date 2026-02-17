@@ -226,7 +226,7 @@ export default function Assignments() {
       });
 
       toast.success(`+25 XP & +1 Quest Coin earned!`, {
-        description: `Assignment "${assignment.title}" completed`
+        description: `Assignment "${assignment.title}" completed${shouldFlagUser ? ' • (Flag set for review)' : ''}`
       });
 
       if (isNewPet && !profile.isBanned) {
