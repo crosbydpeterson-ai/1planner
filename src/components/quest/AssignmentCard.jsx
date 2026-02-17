@@ -38,7 +38,17 @@ export default function AssignmentCard({ assignment, isCompleted, onComplete }) 
               {assignment.subject === "everyone" ? "All Students" : assignment.subject.charAt(0).toUpperCase() + assignment.subject.slice(1)}
               {assignment.target !== "everyone" && ` • ${assignment.target}`}
             </span>
-            {assignment.isFlagged && (
+            {(assignment.isFlagged || (assignment.created_date && (() => {
+              const c = new Date(assignment.created_date);
+              const m = Math.floor((Date.now() - c.getTime()) / 60000);
+              const toMin = (d) => d.getHours() * 60 + d.getMinutes();
+              const start = 8 * 60 + 30;
+              const end = 14 * 60 + 50;
+              const now = new Date();
+              const postedDuring = toMin(c) >= start && toMin(c) <= end;
+              const nowDuring = toMin(now) >= start && toMin(now) <= end;
+              return postedDuring && nowDuring && m <= 30;
+            })()) ) && (
               <span className="text-xs font-semibold px-2 py-1 rounded-full bg-amber-100/80 text-amber-700 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
                 Flagged
