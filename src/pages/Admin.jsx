@@ -191,7 +191,7 @@ export default function Admin() {
   });
 
   const defaultFeatureLocks = {
-    global: { shop: false, battlePass: false, pets: false, xpGain: false },
+    global: { shop: false, market: false, battlePass: false, pets: false, xpGain: false },
     classes: { math: {}, reading: {} },
     users: {}
   };
@@ -1877,7 +1877,7 @@ White or transparent background, centered, high quality illustration.`;
             <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
               <h3 className="text-white font-semibold mb-3">Global Feature Locks</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {['shop','battlePass','pets','xpGain'].map((k) => (
+                {['shop','market','battlePass','pets','xpGain'].map((k) => (
                   <label key={k} className="flex items-center gap-2 bg-slate-700/60 rounded-lg px-3 py-2 text-sm text-slate-200">
                     <input
                       type="checkbox"

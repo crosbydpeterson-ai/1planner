@@ -181,10 +181,14 @@ export default function Marketplace() {
     );
   }
 
-  // Feature lock: Market/Trading
-  const userLock = locks?.users?.[profile.id]?.market ?? locks?.users?.[profile.id]?.trading;
-  const isLocked = !isAdmin && ((typeof userLock === 'object' ? userLock.locked : !!userLock));
-  const lockMsg = typeof userLock === 'object' ? (userLock.message || '') : '';
+  // Feature lock: Marketplace (global, class, or user-specific)
+  const globalLocked = !!locks?.global?.market;
+  const classMathLocked = !!locks?.classes?.math?.[profile.mathTeacher]?.market;
+  const classReadingLocked = !!locks?.classes?.reading?.[profile.readingTeacher]?.market;
+  const userEntry = locks?.users?.[profile.id]?.market ?? locks?.users?.[profile.id]?.trading;
+  const userLocked = typeof userEntry === 'object' ? !!userEntry.locked : !!userEntry;
+  const isLocked = !isAdmin && (globalLocked || classMathLocked || classReadingLocked || userLocked);
+  const lockMsg = typeof userEntry === 'object' ? (userEntry.message || '') : '';
   if (isLocked) {
     return <LockedOverlay featureLabel="Market" message={lockMsg || "An Admin or Mod has locked this feature. You can't currently use it."} />;
   }
