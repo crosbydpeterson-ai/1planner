@@ -10,6 +10,7 @@ import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import BrandLogo from '@/components/branding/BrandLogo';
 
 export default function Layout({ children, currentPageName }) {
         const navigate = useNavigate();
@@ -168,6 +169,9 @@ export default function Layout({ children, currentPageName }) {
   return (
     <div className="min-h-screen pb-20 relative">
       <ThemedBackground colors={themeColors} />
+      <header className="fixed top-3 left-3 z-50">
+        <BrandLogo size="md" />
+      </header>
       {children}
       {!hideNav && <ChatbotWidget />}
       
