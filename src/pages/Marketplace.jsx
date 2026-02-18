@@ -23,6 +23,7 @@ export default function Marketplace() {
   const [incomingOffers, setIncomingOffers] = useState([]);
   const [sellersMap, setSellersMap] = useState({});
   const [skinsMap, setSkinsMap] = useState({});
+  const [sellerBgMap, setSellerBgMap] = useState({});
   const [creating, setCreating] = useState(false);
   const [petToSell, setPetToSell] = useState('');
   const [price, setPrice] = useState('');
@@ -97,6 +98,24 @@ export default function Marketplace() {
         skins.forEach(arr => { if (arr?.[0]) kMap[arr[0].id] = arr[0]; });
       }
       setSkinsMap(kMap);
+
+      // Build booth backgrounds from sellers' background cosmetics (fallback if no booth skin)
+      let bgMap = {};
+      try {
+        const sellerProfiles = Object.values(sMap);
+        const allCosmeticIds = Array.from(new Set(sellerProfiles.flatMap(sp => sp.equippedCosmetics || [])));
+        if (allCosmeticIds.length > 0) {
+          const cosmeticsArr = await Promise.all(allCosmeticIds.map(id => base44.entities.PetCosmetic.filter({ id })));
+          const cosmeticsMap = {};
+          cosmeticsArr.forEach(arr => { if (arr?.[0]) cosmeticsMap[arr[0].id] = arr[0]; });
+          sellerProfiles.forEach(sp => {
+            const bgId = (sp.equippedCosmetics || []).find(cid => cosmeticsMap[cid]?.cosmeticType === 'background' && cosmeticsMap[cid]?.imageUrl);
+            if (bgId) bgMap[sp.id] = cosmeticsMap[bgId].imageUrl;
+          });
+        }
+      } catch (e) { /* ignore */ }
+      setSellerBgMap(bgMap);
+
       setActiveListings(allActive);
 
       const mine = await base44.entities.MarketplaceListing.filter({ sellerProfileId: p.id, status: 'active' }, '-created_date', 100);
@@ -302,11 +321,12 @@ export default function Marketplace() {
             ).map(([sellerId, listings]) => {
               const seller = sellersMap[sellerId] || {};
               const banner = skinsMap[seller.equippedBoothSkinId];
+              const boothBgUrl = banner?.imageUrl || sellerBgMap[sellerId];
               return (
                 <div key={sellerId} className="mb-6 rounded-2xl overflow-hidden border border-slate-200">
                   <div className="relative h-32 sm:h-40 w-full">
-                    {banner ? (
-                      <img src={banner.imageUrl} alt={banner.name} className="absolute inset-0 w-full h-full object-cover" />
+                    {boothBgUrl ? (
+                      <img src={boothBgUrl} alt={banner?.name || 'Booth background'} className="absolute inset-0 w-full h-full object-cover" />
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-purple-100" />
                     )}

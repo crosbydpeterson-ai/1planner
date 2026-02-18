@@ -72,21 +72,22 @@ export default function PetAvatar({ petId, cosmeticIds = [], cosmeticPositions =
         {petDisplay}
       </div>
       
-      {/* Cosmetics overlay */}
+      {/* Cosmetics overlay (excluding backgrounds; booth handles those) */}
       {cosmetics.map((cosmetic, index) => {
-        // Use custom position if available, otherwise use default based on type
-        const customPos = cosmeticPositions[cosmetic.id];
-        const zIndex = cosmetic.cosmeticType === 'background' ? 'z-0' : 'z-30';
+        if (cosmetic.cosmeticType === 'background') return null;
+        const customPos = cosmeticPositions[cosmetic.id] || {};
+        const zIndex = 'z-30';
 
         // Default positions if no custom position set
         const defaultPositions = {
           hat: { x: 50, y: 40 },
           glasses: { x: 50, y: 52 },
-          accessory: { x: 50, y: 70 },
-          background: { x: 50, y: 50 }
+          accessory: { x: 50, y: 70 }
         };
 
-        const pos = customPos || defaultPositions[cosmetic.cosmeticType] || { x: 50, y: 30 + (index * 15) };
+        const pos = { ...(defaultPositions[cosmetic.cosmeticType] || { x: 50, y: 30 + (index * 15) }), ...customPos };
+        const scale = typeof pos.scale === 'number' ? pos.scale : 1;
+        const rotation = typeof pos.rotation === 'number' ? pos.rotation : 0;
 
         return (
           <img
@@ -97,7 +98,7 @@ export default function PetAvatar({ petId, cosmeticIds = [], cosmeticPositions =
             style={{ 
               left: `${pos.x}%`,
               top: `${pos.y}%`,
-              transform: 'translate(-50%, -50%)'
+              transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`
             }}
           />
         );

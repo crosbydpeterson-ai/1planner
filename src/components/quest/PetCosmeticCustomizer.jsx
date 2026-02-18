@@ -11,6 +11,7 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
   const [cosmetics, setCosmetics] = useState([]);
   const [dragging, setDragging] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
   const containerRef = useRef(null);
 
   const startDrag = (e, id) => {
@@ -86,7 +87,7 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
       const items = await Promise.all(
         ids.map(id => base44.entities.PetCosmetic.filter({ id }).then(r => r[0]).catch(() => null))
       );
-      setCosmetics(items.filter(Boolean));
+      setCosmetics(items.filter(Boolean).filter(c => c.cosmeticType !== 'background'));
     } catch (e) {
       console.error('Error loading cosmetics:', e);
     }
@@ -173,14 +174,16 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
         </div>
 
         {cosmetics.map((c, idx) => {
-          const pos = positions[c.id] || defaultPosFor(c, idx);
+          const base = positions[c.id] || defaultPosFor(c, idx);
+          const pos = { x: base.x, y: base.y, scale: base.scale ?? 1, rotation: base.rotation ?? 0 };
           return (
             <div
               key={c.id}
               onMouseDown={(e) => startDrag(e, c.id)}
               onTouchStart={(e) => startDrag(e, c.id)}
-              style={{ position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)', cursor: dragging === c.id ? 'grabbing' : 'grab', zIndex: c.cosmeticType === 'background' ? 0 : 20 }}
-              className="transition-opacity hover:opacity-80"
+              onClick={() => setSelectedId(c.id)}
+              style={{ position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`, transform: `translate(-50%, -50%) rotate(${pos.rotation}deg) scale(${pos.scale})`, cursor: dragging === c.id ? 'grabbing' : 'grab', zIndex: 20 }}
+              className={`transition-opacity hover:opacity-80 ${selectedId === c.id ? 'ring-2 ring-indigo-400 rounded-lg' : ''}`}
             >
               {c.imageUrl ? (
                 <img src={c.imageUrl} alt={c.name} className={`${sizeFor(c.cosmeticType)} pointer-events-none object-contain`} />
@@ -198,7 +201,42 @@ export default function PetCosmeticCustomizer({ profile, onUpdate }) {
         )}
       </div>
 
+      {selectedId && (
+        <div className="mb-4 grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="text-xs text-slate-600">Size</label>
+            <input
+              type="range"
+              min="0.5"
+              max="2"
+              step="0.05"
+              value={(positions[selectedId]?.scale ?? 1)}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                setPositions(prev => ({ ...prev, [selectedId]: { ...(prev[selectedId] || {}), scale: v } }));
+              }}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-600">Rotation</label>
+            <input
+              type="range"
+              min="-180"
+              max="180"
+              step="1"
+              value={(positions[selectedId]?.rotation ?? 0)}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                setPositions(prev => ({ ...prev, [selectedId]: { ...(prev[selectedId] || {}), rotation: v } }));
+              }}
+              className="w-full"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="text-xs text-slate-500 text-center">You can equip up to 3 cosmetics. Edit in Collection, then position here.</div>
-    </Card>
+      </Card>
   );
 }
