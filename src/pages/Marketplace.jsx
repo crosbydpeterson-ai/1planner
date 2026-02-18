@@ -321,7 +321,7 @@ export default function Marketplace() {
             ).map(([sellerId, listings]) => {
               const seller = sellersMap[sellerId] || {};
               const banner = skinsMap[seller.equippedBoothSkinId];
-              const boothBgUrl = banner?.imageUrl || sellerBgMap[sellerId];
+              const boothBgUrl = sellerBgMap[sellerId] || banner?.imageUrl;
               return (
                 <div key={sellerId} className="mb-6 rounded-2xl overflow-hidden border border-slate-200">
                   <div className="relative h-32 sm:h-40 w-full">
