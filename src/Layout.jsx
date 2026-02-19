@@ -7,6 +7,7 @@ import { base44 } from '@/api/base44Client';
 import ThemedBackground from '@/components/theme/ThemedBackground';
 import ChatbotWidget from '@/components/chat/ChatbotWidget';
 import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
+import { THEMES } from '@/components/quest/ThemeCatalog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -67,26 +68,53 @@ export default function Layout({ children, currentPageName }) {
   const loadUserTheme = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) return;
-    
+
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
-      if (profiles.length > 0 && profiles[0].equippedPetId) {
-        const petId = profiles[0].equippedPetId;
-        
-        // Check if it's a custom pet
-        if (petId.startsWith('custom_')) {
-          const customPetId = petId.replace('custom_', '');
+      if (profiles.length === 0) return;
+      const p = profiles[0];
+
+      // 1) If a standalone theme is equipped, prefer it over pet theme
+      if (p.equippedThemeId) {
+        if (String(p.equippedThemeId).startsWith('custom_')) {
+          const tid = String(p.equippedThemeId).replace('custom_', '');
+          const ct = await base44.entities.CustomTheme.filter({ id: tid });
+          if (ct.length > 0) {
+            setThemeColors({
+              primary: ct[0].primaryColor,
+              secondary: ct[0].secondaryColor,
+              accent: ct[0].accentColor,
+              bg: ct[0].bgColor,
+            });
+            return;
+          }
+        } else {
+          const t = THEMES.find(t => t.id === p.equippedThemeId);
+          if (t?.colors) {
+            setThemeColors(t.colors);
+            return;
+          }
+        }
+      }
+
+      // 2) Otherwise derive theme from equipped pet
+      if (p.equippedPetId) {
+        const petId = p.equippedPetId;
+        if (String(petId).startsWith('custom_')) {
+          const customPetId = String(petId).replace('custom_', '');
           const customPets = await base44.entities.CustomPet.filter({ id: customPetId });
           if (customPets.length > 0 && customPets[0].theme) {
             setThemeColors(customPets[0].theme);
             return;
           }
         }
-        
-        // Get theme from built-in pet
         const petTheme = getPetTheme(petId);
         setThemeColors(petTheme);
+        return;
       }
+
+      // 3) Fallback: no theme
+      setThemeColors(null);
     } catch (e) {
       console.error('Error loading theme:', e);
     }
