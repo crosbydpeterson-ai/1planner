@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ClipboardList, ArrowLeft, CheckCircle, Plus, AlertTriangle } from 'lucide-react';
+import { ClipboardList, ArrowLeft, CheckCircle, Plus, AlertTriangle, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -15,8 +15,9 @@ import AssignmentCard from '@/components/quest/AssignmentCard';
 import SuperAssignmentCard from '@/components/quest/SuperAssignmentCard';
 import GlassIcon from '@/components/ui/GlassIcon';
 import Tutorial from '@/components/tutorial/Tutorial';
+import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
 
-import { toast } from 'sonner';
+ import { toast } from 'sonner';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
 
 export default function Assignments() {
@@ -31,9 +32,12 @@ export default function Assignments() {
   const [newAssignment, setNewAssignment] = useState({ title: '', description: '', dueDate: '', subject: 'everyone' });
   const [submitting, setSubmitting] = useState(false);
   const [showFlagDialog, setShowFlagDialog] = useState(false);
+  const [dailyConfig, setDailyConfig] = useState(null);
+  const [dailyProgress, setDailyProgress] = useState(null);
+  const [showDailyClaim, setShowDailyClaim] = useState(false);
 
 
-  useEffect(() => {
+   useEffect(() => {
     loadData();
     base44.analytics.track({ eventName: 'assignments_viewed' });
   }, []);
@@ -57,7 +61,22 @@ export default function Assignments() {
       const p = profiles[0];
       setProfile(p);
 
-      // Show one-time warning if flagged and not acknowledged
+      // Load daily rewards config
+      const settings = await base44.entities.AppSetting.list();
+      const dr = settings.find(s => s.key === 'daily_rewards_config');
+      setDailyConfig(dr ? dr.value : null);
+
+      // Load or init progress
+      const progList = await base44.entities.DailyRewardProgress.filter({ userProfileId: p.id });
+      if (progList.length > 0) {
+        setDailyProgress(progList[0]);
+        const today = new Date().toISOString().split('T')[0];
+        if (progList[0].eligible && progList[0].eligibleDate === today && progList[0].lastClaimDate !== today) {
+          setShowDailyClaim(true);
+        }
+      }
+
+       // Show one-time warning if flagged and not acknowledged
       if (p.flagged && !p.flagAcknowledged) {
         setShowFlagDialog(true);
       }
@@ -213,7 +232,24 @@ export default function Assignments() {
         flagAcknowledged: shouldFlagUser ? false : profile.flagAcknowledged
       });
 
-      // Track XP gain
+      // Mark daily reward eligibility (manual claim)
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        let progList = await base44.entities.DailyRewardProgress.filter({ userProfileId: profile.id });
+        if (progList.length === 0) {
+          const created = await base44.entities.DailyRewardProgress.create({ userProfileId: profile.id, eligible: true, eligibleDate: today, streakCount: 0, currentIndex: 0 });
+          setDailyProgress(created);
+        } else {
+          const prog = progList[0];
+          const updated = await base44.entities.DailyRewardProgress.update(prog.id, { eligible: true, eligibleDate: today });
+          setDailyProgress({ ...prog, eligible: true, eligibleDate: today });
+        }
+        setShowDailyClaim(true);
+      } catch (e) {
+        // ignore
+      }
+
+       // Track XP gain
       base44.analytics.track({
         eventName: "assignment_completed_xp_gained",
         properties: {
@@ -443,8 +479,19 @@ export default function Assignments() {
           </div>
         )}
 
+        {/* Daily Reward Banner */}
+         {dailyConfig && dailyProgress && dailyProgress.eligible && (
+           <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between">
+             <div className="flex items-center gap-2 text-emerald-700">
+               <Gift className="w-4 h-4" />
+               <span>Daily reward ready to claim!</span>
+             </div>
+             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowDailyClaim(true)}>Claim</Button>
+           </div>
+         )}
+
         {/* Assignment List */}
-        <div className="space-y-4">
+         <div className="space-y-4">
           <AnimatePresence>
             {filteredAssignments.length === 0 ? (
               <motion.div
@@ -509,6 +556,16 @@ export default function Assignments() {
 
       {/* Tutorial */}
        <Tutorial profile={profile} currentPage="Assignments" onComplete={() => {}} />
-    </div>
-  );
+
+       {/* Claim Dialog */}
+       <DailyRewardClaim
+         open={showDailyClaim}
+         onOpenChange={setShowDailyClaim}
+         profile={profile}
+         progress={dailyProgress}
+         config={dailyConfig}
+         onClaimed={(p) => setDailyProgress(prev => ({ ...prev, ...p }))}
+       />
+      </div>
+      );
 }

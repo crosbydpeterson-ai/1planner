@@ -28,6 +28,7 @@ import CosmeticGeneratorPanel from '@/components/admin/CosmeticGeneratorPanel';
 import BulkPetCreatorPanel from '@/components/admin/BulkPetCreatorPanel';
 import EconomyCharts from '@/components/admin/EconomyCharts';
 import AdminEmailBroadcast from '@/components/admin/AdminEmailBroadcast';
+import DailyRewardsSettings from '@/components/admin/DailyRewardsSettings';
 import BoothSkinManager from '@/components/admin/BoothSkinManager';
 import SuperAssignmentCreator from '@/components/admin/super/SuperAssignmentCreator';
 import SuperAssignmentsAnalytics from '@/components/admin/super/SuperAssignmentsAnalytics';
@@ -1998,6 +1999,19 @@ White or transparent background, centered, high quality illustration.`;
                     Save Referral Settings
                   </Button>
                 </div>
+              </div>
+
+              {/* Daily Rewards (Streak & Wheel) */}
+              <div className="bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 rounded-2xl p-6 border border-white/10 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">🎁</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Daily Rewards</h3>
+                    <p className="text-slate-400 text-sm">Configure streak schedule and optional spin-the-wheel</p>
+                  </div>
+                </div>
+
+                <DailyRewardsSettings />
               </div>
 
               {/* Reward Links */}
