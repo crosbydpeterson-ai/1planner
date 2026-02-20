@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import { getISOWeek, getISOWeekYear } from 'date-fns';
 
 const BYTE_IMAGE = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/696e36c523c92e1a3cd5dbd6/e5d1726bd_image.png";
 
@@ -16,6 +17,45 @@ export default function ChatbotWidget() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
+  const [isDisabled, setIsDisabled] = useState(false);
+  const WEEKLY_LIMIT = 15;
+  const [error, setError] = useState('');
+
+  const getPeriod = () => {
+    const now = new Date();
+    const y = getISOWeekYear(now);
+    const w = String(getISOWeek(now)).padStart(2, '0');
+    return `${y}-W${w}`;
+  };
+
+  const checkAndIncrementUsage = async () => {
+    try {
+      const user = await base44.auth.me();
+      if (!user) return false;
+      const period = getPeriod();
+      const existing = await base44.entities.AgentUsage.filter({ userId: user.email, agentName: 'guide_chatbot', period });
+      let usage = existing[0];
+      if (!usage) {
+        usage = await base44.entities.AgentUsage.create({ userId: user.email, agentName: 'guide_chatbot', period, messageCount: 0 });
+      }
+      if ((usage.messageCount ?? 0) >= WEEKLY_LIMIT) {
+        setError(`Byte is limited to ${WEEKLY_LIMIT} messages per week. Try again next week.`);
+        return false;
+      }
+      await base44.entities.AgentUsage.update(usage.id, {
+        messageCount: (usage.messageCount ?? 0) + 1,
+        lastMessageAt: new Date().toISOString()
+      });
+      setError('');
+      return true;
+    } catch (e) {
+      console.error('Usage check failed:', e);
+      // Fail-safe: block to protect credits
+      setError('Byte is temporarily unavailable. Please try again later.');
+      return false;
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -23,6 +63,20 @@ export default function ChatbotWidget() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const settings = await base44.entities.AppSetting.list();
+        const flag = settings.find(s => s.key === 'disable_guide_chat');
+        if (flag && (flag.value?.disabled === true || flag.value === true)) {
+          setIsDisabled(true);
+        }
+      } catch (e) {
+        console.error('Failed to load guide chat setting:', e);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (isOpen && !conversation) {
@@ -72,8 +126,11 @@ export default function ChatbotWidget() {
   };
 
   const sendMessage = async () => {
+    if (isDisabled) return;
     const text = input.trim();
     if (!text) return;
+    const ok = await checkAndIncrementUsage();
+    if (!ok) return;
     const conv = conversation?.id ? conversation : await ensureConversation();
     if (!conv) return;
     setInput('');
@@ -94,7 +151,7 @@ export default function ChatbotWidget() {
     }
   };
 
-  return (
+  return isDisabled ? null : (
     <>
       {/* Floating Button */}
       <motion.button
@@ -164,6 +221,7 @@ export default function ChatbotWidget() {
 
             {/* Input */}
             <div className="p-3 border-t border-slate-200 bg-white">
+              {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
               <div className="flex gap-2">
                 <Input
                   value={input}
