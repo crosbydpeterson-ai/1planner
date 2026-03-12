@@ -12,6 +12,11 @@ const REWARD_TYPE_ICONS = {
 
 export default function SeasonRewards({ season, userXp, claimedRewards = [], onClaim }) {
   if (!season) return null;
+
+  const getRewardClaimKey = (reward, rewardIndex) => {
+    const rewardValue = reward?.value || reward?.name || 'reward';
+    return `${season.id}:${rewardIndex}:${reward.type}:${rewardValue}`;
+  };
   
   return (
     <div className="space-y-4">
@@ -32,7 +37,8 @@ export default function SeasonRewards({ season, userXp, claimedRewards = [], onC
         <div className="space-y-4">
           {season.rewards?.map((reward, index) => {
             const isUnlocked = userXp >= reward.xpRequired;
-            const isClaimed = claimedRewards.includes(reward.xpRequired);
+            const claimKey = getRewardClaimKey(reward, index);
+            const isClaimed = claimedRewards.includes(claimKey);
             
             return (
               <motion.div
@@ -85,7 +91,7 @@ export default function SeasonRewards({ season, userXp, claimedRewards = [], onC
                 {isUnlocked && !isClaimed && (
                   <Button
                     size="sm"
-                    onClick={() => onClaim && onClaim(reward)}
+                    onClick={() => onClaim && onClaim(reward, index)}
                     className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                   >
                     Claim

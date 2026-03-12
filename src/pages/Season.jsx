@@ -10,7 +10,6 @@ import { format, differenceInDays } from 'date-fns';
 import SeasonRewards from '@/components/quest/SeasonRewards';
 import GlassIcon from '@/components/ui/GlassIcon';
 import { toast } from 'sonner';
-import { PETS } from '@/components/quest/PetCatalog';
 
 export default function Season() {
   const navigate = useNavigate();
@@ -24,6 +23,31 @@ export default function Season() {
     loadData();
     base44.analytics.track({ eventName: 'season_page_viewed' });
   }, []);
+
+  const getRewardClaimKey = (seasonId, reward, rewardIndex) => {
+    const rewardValue = reward?.value || reward?.name || 'reward';
+    return `${seasonId}:${rewardIndex}:${reward.type}:${rewardValue}`;
+  };
+
+  const getClaimedRewardsForSeason = (userProfile, activeSeason) => {
+    if (!userProfile || !activeSeason) return [];
+
+    const claimsBySeason = userProfile.claimedSeasonRewardsBySeason || {};
+    if (Array.isArray(claimsBySeason[activeSeason.id])) {
+      return claimsBySeason[activeSeason.id];
+    }
+
+    // Backward compatibility: migrate old claim format (xpRequired numbers)
+    // into season-scoped claim keys once.
+    const legacyClaims = userProfile.claimedSeasonRewards || [];
+    return legacyClaims
+      .map((xpRequired) => {
+        const rewardIndex = activeSeason.rewards?.findIndex(r => r.xpRequired === xpRequired);
+        if (rewardIndex === undefined || rewardIndex < 0) return null;
+        return getRewardClaimKey(activeSeason.id, activeSeason.rewards[rewardIndex], rewardIndex);
+      })
+      .filter(Boolean);
+  };
 
   const loadData = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
@@ -62,7 +86,7 @@ export default function Season() {
     setLoading(false);
   };
 
-  const handleClaimReward = async (reward) => {
+  const handleClaimReward = async (reward, rewardIndex) => {
     if (!profile || !season) return;
 
     // Verify eligibility server-side style (in frontend for demo)
@@ -71,16 +95,25 @@ export default function Season() {
       return;
     }
 
-    if ((profile.claimedSeasonRewards || []).includes(reward.xpRequired)) {
+    const existingClaimedRewards = getClaimedRewardsForSeason(profile, season);
+    const rewardClaimKey = getRewardClaimKey(season.id, reward, rewardIndex);
+
+    if (existingClaimedRewards.includes(rewardClaimKey)) {
       toast.error('Reward already claimed!');
       return;
     }
 
     try {
-      const claimedSeasonRewards = [...(profile.claimedSeasonRewards || []), reward.xpRequired];
+      const claimsBySeason = profile.claimedSeasonRewardsBySeason || {};
+      const claimedSeasonRewards = [...existingClaimedRewards, rewardClaimKey];
       
       // Add reward based on type
-      let updateData = { claimedSeasonRewards };
+      let updateData = {
+        claimedSeasonRewardsBySeason: {
+          ...claimsBySeason,
+          [season.id]: claimedSeasonRewards
+        }
+      };
       
       if (reward.type === 'pet') {
         const currentPets = profile.unlockedPets || [];
@@ -191,7 +224,7 @@ export default function Season() {
                 <div className="text-right">
                   <p className="text-indigo-200 text-sm">Rewards Claimed</p>
                   <p className="text-2xl font-bold drop-shadow-lg">
-                    {(profile.claimedSeasonRewards || []).length}/{season.rewards?.length || 0}
+                    {getClaimedRewardsForSeason(profile, season).length}/{season.rewards?.length || 0}
                   </p>
                 </div>
               </div>
@@ -207,7 +240,7 @@ export default function Season() {
               <SeasonRewards
                 season={season}
                 userXp={userXp}
-                claimedRewards={profile.claimedSeasonRewards || []}
+                claimedRewards={getClaimedRewardsForSeason(profile, season)}
                 onClaim={handleClaimReward}
               />
             </motion.div>
