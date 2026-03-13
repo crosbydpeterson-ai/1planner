@@ -102,7 +102,7 @@ export default function DailyRewardClaim({ open, onOpenChange, profile, progress
       await grantReward(reward);
       // update progress
       const nextIndex = effectiveIndex;
-      const nextStreak = (progress?.lastClaimDate === new Date(Date.now() - 24*60*60*1000).toISOString().split('T')[0]) ? (progress?.streakCount || 0) + 1 : 1;
+      const nextStreak = (progress?.lastClaimDate === new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('en-CA')) ? (progress?.streakCount || 0) + 1 : 1;
       await base44.entities.DailyRewardProgress.update(progress.id, {
         lastClaimDate: today,
         currentIndex: nextIndex,

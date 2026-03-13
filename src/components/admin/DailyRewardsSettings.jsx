@@ -16,6 +16,8 @@ export default function DailyRewardsSettings() {
     claimMode: 'manual',
     requireAssignment: true,
   });
+  const [grantUsername, setGrantUsername] = useState('');
+  const [granting, setGranting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -195,6 +197,38 @@ export default function DailyRewardsSettings() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="bg-slate-800 rounded-xl border border-slate-700 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-slate-200">Grant Bonus Spin (by username or email)</Label>
+        </div>
+        <div className="flex gap-2">
+          <Input value={grantUsername} onChange={(e) => setGrantUsername(e.target.value)} placeholder="e.g. Alex or alex@mail.com" className="bg-slate-800 border-slate-700 text-white" />
+          <Button disabled={granting || !grantUsername.trim()} onClick={async () => {
+            setGranting(true);
+            try {
+              const name = grantUsername.trim();
+              let users = await base44.entities.UserProfile.filter({ username: name });
+              if (!users.length) {
+                users = await base44.entities.UserProfile.filter({ userId: name });
+              }
+              const user = users[0];
+              if (!user) { toast.error('User not found'); setGranting(false); return; }
+              const rows = await base44.entities.DailyRewardProgress.filter({ userProfileId: user.id });
+              let rec = rows[0];
+              if (!rec) {
+                rec = await base44.entities.DailyRewardProgress.create({ userProfileId: user.id, streakCount: 0, currentIndex: 0, eligible: false });
+              }
+              const tokens = (rec.bonusWheelTokens || 0) + 1;
+              await base44.entities.DailyRewardProgress.update(rec.id, { bonusWheelTokens: tokens });
+              toast.success(`Granted 1 spin to ${user.username || user.userId}`);
+            } catch (e) {
+              toast.error('Failed to grant spin');
+            }
+            setGranting(false);
+          }} className="bg-purple-600 hover:bg-purple-700">{granting ? 'Granting...' : 'Grant Spin'}</Button>
+        </div>
       </div>
 
       <div className="flex justify-end">
