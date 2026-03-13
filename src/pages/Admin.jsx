@@ -22,7 +22,7 @@ import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
 import { toast } from 'sonner';
 import AdminChatWidget from '@/components/admin/AdminChatWidget';
-import DebugChatWidget from '@/components/admin/DebugChatWidget';
+import CustomizationPanel from '@/components/admin/CustomizationPanel';
 import PetAvatar from '@/components/quest/PetAvatar';
 import CosmeticGeneratorPanel from '@/components/admin/CosmeticGeneratorPanel';
 import BulkPetCreatorPanel from '@/components/admin/BulkPetCreatorPanel';
@@ -1900,7 +1900,7 @@ White or transparent background, centered, high quality illustration.`;
 
           <TabsContent value="settings">
             <div className="space-y-6">
-              <AdminEmailBroadcast />
+              <CustomizationPanel />
               {/* Referral-Only Mode Banner */}
               {referralSettings.referralMode && (
                 <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-2xl p-4">
