@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 
 export default function DailyRewardClaim({ open, onOpenChange, profile, progress, config, onClaimed }) {
   const [claiming, setClaiming] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
 
   const period = useMemo(() => {
     if (config?.scheduleType === 'streak14') return 14;
@@ -31,7 +31,7 @@ export default function DailyRewardClaim({ open, onOpenChange, profile, progress
       return Math.min(30, d.getDate() - 1);
     }
     const last = progress?.lastClaimDate;
-    const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().split('T')[0];
+    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('en-CA');
     if (last === yesterday) {
       return ((progress?.currentIndex || 0) + 1) % period;
     }
@@ -44,6 +44,8 @@ export default function DailyRewardClaim({ open, onOpenChange, profile, progress
 
   const reward = config?.rewards?.[effectiveIndex] || null;
   const disabled = !progress?.eligible || progress?.eligibleDate !== today || progress?.lastClaimDate === today;
+  const hasBonusWheel = Number(progress?.bonusWheelTokens || 0) > 0;
+  const shouldShowWheel = !!(config?.wheel?.enabled && ((reward?.type === 'wheel') || hasBonusWheel));
 
   const grantReward = async (rwd) => {
     if (!rwd) return;
@@ -119,7 +121,7 @@ export default function DailyRewardClaim({ open, onOpenChange, profile, progress
     try {
       await grantReward(prize);
       const nextIndex = effectiveIndex;
-      const nextStreak = (progress?.lastClaimDate === new Date(Date.now() - 24*60*60*1000).toISOString().split('T')[0]) ? (progress?.streakCount || 0) + 1 : 1;
+      const nextStreak = (progress?.lastClaimDate === new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('en-CA')) ? (progress?.streakCount || 0) + 1 : 1;
       await base44.entities.DailyRewardProgress.update(progress.id, {
         lastClaimDate: today,
         currentIndex: nextIndex,
@@ -134,7 +136,22 @@ export default function DailyRewardClaim({ open, onOpenChange, profile, progress
     }
   };
 
-  return (
+  const handleBonusWheelResult = async (prize) => {
+    try {
+      await grantReward(prize);
+      const tokens = Math.max(0, Number(progress?.bonusWheelTokens || 0) - 1);
+      await base44.entities.DailyRewardProgress.update(progress.id, {
+        bonusWheelTokens: tokens,
+        wheelLastSpinDate: today
+      });
+      onClaimed && onClaimed({ ...progress, bonusWheelTokens: tokens, wheelLastSpinDate: today });
+      onOpenChange(false);
+    } catch (e) {
+      toast.error('Failed to record bonus spin');
+    }
+  };
+
+   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
@@ -143,10 +160,13 @@ export default function DailyRewardClaim({ open, onOpenChange, profile, progress
 
         {!reward ? (
           <div className="text-slate-500 text-sm">No reward configured for today.</div>
-        ) : reward.type === 'wheel' && config?.wheel?.enabled ? (
+        ) : shouldShowWheel ? (
           <div className="space-y-3">
-            <p className="text-sm text-slate-600">Spin the wheel to get your reward!</p>
-            <SpinWheel prizes={config.wheel.prizes || []} onResult={handleWheelResult} />
+            <p className="text-sm text-slate-600">{reward?.type === 'wheel' ? 'Spin the wheel to get your reward!' : 'Bonus Spin granted by admin'}</p>
+            <SpinWheel prizes={config.wheel?.prizes || []} onResult={reward?.type === 'wheel' ? handleWheelResult : handleBonusWheelResult} />
+            {hasBonusWheel && reward?.type !== 'wheel' && (
+              <div className="text-xs text-slate-500">Bonus spins left: {progress?.bonusWheelTokens}</div>
+            )}
           </div>
         ) : (
           <div className="bg-white/60 rounded-xl p-4 border border-white/50">
