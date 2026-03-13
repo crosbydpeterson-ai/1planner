@@ -31,10 +31,47 @@ export default function Layout({ children, currentPageName }) {
     checkContactEmail();
     loadFeatureLocks();
 
+    // Load active background image
+    (async () => {
+      try {
+        const recs = await base44.entities.AppCustomization.filter({ type: 'background', is_active: true });
+        const url = recs[0]?.image || recs[0]?.imageUrl || null;
+        if (url) {
+          window.__app_custom_bg_url = url;
+        } else {
+          delete window.__app_custom_bg_url;
+        }
+      } catch (e) {
+        console.error('Failed to load custom background', e);
+      }
+    })();
+
+    // Subscribe to background updates
+    const unsub = base44.entities.AppCustomization.subscribe((evt) => {
+      if (['create','update','delete'].includes(evt.type)) {
+        (async () => {
+          try {
+            const recs = await base44.entities.AppCustomization.filter({ type: 'background', is_active: true });
+            const url = recs[0]?.image || recs[0]?.imageUrl || null;
+            if (url) {
+              window.__app_custom_bg_url = url;
+            } else {
+              delete window.__app_custom_bg_url;
+            }
+          } catch (e) {
+            console.error('Failed to refresh custom background', e);
+          }
+        })();
+      }
+    });
+
     // Listen for theme updates
     const handleThemeUpdate = () => loadUserTheme();
     window.addEventListener('themeUpdated', handleThemeUpdate);
-    return () => window.removeEventListener('themeUpdated', handleThemeUpdate);
+    return () => {
+      window.removeEventListener('themeUpdated', handleThemeUpdate);
+      unsub?.();
+    };
   }, []);
 
   const checkAdminStatus = async () => {
@@ -197,7 +234,19 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen pb-20 relative">
-      <ThemedBackground colors={themeColors} />
+      {(() => {
+        const [customBgUrl, setCustomBgUrl] = [null, null];
+        return null;
+      })()}
+      {/* Background */}
+      {typeof window !== 'undefined' && window.__app_custom_bg_url ? (
+        <div className="fixed inset-0 -z-10">
+          <img src={window.__app_custom_bg_url} alt="Background" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/10" />
+        </div>
+      ) : (
+        <ThemedBackground colors={themeColors} />
+      )}
       <header className="fixed top-3 left-3 z-50">
         <BrandLogo size="md" />
       </header>

@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -6,6 +7,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { base44 } from '@/api/base44Client';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -18,12 +20,30 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const [loadingScreenUrl, setLoadingScreenUrl] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const recs = await base44.entities.AppCustomization.filter({ type: 'loading_screen', is_active: true });
+        setLoadingScreenUrl(recs[0]?.image || recs[0]?.imageUrl || null);
+      } catch (e) {
+        console.error('Failed to load loading screen', e);
+      }
+    })();
+  }, []);
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+        {loadingScreenUrl && (
+          <>
+            <img src={loadingScreenUrl} alt="Loading" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/20" />
+          </>
+        )}
+        <div className="relative z-10 w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
       </div>
     );
   }
