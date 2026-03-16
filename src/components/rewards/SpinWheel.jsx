@@ -78,15 +78,15 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false }) {
     const idx = prizes.indexOf(prize);
     const seg = segments[idx];
 
-    // We want the needle (at top = -90deg) to point to midAngle of prize
-    // Wheel rotates clockwise. Needle is at 270deg in SVG coords (top).
-    // We want: currentRotation + extraSpin lands such that (360 - seg.midAngle) aligns at top.
-    const targetAngle = 360 - seg.midAngle;
-    const fullSpins = 5 * 360; // 5 full rotations
-    // Normalize target relative to current
+    // Needle is at top = 270deg in SVG coords.
+    // To land seg.midAngle under the needle, wheel must rotate so that:
+    // (seg.midAngle + rotation) % 360 === 270
+    // => rotation needed = (270 - seg.midAngle + 360) % 360
+    const targetAngle = (270 - seg.midAngle + 360) % 360;
+    const fullSpins = 5 * 360;
     const base = currentRotation.current % 360;
     let delta = (targetAngle - base + 360) % 360;
-    if (delta < 10) delta += 360; // ensure it actually spins forward
+    if (delta < 10) delta += 360;
     const totalSpin = fullSpins + delta;
     const newRotation = currentRotation.current + totalSpin;
 
