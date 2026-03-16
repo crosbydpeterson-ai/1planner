@@ -13,6 +13,7 @@ import PetAvatar from '@/components/quest/PetAvatar';
 import GlassIcon from '@/components/ui/GlassIcon';
 import MagicEggCreator from '@/components/rewards/MagicEggCreator';
 import Tutorial from '@/components/tutorial/Tutorial';
+import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
 import { toast } from 'sonner';
 
 export default function Rewards() {
@@ -27,6 +28,9 @@ export default function Rewards() {
   const [locks, setLocks] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [boothSkins, setBoothSkins] = useState([]);
+  const [dailyConfig, setDailyConfig] = useState(null);
+  const [dailyProgress, setDailyProgress] = useState(null);
+  const [showDailyClaim, setShowDailyClaim] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -61,10 +65,12 @@ export default function Rewards() {
       const adminUser = me.username?.toLowerCase?.() === 'crosby' || (allProfiles[0] && allProfiles[0].id === me.id);
       setIsAdmin(!!adminUser);
 
-      // Locks
+      // Settings
       const settings = await base44.entities.AppSetting.list();
       const fl = settings.find(s => s.key === 'feature_locks');
       setLocks(fl ? fl.value : null);
+      const dr = settings.find(s => s.key === 'daily_rewards_config');
+      setDailyConfig(dr ? dr.value : null);
 
       setCustomPets(dbCustomPets);
       setCustomThemes(dbCustomThemes);
@@ -73,6 +79,12 @@ export default function Rewards() {
       // Filter eggs for this user that haven't been used
       const userEggs = dbMagicEggs.filter(e => e.userId === profiles[0].userId && !e.isUsed);
       setMagicEggs(userEggs);
+
+      // Load daily reward progress
+      try {
+        const progList = await base44.entities.DailyRewardProgress.filter({ userProfileId: me.id });
+        if (progList.length > 0) setDailyProgress(progList[0]);
+      } catch (_) {}
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -304,6 +316,25 @@ export default function Rewards() {
             </div>
           </div>
         </motion.div>
+
+        {/* Daily Rewards Card */}
+        {dailyConfig && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow border border-white/50 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-slate-800 font-semibold">Daily Rewards</div>
+                <div className="text-slate-500 text-sm">
+                  {dailyProgress?.bonusWheelTokens > 0
+                    ? `Bonus spins available: ${dailyProgress.bonusWheelTokens}`
+                    : (dailyProgress?.eligible && dailyProgress?.eligibleDate === new Date().toLocaleDateString('en-CA') && dailyProgress?.lastClaimDate !== new Date().toLocaleDateString('en-CA'))
+                      ? 'Ready to claim today'
+                      : 'Complete a quest today to unlock'}
+                </div>
+              </div>
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowDailyClaim(true)}>Open</Button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -670,6 +701,16 @@ export default function Rewards() {
       
       {/* Tutorial */}
       <Tutorial profile={profile} currentPage="Rewards" onComplete={() => {}} />
+
+      {/* Daily Reward Claim Dialog */}
+      <DailyRewardClaim
+        open={showDailyClaim}
+        onOpenChange={setShowDailyClaim}
+        profile={profile}
+        progress={dailyProgress || { eligible: false, eligibleDate: null, currentIndex: 0, bonusWheelTokens: 0 }}
+        config={dailyConfig}
+        onClaimed={(p) => setDailyProgress(prev => ({ ...(prev || {}), ...p }))}
+      />
     </div>
   );
 }
