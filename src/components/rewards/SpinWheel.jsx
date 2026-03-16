@@ -1,11 +1,61 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
+import { motion, useAnimation } from 'framer-motion';
+import { Zap, Coins, PawPrint, Palette, Tag, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
 
-// prizes: [{ label, type: 'xp'|'coins'|'pet'|'theme'|'title', value?: string|number, amount?: number, weight: number }]
+// Segment colors cycling palette
+const COLORS = [
+  '#6366f1', '#f59e0b', '#10b981', '#ef4444',
+  '#8b5cf6', '#3b82f6', '#ec4899', '#14b8a6',
+  '#f97316', '#84cc16',
+];
+
+const TYPE_ICONS = {
+  xp: '⚡',
+  coins: '🪙',
+  pet: '🐾',
+  theme: '🎨',
+  title: '🏷️',
+  default: '🎁',
+};
+
+function getIcon(type) {
+  return TYPE_ICONS[type] || TYPE_ICONS.default;
+}
+
+// Build SVG path for a pie segment
+function segmentPath(cx, cy, r, startAngle, endAngle) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const x1 = cx + r * Math.cos(toRad(startAngle));
+  const y1 = cy + r * Math.sin(toRad(startAngle));
+  const x2 = cx + r * Math.cos(toRad(endAngle));
+  const y2 = cy + r * Math.sin(toRad(endAngle));
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  return `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`;
+}
+
 export default function SpinWheel({ prizes = [], onResult, disabled = false }) {
+  const controls = useAnimation();
   const [spinning, setSpinning] = useState(false);
-  const totalWeight = useMemo(() => prizes.reduce((s, p) => s + Math.max(0, Number(p.weight) || 0), 0), [prizes]);
+  const [landed, setLanded] = useState(null);
+  const currentRotation = useRef(0);
+
+  const totalWeight = useMemo(
+    () => prizes.reduce((s, p) => s + Math.max(0, Number(p.weight) || 0), 0),
+    [prizes]
+  );
+
+  // Build segments with angle info
+  const segments = useMemo(() => {
+    if (!prizes.length || totalWeight <= 0) return [];
+    let angle = 0;
+    return prizes.map((p, i) => {
+      const slice = (Math.max(0, Number(p.weight) || 0) / totalWeight) * 360;
+      const seg = { ...p, startAngle: angle, endAngle: angle + slice, midAngle: angle + slice / 2, color: COLORS[i % COLORS.length] };
+      angle += slice;
+      return seg;
+    });
+  }, [prizes, totalWeight]);
 
   const pickPrize = () => {
     const r = Math.random() * totalWeight;
@@ -20,29 +70,129 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false }) {
   const handleSpin = async () => {
     if (disabled || spinning || prizes.length === 0 || totalWeight <= 0) return;
     setSpinning(true);
-    // Simple faux animation delay
+    setLanded(null);
+
+    const prize = pickPrize();
+
+    // Find the segment for prize
+    const idx = prizes.indexOf(prize);
+    const seg = segments[idx];
+
+    // We want the needle (at top = -90deg) to point to midAngle of prize
+    // Wheel rotates clockwise. Needle is at 270deg in SVG coords (top).
+    // We want: currentRotation + extraSpin lands such that (360 - seg.midAngle) aligns at top.
+    const targetAngle = 360 - seg.midAngle;
+    const fullSpins = 5 * 360; // 5 full rotations
+    // Normalize target relative to current
+    const base = currentRotation.current % 360;
+    let delta = (targetAngle - base + 360) % 360;
+    if (delta < 10) delta += 360; // ensure it actually spins forward
+    const totalSpin = fullSpins + delta;
+    const newRotation = currentRotation.current + totalSpin;
+
+    await controls.start({
+      rotate: newRotation,
+      transition: { duration: 4, ease: [0.17, 0.67, 0.21, 1.0] },
+    });
+
+    currentRotation.current = newRotation;
+    setLanded(prize);
+    setSpinning(false);
+
     setTimeout(() => {
-      const prize = pickPrize();
       onResult && onResult(prize);
-      setSpinning(false);
-    }, 1500);
+    }, 800);
   };
 
+  const size = 280;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 6;
+
   return (
-    <div className="w-full">
-      <div className="grid grid-cols-2 gap-2 mb-3 bg-white/30 backdrop-blur-xl rounded-xl p-3 border border-white/20">
-        {prizes.map((p, idx) => (
-          <div key={idx} className="flex items-center justify-between bg-white/50 rounded-lg px-3 py-2 text-sm">
-            <div className="font-medium text-slate-700 truncate mr-2">{p.label}</div>
-            <div className="text-slate-500 text-xs">{p.weight || 0}</div>
-          </div>
-        ))}
-        {prizes.length === 0 && (
-          <div className="col-span-2 text-center text-slate-500 text-sm">No prizes configured</div>
-        )}
+    <div className="flex flex-col items-center gap-4 w-full">
+      {/* Wheel */}
+      <div className="relative" style={{ width: size, height: size }}>
+        {/* Needle pointer at top */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-2 z-10">
+          <div style={{
+            width: 0, height: 0,
+            borderLeft: '10px solid transparent',
+            borderRight: '10px solid transparent',
+            borderTop: '24px solid #1e293b',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'
+          }} />
+        </div>
+
+        <motion.div animate={controls} style={{ originX: '50%', originY: '50%', width: size, height: size }}>
+          <svg width={size} height={size}>
+            {/* Segments */}
+            {segments.map((seg, i) => {
+              const midRad = ((seg.midAngle) * Math.PI) / 180;
+              const textR = r * 0.62;
+              const tx = cx + textR * Math.cos(midRad);
+              const ty = cy + textR * Math.sin(midRad);
+              const iconR = r * 0.82;
+              const ix = cx + iconR * Math.cos(midRad);
+              const iy = cy + iconR * Math.sin(midRad);
+              const segAngle = seg.endAngle - seg.startAngle;
+              const showLabel = segAngle > 25;
+              return (
+                <g key={i}>
+                  <path
+                    d={segmentPath(cx, cy, r, seg.startAngle, seg.endAngle)}
+                    fill={seg.color}
+                    stroke="white"
+                    strokeWidth="2"
+                  />
+                  {/* Icon (emoji) */}
+                  {segAngle > 15 && (
+                    <text
+                      x={ix} y={iy}
+                      textAnchor="middle" dominantBaseline="middle"
+                      fontSize={segAngle > 40 ? 18 : 13}
+                      transform={`rotate(${seg.midAngle + 90}, ${ix}, ${iy})`}
+                    >
+                      {getIcon(seg.type)}
+                    </text>
+                  )}
+                  {/* Label */}
+                  {showLabel && (
+                    <text
+                      x={tx} y={ty}
+                      textAnchor="middle" dominantBaseline="middle"
+                      fontSize={segAngle > 50 ? 11 : 9}
+                      fill="white"
+                      fontWeight="600"
+                      transform={`rotate(${seg.midAngle + 90}, ${tx}, ${ty})`}
+                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+                    >
+                      {seg.label?.length > 10 ? seg.label.slice(0, 9) + '…' : seg.label}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+            {/* Center circle */}
+            <circle cx={cx} cy={cy} r={22} fill="white" stroke="#e2e8f0" strokeWidth="3" />
+            <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize={20}>🎯</text>
+          </svg>
+        </motion.div>
       </div>
-      <Button onClick={handleSpin} disabled={disabled || spinning || prizes.length === 0 || totalWeight <= 0} className="w-full bg-purple-600 hover:bg-purple-700">
-        {spinning ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Spinning...</>) : 'Spin the Wheel'}
+
+      {/* Result banner */}
+      {landed && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 text-emerald-800 font-semibold text-sm animate-pulse">
+          {getIcon(landed.type)} {landed.label}!
+        </div>
+      )}
+
+      <Button
+        onClick={handleSpin}
+        disabled={disabled || spinning || prizes.length === 0 || totalWeight <= 0}
+        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-base py-5"
+      >
+        {spinning ? '🌀 Spinning...' : '🎰 SPIN!'}
       </Button>
     </div>
   );
