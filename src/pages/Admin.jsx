@@ -2788,11 +2788,11 @@ White or transparent background, centered, high quality illustration.`;
         <NewBundleDialog open={showBundleForm} onOpenChange={setShowBundleForm} bundles={bundles} setBundles={setBundles} />
         <EditBundleDialog item={editingBundle} onOpenChange={setEditingBundle} bundles={bundles} setBundles={setBundles} />
 
-        {/* PLACEHOLDER_CLEAN */}
+        {/* _placeholder_removed_ */}
         <Dialog open={false} onOpenChange={() => {}}>
           <DialogContent className="bg-slate-800 border-slate-700 text-white">
             <DialogHeader><DialogTitle>_</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-0 py-0">
               <div>
                 <Label>_</Label>
               </div>
