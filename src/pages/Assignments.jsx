@@ -19,6 +19,8 @@ import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
 
  import { toast } from 'sonner';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
+import { rollNotebookRarity, rollNotebookItems, applyNotebookDrops } from '@/lib/notebookDrops';
+import NotebookDropReveal from '@/components/rewards/NotebookDropReveal';
 
 export default function Assignments() {
   const navigate = useNavigate();
