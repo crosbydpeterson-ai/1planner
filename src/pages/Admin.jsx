@@ -180,16 +180,6 @@ export default function Admin() {
   // Reward Links
   const [rewardLinks, setRewardLinks] = useState([]);
   const [showRewardLinkForm, setShowRewardLinkForm] = useState(false);
-  const [rewardLinkForm, setRewardLinkForm] = useState({
-    name: '',
-    rewardType: 'xp',
-    rewardValue: 100,
-    rewardData: {},
-    maxUses: 10,
-    usedBy: [],
-    expiresAt: '',
-    isActive: true
-  });
 
   const defaultFeatureLocks = {
     global: { shop: false, market: false, battlePass: false, pets: false, xpGain: false },
