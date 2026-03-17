@@ -180,6 +180,16 @@ export default function Admin() {
   // Reward Links
   const [rewardLinks, setRewardLinks] = useState([]);
   const [showRewardLinkForm, setShowRewardLinkForm] = useState(false);
+  const [rewardLinkForm, setRewardLinkForm] = useState({
+    name: '',
+    rewardType: 'xp',
+    rewardValue: 100,
+    rewardData: {},
+    maxUses: 10,
+    usedBy: [],
+    expiresAt: '',
+    isActive: true
+  });
 
   const defaultFeatureLocks = {
     global: { shop: false, market: false, battlePass: false, pets: false, xpGain: false },
@@ -2588,16 +2598,185 @@ White or transparent background, centered, high quality illustration.`;
         />
 
         {/* Gift Dialog */}
-        <AdminGiftDialog
-          open={showGiftDialog} onOpenChange={setShowGiftDialog}
-          giftUser={giftUser} giftUsername={giftUsername} setGiftUsername={setGiftUsername}
-          giftType={giftType} setGiftType={setGiftType}
-          giftItemId={giftItemId} setGiftItemId={setGiftItemId}
-          isSuperAdmin={isSuperAdmin} adminProfile={adminProfile} setAdminProfile={setAdminProfile}
-          users={users} setUsers={setUsers}
-          customPets={customPets} customThemes={customThemes} petCosmetics={petCosmetics} boothSkins={boothSkins}
-          resolveGiftRecipient={resolveGiftRecipient} handleGiftItem={handleGiftItem}
-        />
+        <Dialog open={showGiftDialog} onOpenChange={setShowGiftDialog}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white">
+            <DialogHeader>
+              <DialogTitle>Gift Item to {giftUser?.username || giftUsername || 'User'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Gift to Username</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={giftUsername}
+                    onChange={(e) => setGiftUsername(e.target.value)}
+                    placeholder="Enter username"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={resolveGiftRecipient}
+                    className="border-purple-500 text-purple-300 hover:bg-purple-500/20"
+                  >
+                    Find
+                  </Button>
+                </div>
+                {giftUser && (
+                  <p className="text-xs text-slate-400">
+                    Selected: <span className="text-purple-200">{giftUser.username}</span>
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Gift Type</Label>
+                <Select value={giftType} onValueChange={(v) => { setGiftType(v); setGiftItemId(''); }}>
+                 <SelectTrigger className="bg-slate-700 border-slate-600">
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="coins">Quest Coins</SelectItem>
+                   <SelectItem value="pet">Pet</SelectItem>
+                   <SelectItem value="theme">Theme</SelectItem>
+                   <SelectItem value="cosmetic">Cosmetic</SelectItem>
+                   <SelectItem value="boothskin">Booth Skin</SelectItem>
+                 </SelectContent>
+                </Select>
+              </div>
+              
+              {giftType === 'coins' && (
+                <div className="space-y-2">
+                  <Label>Amount of Quest Coins</Label>
+                  <Input
+                    type="number"
+                    value={giftItemId}
+                    onChange={(e) => setGiftItemId(e.target.value)}
+                    placeholder="100"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              )}
+              
+              {giftType !== 'coins' && (
+                <div className="space-y-2">
+                  <Label>
+                    Select {giftType === 'pet' ? 'Pet' : giftType === 'theme' ? 'Theme' : 'Cosmetic'}
+                  </Label>
+                  <Select value={giftItemId} onValueChange={setGiftItemId}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600">
+                    <SelectValue placeholder={`Select a ${giftType}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {giftType === 'pet' ? (
+                      <>
+                        {PETS.map(pet => (
+                          <SelectItem key={pet.id} value={pet.id}>
+                            {pet.emoji || '🎁'} {pet.name} (Built-in)
+                          </SelectItem>
+                        ))}
+                        {customPets.map(pet => (
+                          <SelectItem key={pet.id} value={`custom_${pet.id}`}>
+                            {pet.emoji || '🎁'} {pet.name} (Custom)
+                          </SelectItem>
+                        ))}
+                      </>
+                    ) : giftType === 'theme' ? (
+                      <>
+                        {THEMES.map(theme => (
+                          <SelectItem key={theme.id} value={theme.id}>
+                            {theme.name} (Built-in)
+                          </SelectItem>
+                        ))}
+                        {customThemes.map(theme => (
+                          <SelectItem key={theme.id} value={`custom_${theme.id}`}>
+                            {theme.name} (Custom)
+                          </SelectItem>
+                        ))}
+                      </>
+                    ) : giftType === 'boothskin' ? (
+                      <>
+                        {boothSkins.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        {petCosmetics.map((cosmetic) => (
+                          <SelectItem key={cosmetic.id} value={cosmetic.id}>
+                            {cosmetic.name} ({cosmetic.cosmeticType})
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                </div>
+              )}
+              
+              <div className="flex gap-2 pt-2">
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const recipient = resolveGiftRecipient();
+                      if (!recipient) return;
+                      const allPetIds = [...PETS.map(p => p.id), ...customPets.map(p => `custom_${p.id}`)];
+                      await base44.entities.UserProfile.update(recipient.id, { unlockedPets: allPetIds });
+                      setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedPets: allPetIds } : u));
+                      toast.success(`All pets gifted to ${recipient.username}!`);
+                    }}
+                    className="flex-1 border-purple-500 text-purple-400 hover:bg-purple-500/20"
+                  >
+                    Gift ALL Pets
+                  </Button>
+                )}
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const recipient = resolveGiftRecipient();
+                      if (!recipient) return;
+                      const allThemeIds = [...THEMES.map(t => t.id), ...customThemes.map(t => `custom_${t.id}`)];
+                      await base44.entities.UserProfile.update(recipient.id, { unlockedThemes: allThemeIds });
+                      setUsers(users.map(u => u.id === recipient.id ? { ...u, unlockedThemes: allThemeIds } : u));
+                      toast.success(`All themes gifted to ${recipient.username}!`);
+                    }}
+                    className="flex-1 border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
+                  >
+                    Gift ALL Themes
+                  </Button>
+                )}
+              </div>
+              
+              {isSuperAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const recipient = resolveGiftRecipient();
+                    if (!recipient) return;
+                    await base44.entities.MagicEgg.create({ userId: recipient.userId });
+                    toast.success(`🥚 Magic Egg gifted to ${recipient.username}!`, {
+                      description: 'They can now create their own custom pet!'
+                    });
+                  }}
+                  className="w-full border-amber-500 text-amber-400 hover:bg-amber-500/20"
+                >
+                  🥚 Gift Magic Egg
+                </Button>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowGiftDialog(false)}>Cancel</Button>
+              <Button onClick={handleGiftItem} className="bg-purple-600">Gift Item</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit Assignment Dialog */}
         <Dialog open={!!editingAssignment} onOpenChange={() => setEditingAssignment(null)}>
@@ -2781,18 +2960,57 @@ White or transparent background, centered, high quality illustration.`;
           </DialogContent>
         </Dialog>
 
-        {/* Shop Dialogs */}
-        <NewShopItemDialog open={showShopItemForm} onOpenChange={setShowShopItemForm} isSuperAdmin={isSuperAdmin} customPets={customPets} customThemes={customThemes} shopItems={shopItems} setShopItems={setShopItems} />
-        <EditShopItemDialog item={editingShopItem} onOpenChange={setEditingShopItem} shopItems={shopItems} setShopItems={setShopItems} />
-        <ManualPackDialog open={showManualPackForm} onOpenChange={setShowManualPackForm} shopItems={shopItems} bundles={bundles} setBundles={setBundles} />
-        <NewBundleDialog open={showBundleForm} onOpenChange={setShowBundleForm} bundles={bundles} setBundles={setBundles} />
-        <EditBundleDialog item={editingBundle} onOpenChange={setEditingBundle} bundles={bundles} setBundles={setBundles} />
-
-        {/* _dead_dialogs_removed_ */}
-        <Dialog open={false} onOpenChange={() => {}}>
-          <DialogContent>
-            <div>
-              <Label>_</Label>
+        {/* New Shop Item Dialog */}
+        <Dialog open={showShopItemForm} onOpenChange={setShowShopItemForm}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create Shop Item</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    value={shopItemForm.name}
+                    onChange={(e) => setShopItemForm({ ...shopItemForm, name: e.target.value })}
+                    placeholder="Winter Fox"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Price (Quest Coins)</Label>
+                  <Input
+                    type="number"
+                    value={shopItemForm.price}
+                    onChange={(e) => setShopItemForm({ ...shopItemForm, price: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={shopItemForm.description}
+                  onChange={(e) => setShopItemForm({ ...shopItemForm, description: e.target.value })}
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Item Type</Label>
+                  <Select value={shopItemForm.itemType} onValueChange={(v) => setShopItemForm({ ...shopItemForm, itemType: v })}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pet">Pet</SelectItem>
+                      <SelectItem value="theme">Theme</SelectItem>
+                      <SelectItem value="title">Title</SelectItem>
+                      <SelectItem value="xp_booster">XP Booster</SelectItem>
+                      {isSuperAdmin && <SelectItem value="magic_egg">Magic Egg</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label>Rarity</Label>
                   <Select value={shopItemForm.rarity} onValueChange={(v) => setShopItemForm({ ...shopItemForm, rarity: v })}>
@@ -3405,11 +3623,171 @@ White or transparent background, centered, high quality illustration.`;
         </Dialog>
 
         {/* Reward Link Form Dialog */}
-        <RewardLinkDialog
-          open={showRewardLinkForm} onOpenChange={setShowRewardLinkForm}
-          isSuperAdmin={isSuperAdmin} customPets={customPets} customThemes={customThemes}
-          rewardLinks={rewardLinks} setRewardLinks={setRewardLinks}
-        />
+        <Dialog open={showRewardLinkForm} onOpenChange={setShowRewardLinkForm}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create Reward Link</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Link Name</Label>
+                <Input
+                  value={rewardLinkForm.name}
+                  onChange={(e) => setRewardLinkForm({ ...rewardLinkForm, name: e.target.value })}
+                  placeholder="Welcome Bonus"
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Reward Type</Label>
+                  <Select
+                    value={rewardLinkForm.rewardType}
+                    onValueChange={(v) => setRewardLinkForm({ ...rewardLinkForm, rewardType: v, rewardValue: v === 'magic_egg' ? 0 : 100, rewardData: {} })}
+                  >
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="xp">XP</SelectItem>
+                      <SelectItem value="coins">Quest Coins</SelectItem>
+                      {isSuperAdmin && <SelectItem value="magic_egg">Magic Egg</SelectItem>}
+                      <SelectItem value="pet">Pet</SelectItem>
+                      <SelectItem value="theme">Theme</SelectItem>
+                      <SelectItem value="title">Title</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {(rewardLinkForm.rewardType === 'xp' || rewardLinkForm.rewardType === 'coins') && (
+                  <div className="space-y-2">
+                    <Label>Amount</Label>
+                    <Input
+                      type="number"
+                      value={rewardLinkForm.rewardValue}
+                      onChange={(e) => setRewardLinkForm({ ...rewardLinkForm, rewardValue: parseInt(e.target.value) || 0 })}
+                      placeholder="100"
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                )}
+
+                {rewardLinkForm.rewardType === 'pet' && (
+                  <div className="space-y-2">
+                    <Label>Select Pet</Label>
+                    <Select
+                      value={rewardLinkForm.rewardData?.petId || ''}
+                      onValueChange={(v) => setRewardLinkForm({ ...rewardLinkForm, rewardData: { petId: v } })}
+                    >
+                      <SelectTrigger className="bg-slate-700 border-slate-600">
+                        <SelectValue placeholder="Choose pet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PETS.map(pet => (
+                          <SelectItem key={pet.id} value={pet.id}>
+                            {pet.emoji} {pet.name}
+                          </SelectItem>
+                        ))}
+                        {customPets.map(pet => (
+                          <SelectItem key={pet.id} value={`custom_${pet.id}`}>
+                            {pet.emoji || '🎁'} {pet.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {rewardLinkForm.rewardType === 'theme' && (
+                  <div className="space-y-2">
+                    <Label>Select Theme</Label>
+                    <Select
+                      value={rewardLinkForm.rewardData?.themeId || ''}
+                      onValueChange={(v) => setRewardLinkForm({ ...rewardLinkForm, rewardData: { themeId: v } })}
+                    >
+                      <SelectTrigger className="bg-slate-700 border-slate-600">
+                        <SelectValue placeholder="Choose theme" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {THEMES.map(theme => (
+                          <SelectItem key={theme.id} value={theme.id}>
+                            {theme.name}
+                          </SelectItem>
+                        ))}
+                        {customThemes.map(theme => (
+                          <SelectItem key={theme.id} value={`custom_${theme.id}`}>
+                            {theme.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {rewardLinkForm.rewardType === 'title' && (
+                  <div className="space-y-2">
+                    <Label>Title Text</Label>
+                    <Input
+                      value={rewardLinkForm.rewardData?.title || ''}
+                      onChange={(e) => setRewardLinkForm({ ...rewardLinkForm, rewardData: { title: e.target.value } })}
+                      placeholder="VIP Member"
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Max Uses (leave empty for unlimited)</Label>
+                  <Input
+                    type="number"
+                    value={rewardLinkForm.maxUses || ''}
+                    onChange={(e) => setRewardLinkForm({ ...rewardLinkForm, maxUses: parseInt(e.target.value) || null })}
+                    placeholder="10"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Expires At (optional)</Label>
+                  <Input
+                    type="datetime-local"
+                    value={rewardLinkForm.expiresAt}
+                    onChange={(e) => setRewardLinkForm({ ...rewardLinkForm, expiresAt: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowRewardLinkForm(false)}>Cancel</Button>
+              <Button
+                onClick={async () => {
+                  if (!rewardLinkForm.name.trim()) {
+                    toast.error('Enter link name');
+                    return;
+                  }
+                  try {
+                    const newLink = await base44.entities.RewardLink.create(rewardLinkForm);
+                    setRewardLinks([newLink, ...rewardLinks]);
+                    setShowRewardLinkForm(false);
+                    setRewardLinkForm({
+                      name: '', rewardType: 'xp', rewardValue: 100, rewardData: {},
+                      maxUses: 10, usedBy: [], expiresAt: '', isActive: true
+                    });
+                    toast.success('Reward link created!');
+                  } catch (e) {
+                    toast.error('Failed to create link');
+                  }
+                }}
+                className="bg-gradient-to-r from-pink-500 to-purple-500"
+              >
+                Create Link
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* New Cosmetic Dialog */}
         <Dialog open={showCosmeticForm} onOpenChange={setShowCosmeticForm}>

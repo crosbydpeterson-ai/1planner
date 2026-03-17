@@ -19,8 +19,6 @@ import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
 
  import { toast } from 'sonner';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
-import { rollNotebookRarity, rollNotebookItems, applyNotebookDrops } from '@/lib/notebookDrops';
-import NotebookDropReveal from '@/components/rewards/NotebookDropReveal';
 
 export default function Assignments() {
   const navigate = useNavigate();
@@ -37,7 +35,6 @@ export default function Assignments() {
   const [dailyConfig, setDailyConfig] = useState(null);
   const [dailyProgress, setDailyProgress] = useState(null);
   const [showDailyClaim, setShowDailyClaim] = useState(false);
-  const [notebookDrop, setNotebookDrop] = useState(null); // { rarityKey, items }
 
 
    useEffect(() => {
@@ -234,18 +231,6 @@ export default function Assignments() {
         flagMessage: shouldFlagUser ? 'Unnatural completion detected: finished within 30 minutes during school hours' : profile.flagMessage,
         flagAcknowledged: shouldFlagUser ? false : profile.flagAcknowledged
       });
-
-      // Notebook drop roll
-      const rarityKey = rollNotebookRarity();
-      if (rarityKey && !profile.isBanned) {
-        const ownedPets = newUnlockedPets;
-        const ownedThemes = profile.unlockedThemes || [];
-        const dropItems = rollNotebookItems(rarityKey, ownedPets, ownedThemes);
-        // Apply rewards first, then show animation
-        const updatedProfile = { ...profile, ...userUpdate };
-        await applyNotebookDrops(updatedProfile, dropItems, base44);
-        setNotebookDrop({ rarityKey, items: dropItems });
-      }
 
       // Mark daily reward eligibility (manual claim)
       try {
@@ -571,17 +556,6 @@ export default function Assignments() {
 
       {/* Tutorial */}
        <Tutorial profile={profile} currentPage="Assignments" onComplete={() => {}} />
-
-      {/* Notebook Drop Reveal */}
-      <AnimatePresence>
-        {notebookDrop && (
-          <NotebookDropReveal
-            rarityKey={notebookDrop.rarityKey}
-            items={notebookDrop.items}
-            onClose={() => setNotebookDrop(null)}
-          />
-        )}
-      </AnimatePresence>
 
        {/* Claim Dialog */}
        <DailyRewardClaim
