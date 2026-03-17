@@ -2788,7 +2788,7 @@ White or transparent background, centered, high quality illustration.`;
         <NewBundleDialog open={showBundleForm} onOpenChange={setShowBundleForm} bundles={bundles} setBundles={setBundles} />
         <EditBundleDialog item={editingBundle} onOpenChange={setEditingBundle} bundles={bundles} setBundles={setBundles} />
 
-        {/* PLACEHOLDER */}
+        {/* PLACEHOLDER_REMOVED */}
         <Dialog open={false} onOpenChange={() => {}}>
           <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
             <DialogHeader>
