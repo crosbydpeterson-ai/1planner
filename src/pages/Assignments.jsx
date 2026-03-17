@@ -235,6 +235,18 @@ export default function Assignments() {
         flagAcknowledged: shouldFlagUser ? false : profile.flagAcknowledged
       });
 
+      // Notebook drop roll
+      const rarityKey = rollNotebookRarity();
+      if (rarityKey && !profile.isBanned) {
+        const ownedPets = newUnlockedPets;
+        const ownedThemes = profile.unlockedThemes || [];
+        const dropItems = rollNotebookItems(rarityKey, ownedPets, ownedThemes);
+        // Apply rewards first, then show animation
+        const updatedProfile = { ...profile, ...userUpdate };
+        await applyNotebookDrops(updatedProfile, dropItems, base44);
+        setNotebookDrop({ rarityKey, items: dropItems });
+      }
+
       // Mark daily reward eligibility (manual claim)
       try {
         const today = new Date().toISOString().split('T')[0];
