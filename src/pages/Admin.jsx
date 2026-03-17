@@ -2793,23 +2793,6 @@ White or transparent background, centered, high quality illustration.`;
           <DialogContent>
             <div>
               <Label>_</Label>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Item Type</Label>
-                  <Select value={shopItemForm.itemType} onValueChange={(v) => setShopItemForm({ ...shopItemForm, itemType: v })}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pet">Pet</SelectItem>
-                      <SelectItem value="theme">Theme</SelectItem>
-                      <SelectItem value="title">Title</SelectItem>
-                      <SelectItem value="xp_booster">XP Booster</SelectItem>
-                      {isSuperAdmin && <SelectItem value="magic_egg">Magic Egg</SelectItem>}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2">
                   <Label>Rarity</Label>
                   <Select value={shopItemForm.rarity} onValueChange={(v) => setShopItemForm({ ...shopItemForm, rarity: v })}>
