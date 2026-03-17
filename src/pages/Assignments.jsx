@@ -572,6 +572,17 @@ export default function Assignments() {
       {/* Tutorial */}
        <Tutorial profile={profile} currentPage="Assignments" onComplete={() => {}} />
 
+      {/* Notebook Drop Reveal */}
+      <AnimatePresence>
+        {notebookDrop && (
+          <NotebookDropReveal
+            rarityKey={notebookDrop.rarityKey}
+            items={notebookDrop.items}
+            onClose={() => setNotebookDrop(null)}
+          />
+        )}
+      </AnimatePresence>
+
        {/* Claim Dialog */}
        <DailyRewardClaim
          open={showDailyClaim}
