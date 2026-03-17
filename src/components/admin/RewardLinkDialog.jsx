@@ -15,7 +15,7 @@ const DEFAULT_FORM = {
 };
 
 export default function RewardLinkDialog({ open, onOpenChange, isSuperAdmin, customPets, customThemes, rewardLinks, setRewardLinks }) {
-  const [form, setForm] = React.useState(DEFAULT_FORM);
+  const [form, setForm] = useState(DEFAULT_FORM);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
