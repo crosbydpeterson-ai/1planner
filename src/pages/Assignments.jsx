@@ -37,6 +37,7 @@ export default function Assignments() {
   const [dailyConfig, setDailyConfig] = useState(null);
   const [dailyProgress, setDailyProgress] = useState(null);
   const [showDailyClaim, setShowDailyClaim] = useState(false);
+  const [notebookDrop, setNotebookDrop] = useState(null); // { rarityKey, items }
 
 
    useEffect(() => {
