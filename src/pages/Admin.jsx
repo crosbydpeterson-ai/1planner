@@ -2788,25 +2788,13 @@ White or transparent background, centered, high quality illustration.`;
         <NewBundleDialog open={showBundleForm} onOpenChange={setShowBundleForm} bundles={bundles} setBundles={setBundles} />
         <EditBundleDialog item={editingBundle} onOpenChange={setEditingBundle} bundles={bundles} setBundles={setBundles} />
 
-        {/* PLACEHOLDER_REMOVED */}
+        {/* PLACEHOLDER_CLEAN */}
         <Dialog open={false} onOpenChange={() => {}}>
-          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>placeholder</DialogTitle>
-            </DialogHeader>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white">
+            <DialogHeader><DialogTitle>_</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  value={shopItemForm.description}
-                  onChange={(e) => setShopItemForm({ ...shopItemForm, description: e.target.value })}
-                  className="bg-slate-700 border-slate-600"
-                />
+              <div>
+                <Label>_</Label>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
