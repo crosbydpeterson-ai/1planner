@@ -2781,31 +2781,23 @@ White or transparent background, centered, high quality illustration.`;
           </DialogContent>
         </Dialog>
 
-        {/* New Shop Item Dialog */}
-        <Dialog open={showShopItemForm} onOpenChange={setShowShopItemForm}>
+        {/* Shop Dialogs */}
+        <NewShopItemDialog open={showShopItemForm} onOpenChange={setShowShopItemForm} isSuperAdmin={isSuperAdmin} customPets={customPets} customThemes={customThemes} shopItems={shopItems} setShopItems={setShopItems} />
+        <EditShopItemDialog item={editingShopItem} onOpenChange={setEditingShopItem} shopItems={shopItems} setShopItems={setShopItems} />
+        <ManualPackDialog open={showManualPackForm} onOpenChange={setShowManualPackForm} shopItems={shopItems} bundles={bundles} setBundles={setBundles} />
+        <NewBundleDialog open={showBundleForm} onOpenChange={setShowBundleForm} bundles={bundles} setBundles={setBundles} />
+        <EditBundleDialog item={editingBundle} onOpenChange={setEditingBundle} bundles={bundles} setBundles={setBundles} />
+
+        {/* PLACEHOLDER */}
+        <Dialog open={false} onOpenChange={() => {}}>
           <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Create Shop Item</DialogTitle>
+              <DialogTitle>placeholder</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Name</Label>
-                  <Input
-                    value={shopItemForm.name}
-                    onChange={(e) => setShopItemForm({ ...shopItemForm, name: e.target.value })}
-                    placeholder="Winter Fox"
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Price (Quest Coins)</Label>
-                  <Input
-                    type="number"
-                    value={shopItemForm.price}
-                    onChange={(e) => setShopItemForm({ ...shopItemForm, price: parseInt(e.target.value) || 0 })}
-                    className="bg-slate-700 border-slate-600"
-                  />
                 </div>
               </div>
               <div className="space-y-2">
