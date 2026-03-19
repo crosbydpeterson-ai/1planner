@@ -266,6 +266,7 @@ export default function Dashboard() {
       <WidgetCustomizer
         activeWidgets={activeWidgets}
         onToggleWidget={handleToggleWidget}
+        onReorder={handleReorderWidgets}
         onClose={() => setShowCustomizer(false)}
         onSave={handleSaveWidgets} />
 
