@@ -65,7 +65,7 @@ export default function Dashboard() {
       setProfile(p);
 
       // Load widget config from profile or use all widgets as default
-      if (p.widgetConfig && Array.isArray(p.widgetConfig)) {
+      if (p.widgetConfig && Array.isArray(p.widgetConfig) && p.widgetConfig.length > 0) {
         setActiveWidgets(p.widgetConfig);
       } else {
         setActiveWidgets(ALL_WIDGETS);
