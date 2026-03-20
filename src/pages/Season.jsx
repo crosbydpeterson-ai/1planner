@@ -130,6 +130,8 @@ export default function Season() {
         if (!currentTitles.includes(reward.value)) {
           updateData.unlockedTitles = [...currentTitles, reward.value];
         }
+      } else if (reward.type === 'magic_egg') {
+        await base44.entities.MagicEgg.create({ userId: profile.userId });
       }
 
       await base44.entities.UserProfile.update(profile.id, updateData);

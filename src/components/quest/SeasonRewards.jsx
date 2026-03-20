@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 const REWARD_TYPE_ICONS = {
   pet: "🐾",
   theme: "🎨",
-  title: "🏆"
+  title: "🏆",
+  magic_egg: "🥚"
 };
 
 export default function SeasonRewards({ season, userXp, claimedRewards = [], onClaim }) {
