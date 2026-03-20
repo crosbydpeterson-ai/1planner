@@ -35,7 +35,6 @@ import SuperAssignmentsAnalytics from '@/components/admin/super/SuperAssignments
 import PetEditorDialog from '@/components/pets/PetEditorDialog';
 import RolesManager from '@/components/admin/RolesManager';
 import SeasonFormDialog from '@/components/admin/SeasonFormDialog';
-...
         <SeasonFormDialog
           open={showSeasonForm}
           onOpenChange={setShowSeasonForm}
