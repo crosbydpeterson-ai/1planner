@@ -138,10 +138,25 @@ export default function DailyRewardsSettings() {
                   <Input value={r.amount || ''} onChange={(e) => setRewardAt(idx, { amount: parseInt(e.target.value) || 0 })} className="bg-slate-800 border-slate-700 text-white h-8" />
                 </div>
               )}
-              {(r.type === 'pet' || r.type === 'theme' || r.type === 'title') && (
+              {r.type === 'pet' && (
                 <div className="space-y-1">
-                  <Label className="text-slate-300 text-xs">Value (ID or Text)</Label>
-                  <Input value={r.value || ''} onChange={(e) => setRewardAt(idx, { value: e.target.value })} placeholder={r.type === 'title' ? 'Title text' : 'e.g. starter_slime or custom_abc'} className="bg-slate-800 border-slate-700 text-white h-8" />
+                  <Label className="text-slate-300 text-xs">Pet</Label>
+                  <Select value={r.value || ''} onValueChange={(v) => setRewardAt(idx, { value: v })}>
+                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white h-8">
+                      <SelectValue placeholder="Select a pet…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allPets.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.emoji} {p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {(r.type === 'theme' || r.type === 'title') && (
+                <div className="space-y-1">
+                  <Label className="text-slate-300 text-xs">Value</Label>
+                  <Input value={r.value || ''} onChange={(e) => setRewardAt(idx, { value: e.target.value })} placeholder={r.type === 'title' ? 'Title text' : 'Theme ID'} className="bg-slate-800 border-slate-700 text-white h-8" />
                 </div>
               )}
             </div>
