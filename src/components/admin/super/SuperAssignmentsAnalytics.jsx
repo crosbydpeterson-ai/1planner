@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SuggestionPetGenerator from './SuggestionPetGenerator';
 
 export default function SuperAssignmentsAnalytics() {
   const [assignments, setAssignments] = useState([]);
@@ -69,17 +70,22 @@ export default function SuperAssignmentsAnalytics() {
                 </div>
               )}
               {current.type !== 'poll' && (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {currentResponses.length === 0 ? (
-                    <p className="text-slate-500 text-sm">No responses yet</p>
-                  ) : (
-                    currentResponses.map((r) => (
-                      <div key={r.id} className="p-3 rounded-lg border bg-white text-slate-700">
-                        <div className="text-xs text-slate-400 mb-1">{r.isAnonymous ? 'Anonymous' : r.userEmail || r.userProfileId}</div>
-                        <div className="text-sm whitespace-pre-wrap">{r.content || r.selectedOption}</div>
-                      </div>
-                    ))
+                <div className="space-y-2">
+                  {current.type === 'suggestion_box' && current.enablePetGenerator && (
+                    <SuggestionPetGenerator responses={currentResponses} />
                   )}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {currentResponses.length === 0 ? (
+                      <p className="text-slate-500 text-sm">No responses yet</p>
+                    ) : (
+                      currentResponses.map((r) => (
+                        <div key={r.id} className="p-3 rounded-lg border bg-white text-slate-700">
+                          <div className="text-xs text-slate-400 mb-1">{r.isAnonymous ? 'Anonymous' : r.userEmail || r.userProfileId}</div>
+                          <div className="text-sm whitespace-pre-wrap">{r.content || r.selectedOption}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>
