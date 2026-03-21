@@ -113,16 +113,6 @@ CRITICAL: Use the EXACT words the student used for the name. Do NOT rename or re
     setGeneratingIndex(-1);
   };
 
-  const handleGenerateAll = async () => {
-    setPhase('generating');
-    for (let i = 0; i < scannedPets.length; i++) {
-      if (doneIds.has(i)) continue;
-      await handleGenerateOne(scannedPets[i], i);
-    }
-    setPhase('previewing');
-    toast.success('All pets created!');
-  };
-
   if (phase === 'idle') {
     return (
       <Button
