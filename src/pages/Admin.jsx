@@ -35,8 +35,6 @@ import SuperAssignmentsAnalytics from '@/components/admin/super/SuperAssignments
 import PetEditorDialog from '@/components/pets/PetEditorDialog';
 import RolesManager from '@/components/admin/RolesManager';
 
-const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
-
 export default function Admin() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
