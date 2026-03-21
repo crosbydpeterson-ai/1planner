@@ -19,6 +19,7 @@ import MiniLeaderboardWidget from '@/components/dashboard/widgets/MiniLeaderboar
 import RecentAssignmentsWidget from '@/components/dashboard/widgets/RecentAssignmentsWidget';
 import SeasonProgressWidget from '@/components/dashboard/widgets/SeasonProgressWidget';
 import QuickNavWidget from '@/components/dashboard/widgets/QuickNavWidget';
+import GlobalEventWidget from '@/components/events/GlobalEventWidget';
 import Tutorial from '@/components/tutorial/Tutorial';
 
 const DEFAULT_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
@@ -259,6 +260,11 @@ export default function Dashboard() {
 
           {activeWidgets.map((widgetId) => renderWidget(widgetId))}
         </WidgetGrid>
+      </div>
+
+      {/* Global Event Widget */}
+      <div className="w-full px-4 lg:px-8 xl:px-12 2xl:px-16 mt-4">
+        <GlobalEventWidget profile={profile} />
       </div>
 
       {/* Customizer Modal */}

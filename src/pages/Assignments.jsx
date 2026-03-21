@@ -249,7 +249,15 @@ export default function Assignments() {
         // ignore
       }
 
-       // Track XP gain
+       // Contribute to global event jar
+      if (xpToAdd > 0) {
+        base44.functions.invoke('contributeGlobalXP', {
+          xpAmount: xpToAdd,
+          userProfileId: profile.id
+        }).catch(() => {}); // fire-and-forget
+      }
+
+      // Track XP gain
       base44.analytics.track({
         eventName: "assignment_completed_xp_gained",
         properties: {
