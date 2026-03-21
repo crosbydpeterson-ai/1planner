@@ -283,13 +283,9 @@ export default function Admin() {
         setPermissions(basePerms);
       }
       
-      // Auto-authenticate super admins; otherwise respect stored auth
+      // Always require password — never auto-authenticate anyone
       const adminAuth = localStorage.getItem('quest_admin_auth');
-      if (superByName || role === 'super_admin') {
-        setIsAuthenticated(true);
-        localStorage.setItem('quest_admin_auth', 'true');
-        loadData();
-      } else if (adminAuth === 'true') {
+      if (adminAuth === 'true') {
         setIsAuthenticated(true);
         loadData();
       } else {
