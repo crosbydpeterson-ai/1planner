@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import BrandLogo from '@/components/branding/BrandLogo';
-import GlobalMessagePopup from '@/components/events/GlobalMessagePopup';
 
 export default function Layout({ children, currentPageName }) {
         const navigate = useNavigate();
@@ -254,7 +253,6 @@ export default function Layout({ children, currentPageName }) {
       </header>
       {children}
       {!hideNav && <ChatbotWidget />}
-      {!hideNav && <GlobalMessagePopup />}
       
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 safe-area-pb">
