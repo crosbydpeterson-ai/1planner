@@ -203,7 +203,20 @@ export default function DailyRewardsSettings() {
                       <SelectItem value="title">Title</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input className="bg-slate-800 border-slate-700 text-white h-8" value={p.value || ''} onChange={(e) => { const next = [...config.wheel.prizes]; next[i] = { ...next[i], value: e.target.value }; setConfig({ ...config, wheel: { ...config.wheel, prizes: next } }); }} placeholder="Value/ID or text" />
+                  {p.type === 'pet' ? (
+                    <Select value={p.value || ''} onValueChange={(v) => { const next = [...config.wheel.prizes]; next[i] = { ...next[i], value: v }; setConfig({ ...config, wheel: { ...config.wheel, prizes: next } }); }}>
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white h-8">
+                        <SelectValue placeholder="Pick pet…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allPets.map(pet => (
+                          <SelectItem key={pet.id} value={pet.id}>{pet.emoji} {pet.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input className="bg-slate-800 border-slate-700 text-white h-8" value={p.value || ''} onChange={(e) => { const next = [...config.wheel.prizes]; next[i] = { ...next[i], value: e.target.value }; setConfig({ ...config, wheel: { ...config.wheel, prizes: next } }); }} placeholder="Value or text" />
+                  )}
                   <Input className="bg-slate-800 border-slate-700 text-white h-8" type="number" value={p.amount || ''} onChange={(e) => { const next = [...config.wheel.prizes]; next[i] = { ...next[i], amount: parseInt(e.target.value) || 0 }; setConfig({ ...config, wheel: { ...config.wheel, prizes: next } }); }} placeholder="Amount" />
                   <div className="flex items-center gap-2">
                     <Input className="bg-slate-800 border-slate-700 text-white h-8 w-20" type="number" value={p.weight || 0} onChange={(e) => { const next = [...config.wheel.prizes]; next[i] = { ...next[i], weight: parseFloat(e.target.value) || 0 }; setConfig({ ...config, wheel: { ...config.wheel, prizes: next } }); }} placeholder="Weight" />
