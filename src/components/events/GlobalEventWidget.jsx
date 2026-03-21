@@ -2,54 +2,65 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Gift, Loader2, CheckCircle2, Lock } from 'lucide-react';
+import { Gift, Loader2, CheckCircle2, Lock, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import MagicJarVisual from './themes/MagicJarVisual';
+import WorldTreeVisual from './themes/WorldTreeVisual';
+import CommunityChestVisual from './themes/CommunityChestVisual';
+import MonsterHunterVisual from './themes/MonsterHunterVisual';
 
 const THEME_CONFIG = {
   world_tree: {
-    icon: '🌳',
-    gradient: 'from-emerald-500/20 via-green-500/20 to-lime-500/20',
-    progressColor: 'bg-emerald-500',
-    accentColor: 'text-emerald-400',
-    barBg: 'bg-emerald-900/30',
     label: 'Growth',
+    bgGradient: 'from-emerald-950 via-green-900 to-emerald-950',
+    progressColor: 'bg-emerald-400',
+    barBg: 'bg-emerald-900/50',
+    accentColor: 'text-emerald-400',
+    tierBg: 'bg-emerald-900/40',
+    tierActiveBg: 'bg-emerald-800/60',
+    glowColor: '#22c55e',
+    Visual: WorldTreeVisual,
   },
   community_chest: {
-    icon: '📦',
-    gradient: 'from-amber-500/20 via-yellow-500/20 to-orange-500/20',
-    progressColor: 'bg-amber-500',
-    accentColor: 'text-amber-400',
-    barBg: 'bg-amber-900/30',
     label: 'Filled',
+    bgGradient: 'from-amber-950 via-yellow-900 to-amber-950',
+    progressColor: 'bg-amber-400',
+    barBg: 'bg-amber-900/50',
+    accentColor: 'text-amber-400',
+    tierBg: 'bg-amber-900/40',
+    tierActiveBg: 'bg-amber-800/60',
+    glowColor: '#f59e0b',
+    Visual: CommunityChestVisual,
   },
   monster_hunter: {
-    icon: '🐉',
-    gradient: 'from-red-500/20 via-orange-500/20 to-yellow-500/20',
-    progressColor: 'bg-red-500',
-    accentColor: 'text-red-400',
-    barBg: 'bg-red-900/30',
     label: 'Damage',
+    bgGradient: 'from-red-950 via-orange-950 to-red-950',
+    progressColor: 'bg-red-500',
+    barBg: 'bg-red-900/50',
+    accentColor: 'text-red-400',
+    tierBg: 'bg-red-900/40',
+    tierActiveBg: 'bg-red-800/60',
+    glowColor: '#ef4444',
+    Visual: MonsterHunterVisual,
   },
   magic_jar: {
-    icon: '🫙',
-    gradient: 'from-purple-500/20 via-indigo-500/20 to-blue-500/20',
-    progressColor: 'bg-purple-500',
-    accentColor: 'text-purple-400',
-    barBg: 'bg-purple-900/30',
     label: 'Filled',
+    bgGradient: 'from-purple-950 via-indigo-950 to-violet-950',
+    progressColor: 'bg-purple-500',
+    barBg: 'bg-purple-900/50',
+    accentColor: 'text-purple-400',
+    tierBg: 'bg-purple-900/40',
+    tierActiveBg: 'bg-purple-800/60',
+    glowColor: '#a855f7',
+    Visual: MagicJarVisual,
   },
 };
 
 const REWARD_ICONS = {
-  xp: '⚡',
-  coins: '🪙',
-  pet: '🐾',
-  theme: '🎨',
-  title: '👑',
-  magic_egg: '🥚',
+  xp: '⚡', coins: '🪙', pet: '🐾', theme: '🎨', title: '👑', magic_egg: '🥚',
 };
 
-export default function GlobalEventWidget({ profile }) {
+export default function GlobalEventWidget({ profile, fullScreen = false }) {
   const [event, setEvent] = useState(null);
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +88,7 @@ export default function GlobalEventWidget({ profile }) {
         if (profile?.id) {
           const userClaims = await base44.entities.GlobalEventClaim.filter({
             eventId: events[0].id,
-            userProfileId: profile.id
+            userProfileId: profile.id,
           });
           setClaims(userClaims);
         }
@@ -95,7 +106,7 @@ export default function GlobalEventWidget({ profile }) {
       const { data } = await base44.functions.invoke('claimGlobalEventReward', {
         eventId: event.id,
         tierIndex,
-        userProfileId: profile.id
+        userProfileId: profile.id,
       });
       if (data.success) {
         setClaims(prev => [...prev, { eventId: event.id, userProfileId: profile.id, tierIndex }]);
@@ -108,115 +119,183 @@ export default function GlobalEventWidget({ profile }) {
     setClaiming(null);
   };
 
-  if (loading || !event) return null;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-white/50" />
+      </div>
+    );
+  }
+  if (!event) return null;
 
   const themeConfig = THEME_CONFIG[event.theme] || THEME_CONFIG.magic_jar;
   const progress = Math.min((event.currentGlobalXP || 0) / event.totalXPGoal * 100, 100);
   const tiers = event.tiers || [];
   const claimedIndexes = claims.map(c => c.tierIndex);
+  const ThemeVisual = themeConfig.Visual;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`bg-gradient-to-br ${themeConfig.gradient} rounded-2xl p-5 border border-white/20 shadow-lg`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className={`${fullScreen ? 'min-h-screen' : 'rounded-2xl'} bg-gradient-to-b ${themeConfig.bgGradient} p-5 pb-8 relative overflow-hidden`}
     >
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-4xl">{themeConfig.icon}</span>
-        <div className="flex-1">
-          <h3 className="text-lg font-bold text-slate-800">{event.name}</h3>
-          {event.description && (
-            <p className="text-sm text-slate-500">{event.description}</p>
-          )}
-        </div>
-        <div className="text-right">
-          <p className={`text-lg font-bold ${themeConfig.accentColor}`}>
-            {(event.currentGlobalXP || 0).toLocaleString()}
-          </p>
-          <p className="text-xs text-slate-500">/ {event.totalXPGoal.toLocaleString()} XP</p>
-        </div>
+      {/* Ambient background particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(12)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-white/20"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              y: [-20, 20, -20],
+              opacity: [0, 0.5, 0],
+            }}
+            transition={{
+              duration: 4 + Math.random() * 4,
+              repeat: Infinity,
+              delay: Math.random() * 5,
+            }}
+          />
+        ))}
       </div>
+
+      {/* Header */}
+      <div className="relative z-10 text-center mb-4 pt-2">
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Sparkles className="w-4 h-4 text-white/60" />
+            <span className="text-xs uppercase tracking-widest text-white/50 font-medium">Community Event</span>
+            <Sparkles className="w-4 h-4 text-white/60" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">{event.name}</h2>
+          {event.description && (
+            <p className="text-sm text-white/50 mt-1 max-w-xs mx-auto">{event.description}</p>
+          )}
+        </motion.div>
+      </div>
+
+      {/* Theme Visual */}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.4, type: 'spring', stiffness: 100 }}
+        className="relative z-10 my-6"
+      >
+        <ThemeVisual progress={progress} />
+      </motion.div>
+
+      {/* XP Counter */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.6 }}
+        className="relative z-10 text-center mb-5"
+      >
+        <p className={`text-3xl font-black ${themeConfig.accentColor}`}>
+          {(event.currentGlobalXP || 0).toLocaleString()}
+        </p>
+        <p className="text-sm text-white/40">of {event.totalXPGoal.toLocaleString()} XP</p>
+      </motion.div>
 
       {/* Progress Bar */}
-      <div className="relative mb-4">
-        <div className={`h-4 rounded-full ${themeConfig.barBg} overflow-hidden`}>
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.7 }}
+        className="relative z-10 mx-auto max-w-sm mb-6"
+      >
+        <div className={`h-3 rounded-full ${themeConfig.barBg} overflow-hidden shadow-inner`}>
           <motion.div
-            className={`h-full rounded-full ${themeConfig.progressColor}`}
+            className={`h-full rounded-full ${themeConfig.progressColor} shadow-lg`}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ duration: 1, ease: 'easeOut' }}
+            transition={{ duration: 1.5, ease: 'easeOut', delay: 0.8 }}
           />
         </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-xs text-slate-500">{themeConfig.label}: {progress.toFixed(1)}%</span>
-          <span className="text-xs text-slate-500">
-            {(event.totalXPGoal - (event.currentGlobalXP || 0)).toLocaleString()} XP to go
+        <div className="flex justify-between mt-1.5">
+          <span className="text-xs text-white/40">{themeConfig.label}: {progress.toFixed(1)}%</span>
+          <span className="text-xs text-white/40">
+            {Math.max(0, event.totalXPGoal - (event.currentGlobalXP || 0)).toLocaleString()} XP remaining
           </span>
         </div>
+      </motion.div>
 
-        {/* Tier markers on the progress bar */}
-        {tiers.map((tier, i) => {
-          const pos = (tier.xpThreshold / event.totalXPGoal) * 100;
-          const unlocked = (event.currentGlobalXP || 0) >= tier.xpThreshold;
-          return (
-            <div
-              key={i}
-              className="absolute top-0 w-4 h-4 -translate-x-1/2 rounded-full border-2 border-white shadow-sm"
-              style={{ left: `${pos}%`, backgroundColor: unlocked ? '#10b981' : '#94a3b8' }}
-              title={`${tier.rewardName} at ${tier.xpThreshold.toLocaleString()} XP`}
-            />
-          );
-        })}
-      </div>
-
-      {/* Tiers */}
-      <div className="space-y-2">
+      {/* Reward Tiers */}
+      <motion.div
+        initial={{ y: 30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.9 }}
+        className="relative z-10 max-w-sm mx-auto space-y-2"
+      >
+        <h3 className="text-xs uppercase tracking-wider text-white/40 font-medium mb-3 text-center">Rewards</h3>
         {tiers.map((tier, i) => {
           const unlocked = (event.currentGlobalXP || 0) >= tier.xpThreshold;
           const claimed = claimedIndexes.includes(i);
+          const tierProgress = Math.min(((event.currentGlobalXP || 0) / tier.xpThreshold) * 100, 100);
+
           return (
-            <div
+            <motion.div
               key={i}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-all ${
-                unlocked
-                  ? claimed ? 'bg-white/30' : 'bg-white/50 shadow-sm'
-                  : 'bg-white/10 opacity-60'
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 1 + i * 0.1 }}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
+                claimed
+                  ? `${themeConfig.tierBg} border-white/10 opacity-60`
+                  : unlocked
+                    ? `${themeConfig.tierActiveBg} border-white/20 shadow-lg`
+                    : `${themeConfig.tierBg} border-white/5`
               }`}
             >
-              <span className="text-xl">{REWARD_ICONS[tier.rewardType] || '🎁'}</span>
+              <span className="text-2xl">{REWARD_ICONS[tier.rewardType] || '🎁'}</span>
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${unlocked ? 'text-slate-800' : 'text-slate-500'}`}>
+                <p className={`text-sm font-semibold ${unlocked ? 'text-white' : 'text-white/40'}`}>
                   {tier.rewardName}
                 </p>
-                <p className="text-xs text-slate-500">
-                  {tier.xpThreshold.toLocaleString()} XP
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                    <motion.div
+                      className={`h-full rounded-full ${themeConfig.progressColor}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${tierProgress}%` }}
+                      transition={{ duration: 1, delay: 1.2 + i * 0.1 }}
+                    />
+                  </div>
+                  <span className="text-xs text-white/30 whitespace-nowrap">
+                    {tier.xpThreshold.toLocaleString()}
+                  </span>
+                </div>
               </div>
               {claimed ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
               ) : unlocked ? (
                 <Button
                   size="sm"
                   onClick={() => handleClaim(i)}
                   disabled={claiming === i}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-xs h-7 px-3"
+                  className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs h-8 px-3 shadow-lg backdrop-blur-sm"
                 >
                   {claiming === i ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
                   ) : (
-                    <>
-                      <Gift className="w-3 h-3 mr-1" /> Claim
-                    </>
+                    <><Gift className="w-3 h-3 mr-1" /> Claim</>
                   )}
                 </Button>
               ) : (
-                <Lock className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <Lock className="w-4 h-4 text-white/20 flex-shrink-0" />
               )}
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
