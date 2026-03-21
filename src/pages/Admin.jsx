@@ -1482,27 +1482,9 @@ White or transparent background, centered, high quality illustration.`;
 
           <TabsContent value="events">
             <div className="space-y-6">
-              <GlobalEventManager />
+              <AdminLiveEvents users={users} customPets={customPets} customThemes={customThemes} isSuperAdmin={isSuperAdmin} />
               <hr className="border-slate-700" />
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-semibold">Pop-Up Events ({events.length})</h3>
-                <Button onClick={() => setShowEventForm(true)} className="bg-blue-600">New Event</Button>
-              </div>
-              <div className="space-y-3">
-                {events.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400">No events yet</div>
-                ) : events.map((evt) => (
-                  <div key={evt.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-white font-medium">{evt.name}</h4>
-                        <p className="text-xs text-slate-400 capitalize">{evt.type} {evt.isActive ? '• Active' : ''}</p>
-                      </div>
-                      <div className="text-xs text-slate-400">{evt.startTime && `Start: ${new Date(evt.startTime).toLocaleString()}`}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <GlobalEventManager />
             </div>
           </TabsContent>
 
