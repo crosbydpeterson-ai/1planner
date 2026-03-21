@@ -24,6 +24,11 @@ export default function DailyRewardsSettings() {
   useEffect(() => {
     (async () => {
       try {
+        const customPets = await base44.entities.CustomPet.list('-created_date');
+        const builtIn = PETS.map(p => ({ id: p.id, name: p.name, emoji: p.emoji, _isBuiltIn: true }));
+        const custom = customPets.map(p => ({ id: `custom_${p.id}`, name: p.name, emoji: p.emoji || '🐾', _isBuiltIn: false }));
+        setAllPets([...builtIn, ...custom]);
+
         const settings = await base44.entities.AppSetting.list();
         const dr = settings.find(s => s.key === 'daily_rewards_config');
         if (dr) {
