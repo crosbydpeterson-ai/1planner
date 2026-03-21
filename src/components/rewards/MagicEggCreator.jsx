@@ -148,11 +148,26 @@ White or transparent background, centered, high quality illustration.`;
         createdPetId: newPet.id
       });
 
-      // Add pet to user's collection
+      // Create a matching CustomTheme for the pet
+      const newTheme = await base44.entities.CustomTheme.create({
+        name: generatedPet.name,
+        rarity: generatedPet.rarity,
+        xpRequired: 0,
+        description: `Theme from ${generatedPet.name}`,
+        primaryColor: generatedPet.theme?.primary || '#6366f1',
+        secondaryColor: generatedPet.theme?.secondary || '#a5b4fc',
+        accentColor: generatedPet.theme?.accent || '#f59e0b',
+        bgColor: generatedPet.theme?.bg || '#f0f9ff',
+      });
+
+      // Add pet and theme to user's collection
       const newPetId = `custom_${newPet.id}`;
+      const newThemeId = `custom_${newTheme.id}`;
       const unlockedPets = [...(profile.unlockedPets || []), newPetId];
+      const unlockedThemes = [...(profile.unlockedThemes || []), newThemeId];
       await base44.entities.UserProfile.update(profile.id, {
         unlockedPets,
+        unlockedThemes,
         equippedPetId: newPetId
       });
 
