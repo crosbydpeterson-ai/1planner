@@ -2816,74 +2816,18 @@ White or transparent background, centered, high quality illustration.`;
           toast.success('Shop item created!');
         }} />
 
-        {/* Edit Shop Item Dialog */}
         <Dialog open={!!editingShopItem} onOpenChange={() => setEditingShopItem(null)}>
           <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Edit Shop Item</DialogTitle>
-            </DialogHeader>
-            {editingShopItem && (
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input
-                      value={editingShopItem.name}
-                      onChange={(e) => setEditingShopItem({ ...editingShopItem, name: e.target.value })}
-                      className="bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Price</Label>
-                    <Input
-                      type="number"
-                      value={editingShopItem.price}
-                      onChange={(e) => setEditingShopItem({ ...editingShopItem, price: parseInt(e.target.value) || 0 })}
-                      className="bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="editIsActive"
-                    checked={editingShopItem.isActive}
-                    onChange={(e) => setEditingShopItem({ ...editingShopItem, isActive: e.target.checked })}
-                    className="rounded"
-                  />
-                  <Label htmlFor="editIsActive" className="cursor-pointer">Active</Label>
-                </div>
-                {editingShopItem.stockLimit !== null && (
-                  <div className="space-y-2">
-                    <Label>Stock Remaining</Label>
-                    <Input
-                      type="number"
-                      value={editingShopItem.stockRemaining || 0}
-                      onChange={(e) => setEditingShopItem({ ...editingShopItem, stockRemaining: parseInt(e.target.value) || 0 })}
-                      className="bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                )}
+            <DialogHeader><DialogTitle>Edit Shop Item</DialogTitle></DialogHeader>
+            {editingShopItem && (<div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Name</Label><Input value={editingShopItem.name} onChange={(e) => setEditingShopItem({ ...editingShopItem, name: e.target.value })} className="bg-slate-700 border-slate-600" /></div>
+                <div className="space-y-2"><Label>Price</Label><Input type="number" value={editingShopItem.price} onChange={(e) => setEditingShopItem({ ...editingShopItem, price: parseInt(e.target.value) || 0 })} className="bg-slate-700 border-slate-600" /></div>
               </div>
-            )}
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setEditingShopItem(null)}>Cancel</Button>
-              <Button
-                onClick={async () => {
-                  try {
-                    await base44.entities.ShopItem.update(editingShopItem.id, editingShopItem);
-                    setShopItems(shopItems.map(i => i.id === editingShopItem.id ? editingShopItem : i));
-                    setEditingShopItem(null);
-                    toast.success('Item updated');
-                  } catch (e) {
-                    toast.error('Failed to update');
-                  }
-                }}
-                className="bg-purple-600"
-              >
-                Save Changes
-              </Button>
-            </DialogFooter>
+              <div className="flex items-center gap-2"><input type="checkbox" id="editIsActive" checked={editingShopItem.isActive} onChange={(e) => setEditingShopItem({ ...editingShopItem, isActive: e.target.checked })} className="rounded" /><Label htmlFor="editIsActive" className="cursor-pointer">Active</Label></div>
+              {editingShopItem.stockLimit !== null && (<div className="space-y-2"><Label>Stock Remaining</Label><Input type="number" value={editingShopItem.stockRemaining || 0} onChange={(e) => setEditingShopItem({ ...editingShopItem, stockRemaining: parseInt(e.target.value) || 0 })} className="bg-slate-700 border-slate-600" /></div>)}
+            </div>)}
+            <DialogFooter><Button variant="ghost" onClick={() => setEditingShopItem(null)}>Cancel</Button><Button onClick={async () => { await base44.entities.ShopItem.update(editingShopItem.id, editingShopItem); setShopItems(shopItems.map(i => i.id === editingShopItem.id ? editingShopItem : i)); setEditingShopItem(null); toast.success('Item updated'); }} className="bg-purple-600">Save Changes</Button></DialogFooter>
           </DialogContent>
         </Dialog>
 
