@@ -42,6 +42,7 @@ import CosmeticFormDialog from '@/components/admin/CosmeticFormDialog';
 import ManualPackDialog from '@/components/admin/ManualPackDialog';
 import BundleFormDialog from '@/components/admin/BundleFormDialog';
 import EditBundleDialog from '@/components/admin/EditBundleDialog';
+import EditShopItemDialog from '@/components/admin/EditShopItemDialog';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
@@ -949,14 +950,15 @@ White or transparent background, centered, high quality illustration.`;
                 Bans & Flags
               </TabsTrigger>
             )}
-            <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">
-              ⚙️
-              Settings
-            </TabsTrigger>
+            <TabsTrigger value="updates" className="data-[state=active]:bg-slate-700">📢 Updates</TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">⚙️ Settings</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="updates">
+            <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AnnouncementManager /></div>
+          </TabsContent>
+
           <TabsContent value="users">
-            {/* Search */}
             <div className="mb-4 flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -3179,76 +3181,7 @@ White or transparent background, centered, high quality illustration.`;
           </DialogContent>
         </Dialog>
 
-        {/* Edit Shop Item Dialog */}
-        <Dialog open={!!editingShopItem} onOpenChange={() => setEditingShopItem(null)}>
-          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Edit Shop Item</DialogTitle>
-            </DialogHeader>
-            {editingShopItem && (
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input
-                      value={editingShopItem.name}
-                      onChange={(e) => setEditingShopItem({ ...editingShopItem, name: e.target.value })}
-                      className="bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Price</Label>
-                    <Input
-                      type="number"
-                      value={editingShopItem.price}
-                      onChange={(e) => setEditingShopItem({ ...editingShopItem, price: parseInt(e.target.value) || 0 })}
-                      className="bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="editIsActive"
-                    checked={editingShopItem.isActive}
-                    onChange={(e) => setEditingShopItem({ ...editingShopItem, isActive: e.target.checked })}
-                    className="rounded"
-                  />
-                  <Label htmlFor="editIsActive" className="cursor-pointer">Active</Label>
-                </div>
-                {editingShopItem.stockLimit !== null && (
-                  <div className="space-y-2">
-                    <Label>Stock Remaining</Label>
-                    <Input
-                      type="number"
-                      value={editingShopItem.stockRemaining || 0}
-                      onChange={(e) => setEditingShopItem({ ...editingShopItem, stockRemaining: parseInt(e.target.value) || 0 })}
-                      className="bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setEditingShopItem(null)}>Cancel</Button>
-              <Button
-                onClick={async () => {
-                  try {
-                    await base44.entities.ShopItem.update(editingShopItem.id, editingShopItem);
-                    setShopItems(shopItems.map(i => i.id === editingShopItem.id ? editingShopItem : i));
-                    setEditingShopItem(null);
-                    toast.success('Item updated');
-                  } catch (e) {
-                    toast.error('Failed to update');
-                  }
-                }}
-                className="bg-purple-600"
-              >
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <EditShopItemDialog item={editingShopItem} onOpenChange={(v) => { if (!v) setEditingShopItem(null); }} onSaved={(updated) => { setShopItems(shopItems.map(i => i.id === updated.id ? updated : i)); setEditingShopItem(null); }} />
 
         <ManualPackDialog
           open={showManualPackForm}
