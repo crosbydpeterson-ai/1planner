@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { PETS } from '@/components/quest/PetCatalog';
 
 export default function DailyRewardsSettings() {
   const [settingId, setSettingId] = useState(null);
