@@ -41,6 +41,7 @@ import RewardLinkFormDialog from '@/components/admin/RewardLinkFormDialog';
 import CosmeticFormDialog from '@/components/admin/CosmeticFormDialog';
 import ManualPackDialog from '@/components/admin/ManualPackDialog';
 import BundleFormDialog from '@/components/admin/BundleFormDialog';
+import EditBundleDialog from '@/components/admin/EditBundleDialog';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
@@ -3260,76 +3261,7 @@ White or transparent background, centered, high quality illustration.`;
 
         <BundleFormDialog open={showBundleForm} onOpenChange={setShowBundleForm} form={bundleForm} setForm={setBundleForm} onCreated={(b) => setBundles([b, ...bundles])} />
 
-        {/* Edit Bundle Dialog */}
-        <Dialog open={!!editingBundle} onOpenChange={() => setEditingBundle(null)}>
-          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Edit Bundle</DialogTitle>
-            </DialogHeader>
-            {editingBundle && (
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input
-                    value={editingBundle.name}
-                    onChange={(e) => setEditingBundle({ ...editingBundle, name: e.target.value })}
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Bundle Price</Label>
-                    <Input
-                      type="number"
-                      value={editingBundle.bundlePrice}
-                      onChange={(e) => setEditingBundle({ ...editingBundle, bundlePrice: parseInt(e.target.value) || 0 })}
-                      className="bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                  {editingBundle.stockLimit !== null && (
-                    <div className="space-y-2">
-                      <Label>Stock Remaining</Label>
-                      <Input
-                        type="number"
-                        value={editingBundle.stockRemaining || 0}
-                        onChange={(e) => setEditingBundle({ ...editingBundle, stockRemaining: parseInt(e.target.value) || 0 })}
-                        className="bg-slate-700 border-slate-600"
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="editBundleActive"
-                    checked={editingBundle.isActive}
-                    onChange={(e) => setEditingBundle({ ...editingBundle, isActive: e.target.checked })}
-                    className="rounded"
-                  />
-                  <Label htmlFor="editBundleActive" className="cursor-pointer">Active</Label>
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setEditingBundle(null)}>Cancel</Button>
-              <Button
-                onClick={async () => {
-                  try {
-                    await base44.entities.Bundle.update(editingBundle.id, editingBundle);
-                    setBundles(bundles.map(b => b.id === editingBundle.id ? editingBundle : b));
-                    setEditingBundle(null);
-                    toast.success('Bundle updated');
-                  } catch (e) {
-                    toast.error('Failed to update');
-                  }
-                }}
-                className="bg-amber-600"
-              >
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <EditBundleDialog bundle={editingBundle} onOpenChange={(v) => { if (!v) setEditingBundle(null); }} onSaved={(updated) => { setBundles(bundles.map(b => b.id === updated.id ? updated : b)); setEditingBundle(null); }} />
 
         <RewardLinkFormDialog
           open={showRewardLinkForm}
