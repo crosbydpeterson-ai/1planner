@@ -35,10 +35,10 @@ import SuperAssignmentsAnalytics from '@/components/admin/super/SuperAssignments
 import PetEditorDialog from '@/components/pets/PetEditorDialog';
 import RolesManager from '@/components/admin/RolesManager';
 import GlobalEventManager from '@/components/admin/GlobalEventManager';
-import NewThemeDialog from '@/components/admin/NewThemeDialog';
-import AdminLiveEvents from '@/components/admin/AdminLiveEvents';
-import NewCosmeticDialog from '@/components/admin/NewCosmeticDialog';
-import ShopItemDialog from '@/components/admin/ShopItemDialog';
+import NewThemeDialog from '@/components/admin/NewThemeDialog.jsx';
+import AdminLiveEvents from '@/components/admin/AdminLiveEvents.jsx';
+import NewCosmeticDialog from '@/components/admin/NewCosmeticDialog.jsx';
+import ShopItemDialog from '@/components/admin/ShopItemDialog.jsx';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
