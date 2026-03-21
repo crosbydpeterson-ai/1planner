@@ -40,6 +40,7 @@ import AnnouncementManager from '@/components/admin/AnnouncementManager';
 import RewardLinkFormDialog from '@/components/admin/RewardLinkFormDialog';
 import CosmeticFormDialog from '@/components/admin/CosmeticFormDialog';
 import ManualPackDialog from '@/components/admin/ManualPackDialog';
+import BundleFormDialog from '@/components/admin/BundleFormDialog';
 
 const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
 
@@ -3257,131 +3258,7 @@ White or transparent background, centered, high quality illustration.`;
           onCreated={(newBundle) => setBundles([newBundle, ...bundles])}
         />
 
-        {/* New Bundle Dialog */}
-        <Dialog open={showBundleForm} onOpenChange={setShowBundleForm}>
-          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create Bundle</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Bundle Name</Label>
-                <Input
-                  value={bundleForm.name}
-                  onChange={(e) => setBundleForm({ ...bundleForm, name: e.target.value })}
-                  placeholder="Winter Crew Pack"
-                  className="bg-slate-700 border-slate-600"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  value={bundleForm.description}
-                  onChange={(e) => setBundleForm({ ...bundleForm, description: e.target.value })}
-                  className="bg-slate-700 border-slate-600"
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Original Price</Label>
-                  <Input
-                    type="number"
-                    value={bundleForm.originalPrice}
-                    onChange={(e) => setBundleForm({ ...bundleForm, originalPrice: parseInt(e.target.value) || 0 })}
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Bundle Price</Label>
-                  <Input
-                    type="number"
-                    value={bundleForm.bundlePrice}
-                    onChange={(e) => setBundleForm({ ...bundleForm, bundlePrice: parseInt(e.target.value) || 0 })}
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Discount %</Label>
-                  <Input
-                    type="number"
-                    value={bundleForm.discountPercent}
-                    onChange={(e) => setBundleForm({ ...bundleForm, discountPercent: parseInt(e.target.value) || 0 })}
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Select Items (paste Shop Item IDs, comma-separated)</Label>
-                <Textarea
-                  value={bundleForm.itemIds.join(', ')}
-                  onChange={(e) => setBundleForm({ ...bundleForm, itemIds: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                  placeholder="item_id_1, item_id_2, item_id_3"
-                  className="bg-slate-700 border-slate-600"
-                />
-                <p className="text-xs text-slate-400">Tip: Create shop items first, then use their IDs here</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <Input
-                    type="datetime-local"
-                    value={bundleForm.startDate}
-                    onChange={(e) => setBundleForm({ ...bundleForm, startDate: e.target.value })}
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <Input
-                    type="datetime-local"
-                    value={bundleForm.endDate}
-                    onChange={(e) => setBundleForm({ ...bundleForm, endDate: e.target.value })}
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Stock Limit (optional)</Label>
-                  <Input
-                    type="number"
-                    value={bundleForm.stockLimit || ''}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value) || null;
-                      setBundleForm({ ...bundleForm, stockLimit: val, stockRemaining: val });
-                    }}
-                    placeholder="Leave empty for unlimited"
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setShowBundleForm(false)}>Cancel</Button>
-              <Button
-                onClick={async () => {
-                  if (!bundleForm.name.trim() || bundleForm.itemIds.length === 0) {
-                    toast.error('Enter bundle name and items');
-                    return;
-                  }
-                  try {
-                    const newBundle = await base44.entities.Bundle.create(bundleForm);
-                    setBundles([newBundle, ...bundles]);
-                    setShowBundleForm(false);
-                    setBundleForm({
-                      name: '', description: '', itemIds: [], originalPrice: 0, bundlePrice: 0, discountPercent: 20,
-                      isLimited: true, stockLimit: null, stockRemaining: null, startDate: '', endDate: '', isActive: true
-                    });
-                    toast.success('Bundle created!');
-                  } catch (e) {
-                    toast.error('Failed to create bundle');
-                  }
-                }}
-                className="bg-amber-600"
-              >
-                Create Bundle
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <BundleFormDialog open={showBundleForm} onOpenChange={setShowBundleForm} form={bundleForm} setForm={setBundleForm} onCreated={(b) => setBundles([b, ...bundles])} />
 
         {/* Edit Bundle Dialog */}
         <Dialog open={!!editingBundle} onOpenChange={() => setEditingBundle(null)}>
