@@ -27,19 +27,19 @@ export default function SuggestionPetGenerator({ responses }) {
     setPhase('scanning');
     try {
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a content moderator and creative pet designer for a CHILDREN'S school app.
+        prompt: `You are a content moderator for a children's school app.
 
 Below are student suggestion-box responses. Your job is to:
-1. Read through all responses and extract any pet ideas mentioned (e.g. "I want a dragon", "a rainbow cat", "pizza dog").
-2. Filter OUT anything inappropriate for elementary/middle school kids (violence, scary monsters, adult themes, weapons, horror, rude content).
-3. For each appropriate pet idea, design a unique magical companion with a name, description, emoji, rarity, and 4 hex theme colors.
-4. Deduplicate — if multiple students suggested the same animal type, make ONE creative version of it.
+1. Extract every distinct pet or creature idea mentioned — use the EXACT words the student used (e.g. if they said "3D printed toy" the name is "3D Printed Toy", if they said "rainbow cat" the name is "Rainbow Cat").
+2. Filter OUT anything inappropriate for elementary/middle school kids (violence, gore, weapons, horror, adult themes, rude content). If something is borderline, leave it out.
+3. Deduplicate — if multiple students suggested the same thing, only include it once.
+4. For each pet, provide: the exact student wording as the name, a short literal description (describe it as-is, not a magical version), an emoji, rarity, and 4 hex theme colors.
 5. Return at most 10 pets.
 
 Responses:
 ${allText}
 
-IMPORTANT: Only include pets that are safe, fun, and school-appropriate. Be creative with names!`,
+CRITICAL: Use the EXACT words the student used for the name. Do NOT rename or reimagine them into fantasy creatures.`,
         response_json_schema: {
           type: 'object',
           properties: {
@@ -86,7 +86,7 @@ IMPORTANT: Only include pets that are safe, fun, and school-appropriate. Be crea
       let imageUrl = '';
       try {
         const imgResult = await base44.integrations.Core.GenerateImage({
-          prompt: `Cute cartoon pet character for a CHILDREN'S educational game: ${pet.name}. ${pet.description}. Style: adorable, friendly, colorful digital art, game mascot style, simple clean design, kid-friendly, Pixar-style cuteness. Color scheme: primary ${pet.theme?.primary}, secondary ${pet.theme?.secondary}. White background, centered, high quality illustration.`
+          prompt: `${pet.name}. ${pet.description}. White background, centered, high quality illustration. Color scheme: ${pet.theme?.primary} and ${pet.theme?.secondary}.`
         });
         imageUrl = imgResult.url || '';
       } catch (_) {}
@@ -151,27 +151,13 @@ IMPORTANT: Only include pets that are safe, fun, and school-appropriate. Be crea
         <p className="text-sm font-semibold text-purple-800">
           {scannedPets.length} pet{scannedPets.length !== 1 ? 's' : ''} found from responses
         </p>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => { setPhase('idle'); setScannedPets([]); setDoneIds(new Set()); }}
-          >
-            <X className="w-3 h-3 mr-1" /> Reset
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleGenerateAll}
-            disabled={generatingIndex >= 0 || doneIds.size === scannedPets.length}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-          >
-            {generatingIndex >= 0 ? (
-              <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Generating…</>
-            ) : (
-              <><Sparkles className="w-3 h-3 mr-1" /> Create All</>
-            )}
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => { setPhase('idle'); setScannedPets([]); setDoneIds(new Set()); }}
+        >
+          <X className="w-3 h-3 mr-1" /> Reset
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
