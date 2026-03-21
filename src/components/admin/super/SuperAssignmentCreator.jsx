@@ -20,6 +20,7 @@ export default function SuperAssignmentCreator() {
   const [specificUserProfileIds, setSpecificUserProfileIds] = useState([]);
   const [userList, setUserList] = useState([]);
   const [allowAnonymous, setAllowAnonymous] = useState(false);
+  const [enablePetGenerator, setEnablePetGenerator] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export default function SuperAssignmentCreator() {
   const reset = () => {
     setTitle(''); setDescription(''); setType('poll'); setOptionsInput('Yes\nNo');
     setRecipientsScope('everyone'); setSubject('everyone'); setTargetTeacher('');
-    setSpecificUserProfileIds([]); setAllowAnonymous(false);
+    setSpecificUserProfileIds([]); setAllowAnonymous(false); setEnablePetGenerator(false);
   };
 
   const handleCreate = async () => {
@@ -52,6 +53,7 @@ export default function SuperAssignmentCreator() {
       targetTeacher: targetTeacher || undefined,
       specificUserProfileIds: recipientsScope === 'users' ? specificUserProfileIds : [],
       allowAnonymous,
+      enablePetGenerator: type === 'suggestion_box' ? enablePetGenerator : false,
       isActive: true,
     };
     if (type === 'poll') payload.options = options;
@@ -158,6 +160,12 @@ export default function SuperAssignmentCreator() {
           <Switch checked={allowAnonymous} onCheckedChange={setAllowAnonymous} />
           <Label className="text-slate-300">Allow anonymous responses</Label>
         </div>
+        {type === 'suggestion_box' && (
+          <div className="flex items-center gap-2">
+            <Switch checked={enablePetGenerator} onCheckedChange={setEnablePetGenerator} />
+            <Label className="text-slate-300">Enable pet generator from responses</Label>
+          </div>
+        )}
       </div>
       <div className="text-right mt-4">
         <Button onClick={handleCreate} disabled={saving || !title.trim()} className="bg-indigo-600 hover:bg-indigo-700">
