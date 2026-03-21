@@ -19,6 +19,7 @@ export default function DailyRewardsSettings() {
   });
   const [grantUsername, setGrantUsername] = useState('');
   const [granting, setGranting] = useState(false);
+  const [allPets, setAllPets] = useState([]);
 
   useEffect(() => {
     (async () => {
