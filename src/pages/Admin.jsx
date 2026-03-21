@@ -35,6 +35,8 @@ import SuperAssignmentsAnalytics from '@/components/admin/super/SuperAssignments
 import PetEditorDialog from '@/components/pets/PetEditorDialog';
 import RolesManager from '@/components/admin/RolesManager';
 
+const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
+
 export default function Admin() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -283,9 +285,13 @@ export default function Admin() {
         setPermissions(basePerms);
       }
       
-      // Always require password — never auto-authenticate anyone
+      // Auto-authenticate super admins; otherwise respect stored auth
       const adminAuth = localStorage.getItem('quest_admin_auth');
-      if (adminAuth === 'true') {
+      if (superByName || role === 'super_admin') {
+        setIsAuthenticated(true);
+        localStorage.setItem('quest_admin_auth', 'true');
+        loadData();
+      } else if (adminAuth === 'true') {
         setIsAuthenticated(true);
         loadData();
       } else {
