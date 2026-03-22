@@ -239,12 +239,16 @@ export default function Assignments() {
         if (progList.length === 0) {
           const created = await base44.entities.DailyRewardProgress.create({ userProfileId: profile.id, eligible: true, eligibleDate: today, streakCount: 0, currentIndex: 0 });
           setDailyProgress(created);
+          setShowDailyClaim(true);
         } else {
           const prog = progList[0];
-          const updated = await base44.entities.DailyRewardProgress.update(prog.id, { eligible: true, eligibleDate: today });
-          setDailyProgress({ ...prog, eligible: true, eligibleDate: today });
+          // Only show popup if not already claimed today
+          if (prog.lastClaimDate !== today) {
+            await base44.entities.DailyRewardProgress.update(prog.id, { eligible: true, eligibleDate: today });
+            setDailyProgress({ ...prog, eligible: true, eligibleDate: today });
+            setShowDailyClaim(true);
+          }
         }
-        setShowDailyClaim(true);
       } catch (e) {
         // ignore
       }
