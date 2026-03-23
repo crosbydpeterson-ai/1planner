@@ -255,7 +255,7 @@ export default function Layout({ children, currentPageName }) {
       {!hideNav && <ChatbotWidget />}
       
       {!hideNav && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 safe-area-pb">
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 safe-area-pb z-40">
           <div className="max-w-md mx-auto flex items-center justify-around">
             {visibleNavItems.map((item) => {
               const isActive = currentPageName === item.name;
