@@ -8,6 +8,10 @@ import MagicJarVisual from './themes/MagicJarVisual';
 import WorldTreeVisual from './themes/WorldTreeVisual';
 import CommunityChestVisual from './themes/CommunityChestVisual';
 import MonsterHunterVisual from './themes/MonsterHunterVisual';
+import CrystalCavernVisual from './themes/CrystalCavernVisual';
+import VolcanoForgeVisual from './themes/VolcanoForgeVisual';
+import OceanDepthsVisual from './themes/OceanDepthsVisual';
+import StarConstellationVisual from './themes/StarConstellationVisual';
 
 const THEME_CONFIG = {
   world_tree: {
@@ -53,6 +57,50 @@ const THEME_CONFIG = {
     tierActiveBg: 'bg-purple-800/60',
     glowColor: '#a855f7',
     Visual: MagicJarVisual,
+  },
+  crystal_cavern: {
+    label: 'Crystallized',
+    bgGradient: 'from-slate-950 via-cyan-950 to-indigo-950',
+    progressColor: 'bg-cyan-400',
+    barBg: 'bg-cyan-900/50',
+    accentColor: 'text-cyan-400',
+    tierBg: 'bg-cyan-900/40',
+    tierActiveBg: 'bg-cyan-800/60',
+    glowColor: '#06b6d4',
+    Visual: CrystalCavernVisual,
+  },
+  volcano_forge: {
+    label: 'Forged',
+    bgGradient: 'from-stone-950 via-orange-950 to-red-950',
+    progressColor: 'bg-orange-500',
+    barBg: 'bg-orange-900/50',
+    accentColor: 'text-orange-400',
+    tierBg: 'bg-orange-900/40',
+    tierActiveBg: 'bg-orange-800/60',
+    glowColor: '#f97316',
+    Visual: VolcanoForgeVisual,
+  },
+  ocean_depths: {
+    label: 'Discovered',
+    bgGradient: 'from-slate-950 via-teal-950 to-cyan-950',
+    progressColor: 'bg-teal-400',
+    barBg: 'bg-teal-900/50',
+    accentColor: 'text-teal-400',
+    tierBg: 'bg-teal-900/40',
+    tierActiveBg: 'bg-teal-800/60',
+    glowColor: '#14b8a6',
+    Visual: OceanDepthsVisual,
+  },
+  star_constellation: {
+    label: 'Illuminated',
+    bgGradient: 'from-slate-950 via-indigo-950 to-slate-950',
+    progressColor: 'bg-amber-400',
+    barBg: 'bg-indigo-900/50',
+    accentColor: 'text-amber-400',
+    tierBg: 'bg-indigo-900/40',
+    tierActiveBg: 'bg-indigo-800/60',
+    glowColor: '#fbbf24',
+    Visual: StarConstellationVisual,
   },
 };
 
