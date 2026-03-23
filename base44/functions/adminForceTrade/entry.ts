@@ -1,19 +1,19 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
-    // Verify the caller is an admin via UserProfile.rank or username 'crosby'
-    const profiles = await base44.asServiceRole.entities.UserProfile.filter({ userId: user.email });
-    const me = profiles?.[0];
-    const isAdmin = !!me && ((me.rank === 'admin' || me.rank === 'super_admin') || (me.username || '').toLowerCase() === 'crosby');
-    if (!isAdmin) return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
 
     const body = await req.json();
-    const { fromProfileId, toProfileId, itemType, itemId } = body || {};
+    const { fromProfileId, toProfileId, itemType, itemId, callerProfileId } = body || {};
+
+    // Verify the caller is an admin via callerProfileId
+    if (callerProfileId) {
+      const callerArr = await base44.asServiceRole.entities.UserProfile.filter({ id: callerProfileId });
+      const me = callerArr?.[0];
+      const isAdmin = !!me && ((me.rank === 'admin' || me.rank === 'super_admin') || (me.username || '').toLowerCase() === 'crosby');
+      if (!isAdmin) return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
     const allowed = ['pet','theme','title','cosmetic','boothskin'];
     if (!fromProfileId || !toProfileId || !itemType || !itemId || !allowed.includes(itemType)) {
       return Response.json({ error: 'Invalid payload' }, { status: 400 });
