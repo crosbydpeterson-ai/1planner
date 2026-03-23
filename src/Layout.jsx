@@ -8,6 +8,7 @@ import ThemedBackground from '@/components/theme/ThemedBackground';
 import ChatbotWidget from '@/components/chat/ChatbotWidget';
 import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
+import { extractHex } from '@/components/theme/themeUtils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -117,6 +118,7 @@ export default function Layout({ children, currentPageName }) {
           const tid = String(p.equippedThemeId).replace('custom_', '');
           const ct = await base44.entities.CustomTheme.filter({ id: tid });
           if (ct.length > 0) {
+            // Pass raw values (may be gradient strings or hex)
             setThemeColors({
               primary: ct[0].primaryColor,
               secondary: ct[0].secondaryColor,
