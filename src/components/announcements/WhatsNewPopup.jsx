@@ -32,7 +32,7 @@ export default function WhatsNewPopup() {
   const checkForNew = async () => {
     const all = await base44.entities.Announcement.filter({ isActive: true }, '-created_date', 10);
     const seenIds = getSeenIds();
-    const newOnes = all.filter(a => !seenIds.includes(a.id));
+    const newOnes = all.filter(a => !seenIds.includes(a.id) && (a.visibility === 'popup' || a.visibility === 'both' || !a.visibility));
     if (newOnes.length > 0) {
       setUnseen(newOnes);
       setOpen(true);
