@@ -81,22 +81,22 @@ export default function Dashboard() {
       // Load visible assignments
       const assignments = await base44.entities.Assignment.filter({ isApproved: true });
       let visible = assignments.filter((a) => {
-        if (a.target === p.userId) return true;
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
         if (a.subject === 'math' && a.target === p.mathTeacher) return true;
         if (a.subject === 'reading' && a.target === p.readingTeacher) return true;
+        if (a.target === p.userId) return true;
         return false;
       });
       setRecentAssignments(visible.slice(0, 3));
 
       // Create tutorial assignment if user hasn't completed tutorial
       if (!p.tutorialCompleted) {
-        const tutorialExists = assignments.find((a) => a.title === '📚 Practice Assignment (Tutorial)' && a.target === p.userId);
+        const tutorialExists = assignments.find((a) => a.title === '📚 Practice Assignment (Tutorial)');
         if (!tutorialExists) {
           await base44.entities.Assignment.create({
             title: '📚 Practice Assignment (Tutorial)',
             description: 'This is a practice assignment to help you learn! Complete it to earn 50 XP.',
-            subject: 'math',
+            subject: 'everyone',
             target: p.userId,
             xpReward: 50,
             isApproved: true,
