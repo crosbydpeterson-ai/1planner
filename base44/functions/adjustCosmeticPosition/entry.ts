@@ -24,7 +24,21 @@ Deno.serve(async (req) => {
     if (!target) return json({ error: 'Target user not found' }, 404);
 
     const positions = { ...(target.cosmeticPositions || {}) };
-...
+    const current = positions[cosmeticId] || { x: 50, y: 50 };
+
+    let next;
+    if (set && typeof set.x === 'number' && typeof set.y === 'number') {
+      next = { x: set.x, y: set.y };
+    } else {
+      const ddx = typeof dx === 'number' ? dx : 0;
+      const ddy = typeof dy === 'number' ? dy : 0;
+      next = { x: current.x + ddx, y: current.y + ddy };
+    }
+
+    // Clamp to 0..100
+    next.x = Math.max(0, Math.min(100, next.x));
+    next.y = Math.max(0, Math.min(100, next.y));
+
     positions[cosmeticId] = next;
     const updated = await base44.asServiceRole.entities.UserProfile.update(target.id, { cosmeticPositions: positions });
 
