@@ -1399,9 +1399,7 @@ White or transparent background, centered, high quality illustration.`;
                               <span className="text-3xl">{egg.isUsed ? '🐣' : '🥚'}</span>
                               <div>
                                 <p className="text-white font-medium">{owner?.username || 'Unknown User'}</p>
-                                <p className="text-xs text-slate-400">
-                                  {egg.isUsed ? 'Hatched' : 'Unused'}
-                                </p>
+                                <p className="text-xs text-slate-400">{egg.isUsed ? 'Hatched' : 'Unused'}{egg.source ? ` • ${egg.source.replace(/_/g, ' ')}` : ''}{egg.giftedBy ? ` • by ${(users.find(u => u.userId === egg.giftedBy))?.username || egg.giftedBy}` : ''}</p>
                               </div>
                             </div>
                             {(isSuperAdmin || permissions.deleteAssets) && (
@@ -2716,10 +2714,8 @@ White or transparent background, centered, high quality illustration.`;
                   onClick={async () => {
                     const recipient = resolveGiftRecipient();
                     if (!recipient) return;
-                    await base44.entities.MagicEgg.create({ userId: recipient.userId });
-                    toast.success(`🥚 Magic Egg gifted to ${recipient.username}!`, {
-                      description: 'They can now create their own custom pet!'
-                    });
+                    await base44.entities.MagicEgg.create({ userId: recipient.userId, source: 'admin_gift', giftedBy: adminProfile?.userId, giftedByProfileId: adminProfile?.id });
+                    toast.success(`🥚 Magic Egg gifted to ${recipient.username}!`);
                   }}
                   className="w-full border-amber-500 text-amber-400 hover:bg-amber-500/20"
                 >
