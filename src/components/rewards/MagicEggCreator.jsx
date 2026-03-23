@@ -284,7 +284,7 @@ White or transparent background, centered, high quality illustration.`;
               >
                 <div 
                   className="rounded-2xl p-6 text-center relative overflow-hidden"
-                  style={{ backgroundColor: generatedPet.theme?.bg || '#f8fafc' }}
+                  style={colorStyle(generatedPet.theme?.bg || '#f8fafc')}
                 >
                   {/* Pet Image or Emoji */}
                   <div className="relative w-32 h-32 mx-auto mb-3">
