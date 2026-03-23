@@ -62,11 +62,12 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
       - Have a cohesive color theme with 4 HEX color codes
 
       IMPORTANT for theme colors:
-      - primary: Main color (vibrant, saturated) - MUST be a valid hex like #3b82f6
-      - secondary: Lighter/complementary color - MUST be a valid hex like #93c5fd  
-      - accent: Pop color for highlights - MUST be a valid hex like #f59e0b
-      - bg: Background color (light for light themes like #f0f9ff, dark for dark themes like #1e1b4b)
+      - primary: Main color (vibrant, saturated) - can be a hex like #3b82f6 OR a CSS gradient like "linear-gradient(135deg, #6366f1, #ec4899)"
+      - secondary: Lighter/complementary color - can be a hex like #93c5fd OR a CSS gradient  
+      - accent: Pop color for highlights - can be a hex like #f59e0b OR a CSS gradient
+      - bg: Background color - can be a hex (light like #f0f9ff or dark like #1e1b4b) OR a CSS gradient like "linear-gradient(180deg, #f0f9ff, #e0e7ff)"
 
+      Feel free to use gradients for some or all colors to make the theme more unique and magical! Plain hex colors are also fine.
       Make sure all colors work well together and match the creature's personality!`,
         response_json_schema: {
           type: "object",
