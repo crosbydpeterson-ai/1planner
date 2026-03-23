@@ -1,28 +1,10 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 function json(data, status = 200) { return Response.json(data, { status }); }
-
-async function isAdmin(base44) {
-  const user = await base44.auth.me();
-  if (!user) return { ok: false };
-  if (user.role === 'admin') return { ok: true, user };
-  try {
-    const profiles = await base44.entities.UserProfile.filter({ userId: user.email });
-    const meProfile = profiles?.[0];
-    const rank = meProfile?.rank || 'user';
-    const username = (meProfile?.username || '').toLowerCase();
-    const ok = rank === 'admin' || rank === 'super_admin' || username === 'crosby';
-    return { ok, user };
-  } catch (_) {
-    return { ok: false, user };
-  }
-}
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const admin = await isAdmin(base44);
-    if (!admin.ok) return json({ error: 'Forbidden: Admin access required' }, 403);
 
     const { action, payload } = await req.json();
     if (!action) return json({ error: 'action is required' }, 400);

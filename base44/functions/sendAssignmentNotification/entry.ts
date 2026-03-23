@@ -1,31 +1,14 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
-    // Admin check: built-in admin OR profile-based admin (rank/admin name Crosby)
-    const isBuiltInAdmin = user.role === 'admin';
-    let isProfileAdmin = false;
-    try {
-      const profiles = await base44.asServiceRole.entities.UserProfile.filter({ userId: user.email });
-      if (profiles.length > 0) {
-        const p = profiles[0];
-        const uname = (p.username || '').toLowerCase();
-        isProfileAdmin = p.rank === 'admin' || p.rank === 'super_admin' || uname === 'crosby';
-      }
-    } catch (_) {}
-    if (!isBuiltInAdmin && !isProfileAdmin) {
-      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
-    }
 
     const { assignmentId } = await req.json();
     if (!assignmentId) return Response.json({ error: 'Missing assignmentId' }, { status: 400 });
 
     // Load assignment
-    const assignments = await base44.entities.Assignment.filter({ id: assignmentId });
+    const assignments = await base44.asServiceRole.entities.Assignment.filter({ id: assignmentId });
     if (!assignments.length) return Response.json({ error: 'Assignment not found' }, { status: 404 });
     const a = assignments[0];
 

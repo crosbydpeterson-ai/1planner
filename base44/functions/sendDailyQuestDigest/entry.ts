@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // Helper: encode email to base64url for Gmail API (UTF-8 safe)
 function toBase64Url(str) {
