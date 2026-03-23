@@ -138,7 +138,7 @@ export default function GlobalEventWidget({ profile, fullScreen = false }) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`${fullScreen ? 'min-h-screen' : 'rounded-2xl'} bg-gradient-to-b ${themeConfig.bgGradient} p-5 pb-8 relative overflow-hidden`}
+      className={`${fullScreen ? 'min-h-screen' : 'rounded-2xl'} bg-gradient-to-b ${themeConfig.bgGradient} p-5 pb-8 relative overflow-hidden z-0`}
     >
       {/* Ambient background particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

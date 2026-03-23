@@ -264,7 +264,7 @@ export default function Dashboard() {
       </div>
 
       {/* Global Event Widget */}
-      <div className="w-full px-4 lg:px-8 xl:px-12 2xl:px-16 mt-4">
+      <div className="w-full px-4 lg:px-8 xl:px-12 2xl:px-16 mt-4 pb-4 relative z-0">
         <GlobalEventWidget profile={profile} />
       </div>
 
