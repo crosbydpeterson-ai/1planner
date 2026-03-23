@@ -453,24 +453,15 @@ export default function Rewards() {
                     <div className="flex justify-center gap-1 mb-2 relative z-10">
                       <div 
                         className="w-5 h-5 rounded-full shadow-lg ring-1 ring-white/30" 
-                        style={{ 
-                          backgroundColor: theme.primary,
-                          boxShadow: `0 2px 8px ${theme.primary}50`
-                        }} 
+                        style={colorStyle(theme.primary || '#6366f1')} 
                       />
                       <div 
                         className="w-5 h-5 rounded-full shadow-lg ring-1 ring-white/30" 
-                        style={{ 
-                          backgroundColor: theme.secondary,
-                          boxShadow: `0 2px 8px ${theme.secondary}50`
-                        }} 
+                        style={colorStyle(theme.secondary || '#a855f7')} 
                       />
                       <div 
                         className="w-5 h-5 rounded-full shadow-lg ring-1 ring-white/30" 
-                        style={{ 
-                          backgroundColor: theme.accent,
-                          boxShadow: `0 2px 8px ${theme.accent}50`
-                        }} 
+                        style={colorStyle(theme.accent || '#f59e0b')} 
                       />
                     </div>
                     
