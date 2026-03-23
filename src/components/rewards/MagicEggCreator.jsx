@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { colorStyle } from '@/components/theme/themeUtils';
 
 export default function MagicEggCreator({ egg, profile, onPetCreated }) {
   const [showDialog, setShowDialog] = useState(false);
