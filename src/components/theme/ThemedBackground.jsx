@@ -1,12 +1,20 @@
 import React, { useMemo } from 'react';
+import { extractHex, isGradient } from './themeUtils';
 
 export default function ThemedBackground({ colors }) {
-  const { primary, secondary, accent, bg } = colors || {
+  const rawColors = colors || {
     primary: '#6366f1',
     secondary: '#a855f7',
     accent: '#f59e0b',
     bg: '#f8fafc'
   };
+
+  // Extract hex values for SVG / opacity usage, keep raw for backgrounds
+  const primary = extractHex(rawColors.primary);
+  const secondary = extractHex(rawColors.secondary);
+  const accent = extractHex(rawColors.accent);
+  const bg = extractHex(rawColors.bg);
+  const bgRaw = rawColors.bg || '#f8fafc';
 
   // Generate unique pattern ID to avoid conflicts
   const patternId = useMemo(() => `pattern-${Math.random().toString(36).substr(2, 9)}`, []);
@@ -23,10 +31,10 @@ export default function ThemedBackground({ colors }) {
 
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-      {/* Base solid background */}
+      {/* Base background - supports gradients */}
       <div
         className="absolute inset-0"
-        style={{ backgroundColor: bg }}
+        style={isGradient(bgRaw) ? { background: bgRaw } : { backgroundColor: bg }}
       />
 
       {/* MASSIVE animated gradient orbs - the main flex */}

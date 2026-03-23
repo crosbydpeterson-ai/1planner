@@ -3,6 +3,7 @@ import { Lock, Check, Sparkles, Star, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { RARITY_COLORS } from './ThemeCatalog';
 import { cn } from '@/lib/utils';
+import { isGradient, extractHex, colorStyle } from '@/components/theme/themeUtils';
 
 export default function ThemeCard({ theme, isUnlocked, isEquipped, onEquip, userXp }) {
   const rarityStyle = RARITY_COLORS[theme.rarity];
@@ -97,7 +98,9 @@ export default function ThemeCard({ theme, isUnlocked, isEquipped, onEquip, user
       <div 
         className="h-24 -mx-0 -mt-0 mb-0 flex items-center justify-center relative overflow-hidden rounded-t-xl"
         style={{ 
-          background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})` 
+          background: isGradient(theme.colors.primary) || isGradient(theme.colors.secondary)
+            ? `${theme.colors.primary}`
+            : `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})` 
         }}
       >
         {/* Animated waves */}
@@ -105,7 +108,7 @@ export default function ThemeCard({ theme, isUnlocked, isEquipped, onEquip, user
           <div 
             className="absolute bottom-0 left-0 right-0 h-16 opacity-30"
             style={{
-              background: `radial-gradient(ellipse at 50% 100%, ${theme.colors.accent} 0%, transparent 70%)`
+              background: `radial-gradient(ellipse at 50% 100%, ${extractHex(theme.colors.accent)} 0%, transparent 70%)`
             }}
           />
         </div>
@@ -115,17 +118,17 @@ export default function ThemeCard({ theme, isUnlocked, isEquipped, onEquip, user
           <motion.div 
             whileHover={{ scale: 1.2, rotate: 10 }}
             className="w-10 h-10 rounded-xl shadow-lg backdrop-blur-sm border-2 border-white/30"
-            style={{ backgroundColor: theme.colors.primary }}
+            style={colorStyle(theme.colors.primary)}
           />
           <motion.div 
             whileHover={{ scale: 1.2, rotate: -10 }}
             className="w-10 h-10 rounded-xl shadow-lg backdrop-blur-sm border-2 border-white/30"
-            style={{ backgroundColor: theme.colors.secondary }}
+            style={colorStyle(theme.colors.secondary)}
           />
           <motion.div 
             whileHover={{ scale: 1.2, rotate: 10 }}
             className="w-10 h-10 rounded-xl shadow-lg backdrop-blur-sm border-2 border-white/30"
-            style={{ backgroundColor: theme.colors.accent }}
+            style={colorStyle(theme.colors.accent)}
           />
         </div>
         
