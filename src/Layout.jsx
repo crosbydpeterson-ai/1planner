@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, Coins, CalendarHeart } from 'lucide-react';
+import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, Coins, CalendarHeart, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 import ThemedBackground from '@/components/theme/ThemedBackground';
@@ -224,6 +224,7 @@ export default function Layout({ children, currentPageName }) {
             { name: 'Rewards', icon: Gem, label: 'Collection' },
             { name: 'Season', icon: Sparkles, label: 'Season' },
             { name: 'Events', icon: CalendarHeart, label: 'Events' },
+            { name: 'Info', icon: Info, label: 'Info' },
           ];
 
   const visibleNavItems = navItems.filter((item) => {

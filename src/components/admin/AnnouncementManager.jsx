@@ -6,13 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, Megaphone, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 export default function AnnouncementManager() {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', content: '', emoji: '🆕' });
+  const [form, setForm] = useState({ title: '', content: '', emoji: '🆕', category: 'update', visibility: 'both' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export default function AnnouncementManager() {
       isActive: true
     });
     setAnnouncements([newAnnouncement, ...announcements]);
-    setForm({ title: '', content: '', emoji: '🆕' });
+    setForm({ title: '', content: '', emoji: '🆕', category: 'update', visibility: 'both' });
     setShowForm(false);
     setSaving(false);
     toast.success('Update posted! Students will see it next time they open the app.');
@@ -105,6 +106,34 @@ export default function AnnouncementManager() {
               placeholder="We just added 5 new legendary pets, a new event, and improved the shop..."
               className="bg-slate-700 border-slate-600 min-h-[80px]"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-slate-300 text-xs">Category</Label>
+              <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="update">Update</SelectItem>
+                  <SelectItem value="fix">Fix</SelectItem>
+                  <SelectItem value="feature">New Feature</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-slate-300 text-xs">Show on</Label>
+              <Select value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="info_page">Info Page Only</SelectItem>
+                  <SelectItem value="popup">Pop-up Only</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="flex gap-2 justify-end">
             <Button variant="ghost" size="sm" onClick={() => setShowForm(false)} className="text-slate-400">Cancel</Button>
