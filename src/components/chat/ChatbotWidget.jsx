@@ -36,7 +36,7 @@ export default function ChatbotWidget() {
       const existing = await base44.entities.AgentUsage.filter({ userId: profileId, agentName: 'guide_chatbot', period });
       let usage = existing[0];
       if (!usage) {
-        usage = await base44.entities.AgentUsage.create({ userId: user.email, agentName: 'guide_chatbot', period, messageCount: 0 });
+        usage = await base44.entities.AgentUsage.create({ userId: profileId, agentName: 'guide_chatbot', period, messageCount: 0 });
       }
       if ((usage.messageCount ?? 0) >= WEEKLY_LIMIT) {
         setError(`Byte is limited to ${WEEKLY_LIMIT} messages per week. Try again next week.`);
