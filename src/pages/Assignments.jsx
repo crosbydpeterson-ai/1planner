@@ -94,6 +94,7 @@ export default function Assignments() {
           expiredIds.push(a.id);
           return false;
         }
+        if (a.target === p.userId) return true;
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
         if (a.subject === 'math' && a.target === p.mathTeacher) return true;
         if (a.subject === 'reading' && a.target === p.readingTeacher) return true;
