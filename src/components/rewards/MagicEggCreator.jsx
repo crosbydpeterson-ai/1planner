@@ -79,10 +79,10 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
             theme: {
               type: "object",
               properties: {
-                primary: { type: "string", description: "Main hex color like #3b82f6" },
-                secondary: { type: "string", description: "Secondary hex color like #93c5fd" },
-                accent: { type: "string", description: "Accent hex color like #f59e0b" },
-                bg: { type: "string", description: "Background hex color like #f0f9ff or #1e1b4b" }
+                primary: { type: "string", description: "Hex color like #3b82f6 or CSS gradient like linear-gradient(135deg, #6366f1, #ec4899)" },
+                secondary: { type: "string", description: "Hex color like #93c5fd or CSS gradient" },
+                accent: { type: "string", description: "Hex color like #f59e0b or CSS gradient" },
+                bg: { type: "string", description: "Hex color like #f0f9ff or CSS gradient" }
               },
               required: ["primary", "secondary", "accent", "bg"]
             }
