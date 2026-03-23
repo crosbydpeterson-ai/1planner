@@ -30,10 +30,10 @@ export default function ChatbotWidget() {
 
   const checkAndIncrementUsage = async () => {
     try {
-      const user = await base44.auth.me();
-      if (!user) return false;
+      const profileId = localStorage.getItem('quest_profile_id');
+      if (!profileId) return false;
       const period = getPeriod();
-      const existing = await base44.entities.AgentUsage.filter({ userId: user.email, agentName: 'guide_chatbot', period });
+      const existing = await base44.entities.AgentUsage.filter({ userId: profileId, agentName: 'guide_chatbot', period });
       let usage = existing[0];
       if (!usage) {
         usage = await base44.entities.AgentUsage.create({ userId: user.email, agentName: 'guide_chatbot', period, messageCount: 0 });
