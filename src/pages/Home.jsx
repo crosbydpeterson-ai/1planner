@@ -267,7 +267,7 @@ export default function Home() {
               } else if (rewardLink.rewardType === 'coins') {
                 updates.questCoins = (profile.questCoins || 0) + (rewardLink.rewardValue || 0);
               } else if (rewardLink.rewardType === 'magic_egg') {
-                await base44.entities.MagicEgg.create({ userId: uniqueId });
+                await base44.entities.MagicEgg.create({ userId: uniqueId, source: 'reward_link' });
               } else if (rewardLink.rewardType === 'pet' && rewardLink.rewardData?.petId) {
                 updates.unlockedPets = [...(profile.unlockedPets || []), rewardLink.rewardData.petId];
               } else if (rewardLink.rewardType === 'theme' && rewardLink.rewardData?.themeId) {

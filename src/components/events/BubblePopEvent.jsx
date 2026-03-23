@@ -54,7 +54,7 @@ export default function BubblePopEvent({ event, profile, onClose }) {
 
     if (wonEgg && profile) {
       try {
-        await base44.entities.MagicEgg.create({ userId: profile.userId });
+        await base44.entities.MagicEgg.create({ userId: profile.userId, source: 'bubble_pop_event' });
         setEggsWon(prev => prev + 1);
         toast.success('🥚 You found a Magic Egg!', {
           description: 'Check your Rewards to hatch it!'

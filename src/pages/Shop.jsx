@@ -136,7 +136,7 @@ export default function Shop() {
       } else if (item.itemType === 'xp_booster') {
         updates.xp += (item.itemData?.xpAmount || 0);
       } else if (item.itemType === 'magic_egg') {
-        await base44.entities.MagicEgg.create({ userId: profile.userId });
+        await base44.entities.MagicEgg.create({ userId: profile.userId, source: 'shop' });
       }
 
       // Save to database
@@ -228,7 +228,7 @@ export default function Shop() {
         } else if (item.itemType === 'xp_booster') {
           updates.xp += (item.itemData?.xpAmount || 0);
         } else if (item.itemType === 'magic_egg') {
-          await base44.entities.MagicEgg.create({ userId: profile.userId });
+          await base44.entities.MagicEgg.create({ userId: profile.userId, source: 'shop_bundle' });
         }
       }
 

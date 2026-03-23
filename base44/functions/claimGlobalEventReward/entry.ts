@@ -91,7 +91,8 @@ Deno.serve(async (req) => {
         // Create a magic egg for the user
         await base44.asServiceRole.entities.MagicEgg.create({
           userId: profile.userId,
-          isUsed: false
+          isUsed: false,
+          source: 'global_event'
         });
         rewardDescription = 'Magic Egg';
         break;
