@@ -328,9 +328,9 @@ White or transparent background, centered, high quality illustration.`;
                   
                   {/* Theme preview */}
                   <div className="flex justify-center gap-2 mt-4">
-                    <div className="w-6 h-6 rounded-full shadow-lg" style={{ backgroundColor: generatedPet.theme?.primary }} />
-                    <div className="w-6 h-6 rounded-full shadow-lg" style={{ backgroundColor: generatedPet.theme?.secondary }} />
-                    <div className="w-6 h-6 rounded-full shadow-lg" style={{ backgroundColor: generatedPet.theme?.accent }} />
+                    <div className="w-6 h-6 rounded-full shadow-lg" style={colorStyle(generatedPet.theme?.primary || '#6366f1')} />
+                    <div className="w-6 h-6 rounded-full shadow-lg" style={colorStyle(generatedPet.theme?.secondary || '#a855f7')} />
+                    <div className="w-6 h-6 rounded-full shadow-lg" style={colorStyle(generatedPet.theme?.accent || '#f59e0b')} />
                   </div>
                 </div>
 
