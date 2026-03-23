@@ -222,12 +222,14 @@ export default function Rewards() {
   const unlockedCosmeticIds = profile.unlockedCosmetics || [];
   const unlockedTitles = profile.unlockedTitles || [];
 
-  const handlePetCreated = (newPet, newPetId) => {
+  const handlePetCreated = (newPet, newPetId, newTheme, newThemeId) => {
     setCustomPets([...customPets, newPet]);
+    if (newTheme) setCustomThemes([...customThemes, newTheme]);
     setMagicEggs(magicEggs.slice(1)); // Remove used egg
     setProfile({
       ...profile,
       unlockedPets: [...(profile.unlockedPets || []), newPetId],
+      unlockedThemes: [...(profile.unlockedThemes || []), newThemeId],
       equippedPetId: newPetId
     });
   };
