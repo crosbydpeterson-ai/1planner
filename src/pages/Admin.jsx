@@ -1146,87 +1146,33 @@ White or transparent background, centered, high quality illustration.`;
             </div>
 
             <div className="space-y-3">
-              {assignments.map((assignment) => (
-                <motion.div
-                  key={assignment.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="bg-slate-800 rounded-xl p-4 border border-slate-700"
-                >
-                  <div className="flex items-center justify-between">
+              {assignments.map((a) => {
+                const creator = a.created_by ? users.find(u => u.userId === a.created_by) : null;
+                return (
+                <div key={a.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-white flex items-center gap-2 flex-wrap">
-                      {assignment.title}
-                      {!assignment.isApproved && (
-                        <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">
-                          Pending
-                        </span>
-                      )}
-                      {assignment.isFlagged && (
-                        <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">
-                          🚩 Flagged
-                        </span>
-                      )}
+                      {a.title}
+                      {!a.isApproved && <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">Pending</span>}
+                      {a.isFlagged && <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">🚩 Flagged</span>}
                     </h3>
                     <p className="text-sm text-slate-400">
-                      {assignment.subject === 'everyone' 
-                        ? 'All Students' 
-                        : `${assignment.subject}: ${assignment.target}`
-                      }
-                      {assignment.xpReward && ` • ${assignment.xpReward} XP`}
-                      {assignment.dueDate && ` • Due: ${assignment.dueDate}`}
+                      {a.subject === 'everyone' ? 'All Students' : `${a.subject}: ${a.target}`}
+                      {a.xpReward && ` • ${a.xpReward} XP`}
+                      {a.dueDate && ` • Due: ${a.dueDate}`}
+                      {` • By: ${creator?.username || a.created_by || 'Unknown'}`}
                     </p>
-                    {assignment.isFlagged && assignment.flagReason && (
-                      <p className="text-xs text-red-400 mt-1">Reason: {assignment.flagReason}</p>
-                    )}
+                    {a.isFlagged && a.flagReason && <p className="text-xs text-red-400 mt-1">Reason: {a.flagReason}</p>}
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
-                    {assignment.isFlagged && (
-                      <Button
-                        size="sm"
-                        onClick={async () => {
-                          await base44.entities.Assignment.update(assignment.id, { isFlagged: false, flagReason: null });
-                          setAssignments(assignments.map(a => a.id === assignment.id ? { ...a, isFlagged: false, flagReason: null } : a));
-                          toast.success('Assignment cleared! Users can now earn XP.');
-                        }}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Clear Flag
-                      </Button>
-                    )}
-                    {!assignment.isApproved && can('manageAssignments') && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleApproveAssignment(assignment)}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Approve
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setEditingAssignment({ ...assignment })}
-                      className="text-slate-400 hover:text-white"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    {(isSuperAdmin || permissions.deleteAssets || can('manageAssignments')) && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteAssignment(assignment)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
+                    {a.isFlagged && <Button size="sm" onClick={async () => { await base44.entities.Assignment.update(a.id, { isFlagged: false, flagReason: null }); setAssignments(assignments.map(x => x.id === a.id ? { ...x, isFlagged: false, flagReason: null } : x)); toast.success('Flag cleared'); }} className="bg-emerald-600 hover:bg-emerald-700"><Check className="w-4 h-4 mr-1" />Clear</Button>}
+                    {!a.isApproved && can('manageAssignments') && <Button size="sm" onClick={() => handleApproveAssignment(a)} className="bg-emerald-600 hover:bg-emerald-700"><Check className="w-4 h-4 mr-1" />Approve</Button>}
+                    <Button size="sm" variant="ghost" onClick={() => setEditingAssignment({ ...a })} className="text-slate-400 hover:text-white"><Edit2 className="w-4 h-4" /></Button>
+                    {(isSuperAdmin || permissions.deleteAssets || can('manageAssignments')) && <Button size="sm" variant="ghost" onClick={() => handleDeleteAssignment(a)} className="text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></Button>}
                   </div>
-                  </div>
-                </motion.div>
-              ))}
+                </div>
+                );
+              })}
             </div>
           </TabsContent>
 
