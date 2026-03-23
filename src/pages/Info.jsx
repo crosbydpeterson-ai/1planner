@@ -3,12 +3,15 @@ import { base44 } from '@/api/base44Client';
 import { Info as InfoIcon } from 'lucide-react';
 import SubmitFeedbackForms from '@/components/info/SubmitFeedbackForms';
 import UpdatesWall from '@/components/info/UpdatesWall';
+import AdminFeedbackManager from '@/components/info/AdminFeedbackManager';
+import UserFeedbackStatus from '@/components/info/UserFeedbackStatus';
 
 export default function Info() {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profileId, setProfileId] = useState('');
   const [username, setUsername] = useState('');
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     const pid = localStorage.getItem('quest_profile_id');
@@ -31,6 +34,9 @@ export default function Info() {
 
       if (profiles && profiles.length > 0) {
         setUsername(profiles[0].username || '');
+        const rank = profiles[0].rank;
+        const nameIsCrosby = typeof profiles[0].username === 'string' && profiles[0].username.toLowerCase() === 'crosby';
+        setIsSuperAdmin(rank === 'super_admin' || nameIsCrosby);
       }
       setLoading(false);
     };
@@ -53,6 +59,12 @@ export default function Info() {
 
         {/* Feedback Forms */}
         <SubmitFeedbackForms profileId={profileId} username={username} />
+
+        {/* User's own feedback with responses */}
+        {profileId && !isSuperAdmin && <UserFeedbackStatus profileId={profileId} />}
+
+        {/* Super Admin Feedback Manager */}
+        {isSuperAdmin && <AdminFeedbackManager />}
 
         {/* Updates Wall */}
         <div>
