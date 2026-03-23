@@ -11,7 +11,7 @@ const SUBJECT_ICONS = {
   everyone: Users
 };
 
-export default function AssignmentCard({ assignment, isCompleted, onComplete }) {
+export default function AssignmentCard({ assignment, isCompleted, onComplete, creatorName }) {
   const Icon = SUBJECT_ICONS[assignment.subject] || Users;
   
   return (
@@ -79,6 +79,11 @@ export default function AssignmentCard({ assignment, isCompleted, onComplete }) 
             {assignment.isFlagged && (
               <div className="text-xs text-amber-600">
                 XP pending review
+              </div>
+            )}
+            {creatorName && (
+              <div className="text-xs text-slate-400">
+                Added by {creatorName}
               </div>
             )}
           </div>

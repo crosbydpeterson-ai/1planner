@@ -35,6 +35,7 @@ export default function Assignments() {
   const [dailyConfig, setDailyConfig] = useState(null);
   const [dailyProgress, setDailyProgress] = useState(null);
   const [showDailyClaim, setShowDailyClaim] = useState(false);
+  const [creatorMap, setCreatorMap] = useState({});
 
 
    useEffect(() => {
@@ -105,6 +106,12 @@ export default function Assignments() {
       }
       
       setAssignments(visible);
+
+      // Build creator map from all users
+      const allUsers = await base44.entities.UserProfile.list();
+      const cMap = {};
+      allUsers.forEach(u => { cMap[u.userId] = u.username; });
+      setCreatorMap(cMap);
 
       // Load Super Assignments for this user
       const [allSuper, userResponses] = await Promise.all([
@@ -526,6 +533,7 @@ export default function Assignments() {
                     assignment={assignment}
                     isCompleted={completedIds.includes(assignment.id)}
                     onComplete={handleComplete}
+                    creatorName={creatorMap[assignment.created_by] || null}
                   />
                 </motion.div>
               ))
