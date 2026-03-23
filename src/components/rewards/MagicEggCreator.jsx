@@ -176,7 +176,7 @@ White or transparent background, centered, high quality illustration.`;
       });
 
       window.dispatchEvent(new Event('themeUpdated'));
-      onPetCreated(newPet, newPetId);
+      onPetCreated(newPet, newPetId, newTheme, newThemeId);
       setShowDialog(false);
       setStep('idea');
       setPetIdea('');
