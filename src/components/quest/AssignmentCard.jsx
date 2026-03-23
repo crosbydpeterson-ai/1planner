@@ -83,7 +83,7 @@ export default function AssignmentCard({ assignment, isCompleted, onComplete, cr
             )}
             {creatorName && (
               <div className="text-xs text-slate-400">
-                Added by {creatorName}
+                By {creatorName}
               </div>
             )}
           </div>

@@ -533,7 +533,7 @@ export default function Assignments() {
                     assignment={assignment}
                     isCompleted={completedIds.includes(assignment.id)}
                     onComplete={handleComplete}
-                    creatorName={creatorMap[assignment.created_by] || null}
+                    creatorName={creatorMap[assignment.created_by] || assignment.created_by || 'Unknown'}
                   />
                 </motion.div>
               ))
