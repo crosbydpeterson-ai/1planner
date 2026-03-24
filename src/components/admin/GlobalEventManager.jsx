@@ -137,6 +137,11 @@ export default function GlobalEventManager() {
     volcano_forge: '🌋 Volcano Forge',
     ocean_depths: '🌊 Ocean Depths',
     star_constellation: '⭐ Star Constellation',
+    ancient_ruins: '🏛️ Ancient Ruins',
+    sky_fortress: '🏰 Sky Fortress',
+    dragons_hoard: '🐲 Dragon\'s Hoard',
+    starlight_festival: '🌟 Starlight Festival',
+    elemental_conflux: '🌀 Elemental Conflux',
   };
 
   if (loading) return <div className="text-slate-400 text-center py-8">Loading...</div>;
@@ -222,6 +227,11 @@ export default function GlobalEventManager() {
                     <SelectItem value="volcano_forge">🌋 Volcano Forge</SelectItem>
                     <SelectItem value="ocean_depths">🌊 Ocean Depths</SelectItem>
                     <SelectItem value="star_constellation">⭐ Star Constellation</SelectItem>
+                    <SelectItem value="ancient_ruins">🏛️ Ancient Ruins</SelectItem>
+                    <SelectItem value="sky_fortress">🏰 Sky Fortress</SelectItem>
+                    <SelectItem value="dragons_hoard">🐲 Dragon's Hoard</SelectItem>
+                    <SelectItem value="starlight_festival">🌟 Starlight Festival</SelectItem>
+                    <SelectItem value="elemental_conflux">🌀 Elemental Conflux</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

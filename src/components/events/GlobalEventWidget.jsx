@@ -12,6 +12,11 @@ import CrystalCavernVisual from './themes/CrystalCavernVisual';
 import VolcanoForgeVisual from './themes/VolcanoForgeVisual';
 import OceanDepthsVisual from './themes/OceanDepthsVisual';
 import StarConstellationVisual from './themes/StarConstellationVisual';
+import AncientRuinsVisual from './themes/AncientRuinsVisual';
+import SkyFortressVisual from './themes/SkyFortressVisual';
+import DragonsHoardVisual from './themes/DragonsHoardVisual';
+import StarlightFestivalVisual from './themes/StarlightFestivalVisual';
+import ElementalConfluxVisual from './themes/ElementalConfluxVisual';
 
 const THEME_CONFIG = {
   world_tree: {
@@ -101,6 +106,61 @@ const THEME_CONFIG = {
     tierActiveBg: 'bg-indigo-800/60',
     glowColor: '#fbbf24',
     Visual: StarConstellationVisual,
+  },
+  ancient_ruins: {
+    label: 'Excavated',
+    bgGradient: 'from-stone-950 via-amber-950 to-stone-950',
+    progressColor: 'bg-amber-500',
+    barBg: 'bg-amber-900/50',
+    accentColor: 'text-amber-400',
+    tierBg: 'bg-amber-900/40',
+    tierActiveBg: 'bg-amber-800/60',
+    glowColor: '#d97706',
+    Visual: AncientRuinsVisual,
+  },
+  sky_fortress: {
+    label: 'Ascended',
+    bgGradient: 'from-slate-950 via-blue-950 to-slate-950',
+    progressColor: 'bg-blue-400',
+    barBg: 'bg-blue-900/50',
+    accentColor: 'text-blue-400',
+    tierBg: 'bg-blue-900/40',
+    tierActiveBg: 'bg-blue-800/60',
+    glowColor: '#3b82f6',
+    Visual: SkyFortressVisual,
+  },
+  dragons_hoard: {
+    label: 'Raided',
+    bgGradient: 'from-stone-950 via-yellow-950 to-stone-950',
+    progressColor: 'bg-yellow-500',
+    barBg: 'bg-yellow-900/50',
+    accentColor: 'text-yellow-400',
+    tierBg: 'bg-yellow-900/40',
+    tierActiveBg: 'bg-yellow-800/60',
+    glowColor: '#eab308',
+    Visual: DragonsHoardVisual,
+  },
+  starlight_festival: {
+    label: 'Illuminated',
+    bgGradient: 'from-indigo-950 via-violet-950 to-indigo-950',
+    progressColor: 'bg-violet-400',
+    barBg: 'bg-violet-900/50',
+    accentColor: 'text-violet-400',
+    tierBg: 'bg-violet-900/40',
+    tierActiveBg: 'bg-violet-800/60',
+    glowColor: '#8b5cf6',
+    Visual: StarlightFestivalVisual,
+  },
+  elemental_conflux: {
+    label: 'Balanced',
+    bgGradient: 'from-slate-950 via-indigo-950 to-emerald-950',
+    progressColor: 'bg-indigo-400',
+    barBg: 'bg-indigo-900/50',
+    accentColor: 'text-indigo-400',
+    tierBg: 'bg-indigo-900/40',
+    tierActiveBg: 'bg-indigo-800/60',
+    glowColor: '#6366f1',
+    Visual: ElementalConfluxVisual,
   },
 };
 
