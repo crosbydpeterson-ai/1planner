@@ -133,6 +133,10 @@ export default function GlobalEventManager() {
     world_tree: '🌳 World Tree',
     community_chest: '📦 Community Chest',
     monster_hunter: '🐉 Monster Hunter',
+    crystal_cavern: '💎 Crystal Cavern',
+    volcano_forge: '🌋 Volcano Forge',
+    ocean_depths: '🌊 Ocean Depths',
+    star_constellation: '⭐ Star Constellation',
   };
 
   if (loading) return <div className="text-slate-400 text-center py-8">Loading...</div>;
@@ -214,6 +218,10 @@ export default function GlobalEventManager() {
                     <SelectItem value="world_tree">🌳 World Tree</SelectItem>
                     <SelectItem value="community_chest">📦 Community Chest</SelectItem>
                     <SelectItem value="monster_hunter">🐉 Monster Hunter</SelectItem>
+                    <SelectItem value="crystal_cavern">💎 Crystal Cavern</SelectItem>
+                    <SelectItem value="volcano_forge">🌋 Volcano Forge</SelectItem>
+                    <SelectItem value="ocean_depths">🌊 Ocean Depths</SelectItem>
+                    <SelectItem value="star_constellation">⭐ Star Constellation</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
