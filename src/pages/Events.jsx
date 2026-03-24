@@ -8,9 +8,13 @@ import { Button } from '@/components/ui/button';
 export default function Events() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeEvent, setActiveEvent] = useState(null);
 
   useEffect(() => {
     loadProfile();
+    base44.entities.GlobalEvent.filter({ isActive: true }).then(events => {
+      if (events.length > 0) setActiveEvent(events[0]);
+    }).catch(() => {});
   }, []);
 
   const loadProfile = async () => {
@@ -32,14 +36,6 @@ export default function Events() {
       </div>
     );
   }
-
-  const [activeEvent, setActiveEvent] = useState(null);
-
-  useEffect(() => {
-    base44.entities.GlobalEvent.filter({ isActive: true }).then(events => {
-      if (events.length > 0) setActiveEvent(events[0]);
-    }).catch(() => {});
-  }, []);
 
   return (
     <div className="min-h-screen -mx-4 -mt-4 pb-20">
