@@ -1,20 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
 import GlobalEventWidget from '@/components/events/GlobalEventWidget';
-import { Loader2, Cog } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 export default function Events() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeEvent, setActiveEvent] = useState(null);
 
   useEffect(() => {
     loadProfile();
-    base44.entities.GlobalEvent.filter({ isActive: true }).then(events => {
-      if (events.length > 0) setActiveEvent(events[0]);
-    }).catch(() => {});
   }, []);
 
   const loadProfile = async () => {
@@ -40,15 +34,6 @@ export default function Events() {
   return (
     <div className="min-h-screen -mx-4 -mt-4 pb-20">
       <GlobalEventWidget profile={profile} fullScreen />
-      {activeEvent?.theme === 'inventors_fair' && profile && (
-        <div className="flex justify-center mt-4 px-4">
-          <Link to="/InnovationBazaar">
-            <Button className="bg-amber-600 hover:bg-amber-700 gap-2">
-              <Cog className="w-4 h-4" /> Visit Innovation Bazaar
-            </Button>
-          </Link>
-        </div>
-      )}
       {!profile && (
         <p className="text-center text-white/40 text-sm py-8">Log in to participate in events.</p>
       )}

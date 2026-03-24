@@ -23,22 +23,6 @@ Deno.serve(async (req) => {
       currentGlobalXP: newXP
     });
 
-    // Award Cogwheels if this is an Inventors' Fair event
-    let cogwheelsAwarded = 0;
-    if (event.theme === 'inventors_fair' && userProfileId) {
-      // 1 Cogwheel per 5 XP contributed
-      cogwheelsAwarded = Math.floor(xpAmount / 5);
-      if (cogwheelsAwarded > 0) {
-        const profiles = await base44.asServiceRole.entities.UserProfile.filter({ id: userProfileId });
-        if (profiles.length > 0) {
-          const profile = profiles[0];
-          await base44.asServiceRole.entities.UserProfile.update(profile.id, {
-            cogwheels: (profile.cogwheels || 0) + cogwheelsAwarded
-          });
-        }
-      }
-    }
-
     // Check which tiers are now unlocked
     const unlockedTiers = (event.tiers || [])
       .map((tier, index) => ({ ...tier, index }))
@@ -48,8 +32,7 @@ Deno.serve(async (req) => {
       success: true,
       currentGlobalXP: newXP,
       totalXPGoal: event.totalXPGoal,
-      unlockedTiersCount: unlockedTiers.length,
-      cogwheelsAwarded
+      unlockedTiersCount: unlockedTiers.length
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

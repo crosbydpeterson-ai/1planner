@@ -17,7 +17,6 @@ import SkyFortressVisual from './themes/SkyFortressVisual';
 import DragonsHoardVisual from './themes/DragonsHoardVisual';
 import StarlightFestivalVisual from './themes/StarlightFestivalVisual';
 import ElementalConfluxVisual from './themes/ElementalConfluxVisual';
-import InventorsFairVisual from './themes/InventorsFairVisual';
 
 const THEME_CONFIG = {
   world_tree: {
@@ -162,17 +161,6 @@ const THEME_CONFIG = {
     tierActiveBg: 'bg-indigo-800/60',
     glowColor: '#6366f1',
     Visual: ElementalConfluxVisual,
-  },
-  inventors_fair: {
-    label: 'Powered',
-    bgGradient: 'from-stone-950 via-amber-950 to-stone-950',
-    progressColor: 'bg-amber-500',
-    barBg: 'bg-amber-900/50',
-    accentColor: 'text-amber-400',
-    tierBg: 'bg-amber-900/40',
-    tierActiveBg: 'bg-amber-800/60',
-    glowColor: '#f59e0b',
-    Visual: InventorsFairVisual,
   },
 };
 

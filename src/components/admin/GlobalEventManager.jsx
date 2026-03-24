@@ -142,7 +142,6 @@ export default function GlobalEventManager() {
     dragons_hoard: '🐲 Dragon\'s Hoard',
     starlight_festival: '🌟 Starlight Festival',
     elemental_conflux: '🌀 Elemental Conflux',
-    inventors_fair: '⚙️ Inventors\' Fair',
   };
 
   if (loading) return <div className="text-slate-400 text-center py-8">Loading...</div>;
@@ -233,7 +232,6 @@ export default function GlobalEventManager() {
                     <SelectItem value="dragons_hoard">🐲 Dragon's Hoard</SelectItem>
                     <SelectItem value="starlight_festival">🌟 Starlight Festival</SelectItem>
                     <SelectItem value="elemental_conflux">🌀 Elemental Conflux</SelectItem>
-                    <SelectItem value="inventors_fair">⚙️ Inventors' Fair</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
