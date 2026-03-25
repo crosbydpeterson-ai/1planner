@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
@@ -61,7 +61,10 @@ Deno.serve(async (req) => {
         break;
       }
       case 'pet': {
-        const petId = tier.rewardValue;
+        // Built-in pets use string IDs like "starter_slime"; custom pets use DB ObjectIds
+        // If the value looks like a DB ID (hex string), prefix with custom_
+        const rawPetId = tier.rewardValue;
+        const petId = /^[a-f0-9]{24}$/.test(rawPetId) ? `custom_${rawPetId}` : rawPetId;
         const pets = [...(profile.unlockedPets || [])];
         if (!pets.includes(petId)) pets.push(petId);
         updateData.unlockedPets = pets;
@@ -69,7 +72,8 @@ Deno.serve(async (req) => {
         break;
       }
       case 'theme': {
-        const themeId = tier.rewardValue;
+        const rawThemeId = tier.rewardValue;
+        const themeId = /^[a-f0-9]{24}$/.test(rawThemeId) ? `custom_${rawThemeId}` : rawThemeId;
         const themes = [...(profile.unlockedThemes || [])];
         if (!themes.includes(themeId)) themes.push(themeId);
         updateData.unlockedThemes = themes;

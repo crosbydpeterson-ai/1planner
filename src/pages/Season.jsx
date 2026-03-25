@@ -4,6 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowLeft, Calendar, Zap } from 'lucide-react';
+import { PETS } from '@/components/quest/PetCatalog';
+import { THEMES } from '@/components/quest/ThemeCatalog';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
@@ -116,27 +118,38 @@ export default function Season() {
       };
       
       if (reward.type === 'pet') {
+        // Check if it's a built-in pet ID or a custom pet DB ID
+        const isBuiltIn = PETS.some(p => p.id === reward.value);
+        const petId = isBuiltIn ? reward.value : `custom_${reward.value}`;
         const currentPets = profile.unlockedPets || [];
-        if (!currentPets.includes(reward.value)) {
-          updateData.unlockedPets = [...currentPets, reward.value];
+        if (!currentPets.includes(petId)) {
+          updateData.unlockedPets = [...currentPets, petId];
         }
       } else if (reward.type === 'theme') {
+        // Check if it's a built-in theme ID or a custom theme DB ID
+        const isBuiltIn = THEMES.some(t => t.id === reward.value);
+        const themeId = isBuiltIn ? reward.value : `custom_${reward.value}`;
         const currentThemes = profile.unlockedThemes || [];
-        if (!currentThemes.includes(reward.value)) {
-          updateData.unlockedThemes = [...currentThemes, reward.value];
+        if (!currentThemes.includes(themeId)) {
+          updateData.unlockedThemes = [...currentThemes, themeId];
         }
       } else if (reward.type === 'title') {
         const currentTitles = profile.unlockedTitles || [];
         if (!currentTitles.includes(reward.value)) {
           updateData.unlockedTitles = [...currentTitles, reward.value];
         }
+      } else if (reward.type === 'coins') {
+        const coinAmount = parseInt(reward.value, 10) || 0;
+        updateData.questCoins = (profile.questCoins || 0) + coinAmount;
       }
 
       await base44.entities.UserProfile.update(profile.id, updateData);
       setProfile({ ...profile, ...updateData });
 
       toast.success(`${reward.name} claimed!`, {
-        description: `You unlocked a new ${reward.type}!`
+        description: reward.type === 'coins' 
+          ? `You received ${reward.value} Quest Coins!` 
+          : `You unlocked a new ${reward.type}!`
       });
     } catch (e) {
       console.error('Error claiming reward:', e);
