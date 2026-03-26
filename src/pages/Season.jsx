@@ -26,6 +26,15 @@ export default function Season() {
     base44.analytics.track({ eventName: 'season_page_viewed' });
   }, []);
 
+  // Compute season XP: if profile is tracking the current season, use seasonXp; otherwise 0
+  const getSeasonXp = (userProfile, activeSeason) => {
+    if (!userProfile || !activeSeason) return 0;
+    if (userProfile.activeSeasonId === activeSeason.id) {
+      return userProfile.seasonXp || 0;
+    }
+    return 0;
+  };
+
   const getRewardClaimKey = (seasonId, reward, rewardIndex) => {
     const rewardValue = reward?.value || reward?.name || 'reward';
     return `${seasonId}:${rewardIndex}:${reward.type}:${rewardValue}`;
@@ -92,7 +101,8 @@ export default function Season() {
     if (!profile || !season) return;
 
     // Verify eligibility server-side style (in frontend for demo)
-    if ((profile.xp || 0) < reward.xpRequired) {
+    const currentSeasonXp = getSeasonXp(profile, season);
+    if (currentSeasonXp < reward.xpRequired) {
       toast.error('Not enough XP to claim this reward!');
       return;
     }
@@ -144,7 +154,8 @@ export default function Season() {
       }
 
       await base44.entities.UserProfile.update(profile.id, updateData);
-      setProfile({ ...profile, ...updateData });
+      const updatedProfile = { ...profile, ...updateData };
+      setProfile(updatedProfile);
 
       toast.success(`${reward.name} claimed!`, {
         description: reward.type === 'coins' 
@@ -174,7 +185,7 @@ export default function Season() {
     return <LockedOverlay featureLabel="Season Pass" message={lockMsg || "An Admin or Mod has locked this feature. You can't currently use it."} />;
   }
 
-  const userXp = profile.xp || 0;
+  const userXp = getSeasonXp(profile, season);
   const daysLeft = season ? differenceInDays(new Date(season.endDate), new Date()) : 0;
 
   return (

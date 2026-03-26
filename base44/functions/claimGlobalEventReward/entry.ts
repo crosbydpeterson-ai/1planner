@@ -51,6 +51,20 @@ Deno.serve(async (req) => {
       case 'xp': {
         const amount = parseInt(tier.rewardValue) || 0;
         updateData.xp = (profile.xp || 0) + amount;
+        // Also track season XP
+        const activeSeasons = await base44.asServiceRole.entities.Season.filter({ isActive: true });
+        if (activeSeasons.length > 0) {
+          const activeSeason = activeSeasons[0];
+          const now = new Date();
+          if (now >= new Date(activeSeason.startDate) && now <= new Date(activeSeason.endDate)) {
+            if (profile.activeSeasonId !== activeSeason.id) {
+              updateData.seasonXp = amount;
+              updateData.activeSeasonId = activeSeason.id;
+            } else {
+              updateData.seasonXp = (profile.seasonXp || 0) + amount;
+            }
+          }
+        }
         rewardDescription = `${amount} XP`;
         break;
       }

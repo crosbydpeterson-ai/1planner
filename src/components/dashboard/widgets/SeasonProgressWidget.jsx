@@ -6,7 +6,7 @@ import { Sparkles, ChevronRight, Calendar } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { differenceInDays, format } from 'date-fns';
 
-export default function SeasonProgressWidget({ userXp, claimedRewards }) {
+export default function SeasonProgressWidget({ userXp, claimedRewards, seasonXp, activeSeasonId }) {
   const [season, setSeason] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +43,8 @@ export default function SeasonProgressWidget({ userXp, claimedRewards }) {
   const daysLeft = differenceInDays(new Date(season.endDate), new Date());
   const totalRewards = season.rewards?.length || 0;
   const claimedCount = claimedRewards?.length || 0;
+  // Show season-scoped XP
+  const displayXp = (activeSeasonId === season.id) ? (seasonXp || 0) : 0;
 
   return (
     <motion.div
@@ -73,8 +75,8 @@ export default function SeasonProgressWidget({ userXp, claimedRewards }) {
           </div>
         </div>
         <div className="text-right">
-          <p className="text-lg font-bold text-slate-800">{claimedCount}/{totalRewards}</p>
-          <p className="text-xs text-slate-500">rewards claimed</p>
+          <p className="text-lg font-bold text-slate-800">{displayXp} XP</p>
+          <p className="text-xs text-slate-500">{claimedCount}/{totalRewards} rewards</p>
         </div>
       </div>
     </motion.div>
