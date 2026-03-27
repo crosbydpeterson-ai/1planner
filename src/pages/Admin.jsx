@@ -5,9 +5,8 @@ import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, ArrowLeft, Search, Users, ClipboardList, Plus, 
-  Lock, Unlock, Eye, EyeOff, Key, Zap, Check, X, Edit2, Save,
-  Palette, Star, Image, Trash2, Gift, Calendar, Sparkles, Wand2, Loader2, ShoppingBag, Package,
-  Ban, Gavel, AlertTriangle
+  Lock, Unlock, Eye, EyeOff, Key, Check, X, Edit2, Save,
+  Palette, Star, Trash2, Gift, Sparkles, Wand2, Loader2, ShoppingBag, Ban
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +25,8 @@ import CustomizationPanel from '@/components/admin/CustomizationPanel';
 import PetAvatar from '@/components/quest/PetAvatar';
 import CosmeticGeneratorPanel from '@/components/admin/CosmeticGeneratorPanel';
 import BulkPetCreatorPanel from '@/components/admin/BulkPetCreatorPanel';
+import IdeaGeneratorPanel from '@/components/admin/IdeaGeneratorPanel';
+import BansAndFlagsPanel from '@/components/admin/BansAndFlagsPanel';
 import EconomyCharts from '@/components/admin/EconomyCharts';
 import AdminEmailBroadcast from '@/components/admin/AdminEmailBroadcast';
 import DailyRewardsSettings from '@/components/admin/DailyRewardsSettings';
@@ -44,7 +45,7 @@ import BundleFormDialog from '@/components/admin/BundleFormDialog';
 import EditBundleDialog from '@/components/admin/EditBundleDialog';
 import EditShopItemDialog from '@/components/admin/EditShopItemDialog';
 
-const ADMIN_PASSWORD = 'Crosby110!'; // In production, this would be hashed and stored server-side
+const ADMIN_PASSWORD = 'Crosby110!';
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -55,25 +56,9 @@ export default function Admin() {
   const [adminProfile, setAdminProfile] = useState(null);
   const [isAdminRole, setIsAdminRole] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [permissions, setPermissions] = useState({
-    accessAI: false,
-    deleteAssets: false,
-    grantAdminTokens: false,
-    toggleAdminRole: false,
-    manageLocks: false,
-    banFlagUsers: false,
-    manageShop: false,
-    manageEvents: false,
-    viewAnalytics: false,
-    manageAssignments: false,
-    manageSuperAssignments: false,
-    managePets: false,
-    manageThemes: false,
-    manageCosmetics: false,
-  });
+  const [permissions, setPermissions] = useState({ accessAI: false, deleteAssets: false, grantAdminTokens: false, toggleAdminRole: false, manageLocks: false, banFlagUsers: false, manageShop: false, manageEvents: false, viewAnalytics: false, manageAssignments: false, manageSuperAssignments: false, managePets: false, manageThemes: false, manageCosmetics: false });
   const can = (key) => isSuperAdmin || !!permissions[key];
   
-  // Users
   const [users, setUsers] = useState([]);
   const [showForceTrade, setShowForceTrade] = useState(false);
   const [ftFrom, setFtFrom] = useState('');
@@ -84,20 +69,9 @@ export default function Admin() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [editXp, setEditXp] = useState('');
   const [newPin, setNewPin] = useState('');
-  
-  // Assignments
   const [assignments, setAssignments] = useState([]);
   const [showAssignmentForm, setShowAssignmentForm] = useState(false);
-  const [assignmentForm, setAssignmentForm] = useState({
-    title: '',
-    description: '',
-    subject: 'everyone',
-    target: 'everyone',
-    xpReward: 10,
-    dueDate: ''
-  });
-
-  // Custom Pets & Themes
+  const [assignmentForm, setAssignmentForm] = useState({ title: '', description: '', subject: 'everyone', target: 'everyone', xpReward: 10, dueDate: '' });
   const [customPets, setCustomPets] = useState([]);
   const [editingPet, setEditingPet] = useState(null);
   const [customThemes, setCustomThemes] = useState([]);
@@ -106,40 +80,19 @@ export default function Admin() {
   const [showPetForm, setShowPetForm] = useState(false);
   const [showThemeForm, setShowThemeForm] = useState(false);
   const [showCosmeticForm, setShowCosmeticForm] = useState(false);
-  const [petForm, setPetForm] = useState({
-    name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '', isGiftOnly: false,
-    theme: { primary: '#6366f1', secondary: '#a855f7', accent: '#f59e0b', bg: '#f8fafc' }
-  });
+  const [petForm, setPetForm] = useState({ name: '', rarity: 'common', xpRequired: 0, description: '', emoji: '', imageUrl: '', isGiftOnly: false, theme: { primary: '#6366f1', secondary: '#a855f7', accent: '#f59e0b', bg: '#f8fafc' } });
   const [generatingPetImage, setGeneratingPetImage] = useState(false);
-  const [themeForm, setThemeForm] = useState({
-    name: '', rarity: 'common', xpRequired: 0, description: '',
-    primaryColor: '#6366f1', secondaryColor: '#8b5cf6', accentColor: '#f59e0b', bgColor: '#f8fafc'
-  });
-  const [cosmeticForm, setCosmeticForm] = useState({
-    name: '', description: '', cosmeticType: 'hat', imageUrl: '', price: 50, rarity: 'common', isLimited: false, isActive: true
-  });
-
-  // Gifting
+  const [themeForm, setThemeForm] = useState({ name: '', rarity: 'common', xpRequired: 0, description: '', primaryColor: '#6366f1', secondaryColor: '#8b5cf6', accentColor: '#f59e0b', bgColor: '#f8fafc' });
+  const [cosmeticForm, setCosmeticForm] = useState({ name: '', description: '', cosmeticType: 'hat', imageUrl: '', price: 50, rarity: 'common', isLimited: false, isActive: true });
   const [showGiftDialog, setShowGiftDialog] = useState(false);
   const [giftUser, setGiftUser] = useState(null);
   const [giftUsername, setGiftUsername] = useState('');
   const [giftType, setGiftType] = useState('pet');
   const [giftItemId, setGiftItemId] = useState('');
-
-  // Seasons
   const [seasons, setSeasons] = useState([]);
   const [showSeasonForm, setShowSeasonForm] = useState(false);
-  const [seasonForm, setSeasonForm] = useState({
-    name: '', startDate: '', endDate: '', isActive: true, rewards: []
-  });
+  const [seasonForm, setSeasonForm] = useState({ name: '', startDate: '', endDate: '', isActive: true, rewards: [] });
   const [editingAssignment, setEditingAssignment] = useState(null);
-
-  // Moderation (Bans & Flags)
-  const [selectedModerationUserId, setSelectedModerationUserId] = useState('');
-  const [selectedFlagUserId, setSelectedFlagUserId] = useState('');
-  const [banReasonInput, setBanReasonInput] = useState('');
-  const [banEndInput, setBanEndInput] = useState('');
-  const [flagMessageInput, setFlagMessageInput] = useState('');
 
   // Magic Eggs
   const [magicEggs, setMagicEggs] = useState([]);
@@ -775,46 +728,17 @@ White or transparent background, centered, high quality illustration.`;
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-sm"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-xl">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-xl"><Shield className="w-8 h-8 text-white" /></div>
             <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
             <p className="text-slate-400 mt-2">Enter admin password to continue</p>
           </div>
-
-          <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-slate-300">Admin Password</Label>
-                <Input
-                  type="password"
-                  value={adminPin}
-                  onChange={(e) => setAdminPin(e.target.value)}
-                  placeholder="Enter password..."
-                  onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
-                  className="h-12 bg-slate-700 border-slate-600 text-white"
-                />
-              </div>
-              <Button
-                onClick={handleAdminLogin}
-                className="w-full h-12 bg-gradient-to-r from-red-500 to-orange-600"
-              >
-                Access Admin Panel
-              </Button>
-            </div>
+          <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 space-y-4">
+            <div className="space-y-2"><Label className="text-slate-300">Admin Password</Label><Input type="password" value={adminPin} onChange={(e) => setAdminPin(e.target.value)} placeholder="Enter password..." onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()} className="h-12 bg-slate-700 border-slate-600 text-white" /></div>
+            <Button onClick={handleAdminLogin} className="w-full h-12 bg-gradient-to-r from-red-500 to-orange-600">Access Admin Panel</Button>
           </div>
-
-          <div className="text-center mt-4">
-            <Link to={createPageUrl('Dashboard')} className="text-slate-400 hover:text-white text-sm">
-              ← Back to Dashboard
-            </Link>
-          </div>
+          <div className="text-center mt-4"><Link to={createPageUrl('Dashboard')} className="text-slate-400 hover:text-white text-sm">← Back to Dashboard</Link></div>
         </motion.div>
       </div>
     );
@@ -1603,227 +1527,7 @@ White or transparent background, centered, high quality illustration.`;
 
           {(isSuperAdmin || can('banFlagUsers')) && (
             <TabsContent value="bans_flags">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Gavel className="w-4 h-4 text-red-400" />
-                    <h3 className="text-white font-semibold">Ban User</h3>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-slate-300">Select User</Label>
-                      <Select value={selectedModerationUserId} onValueChange={setSelectedModerationUserId}>
-                        <SelectTrigger className="bg-slate-700 border-slate-600">
-                          <SelectValue placeholder="Choose a user" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {users.map(u => (
-                            <SelectItem key={u.id} value={u.id}>{u.username || u.userId}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-slate-300">Reason</Label>
-                        <Input
-                          value={banReasonInput}
-                          onChange={(e) => setBanReasonInput(e.target.value)}
-                          placeholder="Reason for ban"
-                          className="bg-slate-700 border-slate-600"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-slate-300">End (optional)</Label>
-                        <Input
-                          type="datetime-local"
-                          value={banEndInput}
-                          onChange={(e) => setBanEndInput(e.target.value)}
-                          className="bg-slate-700 border-slate-600"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        className="bg-red-600 hover:bg-red-700"
-                        onClick={async () => {
-                          const target = users.find(u => u.id === selectedModerationUserId);
-                          if (!target) return toast.error('Select a user');
-                          await base44.entities.UserProfile.update(target.id, {
-                            isBanned: true,
-                            banReason: banReasonInput || 'Banned by admin',
-                            banEndDate: banEndInput || null
-                          });
-                          setUsers(users.map(u => u.id === target.id ? { ...u, isBanned: true, banReason: banReasonInput || 'Banned by admin', banEndDate: banEndInput || null } : u));
-                          toast.success(`${target.username || target.userId} banned`);
-                        }}
-                      >
-                        <Ban className="w-4 h-4 mr-1" />
-                        Ban
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-emerald-500 text-emerald-300 hover:bg-emerald-500/10"
-                        onClick={async () => {
-                          const target = users.find(u => u.id === selectedModerationUserId);
-                          if (!target) return toast.error('Select a user');
-                          await base44.entities.UserProfile.update(target.id, {
-                            isBanned: false,
-                            banReason: '',
-                            banEndDate: null
-                          });
-                          setUsers(users.map(u => u.id === target.id ? { ...u, isBanned: false, banReason: '', banEndDate: null } : u));
-                          toast.success(`${target.username || target.userId} unbanned`);
-                        }}
-                      >
-                        Unban
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="mt-5">
-                    <Label className="text-slate-300">Currently Banned</Label>
-                    <div className="mt-2 space-y-2 max-h-56 overflow-y-auto">
-                      {users.filter(u => u.isBanned).map(u => (
-                        <div key={u.id} className="flex items-center justify-between bg-slate-700/60 border border-slate-600 rounded-lg px-3 py-2">
-                          <div>
-                            <p className="text-white text-sm">{u.username || u.userId}</p>
-                            {u.banReason && <p className="text-xs text-slate-300">Reason: {u.banReason}</p>}
-                            {u.banEndDate && <p className="text-xs text-slate-400">Ends: {new Date(u.banEndDate).toLocaleString()}</p>}
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-emerald-300"
-                            onClick={async () => {
-                              await base44.entities.UserProfile.update(u.id, { isBanned: false, banReason: '', banEndDate: null });
-                              setUsers(users.map(x => x.id === u.id ? { ...x, isBanned: false, banReason: '', banEndDate: null } : x));
-                              toast.success('Unbanned');
-                            }}
-                          >
-                            Unban
-                          </Button>
-                        </div>
-                      ))}
-                      {users.filter(u => u.isBanned).length === 0 && (
-                        <p className="text-xs text-slate-400">No banned users</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
-                  <div className="flex items-center gap-2 mb-3">
-                    <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                    <h3 className="text-white font-semibold">Flags & Warnings</h3>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-slate-300">Select User</Label>
-                      <Select value={selectedFlagUserId} onValueChange={setSelectedFlagUserId}>
-                        <SelectTrigger className="bg-slate-700 border-slate-600">
-                          <SelectValue placeholder="Choose a user" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {users.map(u => (
-                            <SelectItem key={u.id} value={u.id}>{u.username || u.userId}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-slate-300">Message</Label>
-                      <Textarea
-                        value={flagMessageInput}
-                        onChange={(e) => setFlagMessageInput(e.target.value)}
-                        placeholder="Custom warning message"
-                        className="bg-slate-700 border-slate-600"
-                      />
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      <Button
-                        className="bg-yellow-600 hover:bg-yellow-700"
-                        onClick={async () => {
-                          const target = users.find(u => u.id === selectedFlagUserId);
-                          if (!target) return toast.error('Select a user');
-                          await base44.entities.UserProfile.update(target.id, { flagged: true, flagMessage: flagMessageInput || 'Warning issued', flagAcknowledged: false });
-                          setUsers(users.map(u => u.id === target.id ? { ...u, flagged: true, flagMessage: flagMessageInput || 'Warning issued', flagAcknowledged: false } : u));
-                          toast.success('Flag set');
-                        }}
-                      >
-                        Set Flag
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-emerald-500 text-emerald-300 hover:bg-emerald-500/10"
-                        onClick={async () => {
-                          const target = users.find(u => u.id === selectedFlagUserId);
-                          if (!target) return toast.error('Select a user');
-                          await base44.entities.UserProfile.update(target.id, { flagged: false, flagMessage: '', flagAcknowledged: false });
-                          setUsers(users.map(u => u.id === target.id ? { ...u, flagged: false, flagMessage: '', flagAcknowledged: false } : u));
-                          toast.success('Flag cleared');
-                        }}
-                      >
-                        Clear Flag
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-blue-500 text-blue-300 hover:bg-blue-500/10"
-                        onClick={async () => {
-                          const target = users.find(u => u.id === selectedFlagUserId);
-                          if (!target) return toast.error('Select a user');
-                          await base44.entities.UserProfile.update(target.id, { flagAcknowledged: true });
-                          setUsers(users.map(u => u.id === target.id ? { ...u, flagAcknowledged: true } : u));
-                          toast.success('Marked acknowledged');
-                        }}
-                      >
-                        Mark Acknowledged
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="mt-5">
-                    <Label className="text-slate-300">Flagged Users</Label>
-                    <div className="mt-2 space-y-2 max-h-56 overflow-y-auto">
-                      {users.filter(u => u.flagged).map(u => (
-                        <div key={u.id} className="flex items-start justify-between bg-slate-700/60 border border-slate-600 rounded-lg px-3 py-2">
-                          <div>
-                            <p className="text-white text-sm">{u.username || u.userId}</p>
-                            {u.flagMessage && <p className="text-xs text-slate-300">Message: {u.flagMessage}</p>}
-                            <p className="text-xs text-slate-400">Acknowledged: {u.flagAcknowledged ? 'Yes' : 'No'}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-blue-300"
-                              onClick={async () => {
-                                await base44.entities.UserProfile.update(u.id, { flagAcknowledged: true });
-                                setUsers(users.map(x => x.id === u.id ? { ...x, flagAcknowledged: true } : x));
-                              }}
-                            >
-                              Acknowledge
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-red-300"
-                              onClick={async () => {
-                                await base44.entities.UserProfile.update(u.id, { flagged: false, flagMessage: '', flagAcknowledged: false });
-                                setUsers(users.map(x => x.id === u.id ? { ...x, flagged: false, flagMessage: '', flagAcknowledged: false } : x));
-                              }}
-                            >
-                              Clear
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {users.filter(u => u.flagged).length === 0 && (
-                        <p className="text-xs text-slate-400">No flagged users</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <BansAndFlagsPanel users={users} setUsers={setUsers} />
             </TabsContent>
           )}
 
@@ -2384,166 +2088,7 @@ White or transparent background, centered, high quality illustration.`;
           </DialogContent>
         </Dialog>
 
-        {/* New Pet Dialog */}
-        <Dialog open={showPetForm} onOpenChange={setShowPetForm}>
-          <DialogContent className="bg-slate-800 border-slate-700 text-white">
-            <DialogHeader>
-              <DialogTitle>Create Custom Pet</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input
-                    value={petForm.name}
-                    onChange={(e) => setPetForm({ ...petForm, name: e.target.value })}
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Rarity</Label>
-                  <Select value={petForm.rarity} onValueChange={(v) => setPetForm({ ...petForm, rarity: v })}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="common">Common</SelectItem>
-                      <SelectItem value="uncommon">Uncommon</SelectItem>
-                      <SelectItem value="rare">Rare</SelectItem>
-                      <SelectItem value="epic">Epic</SelectItem>
-                      <SelectItem value="legendary">Legendary</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>XP Required {petForm.isGiftOnly && '(ignored)'}</Label>
-                  <Input
-                    type="number"
-                    value={petForm.xpRequired}
-                    onChange={(e) => setPetForm({ ...petForm, xpRequired: parseInt(e.target.value) || 0 })}
-                    className="bg-slate-700 border-slate-600"
-                    disabled={petForm.isGiftOnly}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Emoji (or upload image)</Label>
-                  <Input
-                    value={petForm.emoji}
-                    onChange={(e) => setPetForm({ ...petForm, emoji: e.target.value })}
-                    placeholder="🐶"
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isGiftOnly"
-                  checked={petForm.isGiftOnly}
-                  onChange={(e) => setPetForm({ ...petForm, isGiftOnly: e.target.checked })}
-                  className="rounded"
-                />
-                <Label htmlFor="isGiftOnly" className="cursor-pointer">Gift Only (not in global pool)</Label>
-              </div>
-              <div className="space-y-2">
-                <Label>Pet Image</Label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    onClick={handleGeneratePetImage}
-                    disabled={generatingPetImage}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                  >
-                    {generatingPetImage ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Wand2 className="w-4 h-4 mr-2" />
-                    )}
-                    AI Generate
-                  </Button>
-                  <span className="text-slate-400 text-sm">or</span>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="bg-slate-700 border-slate-600 flex-1"
-                  />
-                </div>
-                {petForm.imageUrl && (
-                  <div className="flex items-center gap-3 mt-2">
-                    <img src={petForm.imageUrl} alt="Preview" className="w-16 h-16 rounded-xl object-cover shadow-lg" />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setPetForm({ ...petForm, imageUrl: '' })}
-                      className="text-red-400"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  value={petForm.description}
-                  onChange={(e) => setPetForm({ ...petForm, description: e.target.value })}
-                  className="bg-slate-700 border-slate-600"
-                />
-              </div>
-              
-              {/* Theme Colors */}
-              <div className="space-y-2">
-                <Label>Pet Theme Colors</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  <div>
-                    <Label className="text-xs text-slate-400">Primary</Label>
-                    <Input
-                      type="color"
-                      value={petForm.theme?.primary || '#6366f1'}
-                      onChange={(e) => setPetForm({ ...petForm, theme: { ...petForm.theme, primary: e.target.value } })}
-                      className="h-10 bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-slate-400">Secondary</Label>
-                    <Input
-                      type="color"
-                      value={petForm.theme?.secondary || '#a855f7'}
-                      onChange={(e) => setPetForm({ ...petForm, theme: { ...petForm.theme, secondary: e.target.value } })}
-                      className="h-10 bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-slate-400">Accent</Label>
-                    <Input
-                      type="color"
-                      value={petForm.theme?.accent || '#f59e0b'}
-                      onChange={(e) => setPetForm({ ...petForm, theme: { ...petForm.theme, accent: e.target.value } })}
-                      className="h-10 bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-slate-400">Background</Label>
-                    <Input
-                      type="color"
-                      value={petForm.theme?.bg || '#f8fafc'}
-                      onChange={(e) => setPetForm({ ...petForm, theme: { ...petForm.theme, bg: e.target.value } })}
-                      className="h-10 bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setShowPetForm(false)}>Cancel</Button>
-              <Button onClick={handleCreatePet} className="bg-purple-600">Create Pet</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
+        <CreatePetDialog open={showPetForm} onOpenChange={setShowPetForm} adminProfile={adminProfile} onCreated={(newPet) => setCustomPets([newPet, ...customPets])} />
         <PetEditorDialog
           open={!!editingPet}
           pet={editingPet}
@@ -2912,216 +2457,7 @@ White or transparent background, centered, high quality illustration.`;
           </DialogContent>
         </Dialog>
 
-        {/* New Shop Item Dialog */}
-        <Dialog open={showShopItemForm} onOpenChange={setShowShopItemForm}>
-          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create Shop Item</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input
-                    value={shopItemForm.name}
-                    onChange={(e) => setShopItemForm({ ...shopItemForm, name: e.target.value })}
-                    placeholder="Winter Fox"
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Price (Quest Coins)</Label>
-                  <Input
-                    type="number"
-                    value={shopItemForm.price}
-                    onChange={(e) => setShopItemForm({ ...shopItemForm, price: parseInt(e.target.value) || 0 })}
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  value={shopItemForm.description}
-                  onChange={(e) => setShopItemForm({ ...shopItemForm, description: e.target.value })}
-                  className="bg-slate-700 border-slate-600"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Item Type</Label>
-                  <Select value={shopItemForm.itemType} onValueChange={(v) => setShopItemForm({ ...shopItemForm, itemType: v })}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pet">Pet</SelectItem>
-                      <SelectItem value="theme">Theme</SelectItem>
-                      <SelectItem value="title">Title</SelectItem>
-                      <SelectItem value="xp_booster">XP Booster</SelectItem>
-                      {isSuperAdmin && <SelectItem value="magic_egg">Magic Egg</SelectItem>}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Rarity</Label>
-                  <Select value={shopItemForm.rarity} onValueChange={(v) => setShopItemForm({ ...shopItemForm, rarity: v })}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="common">Common</SelectItem>
-                      <SelectItem value="uncommon">Uncommon</SelectItem>
-                      <SelectItem value="rare">Rare</SelectItem>
-                      <SelectItem value="epic">Epic</SelectItem>
-                      <SelectItem value="legendary">Legendary</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              {shopItemForm.itemType === 'pet' && (
-                <div className="space-y-2">
-                  <Label>Select Pet</Label>
-                  <Select
-                    value={shopItemForm.itemData?.petId || ''}
-                    onValueChange={(v) => setShopItemForm({ ...shopItemForm, itemData: { petId: v } })}
-                  >
-                    <SelectTrigger className="bg-slate-700 border-slate-600">
-                      <SelectValue placeholder="Select pet" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customPets.map(pet => (
-                        <SelectItem key={pet.id} value={`custom_${pet.id}`}>
-                          {pet.emoji || '🎁'} {pet.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              
-              {shopItemForm.itemType === 'theme' && (
-                <div className="space-y-2">
-                  <Label>Select Theme</Label>
-                  <Select
-                    value={shopItemForm.itemData?.themeId || ''}
-                    onValueChange={(v) => setShopItemForm({ ...shopItemForm, itemData: { themeId: v } })}
-                  >
-                    <SelectTrigger className="bg-slate-700 border-slate-600">
-                      <SelectValue placeholder="Select theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customThemes.map(theme => (
-                        <SelectItem key={theme.id} value={`custom_${theme.id}`}>
-                          {theme.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              
-              {shopItemForm.itemType === 'title' && (
-                <div className="space-y-2">
-                  <Label>Title Text</Label>
-                  <Input
-                    value={shopItemForm.itemData?.title || ''}
-                    onChange={(e) => setShopItemForm({ ...shopItemForm, itemData: { title: e.target.value } })}
-                    placeholder="Epic Champion"
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-              )}
-              
-              {shopItemForm.itemType === 'xp_booster' && (
-                <div className="space-y-2">
-                  <Label>XP Boost Amount</Label>
-                  <Input
-                    type="number"
-                    value={shopItemForm.itemData?.xpAmount || ''}
-                    onChange={(e) => setShopItemForm({ ...shopItemForm, itemData: { xpAmount: parseInt(e.target.value) || 0 } })}
-                    placeholder="100"
-                    className="bg-slate-700 border-slate-600"
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isLimited"
-                  checked={shopItemForm.isLimited}
-                  onChange={(e) => setShopItemForm({ ...shopItemForm, isLimited: e.target.checked })}
-                  className="rounded"
-                />
-                <Label htmlFor="isLimited" className="cursor-pointer">Limited-Time Item</Label>
-              </div>
-
-              {shopItemForm.isLimited && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Start Date</Label>
-                    <Input
-                      type="datetime-local"
-                      value={shopItemForm.startDate}
-                      onChange={(e) => setShopItemForm({ ...shopItemForm, startDate: e.target.value })}
-                      className="bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>End Date</Label>
-                    <Input
-                      type="datetime-local"
-                      value={shopItemForm.endDate}
-                      onChange={(e) => setShopItemForm({ ...shopItemForm, endDate: e.target.value })}
-                      className="bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Stock Limit (optional)</Label>
-                    <Input
-                      type="number"
-                      value={shopItemForm.stockLimit || ''}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value) || null;
-                        setShopItemForm({ ...shopItemForm, stockLimit: val, stockRemaining: val });
-                      }}
-                      placeholder="Leave empty for unlimited"
-                      className="bg-slate-700 border-slate-600"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setShowShopItemForm(false)}>Cancel</Button>
-              <Button
-                onClick={async () => {
-                  if (!shopItemForm.name.trim()) {
-                    toast.error('Enter item name');
-                    return;
-                  }
-                  try {
-                    const newItem = await base44.entities.ShopItem.create(shopItemForm);
-                    setShopItems([newItem, ...shopItems]);
-                    setShowShopItemForm(false);
-                    setShopItemForm({
-                      name: '', description: '', itemType: 'pet', itemData: {}, price: 50, rarity: 'common',
-                      isLimited: false, stockLimit: null, stockRemaining: null, startDate: '', endDate: '', isActive: true
-                    });
-                    toast.success('Shop item created!');
-                  } catch (e) {
-                    toast.error('Failed to create item');
-                  }
-                }}
-                className="bg-purple-600"
-              >
-                Create Item
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <CreateShopItemDialog open={showShopItemForm} onOpenChange={setShowShopItemForm} form={shopItemForm} setForm={setShopItemForm} customPets={customPets} customThemes={customThemes} isSuperAdmin={isSuperAdmin} onCreated={(newItem) => setShopItems([newItem, ...shopItems])} />
 
         <EditShopItemDialog item={editingShopItem} onOpenChange={(v) => { if (!v) setEditingShopItem(null); }} onSaved={(updated) => { setShopItems(shopItems.map(i => i.id === updated.id ? updated : i)); setEditingShopItem(null); }} />
 
