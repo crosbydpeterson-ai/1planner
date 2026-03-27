@@ -48,16 +48,9 @@ export default function Season() {
       return claimsBySeason[activeSeason.id];
     }
 
-    // Backward compatibility: migrate old claim format (xpRequired numbers)
-    // into season-scoped claim keys once.
-    const legacyClaims = userProfile.claimedSeasonRewards || [];
-    return legacyClaims
-      .map((xpRequired) => {
-        const rewardIndex = activeSeason.rewards?.findIndex(r => r.xpRequired === xpRequired);
-        if (rewardIndex === undefined || rewardIndex < 0) return null;
-        return getRewardClaimKey(activeSeason.id, activeSeason.rewards[rewardIndex], rewardIndex);
-      })
-      .filter(Boolean);
+    // No claims recorded for this season yet — return empty
+    // (Legacy migration only applies to the very first season before claimsBySeason existed)
+    return [];
   };
 
   const loadData = async () => {
