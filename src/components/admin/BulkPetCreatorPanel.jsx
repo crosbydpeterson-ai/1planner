@@ -121,6 +121,19 @@ export default function BulkPetCreatorPanel({ onCreated }) {
 
   const changeAt = (idx, updated) => setItems((prev) => { const copy = [...prev]; copy[idx] = updated; return copy; });
 
+  const createThemeForPet = async (pet) => {
+    await base44.entities.CustomTheme.create({
+      name: pet.name,
+      rarity: pet.rarity || 'common',
+      xpRequired: 0,
+      description: `Theme from ${pet.name}`,
+      primaryColor: pet.theme?.primary || '#22c55e',
+      secondaryColor: pet.theme?.secondary || '#86efac',
+      accentColor: pet.theme?.accent || '#4ade80',
+      bgColor: pet.theme?.bg || '#f0fdf4',
+    });
+  };
+
   const saveOne = async (idx) => {
     const it = items[idx];
     const payload = {
@@ -133,13 +146,14 @@ export default function BulkPetCreatorPanel({ onCreated }) {
       theme: it.theme
     };
     const created = await base44.entities.CustomPet.create(payload);
+    await createThemeForPet(it);
     onCreated && onCreated([created]);
   };
 
   const saveAll = async () => {
     if (!items.length) return;
     setSavingAll(true);
-    const payloads = items.map((it) => ({
+    const petPayloads = items.map((it) => ({
       name: it.name,
       rarity: it.rarity,
       xpRequired: Number(it.xpRequired) || 0,
@@ -148,7 +162,18 @@ export default function BulkPetCreatorPanel({ onCreated }) {
       imageUrl: it.imageUrl,
       theme: it.theme
     }));
-    const created = await base44.entities.CustomPet.bulkCreate(payloads);
+    const created = await base44.entities.CustomPet.bulkCreate(petPayloads);
+    const themePayloads = items.map((it) => ({
+      name: it.name,
+      rarity: it.rarity || 'common',
+      xpRequired: 0,
+      description: `Theme from ${it.name}`,
+      primaryColor: it.theme?.primary || '#22c55e',
+      secondaryColor: it.theme?.secondary || '#86efac',
+      accentColor: it.theme?.accent || '#4ade80',
+      bgColor: it.theme?.bg || '#f0fdf4',
+    }));
+    await base44.entities.CustomTheme.bulkCreate(themePayloads);
     onCreated && onCreated(created);
     setSavingAll(false);
   };
