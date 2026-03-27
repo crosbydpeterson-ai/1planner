@@ -397,7 +397,7 @@ export default function Assignments() {
                 <Input
                   value={newAssignment.title}
                   onChange={(e) => setNewAssignment({ ...newAssignment, title: e.target.value })}
-                  placeholder="Assignment title (or paste from Google Classroom)"
+                  placeholder="Assignment title + subject (e.g. Math: Chapter 5 Review)"
                 />
               </div>
               <div className="space-y-2">
