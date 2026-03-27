@@ -222,26 +222,28 @@ export default function ChatbotWidget() {
             </div>
 
             {/* Input */}
-            <div className="p-3 border-t border-slate-200 bg-white">
+            <form
+              onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+              className="p-3 border-t border-slate-200 bg-white"
+            >
               {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
               <div className="flex gap-2">
-                <Input
+                <input
+                  type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyPress}
                   placeholder="Type a message..."
-                  className="flex-1"
+                  className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                 />
-                <Button
-                  onClick={sendMessage}
+                <button
+                  type="submit"
                   disabled={!input.trim()}
-                  size="icon"
-                  className="bg-sky-500 hover:bg-sky-600"
+                  className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-sky-500 hover:bg-sky-600 text-white disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
-                </Button>
+                </button>
               </div>
-            </div>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>

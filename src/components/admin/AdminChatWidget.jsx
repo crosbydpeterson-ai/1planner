@@ -163,25 +163,27 @@ export default function AdminChatWidget() {
             </div>
 
             {/* Input */}
-            <div className="p-3 border-t border-white/10 bg-slate-900/50 backdrop-blur-sm">
+            <form
+              onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+              className="p-3 border-t border-white/10 bg-slate-900/50 backdrop-blur-sm"
+            >
               <div className="flex gap-2">
-                <Input
+                <input
+                  type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyPress}
                   placeholder="Create a space season with rewards..."
-                  className="flex-1 bg-white/10 border-white/10 text-white placeholder:text-slate-400"
+                  className="flex-1 h-9 rounded-md border bg-white/10 border-white/10 text-white placeholder:text-slate-400 px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                 />
-                <Button
-                  onClick={sendMessage}
+                <button
+                  type="submit"
                   disabled={!input.trim()}
-                  size="icon"
-                  className="bg-red-500 hover:bg-red-600"
+                  className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
-                </Button>
+                </button>
               </div>
-            </div>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>
