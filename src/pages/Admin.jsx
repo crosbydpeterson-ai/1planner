@@ -1399,7 +1399,7 @@ White or transparent background, centered, high quality illustration.`;
                               <span className="text-3xl">{egg.isUsed ? '🐣' : '🥚'}</span>
                               <div>
                                 <p className="text-white font-medium">{owner?.username || 'Unknown User'}</p>
-                                <p className="text-xs text-slate-400">{egg.isUsed ? 'Hatched' : 'Unused'}{egg.source ? ` • ${egg.source.replace(/_/g, ' ')}` : ''}{egg.giftedBy ? ` • by ${(users.find(u => u.userId === egg.giftedBy))?.username || egg.giftedBy}` : ''}</p>
+                                <p className="text-xs text-slate-400">{egg.isUsed ? 'Hatched' : 'Unused'}{egg.source ? ` • ${egg.source.replace(/_/g, ' ')}` : ''}{egg.giftedBy ? ` • gifted by ${(users.find(u => u.userId === egg.giftedBy))?.username || egg.giftedBy}` : ''}{egg.hatchedByUsername ? ` • hatched by ${egg.hatchedByUsername}` : ''}</p>
                               </div>
                             </div>
                             {(isSuperAdmin || permissions.deleteAssets) && (

@@ -156,7 +156,8 @@ export default function ChatbotWidget() {
       {/* Floating Button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-sky-400 to-orange-400 text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform overflow-hidden"
+        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-sky-400 to-orange-400 text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform overflow-hidden pointer-events-auto"
+        style={{ zIndex: 9999 }}
         whileTap={{ scale: 0.95 }}
       >
         {isOpen ? <X className="w-6 h-6" /> : <img src={BYTE_IMAGE} alt="Byte" className="w-12 h-12 object-cover" />}
@@ -169,7 +170,8 @@ export default function ChatbotWidget() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-40 right-4 z-50 w-80 sm:w-96 h-[28rem] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200"
+            className="fixed bottom-40 right-4 w-80 sm:w-96 h-[28rem] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 pointer-events-auto"
+            style={{ zIndex: 9999 }}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-sky-400 to-orange-400 text-white p-4 flex items-center gap-3">

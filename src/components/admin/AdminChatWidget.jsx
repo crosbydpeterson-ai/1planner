@@ -95,7 +95,8 @@ export default function AdminChatWidget() {
       {/* Floating Button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-red-500 to-orange-600 text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-red-500 to-orange-600 text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform pointer-events-auto"
+        style={{ zIndex: 9999 }}
         whileTap={{ scale: 0.95 }}
       >
         {isOpen ? <X className="w-6 h-6" /> : <Bot className="w-6 h-6" />}
@@ -108,7 +109,8 @@ export default function AdminChatWidget() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/10"
+            className="fixed bottom-24 right-6 w-96 h-[32rem] bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/10 pointer-events-auto"
+            style={{ zIndex: 9999 }}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-red-500/90 to-orange-600/90 backdrop-blur-sm text-white p-4">

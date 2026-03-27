@@ -141,13 +141,19 @@ White or transparent background, centered, high quality illustration.`;
         rarity: generatedPet.rarity,
         xpRequired: 999999,
         isGiftOnly: true,
-        theme: generatedPet.theme
+        theme: generatedPet.theme,
+        createdBy: profile.userId,
+        createdByProfileId: profile.id,
+        createdSourceTab: 'pet_creator',
+        imageSource: generatedImageUrl ? 'ai_generated' : 'emoji_only'
       });
 
-      // Mark egg as used
+      // Mark egg as used and log who hatched it
       await base44.entities.MagicEgg.update(egg.id, {
         isUsed: true,
-        createdPetId: newPet.id
+        createdPetId: newPet.id,
+        hatchedByProfileId: profile.id,
+        hatchedByUsername: profile.username
       });
 
       // Create a matching CustomTheme for the pet

@@ -1,0 +1,52 @@
+{
+  "name": "MagicEgg",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "description": "User who owns this egg"
+    },
+    "isUsed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the egg has been hatched"
+    },
+    "createdPetId": {
+      "type": "string",
+      "description": "ID of the pet created from this egg"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "shop",
+        "shop_bundle",
+        "admin_gift",
+        "bubble_pop_event",
+        "global_event",
+        "reward_link",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "How this egg was obtained"
+    },
+    "giftedBy": {
+      "type": "string",
+      "description": "userId of admin who gifted this egg (if admin_gift)"
+    },
+    "giftedByProfileId": {
+      "type": "string",
+      "description": "Profile ID of admin who gifted this egg"
+    },
+    "hatchedByProfileId": {
+      "type": "string",
+      "description": "Profile ID of the user who hatched this egg"
+    },
+    "hatchedByUsername": {
+      "type": "string",
+      "description": "Username of the user who hatched this egg"
+    }
+  },
+  "required": [
+    "userId"
+  ]
+}
