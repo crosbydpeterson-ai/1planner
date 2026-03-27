@@ -168,7 +168,7 @@ export default function AdminChatWidget() {
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyPress}
                   placeholder="Create a space season with rewards..."
                   className="flex-1 bg-white/10 border-white/10 text-white placeholder:text-slate-400"
                 />
