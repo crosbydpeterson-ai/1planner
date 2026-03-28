@@ -1,0 +1,64 @@
+{
+  "name": "EggGenerationJob",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Current job status"
+    },
+    "idea": {
+      "type": "string",
+      "description": "The creature idea prompt"
+    },
+    "totalCount": {
+      "type": "number",
+      "description": "Total creatures to generate"
+    },
+    "completedCount": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of creatures completed so far"
+    },
+    "currentStep": {
+      "type": "string",
+      "description": "What the job is currently doing"
+    },
+    "createdPetIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of pets created by this job"
+    },
+    "createdThemeIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of themes created by this job"
+    },
+    "error": {
+      "type": "string",
+      "description": "Error message if failed"
+    },
+    "startedBy": {
+      "type": "string",
+      "description": "Admin user who started this job"
+    },
+    "startedByProfileId": {
+      "type": "string",
+      "description": "Profile ID of admin who started"
+    }
+  },
+  "required": [
+    "idea",
+    "totalCount"
+  ]
+}
