@@ -30,6 +30,44 @@
       "type": "string",
       "description": "What the job is currently doing"
     },
+    "concepts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "emoji": {
+            "type": "string"
+          },
+          "rarity": {
+            "type": "string"
+          },
+          "theme": {
+            "type": "object",
+            "properties": {
+              "primary": {
+                "type": "string"
+              },
+              "secondary": {
+                "type": "string"
+              },
+              "accent": {
+                "type": "string"
+              },
+              "bg": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "description": "Pre-confirmed pet concepts (skips LLM concept generation when provided)"
+    },
     "createdPetIds": {
       "type": "array",
       "items": {

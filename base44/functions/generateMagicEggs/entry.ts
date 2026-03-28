@@ -1,14 +1,18 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
+  let base44;
+  let jobId;
+
   try {
-    const base44 = createClientFromRequest(req);
+    base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { jobId } = await req.json();
+    const body = await req.json();
+    jobId = body.jobId;
     if (!jobId) {
       return Response.json({ error: 'Missing jobId' }, { status: 400 });
     }
@@ -24,64 +28,76 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Job already started or completed' }, { status: 400 });
     }
 
+    const preConfirmedConcepts = job.concepts || [];
+    const hasPreConfirmed = preConfirmedConcepts.length > 0;
+    const totalCount = hasPreConfirmed ? preConfirmedConcepts.length : job.totalCount;
+
     // Mark as processing
     await base44.asServiceRole.entities.EggGenerationJob.update(jobId, {
       status: 'processing',
-      currentStep: `Generating concept 1 of ${job.totalCount}...`,
+      currentStep: hasPreConfirmed
+        ? `Generating image 1 of ${totalCount}...`
+        : `Generating concept 1 of ${totalCount}...`,
       completedCount: 0
     });
 
     const createdPetIds = [];
     const createdThemeIds = [];
 
-    // Process creatures one at a time so we can update progress
-    for (let i = 0; i < job.totalCount; i++) {
+    for (let i = 0; i < totalCount; i++) {
       try {
-        // Step 1: Generate concept
-        await base44.asServiceRole.entities.EggGenerationJob.update(jobId, {
-          currentStep: `Generating concept ${i + 1} of ${job.totalCount}...`
-        });
+        let concept;
 
-        const concept = await base44.asServiceRole.integrations.Core.InvokeLLM({
-          prompt: `You are a creative designer for a school-safe game. Design based on: "${job.idea}"${job.totalCount > 1 ? `. This is variation ${i + 1} of ${job.totalCount} — make each one unique with different names, colors, and styles.` : ''}. Generate: name (2-3 words), description (1-2 sentences), emoji, rarity (uncommon/rare/epic), theme {primary,secondary,accent,bg} hex colors.`,
-          response_json_schema: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              description: { type: "string" },
-              emoji: { type: "string" },
-              rarity: { type: "string", enum: ["uncommon", "rare", "epic"] },
-              theme: {
-                type: "object",
-                properties: {
-                  primary: { type: "string" },
-                  secondary: { type: "string" },
-                  accent: { type: "string" },
-                  bg: { type: "string" }
+        if (hasPreConfirmed) {
+          // Use the pre-confirmed concept — skip LLM
+          concept = preConfirmedConcepts[i];
+        } else {
+          // Generate concept via LLM
+          await base44.asServiceRole.entities.EggGenerationJob.update(jobId, {
+            currentStep: `Generating concept ${i + 1} of ${totalCount}...`
+          });
+
+          concept = await base44.asServiceRole.integrations.Core.InvokeLLM({
+            prompt: `You are a creative designer for a school-safe game. Design based on: "${job.idea}"${totalCount > 1 ? `. This is variation ${i + 1} of ${totalCount} — make each one unique with different names, colors, and styles.` : ''}. Generate: name (2-3 words), description (1-2 sentences), emoji, rarity (uncommon/rare/epic), theme {primary,secondary,accent,bg} hex colors.`,
+            response_json_schema: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                description: { type: "string" },
+                emoji: { type: "string" },
+                rarity: { type: "string", enum: ["uncommon", "rare", "epic"] },
+                theme: {
+                  type: "object",
+                  properties: {
+                    primary: { type: "string" },
+                    secondary: { type: "string" },
+                    accent: { type: "string" },
+                    bg: { type: "string" }
+                  }
                 }
               }
             }
-          }
-        });
+          });
+        }
 
-        // Step 2: Generate image
+        // Generate image
         await base44.asServiceRole.entities.EggGenerationJob.update(jobId, {
-          currentStep: `Generating image ${i + 1} of ${job.totalCount} (${concept.name})...`
+          currentStep: `Generating image ${i + 1} of ${totalCount} (${concept.name})...`
         });
 
         let imageUrl = '';
         try {
           const img = await base44.asServiceRole.integrations.Core.GenerateImage({
-            prompt: `School-safe illustration: ${concept.name}. ${concept.description}. Colors: ${concept.theme?.primary}, ${concept.theme?.secondary}. White background, centered.`
+            prompt: `Cute cartoon pet character for a CHILDREN'S educational game: ${concept.name}. ${concept.description}. Style: adorable, friendly, colorful digital art, game mascot style, simple clean design, kid-friendly, Pixar-style cuteness. Color scheme: primary ${concept.theme?.primary}, secondary ${concept.theme?.secondary}, accent ${concept.theme?.accent}. White or transparent background, centered, high quality illustration.`
           });
           imageUrl = img.url;
         } catch (e) {
           console.error('Image gen failed for', concept.name, e);
         }
 
-        // Step 3: Save pet and theme
+        // Save pet and theme
         await base44.asServiceRole.entities.EggGenerationJob.update(jobId, {
-          currentStep: `Saving creature ${i + 1} of ${job.totalCount} (${concept.name})...`
+          currentStep: `Saving creature ${i + 1} of ${totalCount} (${concept.name})...`
         });
 
         const pet = await base44.asServiceRole.entities.CustomPet.create({
@@ -121,7 +137,6 @@ Deno.serve(async (req) => {
 
       } catch (innerErr) {
         console.error(`Error on creature ${i + 1}:`, innerErr);
-        // Continue with next creature
       }
     }
 
@@ -140,9 +155,7 @@ Deno.serve(async (req) => {
 
     // Try to mark job as failed
     try {
-      const base44 = createClientFromRequest(req);
-      const { jobId } = await req.json().catch(() => ({}));
-      if (jobId) {
+      if (base44 && jobId) {
         await base44.asServiceRole.entities.EggGenerationJob.update(jobId, {
           status: 'failed',
           currentStep: 'Failed: ' + error.message,
