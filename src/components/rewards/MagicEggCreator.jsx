@@ -27,102 +27,22 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
 
     setStep('generating');
     setGenerating(true);
+    setGeneratingImage(true);
 
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a magical creature designer for a KIDS school gamification app called Quest Planner.
-
-      A student wants to create their own custom magical companion using a Magic Egg!
-
-      Their idea: "${petIdea}"
-
-      WHAT YOU CAN CREATE (be creative!):
-      - Traditional pets (cats, dogs, dragons, etc.)
-      - Magical creatures (sprites, fairies, elementals)
-      - Living objects (a friendly book, a dancing pencil, a wise calculator)
-      - Food creatures (a happy pizza slice, a brave taco warrior)
-      - Nature spirits (cloud beings, flower sprites, rock guardians)
-      - Abstract concepts (a helpful star, a friendly rainbow, a cozy blanket ghost)
-      - Robots and tech creatures (friendly AI, pixel pets)
-      - Mythical beings (mini phoenix, baby unicorn, tiny kraken)
-
-      CONTENT RULES (VERY IMPORTANT - THIS IS FOR CHILDREN):
-      - The creature MUST be appropriate for elementary/middle school kids
-      - NO violence, weapons, scary monsters, demons, or horror themes
-      - NO inappropriate body parts or suggestive content
-      - NO drugs, alcohol, or adult themes
-      - NO mean, bullying, or negative personalities
-      - If the user's idea is inappropriate, create a SAFE alternative (like a friendly version)
-      - Keep it cute, fun, positive, and school-friendly!
-
-      Generate a fun, school-appropriate magical companion based on their idea. It should:
-      - Have a creative, catchy name (2-3 words max)
-      - Be cute, friendly, and have personality
-      - Have a fun description (1-2 sentences)
-      - Have a single emoji that fits (just ONE emoji character - can be any emoji!)
-      - Have a cohesive color theme with 4 HEX color codes
-
-      IMPORTANT for theme colors:
-      - primary: Main color (vibrant, saturated) - can be a hex like #3b82f6 OR a CSS gradient like "linear-gradient(135deg, #6366f1, #ec4899)"
-      - secondary: Lighter/complementary color - can be a hex like #93c5fd OR a CSS gradient  
-      - accent: Pop color for highlights - can be a hex like #f59e0b OR a CSS gradient
-      - bg: Background color - can be a hex (light like #f0f9ff or dark like #1e1b4b) OR a CSS gradient like "linear-gradient(180deg, #f0f9ff, #e0e7ff)"
-
-      Feel free to use gradients for some or all colors to make the theme more unique and magical! Plain hex colors are also fine.
-      Make sure all colors work well together and match the creature's personality!`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            name: { type: "string", description: "Pet name, 2-3 words" },
-            description: { type: "string", description: "Fun 1-2 sentence description" },
-            emoji: { type: "string", description: "Single emoji character" },
-            rarity: { type: "string", enum: ["uncommon", "rare", "epic"] },
-            theme: {
-              type: "object",
-              properties: {
-                primary: { type: "string", description: "Hex color like #3b82f6 or CSS gradient like linear-gradient(135deg, #6366f1, #ec4899)" },
-                secondary: { type: "string", description: "Hex color like #93c5fd or CSS gradient" },
-                accent: { type: "string", description: "Hex color like #f59e0b or CSS gradient" },
-                bg: { type: "string", description: "Hex color like #f0f9ff or CSS gradient" }
-              },
-              required: ["primary", "secondary", "accent", "bg"]
-            }
-          },
-          required: ["name", "description", "emoji", "rarity", "theme"]
-        }
+      const { data } = await base44.functions.invoke('generateEggPet', {
+        action: 'generate',
+        petIdea: petIdea.trim()
       });
 
-      setGeneratedPet(result);
+      setGeneratedPet(data.concept);
+      setGeneratedImageUrl(data.imageUrl || null);
       setStep('preview');
-      
-      // Auto-generate image
-      generatePetImage(result);
     } catch (e) {
       toast.error('Magic failed! Try again.');
       setStep('idea');
     }
     setGenerating(false);
-  };
-
-  const generatePetImage = async (pet) => {
-    if (!pet) return;
-    setGeneratingImage(true);
-    try {
-      const imagePrompt = `Cute cartoon pet character for a CHILDREN'S educational game: ${pet.name}. ${pet.description}. 
-Style: adorable, friendly, colorful digital art, game mascot style, simple clean design, kid-friendly, Pixar-style cuteness.
-MUST BE: Safe for children, no scary elements, bright and cheerful.
-Color scheme: primary ${pet.theme?.primary}, secondary ${pet.theme?.secondary}, accent ${pet.theme?.accent}.
-White or transparent background, centered, high quality illustration.`;
-      
-      const result = await base44.integrations.Core.GenerateImage({
-        prompt: imagePrompt
-      });
-      
-      setGeneratedImageUrl(result.url);
-    } catch (e) {
-      console.error('Image generation failed:', e);
-      // Continue without image - emoji fallback
-    }
     setGeneratingImage(false);
   };
 
@@ -132,51 +52,18 @@ White or transparent background, centered, high quality illustration.`;
     setStep('hatching');
 
     try {
-      // Create the custom pet with image if available
-      const newPet = await base44.entities.CustomPet.create({
-        name: generatedPet.name,
-        description: generatedPet.description,
-        emoji: generatedPet.emoji,
-        imageUrl: generatedImageUrl || '',
-        rarity: generatedPet.rarity,
-        xpRequired: 999999,
-        isGiftOnly: true,
-        theme: generatedPet.theme,
-        createdBy: profile.userId,
-        createdByProfileId: profile.id,
-        createdSourceTab: 'pet_creator',
-        imageSource: generatedImageUrl ? 'ai_generated' : 'emoji_only'
-      });
-
-      // Mark egg as used and log who hatched it
-      await base44.entities.MagicEgg.update(egg.id, {
-        isUsed: true,
-        createdPetId: newPet.id,
-        hatchedByProfileId: profile.id,
-        hatchedByUsername: profile.username
-      });
-
-      // Create a matching CustomTheme for the pet
-      const newTheme = await base44.entities.CustomTheme.create({
-        name: generatedPet.name,
-        rarity: generatedPet.rarity,
-        xpRequired: 0,
-        description: `Theme from ${generatedPet.name}`,
-        primaryColor: generatedPet.theme?.primary || '#6366f1',
-        secondaryColor: generatedPet.theme?.secondary || '#a5b4fc',
-        accentColor: generatedPet.theme?.accent || '#f59e0b',
-        bgColor: generatedPet.theme?.bg || '#f0f9ff',
-      });
-
-      // Add pet and theme to user's collection
-      const newPetId = `custom_${newPet.id}`;
-      const newThemeId = `custom_${newTheme.id}`;
-      const unlockedPets = [...(profile.unlockedPets || []), newPetId];
-      const unlockedThemes = [...(profile.unlockedThemes || []), newThemeId];
-      await base44.entities.UserProfile.update(profile.id, {
-        unlockedPets,
-        unlockedThemes,
-        equippedPetId: newPetId
+      const { data } = await base44.functions.invoke('generateEggPet', {
+        action: 'hatch',
+        eggId: egg.id,
+        profileId: profile.id,
+        petData: {
+          name: generatedPet.name,
+          description: generatedPet.description,
+          emoji: generatedPet.emoji,
+          imageUrl: generatedImageUrl || '',
+          rarity: generatedPet.rarity,
+          theme: generatedPet.theme
+        }
       });
 
       toast.success(`🎉 ${generatedPet.name} hatched!`, {
@@ -184,7 +71,7 @@ White or transparent background, centered, high quality illustration.`;
       });
 
       window.dispatchEvent(new Event('themeUpdated'));
-      onPetCreated(newPet, newPetId, newTheme, newThemeId);
+      onPetCreated(data.pet, data.petId, data.theme, data.themeId);
       setShowDialog(false);
       setStep('idea');
       setPetIdea('');
