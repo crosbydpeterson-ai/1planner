@@ -6,10 +6,6 @@ Deno.serve(async (req) => {
 
   try {
     base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const body = await req.json();
     jobId = body.jobId;
@@ -17,7 +13,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing jobId' }, { status: 400 });
     }
 
-    // Fetch the job using service role
+    // Fetch the job using service role (auth may have expired for fire-and-forget calls)
     const jobs = await base44.asServiceRole.entities.EggGenerationJob.filter({ id: jobId });
     if (jobs.length === 0) {
       return Response.json({ error: 'Job not found' }, { status: 404 });
