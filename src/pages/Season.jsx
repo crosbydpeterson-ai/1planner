@@ -121,17 +121,15 @@ export default function Season() {
       };
       
       if (reward.type === 'pet') {
-        // Check if it's a built-in pet ID or a custom pet DB ID
-        const isBuiltIn = PETS.some(p => p.id === reward.value);
-        const petId = isBuiltIn ? reward.value : `custom_${reward.value}`;
+        // Use the value as-is — it already has the correct format (built-in ID or custom_<id>)
+        const petId = reward.value;
         const currentPets = profile.unlockedPets || [];
         if (!currentPets.includes(petId)) {
           updateData.unlockedPets = [...currentPets, petId];
         }
       } else if (reward.type === 'theme') {
-        // Check if it's a built-in theme ID or a custom theme DB ID
-        const isBuiltIn = THEMES.some(t => t.id === reward.value);
-        const themeId = isBuiltIn ? reward.value : `custom_${reward.value}`;
+        // Use the value as-is — it already has the correct format (built-in ID or custom_<id>)
+        const themeId = reward.value;
         const currentThemes = profile.unlockedThemes || [];
         if (!currentThemes.includes(themeId)) {
           updateData.unlockedThemes = [...currentThemes, themeId];
