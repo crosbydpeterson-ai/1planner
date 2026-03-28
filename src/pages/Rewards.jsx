@@ -399,7 +399,11 @@ export default function Rewards() {
 
             {/* Pet Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {allPets.map((pet, index) => {
+              {[...allPets].sort((a, b) => {
+                const aUnlocked = unlockedPetIds.includes(a.id) ? 0 : 1;
+                const bUnlocked = unlockedPetIds.includes(b.id) ? 0 : 1;
+                return aUnlocked - bUnlocked;
+              }).map((pet, index) => {
                 const isUnlocked = unlockedPetIds.includes(pet.id);
                 const isEquipped = profile.equippedPetId === pet.id;
                 const rarityStyle = RARITY_COLORS[pet.rarity] || RARITY_COLORS.common;
@@ -487,7 +491,11 @@ export default function Rewards() {
             </motion.div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {allThemes.map((theme, index) => {
+              {[...allThemes].sort((a, b) => {
+                const aUnlocked = unlockedThemeIds.includes(a.id) ? 0 : 1;
+                const bUnlocked = unlockedThemeIds.includes(b.id) ? 0 : 1;
+                return aUnlocked - bUnlocked;
+              }).map((theme, index) => {
                 const isUnlocked = unlockedThemeIds.includes(theme.id);
                 const isEquipped = profile.equippedThemeId === theme.id && !profile.equippedPetId;
                 const rarityStyle = RARITY_COLORS[theme.rarity] || RARITY_COLORS.common;
