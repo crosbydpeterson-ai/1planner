@@ -43,6 +43,7 @@ import EditBundleDialog from '@/components/admin/EditBundleDialog';
 import EditShopItemDialog from '@/components/admin/EditShopItemDialog';
 import AdminSettingsPanel from '@/components/admin/AdminSettingsPanel';
 import ActiveEggJobs from '@/components/admin/ActiveEggJobs';
+import SeasonPassGeneratorPanel from '@/components/admin/SeasonPassGeneratorPanel';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -270,7 +271,8 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="seasons">
-            <div className="flex justify-end mb-4"><Button onClick={() => setShowSeasonForm(true)} className="bg-gradient-to-r from-amber-500 to-orange-600"><Plus className="w-4 h-4 mr-2" />New Season</Button></div>
+            <SeasonPassGeneratorPanel adminProfile={adminProfile} customPets={customPets} customThemes={customThemes} onSeasonCreated={(s) => setSeasons([s, ...seasons])} />
+            <div className="flex justify-end mb-4"><Button onClick={() => setShowSeasonForm(true)} className="bg-gradient-to-r from-amber-500 to-orange-600"><Plus className="w-4 h-4 mr-2" />Manual Season</Button></div>
             <div className="space-y-4">{seasons.map((season) => (<div key={season.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700"><div className="flex items-center justify-between mb-2"><div><h3 className="font-semibold text-white flex items-center gap-2">{season.name}{season.isActive && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Active</span>}</h3><p className="text-xs text-slate-400">{season.startDate} to {season.endDate}</p></div>{isSuperAdmin && <Button size="sm" variant="ghost" onClick={() => handleDeleteSeason(season)} className="text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></Button>}</div>{season.rewards?.length > 0 && <div className="text-sm text-slate-400">{season.rewards.length} rewards configured</div>}</div>))}{seasons.length === 0 && <div className="text-center py-8 text-slate-400">No seasons yet</div>}</div>
           </TabsContent>
 
