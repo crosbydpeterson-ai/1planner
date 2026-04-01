@@ -1,12 +1,16 @@
 import React from 'react';
-import { Heart, MessageCircle, Pin, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { MessageCircle, Pin, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import moment from 'moment';
+import ReactionBar from './ReactionBar';
 
-export default function PostCard({ post, isAdmin, currentProfileId, onLike, onDelete, onApprove, onReject, onToggleComments, commentCount, isExpanded }) {
-  const isLiked = (post.likedBy || []).includes(currentProfileId);
+export default function PostCard({ post, isAdmin, currentProfileId, onReact, onDelete, onApprove, onReject, onToggleComments, commentCount, isExpanded, userPets, authorTags, authorTheme }) {
   const isPending = post.status === 'pending';
+
+  // Theme-based avatar color
+  const avatarBg = authorTheme?.primary || '#5865f2';
+  const nameColor = authorTheme?.primary || '#ffffff';
 
   return (
     <div className={cn(
@@ -14,14 +18,28 @@ export default function PostCard({ post, isAdmin, currentProfileId, onLike, onDe
       isPending && "bg-[#3d3520]/30"
     )}>
       <div className="flex gap-3">
-        {/* Avatar */}
-        <div className="w-10 h-10 rounded-full bg-[#5865f2] flex items-center justify-center text-white text-sm font-bold shrink-0 mt-0.5">
+        {/* Avatar with theme color */}
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 mt-0.5"
+          style={{ background: avatarBg }}
+        >
           {post.authorUsername?.[0]?.toUpperCase() || '?'}
         </div>
         <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-white">{post.authorUsername}</span>
+          {/* Header with tags */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-sm font-semibold" style={{ color: nameColor }}>
+              {post.authorUsername}
+            </span>
+            {(authorTags || []).map((tag) => (
+              <span
+                key={tag.id}
+                className="text-[9px] font-bold px-1.5 py-0 rounded"
+                style={{ backgroundColor: tag.color + '30', color: tag.color }}
+              >
+                {tag.name}
+              </span>
+            ))}
             <span className="text-[11px] text-[#949ba4]">{moment(post.created_date).format('MM/DD/YYYY h:mm A')}</span>
             {post.isPinned && (
               <span className="text-[10px] text-[#fee75c] flex items-center gap-0.5"><Pin className="w-3 h-3" />Pinned</span>
@@ -34,20 +52,18 @@ export default function PostCard({ post, isAdmin, currentProfileId, onLike, onDe
           {/* Content */}
           <p className="text-[#dbdee1] text-sm whitespace-pre-wrap mt-0.5 leading-relaxed">{post.content}</p>
 
-          {/* Actions bar */}
-          <div className="flex items-center gap-3 mt-1.5">
-            <button
-              onClick={() => onLike(post)}
-              className={cn(
-                "flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-all",
-                isLiked
-                  ? "bg-[#da373c]/20 text-[#da373c]"
-                  : "text-[#949ba4] hover:bg-[#35373c] hover:text-[#dbdee1]"
-              )}
-            >
-              <Heart className={cn("w-3.5 h-3.5", isLiked && "fill-[#da373c]")} />
-              <span>{post.likeCount || 0}</span>
-            </button>
+          {/* Reactions */}
+          <div className="mt-1.5">
+            <ReactionBar
+              reactions={post.reactions}
+              currentProfileId={currentProfileId}
+              onReact={(emoji) => onReact(post, emoji)}
+              userPets={userPets}
+            />
+          </div>
+
+          {/* Comments toggle + admin actions */}
+          <div className="flex items-center gap-3 mt-1">
             <button
               onClick={() => onToggleComments(post.id)}
               className={cn(
@@ -61,7 +77,6 @@ export default function PostCard({ post, isAdmin, currentProfileId, onLike, onDe
               <span>{commentCount || 0}</span>
             </button>
 
-            {/* Admin actions */}
             {isAdmin && (
               <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
                 {isPending && (

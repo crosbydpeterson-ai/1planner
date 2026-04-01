@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Hash, Menu, Lock } from 'lucide-react';
+import { Loader2, Hash, Menu, Lock, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ChannelList from '@/components/community/ChannelList';
 import PostCard from '@/components/community/PostCard';
 import CommentSection from '@/components/community/CommentSection';
 import NewPostForm from '@/components/community/NewPostForm';
 import ChannelManagerDialog from '@/components/community/ChannelManagerDialog';
+import TagManagerDialog from '@/components/community/TagManagerDialog';
 import { hasPermission } from '@/components/community/permissionUtils';
+import { PETS } from '@/components/quest/PetCatalog';
+import { THEMES } from '@/components/quest/ThemeCatalog';
 
 export default function CommunityWall() {
   const [profile, setProfile] = useState(null);
@@ -21,6 +24,16 @@ export default function CommunityWall() {
   const [comments, setComments] = useState({});
   const [expandedComments, setExpandedComments] = useState({});
   const [showManager, setShowManager] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
+
+  // Tags & themes
+  const [tags, setTags] = useState([]);
+  const [profilesCache, setProfilesCache] = useState({});
+  const [customPetsCache, setCustomPetsCache] = useState([]);
+  const [customThemesCache, setCustomThemesCache] = useState([]);
+
+  // User's owned pets for reactions
+  const [userPets, setUserPets] = useState([]);
 
   const feedRef = useRef(null);
 
@@ -29,16 +42,23 @@ export default function CommunityWall() {
 
   const init = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
+    let prof = null;
     if (profileId) {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length > 0) {
-        setProfile(profiles[0]);
-        const p = profiles[0];
+        prof = profiles[0];
+        setProfile(prof);
+        const p = prof;
         const admin = p.rank === 'admin' || p.rank === 'super_admin' || (typeof p.username === 'string' && p.username.toLowerCase() === 'crosby');
         setIsAdmin(admin);
+
+        // Build user's pet list for reaction picker
+        const ownedPetIds = p.unlockedPets || [];
+        const builtInPets = PETS.filter(pet => ownedPetIds.includes(pet.id));
+        setUserPets(builtInPets);
       }
     }
-    await loadChannels();
+    await Promise.all([loadChannels(), loadTags(), loadProfilesCache()]);
     setLoading(false);
   };
 
@@ -50,6 +70,24 @@ export default function CommunityWall() {
       if (firstVisible) setActiveChannelId(firstVisible.id);
       else setActiveChannelId(all[0].id);
     }
+  };
+
+  const loadTags = async () => {
+    const all = await base44.entities.CommunityTag.list();
+    setTags(all);
+  };
+
+  const loadProfilesCache = async () => {
+    const [profiles, customPets, customThemes] = await Promise.all([
+      base44.entities.UserProfile.list(),
+      base44.entities.CustomPet.list(),
+      base44.entities.CustomTheme.list(),
+    ]);
+    const map = {};
+    profiles.forEach(p => { map[p.id] = p; });
+    setProfilesCache(map);
+    setCustomPetsCache(customPets);
+    setCustomThemesCache(customThemes);
   };
 
   const loadPosts = async () => {
@@ -72,6 +110,41 @@ export default function CommunityWall() {
 
   const visiblePosts = isAdmin ? posts : posts.filter(p => p.status === 'approved');
 
+  // Get tags for a profile
+  const getTagsForProfile = (profileId) => {
+    return tags.filter(t => (t.assignedProfileIds || []).includes(profileId));
+  };
+
+  // Get theme colors for a profile
+  const getThemeForProfile = (profileId) => {
+    const p = profilesCache[profileId];
+    if (!p) return null;
+
+    // Check equipped theme
+    if (p.equippedThemeId) {
+      if (String(p.equippedThemeId).startsWith('custom_')) {
+        const tid = String(p.equippedThemeId).replace('custom_', '');
+        const ct = customThemesCache.find(t => t.id === tid);
+        if (ct) return { primary: ct.primaryColor, secondary: ct.secondaryColor, accent: ct.accentColor, bg: ct.bgColor };
+      } else {
+        const t = THEMES.find(t => t.id === p.equippedThemeId);
+        if (t?.colors) return t.colors;
+      }
+    }
+
+    // Check equipped pet
+    if (p.equippedPetId) {
+      if (String(p.equippedPetId).startsWith('custom_')) {
+        const cpId = String(p.equippedPetId).replace('custom_', '');
+        const cp = customPetsCache.find(pet => pet.id === cpId);
+        if (cp?.theme) return cp.theme;
+      }
+      const builtIn = PETS.find(pet => pet.id === p.equippedPetId);
+      if (builtIn?.theme) return builtIn.theme;
+    }
+    return null;
+  };
+
   const handleCreatePost = async (content) => {
     if (!profile || !activeChannelId) return;
     await base44.entities.CommunityPost.create({
@@ -80,23 +153,23 @@ export default function CommunityWall() {
       authorUsername: profile.username,
       content,
       status: isAdmin ? 'approved' : 'pending',
-      likeCount: 0,
-      likedBy: [],
+      reactions: {},
     });
     await loadPosts();
     if (feedRef.current) feedRef.current.scrollTop = 0;
   };
 
-  const handleLike = async (post) => {
+  const handleReact = async (post, emoji) => {
     if (!profile) return;
-    const liked = (post.likedBy || []).includes(profile.id);
-    const newLikedBy = liked
-      ? (post.likedBy || []).filter(id => id !== profile.id)
-      : [...(post.likedBy || []), profile.id];
-    await base44.entities.CommunityPost.update(post.id, {
-      likedBy: newLikedBy,
-      likeCount: newLikedBy.length,
-    });
+    const reactions = { ...(post.reactions || {}) };
+    const users = reactions[emoji] || [];
+    if (users.includes(profile.id)) {
+      reactions[emoji] = users.filter(id => id !== profile.id);
+      if (reactions[emoji].length === 0) delete reactions[emoji];
+    } else {
+      reactions[emoji] = [...users, profile.id];
+    }
+    await base44.entities.CommunityPost.update(post.id, { reactions });
     await loadPosts();
   };
 
@@ -155,7 +228,7 @@ export default function CommunityWall() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#313338] z-50">
+      <div className="flex items-center justify-center h-[calc(100vh-80px)] bg-[#313338]">
         <Loader2 className="w-6 h-6 animate-spin text-[#5865f2]" />
       </div>
     );
@@ -163,14 +236,14 @@ export default function CommunityWall() {
 
   if (!profile) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#313338] z-50">
+      <div className="flex items-center justify-center h-[calc(100vh-80px)] bg-[#313338]">
         <p className="text-[#949ba4] text-sm">Log in to access the Community Wall.</p>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 flex bg-[#313338] z-50">
+    <div className="flex bg-[#313338] -mx-4 -mt-4" style={{ height: 'calc(100vh - 60px)' }}>
       {/* Sidebar */}
       <ChannelList
         channels={visibleChannels}
@@ -200,6 +273,11 @@ export default function CommunityWall() {
               )}
             </>
           )}
+          {isAdmin && (
+            <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto text-[#b5bac1] hover:text-white hover:bg-[#35373c]" onClick={() => setShowTagManager(true)}>
+              <Tag className="w-3.5 h-3.5" />
+            </Button>
+          )}
         </div>
 
         {/* Feed */}
@@ -220,13 +298,16 @@ export default function CommunityWall() {
                         post={post}
                         isAdmin={isAdmin}
                         currentProfileId={profile.id}
-                        onLike={handleLike}
+                        onReact={handleReact}
                         onDelete={handleDeletePost}
                         onApprove={handleApprovePost}
                         onReject={handleRejectPost}
                         onToggleComments={toggleComments}
                         commentCount={(comments[post.id] || []).filter(c => isAdmin || c.status === 'approved').length}
                         isExpanded={!!expandedComments[post.id]}
+                        userPets={userPets}
+                        authorTags={getTagsForProfile(post.authorProfileId)}
+                        authorTheme={getThemeForProfile(post.authorProfileId)}
                       />
                       {expandedComments[post.id] && (
                         <CommentSection
@@ -263,12 +344,19 @@ export default function CommunityWall() {
       </div>
 
       {isAdmin && (
-        <ChannelManagerDialog
-          open={showManager}
-          onClose={() => setShowManager(false)}
-          channels={channels}
-          onRefresh={loadChannels}
-        />
+        <>
+          <ChannelManagerDialog
+            open={showManager}
+            onClose={() => setShowManager(false)}
+            channels={channels}
+            onRefresh={loadChannels}
+          />
+          <TagManagerDialog
+            open={showTagManager}
+            onClose={() => setShowTagManager(false)}
+            onRefresh={loadTags}
+          />
+        </>
       )}
     </div>
   );

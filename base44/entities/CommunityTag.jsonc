@@ -1,0 +1,25 @@
+{
+  "name": "CommunityTag",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Tag display name (e.g. Admin, Mod, VIP)"
+    },
+    "color": {
+      "type": "string",
+      "description": "Hex color for the tag"
+    },
+    "assignedProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "UserProfile IDs who have this tag"
+    }
+  },
+  "required": [
+    "name",
+    "color"
+  ]
+}

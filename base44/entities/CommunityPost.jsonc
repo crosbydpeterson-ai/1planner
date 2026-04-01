@@ -28,17 +28,9 @@
       "default": "pending",
       "description": "Moderation status"
     },
-    "likeCount": {
-      "type": "number",
-      "default": 0,
-      "description": "Number of likes"
-    },
-    "likedBy": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Profile IDs who liked"
+    "reactions": {
+      "type": "object",
+      "description": "Reactions map: { emoji: [profileId1, profileId2, ...] }"
     },
     "isPinned": {
       "type": "boolean",
