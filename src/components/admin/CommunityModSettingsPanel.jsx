@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { Plus, X, Save, Shield, Bot, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -18,6 +19,7 @@ const DEFAULT_KEYWORDS = [
 export default function CommunityModSettingsPanel() {
   const [keywords, setKeywords] = useState([]);
   const [aiModEnabled, setAiModEnabled] = useState(false);
+  const [aiCustomInstructions, setAiCustomInstructions] = useState('');
   const [newKeyword, setNewKeyword] = useState('');
   const [loading, setLoading] = useState(true);
   const [settingId, setSettingId] = useState(null);
@@ -31,6 +33,7 @@ export default function CommunityModSettingsPanel() {
       if (mod) {
         setKeywords(mod.value.keywords || DEFAULT_KEYWORDS);
         setAiModEnabled(!!mod.value.aiModEnabled);
+        setAiCustomInstructions(mod.value.aiCustomInstructions || '');
         setSettingId(mod.id);
       } else {
         setKeywords([...DEFAULT_KEYWORDS]);
@@ -54,7 +57,7 @@ export default function CommunityModSettingsPanel() {
   };
 
   const saveSettings = async () => {
-    const value = { keywords, aiModEnabled };
+    const value = { keywords, aiModEnabled, aiCustomInstructions };
     try {
       if (settingId) {
         await base44.entities.AppSetting.update(settingId, { value });
@@ -85,9 +88,21 @@ export default function CommunityModSettingsPanel() {
           <Switch checked={aiModEnabled} onCheckedChange={setAiModEnabled} />
         </div>
         {aiModEnabled && (
-          <div className="mt-3 flex items-center gap-2 bg-blue-500/10 rounded-lg px-3 py-2">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <p className="text-[10px] text-slate-300">AI mod uses integration credits per message. Posts may take a moment to process.</p>
+          <div className="mt-3 space-y-3">
+            <div className="flex items-center gap-2 bg-blue-500/10 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <p className="text-[10px] text-slate-300">AI mod uses integration credits per message. Posts may take a moment to process.</p>
+            </div>
+            <div>
+              <Label className="text-slate-300 text-xs mb-1 block">Custom AI Instructions (optional)</Label>
+              <Textarea
+                value={aiCustomInstructions}
+                onChange={(e) => setAiCustomInstructions(e.target.value)}
+                placeholder="e.g. Be extra strict about name-calling. Allow pet-related discussions. Block anything about trading personal info..."
+                className="bg-slate-700 border-slate-600 text-white text-sm min-h-[80px]"
+              />
+              <p className="text-[10px] text-slate-500 mt-1">These instructions are appended to the AI moderator's prompt to customize its behavior.</p>
+            </div>
           </div>
         )}
       </div>

@@ -54,11 +54,13 @@ export async function checkAIMod(text) {
   const settings = getModSettings();
   if (!settings.aiModEnabled) return { safe: true };
   
+  const customInstructions = settings.aiCustomInstructions ? `\n\nAdditional admin instructions: ${settings.aiCustomInstructions}` : '';
+  
   try {
     const result = await base44.integrations.Core.InvokeLLM({
       prompt: `You are a kid-friendly content moderator for a school classroom app. Check if this message is appropriate for children ages 10-14. The message is: "${text}"
       
-Rules: No profanity, bullying, violence, inappropriate content, personal info sharing, or mean-spirited content. Be strict but fair - normal kid conversation is fine.
+Rules: No profanity, bullying, violence, inappropriate content, personal info sharing, or mean-spirited content. Be strict but fair - normal kid conversation is fine.${customInstructions}
 
 Respond with JSON only.`,
       response_json_schema: {

@@ -194,7 +194,13 @@ export default function CommunityWall() {
       authorUsername: profile.username,
       content: `💡 Pet Idea: ${data.name} — ${data.description}`,
       postType: 'pet_concept',
-      petConceptData: data,
+      petConceptData: {
+        name: data.name,
+        description: data.description,
+        imageUrl: data.imageUrl || '',
+        rarity: data.rarity,
+        theme: data.theme || {},
+      },
       status: isAdmin ? 'approved' : 'pending',
       reactions: {},
     });
@@ -202,12 +208,16 @@ export default function CommunityWall() {
     await base44.entities.PetConcept.create({
       name: data.name,
       description: data.description,
+      imageUrl: data.imageUrl || '',
+      imageSource: data.imageSource || '',
+      emoji: data.emoji || '',
       rarity: data.rarity,
+      theme: data.theme || {},
       submittedByProfileId: profile.id,
       submittedByUsername: profile.username,
       status: 'pending',
     });
-    toast.success('Pet idea submitted!');
+    toast.success('Pet concept submitted for review!');
     await loadPosts();
     if (feedRef.current) feedRef.current.scrollTop = 0;
   };
