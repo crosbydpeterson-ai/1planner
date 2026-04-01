@@ -1,0 +1,55 @@
+{
+  "name": "CommunityPost",
+  "type": "object",
+  "properties": {
+    "channelId": {
+      "type": "string",
+      "description": "CommunityChannel ID"
+    },
+    "authorProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the author"
+    },
+    "authorUsername": {
+      "type": "string",
+      "description": "Username at time of posting"
+    },
+    "content": {
+      "type": "string",
+      "description": "Post text content"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Moderation status"
+    },
+    "likeCount": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of likes"
+    },
+    "likedBy": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Profile IDs who liked"
+    },
+    "isPinned": {
+      "type": "boolean",
+      "default": false,
+      "description": "Admin pinned post"
+    }
+  },
+  "required": [
+    "channelId",
+    "authorProfileId",
+    "authorUsername",
+    "content"
+  ]
+}

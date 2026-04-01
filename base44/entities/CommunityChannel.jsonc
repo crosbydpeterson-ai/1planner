@@ -1,0 +1,59 @@
+{
+  "name": "CommunityChannel",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Channel name (e.g. Pet Ideas, Help)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short channel description"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji icon for the channel"
+    },
+    "sortOrder": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether channel is visible"
+    },
+    "viewPermission": {
+      "type": "string",
+      "enum": [
+        "everyone",
+        "admin_only"
+      ],
+      "default": "everyone",
+      "description": "Who can view this channel"
+    },
+    "postPermission": {
+      "type": "string",
+      "enum": [
+        "everyone",
+        "admin_only"
+      ],
+      "default": "everyone",
+      "description": "Who can create posts in this channel"
+    },
+    "commentPermission": {
+      "type": "string",
+      "enum": [
+        "everyone",
+        "admin_only",
+        "nobody"
+      ],
+      "default": "everyone",
+      "description": "Who can comment on posts"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

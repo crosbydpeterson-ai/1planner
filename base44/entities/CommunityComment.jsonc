@@ -1,0 +1,38 @@
+{
+  "name": "CommunityComment",
+  "type": "object",
+  "properties": {
+    "postId": {
+      "type": "string",
+      "description": "CommunityPost ID"
+    },
+    "authorProfileId": {
+      "type": "string",
+      "description": "UserProfile ID"
+    },
+    "authorUsername": {
+      "type": "string",
+      "description": "Username at time of commenting"
+    },
+    "content": {
+      "type": "string",
+      "description": "Comment text"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Moderation status"
+    }
+  },
+  "required": [
+    "postId",
+    "authorProfileId",
+    "authorUsername",
+    "content"
+  ]
+}
