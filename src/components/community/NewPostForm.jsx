@@ -1,14 +1,29 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Plus } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
+import PostAttachmentMenu from './PostAttachmentMenu';
+import { moderateContent, loadModSettings } from './ContentModeration';
+import { toast } from 'sonner';
 
-export default function NewPostForm({ onSubmit, isAdmin, channelName }) {
+export default function NewPostForm({ onSubmit, isAdmin, channelName, onPetConcept, onPoll }) {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
     setSubmitting(true);
+    
+    // Run moderation (admins skip)
+    if (!isAdmin) {
+      await loadModSettings();
+      const result = await moderateContent(content.trim());
+      if (!result.safe) {
+        toast.error(result.reason || 'Your message was blocked by moderation.');
+        setSubmitting(false);
+        return;
+      }
+    }
+    
     await onSubmit(content.trim());
     setContent('');
     setSubmitting(false);
@@ -24,6 +39,11 @@ export default function NewPostForm({ onSubmit, isAdmin, channelName }) {
   return (
     <div className="px-4 pb-4 pt-2 shrink-0">
       <div className="bg-[#383a40] rounded-lg flex items-end gap-2 px-3 py-2">
+        <PostAttachmentMenu
+          isAdmin={isAdmin}
+          onPetConcept={onPetConcept}
+          onPoll={onPoll}
+        />
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -40,7 +60,7 @@ export default function NewPostForm({ onSubmit, isAdmin, channelName }) {
           onClick={handleSubmit}
           disabled={submitting || !content.trim()}
         >
-          <Send className="w-3.5 h-3.5" />
+          {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
         </Button>
       </div>
     </div>

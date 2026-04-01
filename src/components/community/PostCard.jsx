@@ -4,8 +4,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import moment from 'moment';
 import ReactionBar from './ReactionBar';
+import PollDisplay from './PollDisplay';
+import PetConceptPostDisplay from './PetConceptPostDisplay';
 
-export default function PostCard({ post, isAdmin, currentProfileId, onReact, onDelete, onApprove, onReject, onToggleComments, commentCount, isExpanded, userPets, authorTags, authorTheme }) {
+export default function PostCard({ post, isAdmin, currentProfileId, onReact, onDelete, onApprove, onReject, onToggleComments, commentCount, isExpanded, userPets, authorTags, authorTheme, onVotePoll }) {
   const isPending = post.status === 'pending';
 
   // Theme-based avatar color
@@ -51,6 +53,16 @@ export default function PostCard({ post, isAdmin, currentProfileId, onReact, onD
 
           {/* Content */}
           <p className="text-[#dbdee1] text-sm whitespace-pre-wrap mt-0.5 leading-relaxed">{post.content}</p>
+
+          {/* Poll */}
+          {post.postType === 'poll' && post.pollOptions && (
+            <PollDisplay post={post} currentProfileId={currentProfileId} onVote={onVotePoll} />
+          )}
+
+          {/* Pet Concept */}
+          {post.postType === 'pet_concept' && post.petConceptData && (
+            <PetConceptPostDisplay data={post.petConceptData} />
+          )}
 
           {/* Reactions */}
           <div className="mt-1.5">

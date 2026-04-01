@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, CheckCircle, XCircle, Trash2, MessageCircle, Search } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Trash2, MessageCircle, Search, Shield, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import moment from 'moment';
+import CommunityModSettingsPanel from './CommunityModSettingsPanel';
 
 export default function CommunityModerationPanel() {
   const [loading, setLoading] = useState(true);
@@ -12,6 +13,7 @@ export default function CommunityModerationPanel() {
   const [pendingComments, setPendingComments] = useState([]);
   const [filter, setFilter] = useState('pending');
   const [search, setSearch] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => { loadContent(); }, [filter]);
 
@@ -61,6 +63,22 @@ export default function CommunityModerationPanel() {
 
   return (
     <div className="space-y-6">
+      {/* Mod Settings Toggle */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-white font-semibold flex items-center gap-2">
+          <Shield className="w-4 h-4 text-red-400" /> Community Moderation
+        </h3>
+        <Button size="sm" variant={showSettings ? 'default' : 'outline'} onClick={() => setShowSettings(!showSettings)} className={showSettings ? 'bg-indigo-600' : 'border-slate-600 text-slate-300'}>
+          <Settings className="w-3.5 h-3.5 mr-1" /> {showSettings ? 'Hide' : 'Keywords & AI'}
+        </Button>
+      </div>
+
+      {showSettings && (
+        <div className="bg-slate-700/40 rounded-xl p-4 border border-slate-600">
+          <CommunityModSettingsPanel />
+        </div>
+      )}
+
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex gap-1">
           {['pending', 'approved', 'rejected', 'all'].map(f => (

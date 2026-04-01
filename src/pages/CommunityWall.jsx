@@ -2,13 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Hash, Menu, Lock, Tag, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import ChannelList from '@/components/community/ChannelList';
 import PostCard from '@/components/community/PostCard';
 import CommentSection from '@/components/community/CommentSection';
 import NewPostForm from '@/components/community/NewPostForm';
 import ChannelManagerDialog from '@/components/community/ChannelManagerDialog';
 import TagManagerDialog from '@/components/community/TagManagerDialog';
+import PetConceptDialog from '@/components/community/PetConceptDialog';
+import PollCreatorDialog from '@/components/community/PollCreatorDialog';
 import { hasPermission } from '@/components/community/permissionUtils';
+import { loadModSettings } from '@/components/community/ContentModeration';
 import UserPetMojiCreator from '@/components/community/UserPetMojiCreator';
 import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
@@ -27,6 +31,8 @@ export default function CommunityWall() {
   const [showManager, setShowManager] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
   const [showPetMojiCreator, setShowPetMojiCreator] = useState(false);
+  const [showPetConcept, setShowPetConcept] = useState(false);
+  const [showPollCreator, setShowPollCreator] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   // Tags & themes
@@ -61,7 +67,7 @@ export default function CommunityWall() {
         setUserPets(builtInPets);
       }
     }
-    await Promise.all([loadChannels(), loadTags(), loadProfilesCache()]);
+    await Promise.all([loadChannels(), loadTags(), loadProfilesCache(), loadModSettings()]);
     setLoading(false);
   };
 
@@ -155,11 +161,67 @@ export default function CommunityWall() {
       authorProfileId: profile.id,
       authorUsername: profile.username,
       content,
+      postType: 'text',
       status: isAdmin ? 'approved' : 'pending',
       reactions: {},
     });
     await loadPosts();
     if (feedRef.current) feedRef.current.scrollTop = 0;
+  };
+
+  const handleCreatePoll = async (question, options) => {
+    if (!profile || !activeChannelId) return;
+    await base44.entities.CommunityPost.create({
+      channelId: activeChannelId,
+      authorProfileId: profile.id,
+      authorUsername: profile.username,
+      content: `📊 ${question}`,
+      postType: 'poll',
+      pollOptions: options,
+      pollVotes: {},
+      status: 'approved',
+      reactions: {},
+    });
+    await loadPosts();
+    if (feedRef.current) feedRef.current.scrollTop = 0;
+  };
+
+  const handleSubmitPetConcept = async (data) => {
+    if (!profile || !activeChannelId) return;
+    await base44.entities.CommunityPost.create({
+      channelId: activeChannelId,
+      authorProfileId: profile.id,
+      authorUsername: profile.username,
+      content: `💡 Pet Idea: ${data.name} — ${data.description}`,
+      postType: 'pet_concept',
+      petConceptData: data,
+      status: isAdmin ? 'approved' : 'pending',
+      reactions: {},
+    });
+    // Also create in PetConcept entity for admin review
+    await base44.entities.PetConcept.create({
+      name: data.name,
+      description: data.description,
+      rarity: data.rarity,
+      submittedByProfileId: profile.id,
+      submittedByUsername: profile.username,
+      status: 'pending',
+    });
+    toast.success('Pet idea submitted!');
+    await loadPosts();
+    if (feedRef.current) feedRef.current.scrollTop = 0;
+  };
+
+  const handleVotePoll = async (post, optionIndex) => {
+    if (!profile) return;
+    const votes = { ...(post.pollVotes || {}) };
+    // Check if already voted
+    const alreadyVoted = Object.values(votes).some(arr => (arr || []).includes(profile.id));
+    if (alreadyVoted) return;
+    const key = String(optionIndex);
+    votes[key] = [...(votes[key] || []), profile.id];
+    await base44.entities.CommunityPost.update(post.id, { pollVotes: votes });
+    await loadPosts();
   };
 
   const handleReact = async (post, emoji) => {
@@ -345,6 +407,7 @@ export default function CommunityWall() {
                         onApprove={handleApprovePost}
                         onReject={handleRejectPost}
                         onToggleComments={toggleComments}
+                        onVotePoll={handleVotePoll}
                         commentCount={(comments[post.id] || []).filter(c => isAdmin || c.status === 'approved').length}
                         isExpanded={!!expandedComments[post.id]}
                         userPets={userPets}
@@ -369,7 +432,13 @@ export default function CommunityWall() {
             </div>
 
             {canPost && (
-              <NewPostForm onSubmit={handleCreatePost} isAdmin={isAdmin} channelName={activeChannel.name} />
+              <NewPostForm
+                onSubmit={handleCreatePost}
+                isAdmin={isAdmin}
+                channelName={activeChannel.name}
+                onPetConcept={() => setShowPetConcept(true)}
+                onPoll={() => setShowPollCreator(true)}
+              />
             )}
           </>
         ) : activeChannel ? (
@@ -389,6 +458,16 @@ export default function CommunityWall() {
         open={showPetMojiCreator}
         onClose={() => setShowPetMojiCreator(false)}
         profile={profile}
+      />
+      <PetConceptDialog
+        open={showPetConcept}
+        onClose={() => setShowPetConcept(false)}
+        onSubmit={handleSubmitPetConcept}
+      />
+      <PollCreatorDialog
+        open={showPollCreator}
+        onClose={() => setShowPollCreator(false)}
+        onSubmit={handleCreatePoll}
       />
       {isAdmin && (
         <>

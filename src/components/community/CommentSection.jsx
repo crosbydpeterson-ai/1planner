@@ -1,17 +1,31 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Send, Trash2, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import moment from 'moment';
 import { cn } from '@/lib/utils';
+import { moderateContent, loadModSettings } from './ContentModeration';
+import { toast } from 'sonner';
 
 export default function CommentSection({ comments, canComment, isAdmin, onSubmit, onDelete, onApprove, onReject }) {
   const [text, setText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!text.trim()) return;
+    setSubmitting(true);
+    if (!isAdmin) {
+      await loadModSettings();
+      const result = await moderateContent(text.trim());
+      if (!result.safe) {
+        toast.error(result.reason || 'Your comment was blocked by moderation.');
+        setSubmitting(false);
+        return;
+      }
+    }
     onSubmit(text.trim());
     setText('');
+    setSubmitting(false);
   };
 
   const visibleComments = isAdmin ? comments : comments.filter(c => c.status === 'approved');
@@ -63,8 +77,8 @@ export default function CommentSection({ comments, canComment, isAdmin, onSubmit
             className="text-xs h-7 bg-[#383a40] border-none text-[#dbdee1] placeholder:text-[#6d6f78] focus-visible:ring-[#5865f2]"
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
-          <Button size="icon" className="h-7 w-7 shrink-0 bg-[#5865f2] hover:bg-[#4752c4]" onClick={handleSubmit} disabled={!text.trim()}>
-            <Send className="w-3 h-3" />
+          <Button size="icon" className="h-7 w-7 shrink-0 bg-[#5865f2] hover:bg-[#4752c4]" onClick={handleSubmit} disabled={!text.trim() || submitting}>
+            {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
           </Button>
         </div>
       )}

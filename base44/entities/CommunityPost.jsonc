@@ -18,6 +18,31 @@
       "type": "string",
       "description": "Post text content"
     },
+    "postType": {
+      "type": "string",
+      "enum": [
+        "text",
+        "poll",
+        "pet_concept"
+      ],
+      "default": "text",
+      "description": "Type of post"
+    },
+    "pollOptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Poll options (for poll type)"
+    },
+    "pollVotes": {
+      "type": "object",
+      "description": "Poll votes map: { optionIndex: [profileId1, ...] }"
+    },
+    "petConceptData": {
+      "type": "object",
+      "description": "Pet concept data: { name, description, imageUrl, rarity, theme }"
+    },
     "status": {
       "type": "string",
       "enum": [
