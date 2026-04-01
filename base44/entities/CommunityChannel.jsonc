@@ -28,7 +28,15 @@
       "type": "string",
       "enum": [
         "everyone",
-        "admin_only"
+        "admin_only",
+        "math_best",
+        "math_libbey",
+        "math_hannan",
+        "math_paulson",
+        "reading_riener",
+        "reading_libbey",
+        "reading_hannan",
+        "reading_paulson"
       ],
       "default": "everyone",
       "description": "Who can view this channel"
@@ -37,7 +45,15 @@
       "type": "string",
       "enum": [
         "everyone",
-        "admin_only"
+        "admin_only",
+        "math_best",
+        "math_libbey",
+        "math_hannan",
+        "math_paulson",
+        "reading_riener",
+        "reading_libbey",
+        "reading_hannan",
+        "reading_paulson"
       ],
       "default": "everyone",
       "description": "Who can create posts in this channel"
@@ -47,7 +63,15 @@
       "enum": [
         "everyone",
         "admin_only",
-        "nobody"
+        "nobody",
+        "math_best",
+        "math_libbey",
+        "math_hannan",
+        "math_paulson",
+        "reading_riener",
+        "reading_libbey",
+        "reading_hannan",
+        "reading_paulson"
       ],
       "default": "everyone",
       "description": "Who can comment on posts"

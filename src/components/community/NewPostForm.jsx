@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Send } from 'lucide-react';
+import { Send, Plus } from 'lucide-react';
 
-export default function NewPostForm({ onSubmit, isAdmin }) {
+export default function NewPostForm({ onSubmit, isAdmin, channelName }) {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -15,21 +14,33 @@ export default function NewPostForm({ onSubmit, isAdmin }) {
     setSubmitting(false);
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
   return (
-    <div className="bg-white/90 backdrop-blur rounded-2xl border border-slate-200 p-4 space-y-3">
-      <Textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="What's on your mind?"
-        className="min-h-[80px] text-sm resize-none"
-      />
-      <div className="flex items-center justify-between">
-        {!isAdmin && (
-          <p className="text-[10px] text-slate-400">Posts require admin approval</p>
-        )}
-        <Button onClick={handleSubmit} disabled={submitting || !content.trim()} size="sm" className="ml-auto gap-1.5">
+    <div className="px-4 pb-4 pt-2 shrink-0">
+      <div className="bg-[#383a40] rounded-lg flex items-end gap-2 px-3 py-2">
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={`Message #${channelName || 'channel'}${!isAdmin ? ' (requires approval)' : ''}`}
+          className="flex-1 bg-transparent text-sm text-[#dbdee1] placeholder:text-[#6d6f78] resize-none outline-none min-h-[20px] max-h-[120px] leading-relaxed"
+          rows={1}
+          style={{ height: 'auto' }}
+          onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+        />
+        <Button
+          size="icon"
+          className="h-8 w-8 shrink-0 bg-[#5865f2] hover:bg-[#4752c4] rounded-full"
+          onClick={handleSubmit}
+          disabled={submitting || !content.trim()}
+        >
           <Send className="w-3.5 h-3.5" />
-          {submitting ? 'Posting...' : 'Post'}
         </Button>
       </div>
     </div>

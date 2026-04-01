@@ -1,77 +1,86 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Heart, MessageCircle, Pin, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import moment from 'moment';
 
-export default function PostCard({ post, isAdmin, currentProfileId, onLike, onDelete, onApprove, onReject, onToggleComments, commentCount }) {
+export default function PostCard({ post, isAdmin, currentProfileId, onLike, onDelete, onApprove, onReject, onToggleComments, commentCount, isExpanded }) {
   const isLiked = (post.likedBy || []).includes(currentProfileId);
   const isPending = post.status === 'pending';
 
   return (
     <div className={cn(
-      "bg-white/90 backdrop-blur rounded-2xl border p-4 space-y-3 transition-all",
-      isPending ? "border-amber-300 bg-amber-50/50" : "border-slate-200",
-      post.isPinned && "ring-2 ring-indigo-300"
+      "group px-4 py-2 hover:bg-[#2e3035] transition-colors",
+      isPending && "bg-[#3d3520]/30"
     )}>
-      {post.isPinned && (
-        <div className="flex items-center gap-1 text-xs text-indigo-600 font-medium">
-          <Pin className="w-3 h-3" /> Pinned
+      <div className="flex gap-3">
+        {/* Avatar */}
+        <div className="w-10 h-10 rounded-full bg-[#5865f2] flex items-center justify-center text-white text-sm font-bold shrink-0 mt-0.5">
+          {post.authorUsername?.[0]?.toUpperCase() || '?'}
         </div>
-      )}
-      {isPending && (
-        <div className="flex items-center gap-1 text-xs text-amber-600 font-medium">
-          ⏳ Awaiting approval
-        </div>
-      )}
-
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center text-white text-xs font-bold">
-            {post.authorUsername?.[0]?.toUpperCase() || '?'}
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-800">{post.authorUsername}</p>
-            <p className="text-xs text-slate-400">{moment(post.created_date).fromNow()}</p>
-          </div>
-        </div>
-
-        {isAdmin && (
-          <div className="flex items-center gap-1">
-            {isPending && (
-              <>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => onApprove(post.id)}>
-                  <CheckCircle className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => onReject(post.id)}>
-                  <XCircle className="w-4 h-4" />
-                </Button>
-              </>
+        <div className="flex-1 min-w-0">
+          {/* Header */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-white">{post.authorUsername}</span>
+            <span className="text-[11px] text-[#949ba4]">{moment(post.created_date).format('MM/DD/YYYY h:mm A')}</span>
+            {post.isPinned && (
+              <span className="text-[10px] text-[#fee75c] flex items-center gap-0.5"><Pin className="w-3 h-3" />Pinned</span>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-500" onClick={() => onDelete(post.id)}>
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
+            {isPending && (
+              <span className="text-[10px] text-[#fee75c] bg-[#fee75c]/10 px-1.5 py-0.5 rounded">Pending</span>
+            )}
           </div>
-        )}
-      </div>
 
-      <p className="text-sm text-slate-700 whitespace-pre-wrap">{post.content}</p>
+          {/* Content */}
+          <p className="text-[#dbdee1] text-sm whitespace-pre-wrap mt-0.5 leading-relaxed">{post.content}</p>
 
-      <div className="flex items-center gap-4 pt-1 border-t border-slate-100">
-        <button
-          onClick={() => onLike(post)}
-          className={cn("flex items-center gap-1 text-xs transition-colors", isLiked ? "text-pink-500" : "text-slate-400 hover:text-pink-400")}
-        >
-          <Heart className={cn("w-4 h-4", isLiked && "fill-pink-500")} />
-          <span>{post.likeCount || 0}</span>
-        </button>
-        <button
-          onClick={() => onToggleComments(post.id)}
-          className="flex items-center gap-1 text-xs text-slate-400 hover:text-indigo-500 transition-colors"
-        >
-          <MessageCircle className="w-4 h-4" />
-          <span>{commentCount || 0}</span>
-        </button>
+          {/* Actions bar */}
+          <div className="flex items-center gap-3 mt-1.5">
+            <button
+              onClick={() => onLike(post)}
+              className={cn(
+                "flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-all",
+                isLiked
+                  ? "bg-[#da373c]/20 text-[#da373c]"
+                  : "text-[#949ba4] hover:bg-[#35373c] hover:text-[#dbdee1]"
+              )}
+            >
+              <Heart className={cn("w-3.5 h-3.5", isLiked && "fill-[#da373c]")} />
+              <span>{post.likeCount || 0}</span>
+            </button>
+            <button
+              onClick={() => onToggleComments(post.id)}
+              className={cn(
+                "flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-all",
+                isExpanded
+                  ? "bg-[#5865f2]/20 text-[#5865f2]"
+                  : "text-[#949ba4] hover:bg-[#35373c] hover:text-[#dbdee1]"
+              )}
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>{commentCount || 0}</span>
+            </button>
+
+            {/* Admin actions */}
+            {isAdmin && (
+              <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                {isPending && (
+                  <>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-green-400 hover:text-green-300 hover:bg-green-500/10" onClick={() => onApprove(post.id)}>
+                      <CheckCircle className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => onReject(post.id)}>
+                      <XCircle className="w-3.5 h-3.5" />
+                    </Button>
+                  </>
+                )}
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-[#949ba4] hover:text-red-400 hover:bg-red-500/10" onClick={() => onDelete(post.id)}>
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

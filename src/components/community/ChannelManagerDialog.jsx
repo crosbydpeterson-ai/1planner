@@ -3,8 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { PERMISSION_OPTIONS, COMMENT_PERMISSION_OPTIONS, getPermissionLabel } from './permissionUtils';
 
 export default function ChannelManagerDialog({ open, onClose, channels, onRefresh }) {
   const [newName, setNewName] = useState('');
@@ -37,56 +38,69 @@ export default function ChannelManagerDialog({ open, onClose, channels, onRefres
     onRefresh();
   };
 
-  const handleUpdatePermission = async (id, field, value) => {
+  const handleUpdate = async (id, field, value) => {
     await base44.entities.CommunityChannel.update(id, { [field]: value });
     onRefresh();
   };
 
-  const handleToggleActive = async (ch) => {
-    await base44.entities.CommunityChannel.update(ch.id, { isActive: !ch.isActive });
-    onRefresh();
+  const PermSelect = ({ value, onChange, includeNobody }) => {
+    const opts = includeNobody ? COMMENT_PERMISSION_OPTIONS : PERMISSION_OPTIONS;
+    return (
+      <Select value={value || 'everyone'} onValueChange={onChange}>
+        <SelectTrigger className="h-7 text-[11px] bg-[#1e1f22] border-[#1e1f22] text-[#dbdee1]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="bg-[#2b2d31] border-[#1e1f22]">
+          {opts.map((o) => (
+            <SelectItem key={o.value} value={o.value} className="text-[11px] text-[#dbdee1] focus:bg-[#5865f2] focus:text-white">
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-[#313338] border-[#1e1f22] text-[#dbdee1]">
         <DialogHeader>
-          <DialogTitle>Manage Channels</DialogTitle>
+          <DialogTitle className="text-white">Manage Channels</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Create new */}
-          <div className="bg-slate-50 rounded-xl p-3 space-y-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase">New Channel</p>
+          <div className="bg-[#2b2d31] rounded-lg p-3 space-y-2">
+            <p className="text-[10px] font-bold text-[#949ba4] uppercase">New Channel</p>
             <div className="flex items-center gap-2">
-              <Input value={newIcon} onChange={(e) => setNewIcon(e.target.value)} className="w-12 text-center" placeholder="💬" />
-              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Channel name" className="flex-1" />
+              <Input value={newIcon} onChange={(e) => setNewIcon(e.target.value)} className="w-12 text-center bg-[#1e1f22] border-[#1e1f22] text-white" placeholder="💬" />
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Channel name" className="flex-1 bg-[#1e1f22] border-[#1e1f22] text-white placeholder:text-[#6d6f78]" />
             </div>
-            <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Description (optional)" />
-            <Button onClick={handleCreate} disabled={saving || !newName.trim()} size="sm" className="w-full">
+            <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Description (optional)" className="bg-[#1e1f22] border-[#1e1f22] text-white placeholder:text-[#6d6f78]" />
+            <Button onClick={handleCreate} disabled={saving || !newName.trim()} size="sm" className="w-full bg-[#5865f2] hover:bg-[#4752c4] text-white">
               <Plus className="w-4 h-4 mr-1" /> Create Channel
             </Button>
           </div>
 
-          {/* Existing channels */}
-          <div className="space-y-3">
+          {/* Existing */}
+          <div className="space-y-2">
             {channels.map((ch) => (
-              <div key={ch.id} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
+              <div key={ch.id} className="bg-[#2b2d31] rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{ch.icon || '💬'}</span>
-                    <span className="font-semibold text-sm text-slate-800">{ch.name}</span>
+                    <span className="font-semibold text-sm text-white">{ch.name}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
-                      variant={ch.isActive ? "outline" : "secondary"}
+                      variant="ghost"
                       size="sm"
-                      className="text-xs h-7"
-                      onClick={() => handleToggleActive(ch)}
+                      className={`text-[10px] h-6 ${ch.isActive ? 'text-green-400' : 'text-[#949ba4]'}`}
+                      onClick={() => handleUpdate(ch.id, 'isActive', !ch.isActive)}
                     >
-                      {ch.isActive ? 'Active' : 'Hidden'}
+                      {ch.isActive ? '● Active' : '○ Hidden'}
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600" onClick={() => handleDelete(ch.id)}>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => handleDelete(ch.id)}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -94,35 +108,16 @@ export default function ChannelManagerDialog({ open, onClose, channels, onRefres
 
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="text-[10px] font-medium text-slate-400 uppercase">View</label>
-                    <Select value={ch.viewPermission || 'everyone'} onValueChange={(v) => handleUpdatePermission(ch.id, 'viewPermission', v)}>
-                      <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="everyone">Everyone</SelectItem>
-                        <SelectItem value="admin_only">Admin Only</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <label className="text-[9px] font-bold text-[#949ba4] uppercase">View</label>
+                    <PermSelect value={ch.viewPermission} onChange={(v) => handleUpdate(ch.id, 'viewPermission', v)} />
                   </div>
                   <div>
-                    <label className="text-[10px] font-medium text-slate-400 uppercase">Post</label>
-                    <Select value={ch.postPermission || 'everyone'} onValueChange={(v) => handleUpdatePermission(ch.id, 'postPermission', v)}>
-                      <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="everyone">Everyone</SelectItem>
-                        <SelectItem value="admin_only">Admin Only</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <label className="text-[9px] font-bold text-[#949ba4] uppercase">Post</label>
+                    <PermSelect value={ch.postPermission} onChange={(v) => handleUpdate(ch.id, 'postPermission', v)} />
                   </div>
                   <div>
-                    <label className="text-[10px] font-medium text-slate-400 uppercase">Comment</label>
-                    <Select value={ch.commentPermission || 'everyone'} onValueChange={(v) => handleUpdatePermission(ch.id, 'commentPermission', v)}>
-                      <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="everyone">Everyone</SelectItem>
-                        <SelectItem value="admin_only">Admin Only</SelectItem>
-                        <SelectItem value="nobody">Nobody</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <label className="text-[9px] font-bold text-[#949ba4] uppercase">Comment</label>
+                    <PermSelect value={ch.commentPermission} onChange={(v) => handleUpdate(ch.id, 'commentPermission', v)} includeNobody />
                   </div>
                 </div>
               </div>

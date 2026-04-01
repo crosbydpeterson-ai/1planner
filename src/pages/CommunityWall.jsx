@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { Loader2, Hash, Menu, Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import ChannelList from '@/components/community/ChannelList';
 import PostCard from '@/components/community/PostCard';
 import CommentSection from '@/components/community/CommentSection';
 import NewPostForm from '@/components/community/NewPostForm';
 import ChannelManagerDialog from '@/components/community/ChannelManagerDialog';
+import { hasPermission } from '@/components/community/permissionUtils';
 
 export default function CommunityWall() {
   const [profile, setProfile] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const [channels, setChannels] = useState([]);
   const [activeChannelId, setActiveChannelId] = useState(null);
@@ -18,6 +21,8 @@ export default function CommunityWall() {
   const [comments, setComments] = useState({});
   const [expandedComments, setExpandedComments] = useState({});
   const [showManager, setShowManager] = useState(false);
+
+  const feedRef = useRef(null);
 
   useEffect(() => { init(); }, []);
   useEffect(() => { if (activeChannelId) loadPosts(); }, [activeChannelId]);
@@ -41,7 +46,9 @@ export default function CommunityWall() {
     const all = await base44.entities.CommunityChannel.list('sortOrder');
     setChannels(all);
     if (all.length > 0 && !activeChannelId) {
-      setActiveChannelId(all[0].id);
+      const firstVisible = all.find(ch => ch.isActive);
+      if (firstVisible) setActiveChannelId(firstVisible.id);
+      else setActiveChannelId(all[0].id);
     }
   };
 
@@ -53,30 +60,14 @@ export default function CommunityWall() {
 
   const activeChannel = channels.find(c => c.id === activeChannelId);
 
-  const canView = () => {
-    if (!activeChannel) return false;
-    if (isAdmin) return true;
-    if (!activeChannel.isActive) return false;
-    return activeChannel.viewPermission === 'everyone';
-  };
-
-  const canPost = () => {
-    if (!activeChannel) return false;
-    if (isAdmin) return true;
-    return activeChannel.postPermission === 'everyone';
-  };
-
-  const canComment = () => {
-    if (!activeChannel) return false;
-    if (isAdmin) return true;
-    if (activeChannel.commentPermission === 'nobody') return false;
-    return activeChannel.commentPermission === 'everyone';
-  };
+  const canView = hasPermission(activeChannel?.viewPermission || 'everyone', profile, isAdmin) && (isAdmin || activeChannel?.isActive);
+  const canPost = hasPermission(activeChannel?.postPermission || 'everyone', profile, isAdmin);
+  const canCommentPerm = hasPermission(activeChannel?.commentPermission || 'everyone', profile, isAdmin);
 
   const visibleChannels = channels.filter(ch => {
     if (isAdmin) return true;
     if (!ch.isActive) return false;
-    return ch.viewPermission === 'everyone';
+    return hasPermission(ch.viewPermission || 'everyone', profile, isAdmin);
   });
 
   const visiblePosts = isAdmin ? posts : posts.filter(p => p.status === 'approved');
@@ -93,6 +84,7 @@ export default function CommunityWall() {
       likedBy: [],
     });
     await loadPosts();
+    if (feedRef.current) feedRef.current.scrollTop = 0;
   };
 
   const handleLike = async (post) => {
@@ -123,7 +115,6 @@ export default function CommunityWall() {
     await loadPosts();
   };
 
-  // Comments
   const loadComments = async (postId) => {
     const all = await base44.entities.CommunityComment.filter({ postId }, '-created_date');
     setComments(prev => ({ ...prev, [postId]: all }));
@@ -164,85 +155,112 @@ export default function CommunityWall() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+      <div className="fixed inset-0 flex items-center justify-center bg-[#313338] z-50">
+        <Loader2 className="w-6 h-6 animate-spin text-[#5865f2]" />
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-slate-400 text-sm">Log in to access the Community Wall.</p>
+      <div className="fixed inset-0 flex items-center justify-center bg-[#313338] z-50">
+        <p className="text-[#949ba4] text-sm">Log in to access the Community Wall.</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-16 pb-24 space-y-4">
-      <div className="flex items-center gap-3">
-        <MessageSquare className="w-6 h-6 text-indigo-500" />
-        <h1 className="text-xl font-bold text-slate-800">Community Wall</h1>
-      </div>
-
+    <div className="fixed inset-0 flex bg-[#313338] z-50">
+      {/* Sidebar */}
       <ChannelList
         channels={visibleChannels}
         activeChannelId={activeChannelId}
-        onSelect={setActiveChannelId}
+        onSelect={(id) => { setActiveChannelId(id); if (window.innerWidth < 640) setSidebarOpen(false); }}
         isAdmin={isAdmin}
         onManage={() => setShowManager(true)}
+        collapsed={!sidebarOpen}
       />
 
-      {activeChannel && canView() ? (
-        <div className="space-y-4">
-          {activeChannel.description && (
-            <p className="text-xs text-slate-500 px-1">{activeChannel.description}</p>
-          )}
-
-          {canPost() && (
-            <NewPostForm onSubmit={handleCreatePost} isAdmin={isAdmin} />
-          )}
-
-          {visiblePosts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-slate-400 text-sm">No posts yet. Be the first!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {visiblePosts.map((post) => (
-                <div key={post.id}>
-                  <PostCard
-                    post={post}
-                    isAdmin={isAdmin}
-                    currentProfileId={profile.id}
-                    onLike={handleLike}
-                    onDelete={handleDeletePost}
-                    onApprove={handleApprovePost}
-                    onReject={handleRejectPost}
-                    onToggleComments={toggleComments}
-                    commentCount={(comments[post.id] || []).filter(c => isAdmin || c.status === 'approved').length}
-                  />
-                  {expandedComments[post.id] && (
-                    <CommentSection
-                      comments={comments[post.id] || []}
-                      canComment={canComment()}
-                      isAdmin={isAdmin}
-                      onSubmit={(text) => handleSubmitComment(post.id, text)}
-                      onDelete={(cId) => handleDeleteComment(cId, post.id)}
-                      onApprove={(cId) => handleApproveComment(cId, post.id)}
-                      onReject={(cId) => handleRejectComment(cId, post.id)}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Channel header */}
+        <div className="h-12 px-4 flex items-center gap-3 border-b border-[#1e1f22] shrink-0 bg-[#313338]">
+          <Button variant="ghost" size="icon" className="h-7 w-7 sm:hidden text-[#b5bac1] hover:text-white hover:bg-[#35373c]" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <Menu className="w-4 h-4" />
+          </Button>
+          {activeChannel && (
+            <>
+              <Hash className="w-5 h-5 text-[#6d6f78]" />
+              <h2 className="text-white font-semibold text-sm truncate">{activeChannel.name}</h2>
+              {activeChannel.description && (
+                <>
+                  <div className="w-px h-5 bg-[#3f4147]" />
+                  <p className="text-[#949ba4] text-xs truncate hidden sm:block">{activeChannel.description}</p>
+                </>
+              )}
+            </>
           )}
         </div>
-      ) : activeChannel ? (
-        <div className="text-center py-12">
-          <p className="text-slate-400 text-sm">You don't have access to this channel.</p>
-        </div>
-      ) : null}
+
+        {/* Feed */}
+        {activeChannel && canView ? (
+          <>
+            <div ref={feedRef} className="flex-1 overflow-y-auto flex flex-col-reverse">
+              <div className="py-2">
+                {visiblePosts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <Hash className="w-12 h-12 text-[#6d6f78] mb-3" />
+                    <p className="text-[#dbdee1] font-semibold">Welcome to #{activeChannel.name}!</p>
+                    <p className="text-[#949ba4] text-sm mt-1">This is the start of the channel.</p>
+                  </div>
+                ) : (
+                  visiblePosts.slice().reverse().map((post) => (
+                    <div key={post.id}>
+                      <PostCard
+                        post={post}
+                        isAdmin={isAdmin}
+                        currentProfileId={profile.id}
+                        onLike={handleLike}
+                        onDelete={handleDeletePost}
+                        onApprove={handleApprovePost}
+                        onReject={handleRejectPost}
+                        onToggleComments={toggleComments}
+                        commentCount={(comments[post.id] || []).filter(c => isAdmin || c.status === 'approved').length}
+                        isExpanded={!!expandedComments[post.id]}
+                      />
+                      {expandedComments[post.id] && (
+                        <CommentSection
+                          comments={comments[post.id] || []}
+                          canComment={canCommentPerm}
+                          isAdmin={isAdmin}
+                          onSubmit={(text) => handleSubmitComment(post.id, text)}
+                          onDelete={(cId) => handleDeleteComment(cId, post.id)}
+                          onApprove={(cId) => handleApproveComment(cId, post.id)}
+                          onReject={(cId) => handleRejectComment(cId, post.id)}
+                        />
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {canPost && (
+              <NewPostForm onSubmit={handleCreatePost} isAdmin={isAdmin} channelName={activeChannel.name} />
+            )}
+          </>
+        ) : activeChannel ? (
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <Lock className="w-10 h-10 text-[#6d6f78] mb-3" />
+            <p className="text-[#949ba4] text-sm">You don't have access to this channel.</p>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <Hash className="w-10 h-10 text-[#6d6f78] mb-3" />
+            <p className="text-[#949ba4] text-sm">Select a channel to get started.</p>
+          </div>
+        )}
+      </div>
 
       {isAdmin && (
         <ChannelManagerDialog

@@ -1,37 +1,50 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Plus, Settings } from 'lucide-react';
+import { Hash, Settings, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function ChannelList({ channels, activeChannelId, onSelect, isAdmin, onManage }) {
+export default function ChannelList({ channels, activeChannelId, onSelect, isAdmin, onManage, collapsed, onToggleCollapse }) {
   return (
-    <div className="bg-white/90 backdrop-blur rounded-2xl border border-slate-200 p-3 space-y-1">
-      <div className="flex items-center justify-between px-2 pb-2 border-b border-slate-100 mb-1">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Channels</h3>
-        {isAdmin && (
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onManage}>
-            <Settings className="w-3.5 h-3.5" />
-          </Button>
+    <div className={cn(
+      "bg-[#2b2d31] flex flex-col h-full transition-all duration-200",
+      collapsed ? "w-0 overflow-hidden" : "w-56 min-w-[14rem]"
+    )}>
+      {/* Server header */}
+      <div className="h-12 px-3 flex items-center justify-between border-b border-[#1e1f22] shrink-0">
+        <h2 className="text-white font-bold text-sm truncate">Community Wall</h2>
+        <div className="flex items-center gap-0.5">
+          {isAdmin && (
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-[#b5bac1] hover:text-white hover:bg-[#35373c]" onClick={onManage}>
+              <Settings className="w-3.5 h-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Channel list */}
+      <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
+        <p className="text-[10px] font-bold text-[#949ba4] uppercase tracking-wider px-1.5 pb-1 pt-2">Channels</p>
+        {channels.map((ch) => (
+          <button
+            key={ch.id}
+            onClick={() => onSelect(ch.id)}
+            className={cn(
+              "w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-sm transition-all text-left group",
+              activeChannelId === ch.id
+                ? "bg-[#404249] text-white"
+                : "text-[#949ba4] hover:bg-[#35373c] hover:text-[#dbdee1]"
+            )}
+          >
+            <span className="text-base shrink-0">{ch.icon || ''}</span>
+            <Hash className="w-4 h-4 shrink-0 text-[#6d6f78]" />
+            <span className="truncate text-[13px]">{ch.name}</span>
+            {!ch.isActive && <span className="text-[9px] text-[#6d6f78] ml-auto">hidden</span>}
+          </button>
+        ))}
+        {channels.length === 0 && (
+          <p className="text-xs text-[#6d6f78] text-center py-6">No channels</p>
         )}
       </div>
-      {channels.map((ch) => (
-        <button
-          key={ch.id}
-          onClick={() => onSelect(ch.id)}
-          className={cn(
-            "w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left",
-            activeChannelId === ch.id
-              ? "bg-indigo-100 text-indigo-700"
-              : "text-slate-600 hover:bg-slate-100"
-          )}
-        >
-          <span className="text-base">{ch.icon || '💬'}</span>
-          <span className="truncate">{ch.name}</span>
-        </button>
-      ))}
-      {channels.length === 0 && (
-        <p className="text-xs text-slate-400 text-center py-4">No channels yet</p>
-      )}
     </div>
   );
 }
