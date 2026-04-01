@@ -9,6 +9,7 @@ import NewPostForm from '@/components/community/NewPostForm';
 import ChannelManagerDialog from '@/components/community/ChannelManagerDialog';
 import TagManagerDialog from '@/components/community/TagManagerDialog';
 import { hasPermission } from '@/components/community/permissionUtils';
+import UserPetMojiCreator from '@/components/community/UserPetMojiCreator';
 import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
 
@@ -25,6 +26,7 @@ export default function CommunityWall() {
   const [expandedComments, setExpandedComments] = useState({});
   const [showManager, setShowManager] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
+  const [showPetMojiCreator, setShowPetMojiCreator] = useState(false);
 
   // Tags & themes
   const [tags, setTags] = useState([]);
@@ -273,11 +275,16 @@ export default function CommunityWall() {
               )}
             </>
           )}
-          {isAdmin && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto text-[#b5bac1] hover:text-white hover:bg-[#35373c]" onClick={() => setShowTagManager(true)}>
-              <Tag className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1 ml-auto">
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-[#b5bac1] hover:text-white hover:bg-[#35373c] text-xs" onClick={() => setShowPetMojiCreator(true)}>
+              😺 Petmoji
             </Button>
-          )}
+            {isAdmin && (
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-[#b5bac1] hover:text-white hover:bg-[#35373c]" onClick={() => setShowTagManager(true)}>
+                <Tag className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Feed */}
@@ -343,6 +350,11 @@ export default function CommunityWall() {
         )}
       </div>
 
+      <UserPetMojiCreator
+        open={showPetMojiCreator}
+        onClose={() => setShowPetMojiCreator(false)}
+        profile={profile}
+      />
       {isAdmin && (
         <>
           <ChannelManagerDialog

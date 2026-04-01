@@ -52,7 +52,7 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
     if (key.startsWith('petmoji:')) {
       const id = key.replace('petmoji:', '');
       const moji = petMojis.find(m => m.id === id);
-      if (moji) return <img src={moji.imageUrl} alt={moji.name} className="w-4 h-4 rounded object-cover inline-block" />;
+      if (moji) return <img src={moji.imageUrl} alt={moji.name} className="w-6 h-6 rounded object-cover inline-block" />;
       return <span className="text-sm">?</span>;
     }
     return <span className="text-sm">{key}</span>;
@@ -124,15 +124,15 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
             )}
 
             {tab === 'petmoji' && (
-              <div className="grid grid-cols-4 gap-1 max-h-48 overflow-y-auto">
+              <div className="grid grid-cols-4 gap-1.5 max-h-56 overflow-y-auto">
                 {petMojis.map((moji) => (
                   <button
                     key={moji.id}
                     onClick={() => handleReact(`petmoji:${moji.id}`)}
-                    className="w-12 h-12 flex flex-col items-center justify-center hover:bg-[#35373c] rounded transition-colors p-1"
+                    className="w-14 h-14 flex flex-col items-center justify-center hover:bg-[#35373c] rounded-lg transition-colors p-1"
                     title={moji.name}
                   >
-                    <img src={moji.imageUrl} alt={moji.name} className="w-8 h-8 rounded object-cover" />
+                    <img src={moji.imageUrl} alt={moji.name} className="w-10 h-10 rounded-lg object-cover" />
                   </button>
                 ))}
               </div>
