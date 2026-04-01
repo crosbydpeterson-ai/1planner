@@ -256,7 +256,7 @@ export default function Layout({ children, currentPageName }) {
         <BrandLogo size="md" />
       </header>
       {children}
-      {!hideNav && <ChatbotWidget />}
+      {!hideNav && currentPageName !== 'CommunityWall' && <ChatbotWidget />}
       
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 safe-area-pb z-40">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Hash, Menu, Lock, Tag } from 'lucide-react';
+import { Loader2, Hash, Menu, Lock, Tag, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ChannelList from '@/components/community/ChannelList';
 import PostCard from '@/components/community/PostCard';
@@ -27,6 +27,7 @@ export default function CommunityWall() {
   const [showManager, setShowManager] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
   const [showPetMojiCreator, setShowPetMojiCreator] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   // Tags & themes
   const [tags, setTags] = useState([]);
@@ -292,20 +293,39 @@ export default function CommunityWall() {
           <>
             <div ref={feedRef} className="flex-1 overflow-y-auto flex flex-col-reverse">
               <div className="py-2">
-                {/* Petmoji promo banner */}
-                <div className="mx-4 mt-3 mb-1">
-                  <button
-                    onClick={() => setShowPetMojiCreator(true)}
-                    className="w-full bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border border-purple-500/20 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-purple-500/40 transition-all group"
-                  >
-                    <span className="text-2xl group-hover:scale-110 transition-transform">🥚✨</span>
-                    <div className="text-left flex-1">
-                      <p className="text-[#dbdee1] text-sm font-semibold">Turn your Magic Egg into a Petmoji!</p>
-                      <p className="text-[#949ba4] text-[11px]">Create custom reaction stickers with AI — everyone can use them!</p>
-                    </div>
-                    <span className="text-[#5865f2] text-xs font-semibold group-hover:underline">Create →</span>
-                  </button>
-                </div>
+                {/* Collapsible Petmoji promo banner */}
+                {!bannerDismissed ? (
+                  <div className="mx-4 mt-3 mb-1 relative">
+                    <button
+                      onClick={() => setShowPetMojiCreator(true)}
+                      className="w-full bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border border-purple-500/20 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-purple-500/40 transition-all group"
+                    >
+                      <span className="text-2xl group-hover:scale-110 transition-transform">🥚✨</span>
+                      <div className="text-left flex-1">
+                        <p className="text-[#dbdee1] text-sm font-semibold">Turn your Magic Egg into a Petmoji!</p>
+                        <p className="text-[#949ba4] text-[11px]">Create custom reaction stickers with AI — everyone can use them!</p>
+                      </div>
+                      <span className="text-[#5865f2] text-xs font-semibold group-hover:underline">Create →</span>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setBannerDismissed(true); }}
+                      className="absolute top-1 right-1 text-[#6d6f78] hover:text-[#dbdee1] p-1 rounded transition-colors"
+                      title="Hide banner"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mx-4 mt-2 mb-1">
+                    <button
+                      onClick={() => setBannerDismissed(false)}
+                      className="flex items-center gap-1.5 text-[10px] text-[#6d6f78] hover:text-[#949ba4] transition-colors"
+                    >
+                      <ChevronDown className="w-3 h-3" />
+                      <span>🥚 Show Petmoji creator</span>
+                    </button>
+                  </div>
+                )}
 
                 {visiblePosts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20">
