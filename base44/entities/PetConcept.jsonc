@@ -1,0 +1,95 @@
+{
+  "name": "PetConcept",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Pet concept name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Pet concept description"
+    },
+    "imageUrl": {
+      "type": "string",
+      "description": "Image URL (uploaded or AI-generated)"
+    },
+    "imageSource": {
+      "type": "string",
+      "enum": [
+        "uploaded",
+        "ai_generated"
+      ],
+      "description": "How the image was provided"
+    },
+    "emoji": {
+      "type": "string",
+      "description": "Optional emoji"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "common",
+        "uncommon",
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "default": "uncommon"
+    },
+    "theme": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "type": "string"
+        },
+        "secondary": {
+          "type": "string"
+        },
+        "accent": {
+          "type": "string"
+        },
+        "bg": {
+          "type": "string"
+        }
+      },
+      "description": "Theme colors"
+    },
+    "submittedByProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of submitter"
+    },
+    "submittedByUsername": {
+      "type": "string",
+      "description": "Username of submitter"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Admin review status"
+    },
+    "adminNote": {
+      "type": "string",
+      "description": "Admin feedback"
+    },
+    "magicEggId": {
+      "type": "string",
+      "description": "Magic Egg ID consumed for AI generation"
+    },
+    "createdPetId": {
+      "type": "string",
+      "description": "CustomPet ID if approved and converted"
+    }
+  },
+  "required": [
+    "name",
+    "description",
+    "submittedByProfileId",
+    "submittedByUsername"
+  ]
+}
