@@ -45,6 +45,7 @@ import AdminSettingsPanel from '@/components/admin/AdminSettingsPanel';
 import ActiveEggJobs from '@/components/admin/ActiveEggJobs';
 import SeasonPassGeneratorPanel from '@/components/admin/SeasonPassGeneratorPanel';
 import PetMojiGeneratorPanel from '@/components/admin/PetMojiGeneratorPanel';
+import BulkPetMojiCreatorPanel from '@/components/admin/BulkPetMojiCreatorPanel';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -268,7 +269,7 @@ export default function Admin() {
 
           <TabsContent value="ai"><div className="space-y-6"><IdeaGeneratorPanel adminProfile={adminProfile} onCreated={() => loadData()} /><BulkPetCreatorPanel /><CosmeticGeneratorPanel /></div></TabsContent>
 
-          <TabsContent value="petmojis"><PetMojiGeneratorPanel /></TabsContent>
+          <TabsContent value="petmojis"><div className="space-y-6"><BulkPetMojiCreatorPanel onCreated={() => loadData()} /><PetMojiGeneratorPanel /></div></TabsContent>
 
           <TabsContent value="pets">
             <div className="flex justify-end mb-4"><Button onClick={() => setShowPetForm(true)} className="bg-gradient-to-r from-purple-500 to-pink-600"><Plus className="w-4 h-4 mr-2" />New Pet</Button></div>
