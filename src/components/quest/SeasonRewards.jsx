@@ -1,17 +1,54 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
 import { Gift, Lock, Check, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { PETS } from '@/components/quest/PetCatalog';
 
 const REWARD_TYPE_ICONS = {
   pet: "🐾",
   theme: "🎨",
   title: "🏆",
-  coins: "🪙"
+  coins: "🪙",
+  magic_egg: "🥚"
 };
 
 export default function SeasonRewards({ season, userXp, claimedRewards = [], onClaim }) {
+  const [petCache, setPetCache] = useState({});
+
+  useEffect(() => {
+    if (!season?.rewards) return;
+    const petRewards = season.rewards.filter(r => r.type === 'pet' && r.value);
+    if (petRewards.length === 0) return;
+
+    const customIds = petRewards
+      .filter(r => String(r.value).startsWith('custom_'))
+      .map(r => String(r.value).replace('custom_', ''));
+
+    if (customIds.length === 0) return;
+
+    (async () => {
+      const pets = await base44.entities.CustomPet.list();
+      const map = {};
+      pets.forEach(p => { map[p.id] = p; });
+      setPetCache(map);
+    })();
+  }, [season]);
+
+  const getPetDisplay = (reward) => {
+    if (reward.type !== 'pet' || !reward.value) return null;
+    const val = String(reward.value);
+    if (val.startsWith('custom_')) {
+      const pet = petCache[val.replace('custom_', '')];
+      if (pet) return { name: pet.name, image: pet.imageUrl, emoji: pet.emoji };
+    } else {
+      const builtIn = PETS.find(p => p.id === val);
+      if (builtIn) return { name: builtIn.name, image: null, emoji: builtIn.emoji };
+    }
+    return null;
+  };
+
   if (!season) return null;
 
   const getRewardClaimKey = (reward, rewardIndex) => {
@@ -70,9 +107,23 @@ export default function SeasonRewards({ season, userXp, claimedRewards = [], onC
                 {/* Reward info */}
                 <div className="flex-1 ml-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{REWARD_TYPE_ICONS[reward.type]}</span>
+                    {(() => {
+                      const petDisplay = getPetDisplay(reward);
+                      if (petDisplay?.image) {
+                        return <img src={petDisplay.image} alt={petDisplay.name} className="w-10 h-10 rounded-lg object-cover" />;
+                      }
+                      if (petDisplay?.emoji) {
+                        return <span className="text-2xl">{petDisplay.emoji}</span>;
+                      }
+                      return <span className="text-2xl">{REWARD_TYPE_ICONS[reward.type] || "🎁"}</span>;
+                    })()}
                     <div>
-                      <h3 className="font-bold text-slate-800">{reward.name}</h3>
+                      <h3 className="font-bold text-slate-800">
+                        {(() => {
+                          const petDisplay = getPetDisplay(reward);
+                          return petDisplay?.name || reward.name;
+                        })()}
+                      </h3>
                       <p className="text-xs text-slate-500 capitalize">{reward.type}</p>
                     </div>
                   </div>
