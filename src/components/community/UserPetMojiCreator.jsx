@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Wand2, Egg } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { checkContentSafe, SAFE_PROMPT_SUFFIX } from './petmojiModeration';
 
 export default function UserPetMojiCreator({ open, onClose, profile }) {
   const [mode, setMode] = useState('pet');
@@ -38,12 +39,17 @@ export default function UserPetMojiCreator({ open, onClose, profile }) {
   };
 
   const ownedPetIds = profile?.unlockedPets || [];
-
-  // Filter to only pets the user owns
   const availablePets = customPets.filter(p => ownedPetIds.includes(`custom_${p.id}`));
 
   const handleGenerate = async () => {
     if (eggs.length === 0) { toast.error('You need a Magic Egg to create a petmoji!'); return; }
+
+    // Content moderation
+    const textToCheck = mode === 'pet' ? action : freeDescription;
+    const check = checkContentSafe(textToCheck);
+    if (!check.safe) { toast.error(check.reason); return; }
+    const nameCheck = checkContentSafe(name);
+    if (!nameCheck.safe) { toast.error(nameCheck.reason); return; }
 
     let prompt = '';
     if (mode === 'pet') {
@@ -51,11 +57,11 @@ export default function UserPetMojiCreator({ open, onClose, profile }) {
       if (!action.trim()) { toast.error('Describe what the pet is doing'); return; }
       const pet = customPets.find(p => p.id === selectedPetId);
       if (!pet) return;
-      prompt = `Create a small square emoji-style sticker of a cute cartoon ${pet.name} character ${action.trim()}. The character should match this description: ${pet.description || pet.name}. Style: kawaii emoji sticker, transparent background feel, vibrant colors, simple clean design, expressive face, chibi proportions. Make it look like a chat reaction emoji.`;
+      prompt = `Create a small square emoji-style sticker of a cute cartoon ${pet.name} character ${action.trim()}. The character should match this description: ${pet.description || pet.name}. Style: kawaii emoji sticker, transparent background feel, vibrant colors, simple clean design, expressive face, chibi proportions. Make it look like a chat reaction emoji.${SAFE_PROMPT_SUFFIX}`;
       if (!name) setName(`${pet.name} ${action.trim().slice(0, 20)}`);
     } else {
       if (!freeDescription.trim()) { toast.error('Describe the petmoji'); return; }
-      prompt = `Create a small square emoji-style sticker: ${freeDescription.trim()}. Style: kawaii emoji sticker, transparent background feel, vibrant colors, simple clean design, expressive face, chibi proportions. Make it look like a chat reaction emoji.`;
+      prompt = `Create a small square emoji-style sticker: ${freeDescription.trim()}. Style: kawaii emoji sticker, transparent background feel, vibrant colors, simple clean design, expressive face, chibi proportions. Make it look like a chat reaction emoji.${SAFE_PROMPT_SUFFIX}`;
       if (!name) setName(freeDescription.trim().slice(0, 30));
     }
 
@@ -71,7 +77,6 @@ export default function UserPetMojiCreator({ open, onClose, profile }) {
     if (eggs.length === 0) { toast.error('No magic egg available!'); return; }
 
     setSaving(true);
-    // Consume the egg
     const egg = eggs[0];
     await base44.entities.MagicEgg.update(egg.id, {
       isUsed: true,
@@ -87,9 +92,11 @@ export default function UserPetMojiCreator({ open, onClose, profile }) {
       basePetId: pet?.id || '',
       basePetName: pet?.name || '',
       isActive: true,
+      isExclusive: false,
+      createdByProfileId: profile.id,
+      createdByUsername: profile.username,
     });
 
-    // Remove used egg from local state
     setEggs(eggs.filter(e => e.id !== egg.id));
     setPreviewUrl(null);
     setName('');
@@ -120,14 +127,16 @@ export default function UserPetMojiCreator({ open, onClose, profile }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Egg count */}
             <div className="bg-[#2b2d31] rounded-lg px-3 py-2 flex items-center gap-2">
               <span className="text-lg">🥚</span>
               <span className="text-sm text-[#dbdee1]">You have <span className="text-amber-400 font-bold">{eggs.length}</span> Magic Egg{eggs.length > 1 ? 's' : ''}</span>
               <span className="text-[10px] text-[#6d6f78] ml-auto">Costs 1 egg</span>
             </div>
 
-            {/* Mode */}
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+              <p className="text-[11px] text-amber-300">🛡️ Keep it kid-friendly! No rude gestures or inappropriate content.</p>
+            </div>
+
             <div className="flex gap-2">
               <Button size="sm" variant={mode === 'pet' ? 'default' : 'outline'}
                 onClick={() => setMode('pet')}

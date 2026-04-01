@@ -292,6 +292,21 @@ export default function CommunityWall() {
           <>
             <div ref={feedRef} className="flex-1 overflow-y-auto flex flex-col-reverse">
               <div className="py-2">
+                {/* Petmoji promo banner */}
+                <div className="mx-4 mt-3 mb-1">
+                  <button
+                    onClick={() => setShowPetMojiCreator(true)}
+                    className="w-full bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border border-purple-500/20 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-purple-500/40 transition-all group"
+                  >
+                    <span className="text-2xl group-hover:scale-110 transition-transform">🥚✨</span>
+                    <div className="text-left flex-1">
+                      <p className="text-[#dbdee1] text-sm font-semibold">Turn your Magic Egg into a Petmoji!</p>
+                      <p className="text-[#949ba4] text-[11px]">Create custom reaction stickers with AI — everyone can use them!</p>
+                    </div>
+                    <span className="text-[#5865f2] text-xs font-semibold group-hover:underline">Create →</span>
+                  </button>
+                </div>
+
                 {visiblePosts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20">
                     <Hash className="w-12 h-12 text-[#6d6f78] mb-3" />

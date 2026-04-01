@@ -31,12 +31,21 @@ if (typeof window !== 'undefined') {
 export default function ReactionBar({ reactions, currentProfileId, onReact, userPets }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('emoji');
-  const [petMojis, setPetMojis] = useState([]);
+  const [allPetMojis, setAllPetMojis] = useState([]);
   const reactionMap = reactions || {};
 
   useEffect(() => {
-    loadPetMojis().then(setPetMojis);
+    loadPetMojis().then(setAllPetMojis);
   }, []);
+
+  // Filter petmojis: public ones + exclusive ones the current user owns
+  const petMojis = allPetMojis.filter(m => {
+    if (!m.isExclusive) return true;
+    return (m.exclusiveOwnerIds || []).includes(currentProfileId);
+  });
+
+  // For rendering reactions, use ALL petmojis (so exclusive ones still display when reacted)
+  const findMoji = (id) => allPetMojis.find(m => m.id === id);
 
   // Merge user's pet emojis into the picker
   const petEmojis = (userPets || []).filter(p => p.emoji).map(p => p.emoji);
@@ -47,11 +56,10 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
     setOpen(false);
   };
 
-  // Resolve a reaction key to display content
   const renderReactionContent = (key) => {
     if (key.startsWith('petmoji:')) {
       const id = key.replace('petmoji:', '');
-      const moji = petMojis.find(m => m.id === id);
+      const moji = findMoji(id);
       if (moji) return <img src={moji.imageUrl} alt={moji.name} className="w-6 h-6 rounded object-cover inline-block" />;
       return <span className="text-sm">?</span>;
     }
@@ -60,7 +68,6 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      {/* Existing reactions */}
       {Object.entries(reactionMap).map(([key, userIds]) => {
         if (!userIds || userIds.length === 0) return null;
         const hasReacted = userIds.includes(currentProfileId);
@@ -81,7 +88,6 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
         );
       })}
 
-      {/* Add reaction button */}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button className="flex items-center gap-0.5 text-[#949ba4] hover:text-[#dbdee1] hover:bg-[#35373c] px-1.5 py-0.5 rounded transition-all text-xs border border-transparent hover:border-[#3f4147]">
@@ -90,7 +96,6 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 bg-[#2b2d31] border-[#1e1f22]" side="top" align="start">
-          {/* Tabs */}
           <div className="flex border-b border-[#1e1f22]">
             <button
               onClick={() => setTab('emoji')}
@@ -129,10 +134,11 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
                   <button
                     key={moji.id}
                     onClick={() => handleReact(`petmoji:${moji.id}`)}
-                    className="w-14 h-14 flex flex-col items-center justify-center hover:bg-[#35373c] rounded-lg transition-colors p-1"
+                    className="w-14 h-14 flex flex-col items-center justify-center hover:bg-[#35373c] rounded-lg transition-colors p-1 relative"
                     title={moji.name}
                   >
                     <img src={moji.imageUrl} alt={moji.name} className="w-10 h-10 rounded-lg object-cover" />
+                    {moji.isExclusive && <span className="absolute top-0 right-0 text-[8px]">✨</span>}
                   </button>
                 ))}
               </div>

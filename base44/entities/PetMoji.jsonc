@@ -26,6 +26,26 @@
       "type": "boolean",
       "default": true,
       "description": "Whether this petmoji is available for use"
+    },
+    "isExclusive": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, only admin can gift/assign this petmoji. Not shown in normal picker."
+    },
+    "exclusiveOwnerIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Profile IDs that own this exclusive petmoji"
+    },
+    "createdByProfileId": {
+      "type": "string",
+      "description": "Profile ID of who created this petmoji"
+    },
+    "createdByUsername": {
+      "type": "string",
+      "description": "Username of the creator"
     }
   },
   "required": [
