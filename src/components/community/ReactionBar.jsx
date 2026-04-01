@@ -60,7 +60,7 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
     if (key.startsWith('petmoji:')) {
       const id = key.replace('petmoji:', '');
       const moji = findMoji(id);
-      if (moji) return <img src={moji.imageUrl} alt={moji.name} className="w-6 h-6 rounded object-cover inline-block" />;
+      if (moji) return <img src={moji.imageUrl} alt={moji.name} className="w-8 h-8 rounded object-cover inline-block" />;
       return <span className="text-sm">?</span>;
     }
     return <span className="text-sm">{key}</span>;
