@@ -212,7 +212,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   // Don't show navigation on Home (login) page or Admin page
-  const hideNav = currentPageName === 'Home' || currentPageName === 'Admin';
+  const hideNav = currentPageName === 'Home' || currentPageName === 'Admin' || currentPageName === 'CommunityWall';
 
   
   const navItems = [

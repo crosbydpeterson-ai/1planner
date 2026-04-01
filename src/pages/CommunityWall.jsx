@@ -246,7 +246,7 @@ export default function CommunityWall() {
   }
 
   return (
-    <div className="flex bg-[#313338] -mx-4 -mt-4" style={{ height: 'calc(100vh - 60px)' }}>
+    <div className="flex bg-[#313338] -mx-4 -mt-4" style={{ height: '100vh' }}>
       {/* Sidebar */}
       <ChannelList
         channels={visibleChannels}
