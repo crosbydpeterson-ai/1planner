@@ -1,0 +1,35 @@
+{
+  "name": "PetMoji",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Petmoji name"
+    },
+    "description": {
+      "type": "string",
+      "description": "What the petmoji shows"
+    },
+    "imageUrl": {
+      "type": "string",
+      "description": "AI-generated image URL"
+    },
+    "basePetId": {
+      "type": "string",
+      "description": "Optional CustomPet ID this is based on"
+    },
+    "basePetName": {
+      "type": "string",
+      "description": "Name of the base pet (for display)"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this petmoji is available for use"
+    }
+  },
+  "required": [
+    "name",
+    "imageUrl"
+  ]
+}

@@ -44,6 +44,7 @@ import EditShopItemDialog from '@/components/admin/EditShopItemDialog';
 import AdminSettingsPanel from '@/components/admin/AdminSettingsPanel';
 import ActiveEggJobs from '@/components/admin/ActiveEggJobs';
 import SeasonPassGeneratorPanel from '@/components/admin/SeasonPassGeneratorPanel';
+import PetMojiGeneratorPanel from '@/components/admin/PetMojiGeneratorPanel';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -207,6 +208,7 @@ export default function Admin() {
             {can('manageThemes') && <TabsTrigger value="themes" className="data-[state=active]:bg-slate-700"><Palette className="w-4 h-4 mr-2" />Themes ({customThemes.length})</TabsTrigger>}
             {can('manageCosmetics') && <TabsTrigger value="cosmetics" className="data-[state=active]:bg-slate-700">👒 Cosmetics ({petCosmetics.length})</TabsTrigger>}
             {can('accessAI') && <TabsTrigger value="ai" className="data-[state=active]:bg-slate-700">✨ AI Tools</TabsTrigger>}
+            {can('accessAI') && <TabsTrigger value="petmojis" className="data-[state=active]:bg-slate-700">😺 Petmojis</TabsTrigger>}
             <TabsTrigger value="seasons" className="data-[state=active]:bg-slate-700"><Sparkles className="w-4 h-4 mr-2" />Seasons ({seasons.length})</TabsTrigger>
             {isSuperAdmin && <TabsTrigger value="eggs" className="data-[state=active]:bg-slate-700">🥚 Magic Eggs</TabsTrigger>}
             {can('manageEvents') && <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">🫧 Events</TabsTrigger>}
@@ -265,6 +267,8 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="ai"><div className="space-y-6"><IdeaGeneratorPanel adminProfile={adminProfile} onCreated={() => loadData()} /><BulkPetCreatorPanel /><CosmeticGeneratorPanel /></div></TabsContent>
+
+          <TabsContent value="petmojis"><PetMojiGeneratorPanel /></TabsContent>
 
           <TabsContent value="pets">
             <div className="flex justify-end mb-4"><Button onClick={() => setShowPetForm(true)} className="bg-gradient-to-r from-purple-500 to-pink-600"><Plus className="w-4 h-4 mr-2" />New Pet</Button></div>
