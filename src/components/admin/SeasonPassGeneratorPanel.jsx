@@ -219,7 +219,7 @@ RULES:
         }
       }
 
-      // If we have pets to create, start a job
+      // If we have pets to create, start a job and wait for completion
       if (petJobs.length > 0) {
         const job = await base44.entities.EggGenerationJob.create({
           idea: `Season Pass: ${seasonName}`,
@@ -234,11 +234,24 @@ RULES:
         });
 
         // Fire the job
-        base44.functions.invoke("generateMagicEggs", { jobId: job.id });
-        toast.info(`Started generating ${petJobs.length} pets in background...`);
+        toast.info(`Generating ${petJobs.length} pets with AI... this may take a minute.`);
+        await base44.functions.invoke("generateMagicEggs", { jobId: job.id });
 
-        // For now, save season without pet IDs - admin can update later
-        // Or we wait... let's save with placeholders and note it
+        // Fetch the completed job to get created pet IDs
+        const completedJobs = await base44.entities.EggGenerationJob.filter({ id: job.id });
+        const completedJob = completedJobs[0];
+        const createdPetIds = completedJob?.createdPetIds || [];
+
+        // Backfill pet reward values with actual IDs
+        let petIdx = 0;
+        for (let i = 0; i < processedRewards.length; i++) {
+          if (processedRewards[i].value?.startsWith("pending_")) {
+            processedRewards[i].value = createdPetIds[petIdx]
+              ? `custom_${createdPetIds[petIdx]}`
+              : "pending";
+            petIdx++;
+          }
+        }
       }
 
       // Create the season

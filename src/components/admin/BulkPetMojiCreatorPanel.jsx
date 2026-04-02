@@ -77,19 +77,20 @@ export default function BulkPetMojiCreatorPanel({ onCreated }) {
     setGeneratingImages(true);
     setImageProgress(0);
 
-    let completed = 0;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].imageUrl) { completed++; continue; }
-      const fullPrompt = `${items[i].imagePrompt} Style: kawaii emoji sticker, transparent background feel, vibrant colors, simple clean design, expressive face, chibi proportions. Make it look like a chat reaction emoji.${SAFE_PROMPT_SUFFIX}`;
+    // Build promises for all pending items in parallel
+    const promises = items.map(async (item, i) => {
+      if (item.imageUrl) return; // skip already generated
+      const fullPrompt = `${item.imagePrompt} Style: kawaii emoji sticker, transparent background feel, vibrant colors, simple clean design, expressive face, chibi proportions. Make it look like a chat reaction emoji.${SAFE_PROMPT_SUFFIX}`;
       const result = await base44.integrations.Core.GenerateImage({ prompt: fullPrompt });
       setItems((prev) => {
         const copy = [...prev];
         copy[i] = { ...copy[i], imageUrl: result.url };
         return copy;
       });
-      completed++;
-      setImageProgress(completed);
-    }
+      setImageProgress((prev) => prev + 1);
+    });
+
+    await Promise.all(promises);
     setGeneratingImages(false);
     toast.success("All images generated!");
   };
