@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Hash, Menu, Lock, Tag, ChevronUp, ChevronDown } from 'lucide-react';
+import { Loader2, Hash, Lock, Tag, Plus, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import ChannelList from '@/components/community/ChannelList';
+
 import PostCard from '@/components/community/PostCard';
 import CommentSection from '@/components/community/CommentSection';
 import NewPostForm from '@/components/community/NewPostForm';
@@ -16,12 +16,13 @@ import { loadModSettings } from '@/components/community/ContentModeration';
 import UserPetMojiCreator from '@/components/community/UserPetMojiCreator';
 import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
+import { Link } from 'react-router-dom';
 
 export default function CommunityWall() {
   const [profile, setProfile] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+
 
   const [channels, setChannels] = useState([]);
   const [activeChannelId, setActiveChannelId] = useState(null);
@@ -33,15 +34,11 @@ export default function CommunityWall() {
   const [showPetMojiCreator, setShowPetMojiCreator] = useState(false);
   const [showPetConcept, setShowPetConcept] = useState(false);
   const [showPollCreator, setShowPollCreator] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
 
-  // Tags & themes
   const [tags, setTags] = useState([]);
   const [profilesCache, setProfilesCache] = useState({});
   const [customPetsCache, setCustomPetsCache] = useState([]);
   const [customThemesCache, setCustomThemesCache] = useState([]);
-
-  // User's owned pets for reactions
   const [userPets, setUserPets] = useState([]);
 
   const feedRef = useRef(null);
@@ -57,14 +54,10 @@ export default function CommunityWall() {
       if (profiles.length > 0) {
         prof = profiles[0];
         setProfile(prof);
-        const p = prof;
-        const admin = p.rank === 'admin' || p.rank === 'super_admin' || (typeof p.username === 'string' && p.username.toLowerCase() === 'crosby');
+        const admin = prof.rank === 'admin' || prof.rank === 'super_admin' || (typeof prof.username === 'string' && prof.username.toLowerCase() === 'crosby');
         setIsAdmin(admin);
-
-        // Build user's pet list for reaction picker
-        const ownedPetIds = p.unlockedPets || [];
-        const builtInPets = PETS.filter(pet => ownedPetIds.includes(pet.id));
-        setUserPets(builtInPets);
+        const ownedPetIds = prof.unlockedPets || [];
+        setUserPets(PETS.filter(pet => ownedPetIds.includes(pet.id)));
       }
     }
     await Promise.all([loadChannels(), loadTags(), loadProfilesCache(), loadModSettings()]);
@@ -106,7 +99,6 @@ export default function CommunityWall() {
   };
 
   const activeChannel = channels.find(c => c.id === activeChannelId);
-
   const canView = hasPermission(activeChannel?.viewPermission || 'everyone', profile, isAdmin) && (isAdmin || activeChannel?.isActive);
   const canPost = hasPermission(activeChannel?.postPermission || 'everyone', profile, isAdmin);
   const canCommentPerm = hasPermission(activeChannel?.commentPermission || 'everyone', profile, isAdmin);
@@ -119,17 +111,11 @@ export default function CommunityWall() {
 
   const visiblePosts = isAdmin ? posts : posts.filter(p => p.status === 'approved');
 
-  // Get tags for a profile
-  const getTagsForProfile = (profileId) => {
-    return tags.filter(t => (t.assignedProfileIds || []).includes(profileId));
-  };
+  const getTagsForProfile = (profileId) => tags.filter(t => (t.assignedProfileIds || []).includes(profileId));
 
-  // Get theme colors for a profile
   const getThemeForProfile = (profileId) => {
     const p = profilesCache[profileId];
     if (!p) return null;
-
-    // Check equipped theme
     if (p.equippedThemeId) {
       if (String(p.equippedThemeId).startsWith('custom_')) {
         const tid = String(p.equippedThemeId).replace('custom_', '');
@@ -140,8 +126,6 @@ export default function CommunityWall() {
         if (t?.colors) return t.colors;
       }
     }
-
-    // Check equipped pet
     if (p.equippedPetId) {
       if (String(p.equippedPetId).startsWith('custom_')) {
         const cpId = String(p.equippedPetId).replace('custom_', '');
@@ -157,13 +141,8 @@ export default function CommunityWall() {
   const handleCreatePost = async (content) => {
     if (!profile || !activeChannelId) return;
     await base44.entities.CommunityPost.create({
-      channelId: activeChannelId,
-      authorProfileId: profile.id,
-      authorUsername: profile.username,
-      content,
-      postType: 'text',
-      status: isAdmin ? 'approved' : 'pending',
-      reactions: {},
+      channelId: activeChannelId, authorProfileId: profile.id, authorUsername: profile.username,
+      content, postType: 'text', status: isAdmin ? 'approved' : 'pending', reactions: {},
     });
     await loadPosts();
     if (feedRef.current) feedRef.current.scrollTop = 0;
@@ -172,60 +151,33 @@ export default function CommunityWall() {
   const handleCreatePoll = async (question, options) => {
     if (!profile || !activeChannelId) return;
     await base44.entities.CommunityPost.create({
-      channelId: activeChannelId,
-      authorProfileId: profile.id,
-      authorUsername: profile.username,
-      content: `📊 ${question}`,
-      postType: 'poll',
-      pollOptions: options,
-      pollVotes: {},
-      status: 'approved',
-      reactions: {},
+      channelId: activeChannelId, authorProfileId: profile.id, authorUsername: profile.username,
+      content: `📊 ${question}`, postType: 'poll', pollOptions: options, pollVotes: {},
+      status: 'approved', reactions: {},
     });
     await loadPosts();
-    if (feedRef.current) feedRef.current.scrollTop = 0;
   };
 
   const handleSubmitPetConcept = async (data) => {
     if (!profile || !activeChannelId) return;
     await base44.entities.CommunityPost.create({
-      channelId: activeChannelId,
-      authorProfileId: profile.id,
-      authorUsername: profile.username,
-      content: `💡 Pet Idea: ${data.name} — ${data.description}`,
-      postType: 'pet_concept',
-      petConceptData: {
-        name: data.name,
-        description: data.description,
-        imageUrl: data.imageUrl || '',
-        rarity: data.rarity,
-        theme: data.theme || {},
-      },
-      status: isAdmin ? 'approved' : 'pending',
-      reactions: {},
+      channelId: activeChannelId, authorProfileId: profile.id, authorUsername: profile.username,
+      content: `💡 Pet Idea: ${data.name} — ${data.description}`, postType: 'pet_concept',
+      petConceptData: { name: data.name, description: data.description, imageUrl: data.imageUrl || '', rarity: data.rarity, theme: data.theme || {} },
+      status: isAdmin ? 'approved' : 'pending', reactions: {},
     });
-    // Also create in PetConcept entity for admin review
     await base44.entities.PetConcept.create({
-      name: data.name,
-      description: data.description,
-      imageUrl: data.imageUrl || '',
-      imageSource: data.imageSource || '',
-      emoji: data.emoji || '',
-      rarity: data.rarity,
-      theme: data.theme || {},
-      submittedByProfileId: profile.id,
-      submittedByUsername: profile.username,
-      status: 'pending',
+      name: data.name, description: data.description, imageUrl: data.imageUrl || '',
+      imageSource: data.imageSource || '', emoji: data.emoji || '', rarity: data.rarity, theme: data.theme || {},
+      submittedByProfileId: profile.id, submittedByUsername: profile.username, status: 'pending',
     });
     toast.success('Pet concept submitted for review!');
     await loadPosts();
-    if (feedRef.current) feedRef.current.scrollTop = 0;
   };
 
   const handleVotePoll = async (post, optionIndex) => {
     if (!profile) return;
     const votes = { ...(post.pollVotes || {}) };
-    // Check if already voted
     const alreadyVoted = Object.values(votes).some(arr => (arr || []).includes(profile.id));
     if (alreadyVoted) return;
     const key = String(optionIndex);
@@ -248,20 +200,9 @@ export default function CommunityWall() {
     await loadPosts();
   };
 
-  const handleDeletePost = async (postId) => {
-    await base44.entities.CommunityPost.delete(postId);
-    await loadPosts();
-  };
-
-  const handleApprovePost = async (postId) => {
-    await base44.entities.CommunityPost.update(postId, { status: 'approved' });
-    await loadPosts();
-  };
-
-  const handleRejectPost = async (postId) => {
-    await base44.entities.CommunityPost.update(postId, { status: 'rejected' });
-    await loadPosts();
-  };
+  const handleDeletePost = async (postId) => { await base44.entities.CommunityPost.delete(postId); await loadPosts(); };
+  const handleApprovePost = async (postId) => { await base44.entities.CommunityPost.update(postId, { status: 'approved' }); await loadPosts(); };
+  const handleRejectPost = async (postId) => { await base44.entities.CommunityPost.update(postId, { status: 'rejected' }); await loadPosts(); };
 
   const loadComments = async (postId) => {
     const all = await base44.entities.CommunityComment.filter({ postId }, '-created_date');
@@ -277,172 +218,87 @@ export default function CommunityWall() {
   const handleSubmitComment = async (postId, content) => {
     if (!profile) return;
     await base44.entities.CommunityComment.create({
-      postId,
-      authorProfileId: profile.id,
-      authorUsername: profile.username,
-      content,
-      status: isAdmin ? 'approved' : 'pending',
+      postId, authorProfileId: profile.id, authorUsername: profile.username,
+      content, status: isAdmin ? 'approved' : 'pending',
     });
     await loadComments(postId);
   };
 
-  const handleDeleteComment = async (commentId, postId) => {
-    await base44.entities.CommunityComment.delete(commentId);
-    await loadComments(postId);
-  };
-
-  const handleApproveComment = async (commentId, postId) => {
-    await base44.entities.CommunityComment.update(commentId, { status: 'approved' });
-    await loadComments(postId);
-  };
-
-  const handleRejectComment = async (commentId, postId) => {
-    await base44.entities.CommunityComment.update(commentId, { status: 'rejected' });
-    await loadComments(postId);
-  };
+  const handleDeleteComment = async (commentId, postId) => { await base44.entities.CommunityComment.delete(commentId); await loadComments(postId); };
+  const handleApproveComment = async (commentId, postId) => { await base44.entities.CommunityComment.update(commentId, { status: 'approved' }); await loadComments(postId); };
+  const handleRejectComment = async (commentId, postId) => { await base44.entities.CommunityComment.update(commentId, { status: 'rejected' }); await loadComments(postId); };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-80px)] bg-[#313338]">
-        <Loader2 className="w-6 h-6 animate-spin text-[#5865f2]" />
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-80px)] bg-[#313338]">
-        <p className="text-[#949ba4] text-sm">Log in to access the Community Wall.</p>
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <p className="text-slate-500 text-sm">Log in to access the Community Wall.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex bg-[#313338] -mx-4 -mt-4" style={{ height: '100vh' }}>
-      {/* Sidebar */}
-      <ChannelList
-        channels={visibleChannels}
-        activeChannelId={activeChannelId}
-        onSelect={(id) => { setActiveChannelId(id); if (window.innerWidth < 640) setSidebarOpen(false); }}
-        isAdmin={isAdmin}
-        onManage={() => setShowManager(true)}
-        collapsed={!sidebarOpen}
-      />
-
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Channel header */}
-        <div className="h-12 px-4 flex items-center gap-3 border-b border-[#1e1f22] shrink-0 bg-[#313338]">
-          <Button variant="ghost" size="icon" className="h-7 w-7 sm:hidden text-[#b5bac1] hover:text-white hover:bg-[#35373c]" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            <Menu className="w-4 h-4" />
-          </Button>
+    <div className="bg-slate-50 min-h-screen">
+      {/* Top bar */}
+      <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
+        <Link to="/Dashboard" className="text-slate-400 hover:text-slate-600 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-bold text-slate-800">Community</h1>
           {activeChannel && (
-            <>
-              <Hash className="w-5 h-5 text-[#6d6f78]" />
-              <h2 className="text-white font-semibold text-sm truncate">{activeChannel.name}</h2>
-              {activeChannel.description && (
-                <>
-                  <div className="w-px h-5 bg-[#3f4147]" />
-                  <p className="text-[#949ba4] text-xs truncate hidden sm:block">{activeChannel.description}</p>
-                </>
-              )}
-            </>
+            <p className="text-xs text-slate-400 truncate">{activeChannel.icon} {activeChannel.name}{activeChannel.description ? ` — ${activeChannel.description}` : ''}</p>
           )}
-          <div className="flex items-center gap-1 ml-auto">
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-[#b5bac1] hover:text-white hover:bg-[#35373c] text-xs" onClick={() => setShowPetMojiCreator(true)}>
-              😺 Petmoji
-            </Button>
-            {isAdmin && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-[#b5bac1] hover:text-white hover:bg-[#35373c]" onClick={() => setShowTagManager(true)}>
-                <Tag className="w-3.5 h-3.5" />
-              </Button>
-            )}
-          </div>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="text-xs text-slate-500" onClick={() => setShowPetMojiCreator(true)}>
+            🥚 Petmoji
+          </Button>
+          {isAdmin && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400" onClick={() => setShowTagManager(true)}>
+              <Tag className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </div>
 
-        {/* Feed */}
-        {activeChannel && canView ? (
-          <>
-            <div ref={feedRef} className="flex-1 overflow-y-auto flex flex-col-reverse">
-              <div className="py-2">
-                {/* Collapsible Petmoji promo banner */}
-                {!bannerDismissed ? (
-                  <div className="mx-4 mt-3 mb-1 relative">
-                    <button
-                      onClick={() => setShowPetMojiCreator(true)}
-                      className="w-full bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border border-purple-500/20 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-purple-500/40 transition-all group"
-                    >
-                      <span className="text-2xl group-hover:scale-110 transition-transform">🥚✨</span>
-                      <div className="text-left flex-1">
-                        <p className="text-[#dbdee1] text-sm font-semibold">Turn your Magic Egg into a Petmoji!</p>
-                        <p className="text-[#949ba4] text-[11px]">Create custom reaction stickers with AI — everyone can use them!</p>
-                      </div>
-                      <span className="text-[#5865f2] text-xs font-semibold group-hover:underline">Create →</span>
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setBannerDismissed(true); }}
-                      className="absolute top-1 right-1 text-[#6d6f78] hover:text-[#dbdee1] p-1 rounded transition-colors"
-                      title="Hide banner"
-                    >
-                      <ChevronUp className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mx-4 mt-2 mb-1">
-                    <button
-                      onClick={() => setBannerDismissed(false)}
-                      className="flex items-center gap-1.5 text-[10px] text-[#6d6f78] hover:text-[#949ba4] transition-colors"
-                    >
-                      <ChevronDown className="w-3 h-3" />
-                      <span>🥚 Show Petmoji creator</span>
-                    </button>
-                  </div>
-                )}
+      {/* Channel pills bar */}
+      <div className="bg-white border-b border-slate-100 px-4 py-2.5 flex items-center gap-2 overflow-x-auto">
+        {visibleChannels.map(ch => (
+          <button
+            key={ch.id}
+            onClick={() => setActiveChannelId(ch.id)}
+            className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+              activeChannelId === ch.id
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+            }`}
+          >
+            {ch.icon || '💬'} {ch.name}
+            {!ch.isActive && <span className="text-[10px] ml-1 opacity-50">(hidden)</span>}
+          </button>
+        ))}
+        <button
+          onClick={() => setShowManager(true)}
+          className="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all flex items-center gap-1"
+        >
+          <Plus className="w-3.5 h-3.5" /> Channel
+        </button>
+      </div>
 
-                {visiblePosts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20">
-                    <Hash className="w-12 h-12 text-[#6d6f78] mb-3" />
-                    <p className="text-[#dbdee1] font-semibold">Welcome to #{activeChannel.name}!</p>
-                    <p className="text-[#949ba4] text-sm mt-1">This is the start of the channel.</p>
-                  </div>
-                ) : (
-                  visiblePosts.slice().reverse().map((post) => (
-                    <div key={post.id}>
-                      <PostCard
-                        post={post}
-                        isAdmin={isAdmin}
-                        currentProfileId={profile.id}
-                        onReact={handleReact}
-                        onDelete={handleDeletePost}
-                        onApprove={handleApprovePost}
-                        onReject={handleRejectPost}
-                        onToggleComments={toggleComments}
-                        onVotePoll={handleVotePoll}
-                        commentCount={(comments[post.id] || []).filter(c => isAdmin || c.status === 'approved').length}
-                        isExpanded={!!expandedComments[post.id]}
-                        userPets={userPets}
-                        authorTags={getTagsForProfile(post.authorProfileId)}
-                        authorTheme={getThemeForProfile(post.authorProfileId)}
-                      />
-                      {expandedComments[post.id] && (
-                        <CommentSection
-                          comments={comments[post.id] || []}
-                          canComment={canCommentPerm}
-                          isAdmin={isAdmin}
-                          channelId={activeChannelId}
-                          onSubmit={(text) => handleSubmitComment(post.id, text)}
-                          onDelete={(cId) => handleDeleteComment(cId, post.id)}
-                          onApprove={(cId) => handleApproveComment(cId, post.id)}
-                          onReject={(cId) => handleRejectComment(cId, post.id)}
-                        />
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {canPost && (
+      {/* Feed */}
+      {activeChannel && canView ? (
+        <div className="max-w-2xl mx-auto px-4 pb-32">
+          {/* Post input */}
+          {canPost && (
+            <div className="mt-4">
               <NewPostForm
                 onSubmit={handleCreatePost}
                 isAdmin={isAdmin}
@@ -451,50 +307,80 @@ export default function CommunityWall() {
                 onPetConcept={() => setShowPetConcept(true)}
                 onPoll={() => setShowPollCreator(true)}
               />
-            )}
-          </>
-        ) : activeChannel ? (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <Lock className="w-10 h-10 text-[#6d6f78] mb-3" />
-            <p className="text-[#949ba4] text-sm">You don't have access to this channel.</p>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <Hash className="w-10 h-10 text-[#6d6f78] mb-3" />
-            <p className="text-[#949ba4] text-sm">Select a channel to get started.</p>
-          </div>
-        )}
-      </div>
+            </div>
+          )}
 
-      <UserPetMojiCreator
-        open={showPetMojiCreator}
-        onClose={() => setShowPetMojiCreator(false)}
-        profile={profile}
-      />
-      <PetConceptDialog
-        open={showPetConcept}
-        onClose={() => setShowPetConcept(false)}
-        onSubmit={handleSubmitPetConcept}
-      />
-      <PollCreatorDialog
-        open={showPollCreator}
-        onClose={() => setShowPollCreator(false)}
-        onSubmit={handleCreatePoll}
+          {/* Posts */}
+          <div ref={feedRef} className="mt-4 space-y-3">
+            {visiblePosts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mb-3">
+                  <Hash className="w-6 h-6 text-indigo-300" />
+                </div>
+                <p className="text-slate-700 font-semibold">Welcome to {activeChannel.icon} {activeChannel.name}!</p>
+                <p className="text-slate-400 text-sm mt-1">Be the first to post here.</p>
+              </div>
+            ) : (
+              visiblePosts.map((post) => (
+                <div key={post.id}>
+                  <PostCard
+                    post={post}
+                    isAdmin={isAdmin}
+                    currentProfileId={profile.id}
+                    onReact={handleReact}
+                    onDelete={handleDeletePost}
+                    onApprove={handleApprovePost}
+                    onReject={handleRejectPost}
+                    onToggleComments={toggleComments}
+                    onVotePoll={handleVotePoll}
+                    commentCount={(comments[post.id] || []).filter(c => isAdmin || c.status === 'approved').length}
+                    isExpanded={!!expandedComments[post.id]}
+                    userPets={userPets}
+                    authorTags={getTagsForProfile(post.authorProfileId)}
+                    authorTheme={getThemeForProfile(post.authorProfileId)}
+                    profilesCache={profilesCache}
+                  />
+                  {expandedComments[post.id] && (
+                    <CommentSection
+                      comments={comments[post.id] || []}
+                      canComment={canCommentPerm}
+                      isAdmin={isAdmin}
+                      channelId={activeChannelId}
+                      onSubmit={(text) => handleSubmitComment(post.id, text)}
+                      onDelete={(cId) => handleDeleteComment(cId, post.id)}
+                      onApprove={(cId) => handleApproveComment(cId, post.id)}
+                      onReject={(cId) => handleRejectComment(cId, post.id)}
+                    />
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ) : activeChannel ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Lock className="w-10 h-10 text-slate-300 mb-3" />
+          <p className="text-slate-400 text-sm">You don't have access to this channel.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Hash className="w-10 h-10 text-slate-300 mb-3" />
+          <p className="text-slate-400 text-sm">Select a channel to get started.</p>
+        </div>
+      )}
+
+      <UserPetMojiCreator open={showPetMojiCreator} onClose={() => setShowPetMojiCreator(false)} profile={profile} />
+      <PetConceptDialog open={showPetConcept} onClose={() => setShowPetConcept(false)} onSubmit={handleSubmitPetConcept} />
+      <PollCreatorDialog open={showPollCreator} onClose={() => setShowPollCreator(false)} onSubmit={handleCreatePoll} />
+      <ChannelManagerDialog
+        open={showManager}
+        onClose={() => setShowManager(false)}
+        channels={channels}
+        onRefresh={loadChannels}
+        isAdmin={isAdmin}
       />
       {isAdmin && (
-        <>
-          <ChannelManagerDialog
-            open={showManager}
-            onClose={() => setShowManager(false)}
-            channels={channels}
-            onRefresh={loadChannels}
-          />
-          <TagManagerDialog
-            open={showTagManager}
-            onClose={() => setShowTagManager(false)}
-            onRefresh={loadTags}
-          />
-        </>
+        <TagManagerDialog open={showTagManager} onClose={() => setShowTagManager(false)} onRefresh={loadTags} />
       )}
     </div>
   );

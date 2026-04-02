@@ -12,8 +12,6 @@ export default function NewPostForm({ onSubmit, isAdmin, channelName, channelId,
   const handleSubmit = async () => {
     if (!content.trim()) return;
     setSubmitting(true);
-    
-    // Run moderation (admins skip)
     if (!isAdmin) {
       await loadModSettings();
       const result = await moderateContent(content.trim(), channelId);
@@ -23,7 +21,6 @@ export default function NewPostForm({ onSubmit, isAdmin, channelName, channelId,
         return;
       }
     }
-    
     await onSubmit(content.trim());
     setContent('');
     setSubmitting(false);
@@ -37,26 +34,21 @@ export default function NewPostForm({ onSubmit, isAdmin, channelName, channelId,
   };
 
   return (
-    <div className="px-4 pb-4 pt-2 shrink-0">
-      <div className="bg-[#383a40] rounded-lg flex items-end gap-2 px-3 py-2">
-        <PostAttachmentMenu
-          isAdmin={isAdmin}
-          onPetConcept={onPetConcept}
-          onPoll={onPoll}
-        />
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-3">
+      <div className="flex items-end gap-2">
+        <PostAttachmentMenu isAdmin={isAdmin} onPetConcept={onPetConcept} onPoll={onPoll} />
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={`Message #${channelName || 'channel'}${!isAdmin ? ' (requires approval)' : ''}`}
-          className="flex-1 bg-transparent text-sm text-[#dbdee1] placeholder:text-[#6d6f78] resize-none outline-none min-h-[20px] max-h-[120px] leading-relaxed"
+          placeholder={`What's on your mind?${!isAdmin ? ' (needs approval)' : ''}`}
+          className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 resize-none outline-none min-h-[20px] max-h-[120px] leading-relaxed"
           rows={1}
-          style={{ height: 'auto' }}
           onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
         />
         <Button
           size="icon"
-          className="h-8 w-8 shrink-0 bg-[#5865f2] hover:bg-[#4752c4] rounded-full"
+          className="h-8 w-8 shrink-0 bg-indigo-500 hover:bg-indigo-600 rounded-full"
           onClick={handleSubmit}
           disabled={submitting || !content.trim()}
         >

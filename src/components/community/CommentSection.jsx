@@ -31,36 +31,36 @@ export default function CommentSection({ comments, canComment, isAdmin, channelI
   const visibleComments = isAdmin ? comments : comments.filter(c => c.status === 'approved');
 
   return (
-    <div className="ml-[52px] mr-4 mb-2 border-l-2 border-[#5865f2]/30 pl-3 space-y-1">
+    <div className="mx-4 mb-3 ml-8 border-l-2 border-indigo-100 pl-4 space-y-2 pt-1">
       {visibleComments.map((c) => (
         <div key={c.id} className={cn(
-          "flex items-start gap-2 py-1 group/comment",
-          c.status === 'pending' && "opacity-70"
+          "flex items-start gap-2.5 py-1.5 group/comment",
+          c.status === 'pending' && "opacity-60"
         )}>
-          <div className="w-6 h-6 rounded-full bg-[#5865f2]/50 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+          <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold shrink-0">
             {c.authorUsername?.[0]?.toUpperCase() || '?'}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-[#dbdee1] text-xs">{c.authorUsername}</span>
-              <span className="text-[10px] text-[#949ba4]">{moment(c.created_date).fromNow()}</span>
-              {c.status === 'pending' && <span className="text-[9px] text-[#fee75c]">pending</span>}
+              <span className="font-semibold text-slate-700 text-xs">{c.authorUsername}</span>
+              <span className="text-[10px] text-slate-400">{moment(c.created_date).fromNow()}</span>
+              {c.status === 'pending' && <span className="text-[9px] text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded-full font-medium">pending</span>}
             </div>
-            <p className="text-[#b5bac1] text-xs leading-relaxed">{c.content}</p>
+            <p className="text-slate-600 text-xs leading-relaxed mt-0.5">{c.content}</p>
           </div>
           {isAdmin && (
             <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/comment:opacity-100">
               {c.status === 'pending' && (
                 <>
-                  <Button variant="ghost" size="icon" className="h-5 w-5 text-green-400 hover:bg-green-500/10" onClick={() => onApprove(c.id)}>
+                  <Button variant="ghost" size="icon" className="h-5 w-5 text-green-500 hover:bg-green-50" onClick={() => onApprove(c.id)}>
                     <CheckCircle className="w-3 h-3" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-5 w-5 text-red-400 hover:bg-red-500/10" onClick={() => onReject(c.id)}>
+                  <Button variant="ghost" size="icon" className="h-5 w-5 text-red-400 hover:bg-red-50" onClick={() => onReject(c.id)}>
                     <XCircle className="w-3 h-3" />
                   </Button>
                 </>
               )}
-              <Button variant="ghost" size="icon" className="h-5 w-5 text-[#949ba4] hover:text-red-400" onClick={() => onDelete(c.id)}>
+              <Button variant="ghost" size="icon" className="h-5 w-5 text-slate-300 hover:text-red-400" onClick={() => onDelete(c.id)}>
                 <Trash2 className="w-2.5 h-2.5" />
               </Button>
             </div>
@@ -73,11 +73,11 @@ export default function CommentSection({ comments, canComment, isAdmin, channelI
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Reply..."
-            className="text-xs h-7 bg-[#383a40] border-none text-[#dbdee1] placeholder:text-[#6d6f78] focus-visible:ring-[#5865f2]"
+            placeholder="Write a reply..."
+            className="text-xs h-8 bg-slate-50 border-slate-200 text-slate-700 placeholder:text-slate-400 focus-visible:ring-indigo-300 rounded-full px-3"
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
-          <Button size="icon" className="h-7 w-7 shrink-0 bg-[#5865f2] hover:bg-[#4752c4]" onClick={handleSubmit} disabled={!text.trim() || submitting}>
+          <Button size="icon" className="h-8 w-8 shrink-0 bg-indigo-500 hover:bg-indigo-600 rounded-full" onClick={handleSubmit} disabled={!text.trim() || submitting}>
             {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
           </Button>
         </div>
