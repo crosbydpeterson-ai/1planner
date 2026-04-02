@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { moderateContent, loadModSettings } from './ContentModeration';
 import { toast } from 'sonner';
 
-export default function CommentSection({ comments, canComment, isAdmin, onSubmit, onDelete, onApprove, onReject }) {
+export default function CommentSection({ comments, canComment, isAdmin, channelId, onSubmit, onDelete, onApprove, onReject }) {
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -16,7 +16,7 @@ export default function CommentSection({ comments, canComment, isAdmin, onSubmit
     setSubmitting(true);
     if (!isAdmin) {
       await loadModSettings();
-      const result = await moderateContent(text.trim());
+      const result = await moderateContent(text.trim(), channelId);
       if (!result.safe) {
         toast.error(result.reason || 'Your comment was blocked by moderation.');
         setSubmitting(false);

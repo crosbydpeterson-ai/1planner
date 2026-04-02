@@ -429,6 +429,7 @@ export default function CommunityWall() {
                           comments={comments[post.id] || []}
                           canComment={canCommentPerm}
                           isAdmin={isAdmin}
+                          channelId={activeChannelId}
                           onSubmit={(text) => handleSubmitComment(post.id, text)}
                           onDelete={(cId) => handleDeleteComment(cId, post.id)}
                           onApprove={(cId) => handleApproveComment(cId, post.id)}
@@ -446,6 +447,7 @@ export default function CommunityWall() {
                 onSubmit={handleCreatePost}
                 isAdmin={isAdmin}
                 channelName={activeChannel.name}
+                channelId={activeChannelId}
                 onPetConcept={() => setShowPetConcept(true)}
                 onPoll={() => setShowPollCreator(true)}
               />

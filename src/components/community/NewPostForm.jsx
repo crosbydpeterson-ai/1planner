@@ -5,7 +5,7 @@ import PostAttachmentMenu from './PostAttachmentMenu';
 import { moderateContent, loadModSettings } from './ContentModeration';
 import { toast } from 'sonner';
 
-export default function NewPostForm({ onSubmit, isAdmin, channelName, onPetConcept, onPoll }) {
+export default function NewPostForm({ onSubmit, isAdmin, channelName, channelId, onPetConcept, onPoll }) {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -16,7 +16,7 @@ export default function NewPostForm({ onSubmit, isAdmin, channelName, onPetConce
     // Run moderation (admins skip)
     if (!isAdmin) {
       await loadModSettings();
-      const result = await moderateContent(content.trim());
+      const result = await moderateContent(content.trim(), channelId);
       if (!result.safe) {
         toast.error(result.reason || 'Your message was blocked by moderation.');
         setSubmitting(false);

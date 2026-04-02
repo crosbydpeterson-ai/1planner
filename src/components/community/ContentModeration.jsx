@@ -50,17 +50,20 @@ export function checkKeywordFilter(text) {
   return { safe: true };
 }
 
-export async function checkAIMod(text) {
+export async function checkAIMod(text, channelId) {
   const settings = getModSettings();
   if (!settings.aiModEnabled) return { safe: true };
   
-  const customInstructions = settings.aiCustomInstructions ? `\n\nAdditional admin instructions: ${settings.aiCustomInstructions}` : '';
+  const globalInstructions = settings.aiCustomInstructions ? `\n\nGlobal admin instructions: ${settings.aiCustomInstructions}` : '';
+  const channelInstructions = (channelId && settings.channelInstructions?.[channelId])
+    ? `\n\nChannel-specific instructions: ${settings.channelInstructions[channelId]}`
+    : '';
   
   try {
     const result = await base44.integrations.Core.InvokeLLM({
       prompt: `You are a kid-friendly content moderator for a school classroom app. Check if this message is appropriate for children ages 10-14. The message is: "${text}"
       
-Rules: No profanity, bullying, violence, inappropriate content, personal info sharing, or mean-spirited content. Be strict but fair - normal kid conversation is fine.${customInstructions}
+Rules: No profanity, bullying, violence, inappropriate content, personal info sharing, or mean-spirited content. Be strict but fair - normal kid conversation is fine.${globalInstructions}${channelInstructions}
 
 Respond with JSON only.`,
       response_json_schema: {
@@ -78,12 +81,12 @@ Respond with JSON only.`,
   }
 }
 
-export async function moderateContent(text) {
+export async function moderateContent(text, channelId) {
   // Step 1: keyword filter (instant)
   const keywordResult = checkKeywordFilter(text);
   if (!keywordResult.safe) return keywordResult;
   
-  // Step 2: AI mod (if enabled)
-  const aiResult = await checkAIMod(text);
+  // Step 2: AI mod (if enabled, with per-channel instructions)
+  const aiResult = await checkAIMod(text, channelId);
   return aiResult;
 }
