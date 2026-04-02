@@ -34,7 +34,7 @@ export default function NewPostForm({ onSubmit, isAdmin, channelName, channelId,
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-3">
+    <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-sm border border-white/40 p-3">
       <div className="flex items-end gap-2">
         <PostAttachmentMenu isAdmin={isAdmin} onPetConcept={onPetConcept} onPoll={onPoll} />
         <textarea

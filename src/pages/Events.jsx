@@ -25,17 +25,17 @@ export default function Events() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950">
-        <Loader2 className="w-6 h-6 animate-spin text-white/50" />
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen -mx-4 -mt-4 pb-20">
+    <div className="min-h-screen pb-20">
       <GlobalEventWidget profile={profile} fullScreen />
       {!profile && (
-        <p className="text-center text-white/40 text-sm py-8">Log in to participate in events.</p>
+        <p className="text-center text-slate-400 text-sm py-8">Log in to participate in events.</p>
       )}
     </div>
   );

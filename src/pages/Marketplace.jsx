@@ -175,7 +175,7 @@ export default function Marketplace() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
       </div>
     );
@@ -197,7 +197,7 @@ export default function Marketplace() {
   const groupedBySeller = activeListings.reduce((acc, l) => { (acc[l.sellerProfileId] = acc[l.sellerProfileId] || []).push(l); return acc; }, {});
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 pb-24">
+    <div className="min-h-screen p-4 pb-24">
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-slate-800">Player Marketplace</h1>
@@ -211,7 +211,7 @@ export default function Marketplace() {
           </div>
         </div>
 
-        <Card>
+        <Card className="bg-white/30 backdrop-blur-xl border border-white/40 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Create Listing</CardTitle>
             {!creating && (
@@ -265,7 +265,7 @@ export default function Marketplace() {
             <h2 className="text-lg font-semibold text-slate-700 mb-3">My Active Listings</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {myListings.map((l) => (
-                <Card key={l.id} className="overflow-hidden">
+                <Card key={l.id} className="overflow-hidden bg-white/40 backdrop-blur-xl border border-white/40">
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between">
                       <PetAvatar petId={l.petId} size="md" />
@@ -286,7 +286,7 @@ export default function Marketplace() {
             <h2 className="text-lg font-semibold text-slate-700 mb-3">Incoming Offers</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               {incomingOffers.map((o) => (
-                <Card key={o.id}>
+                <Card key={o.id} className="bg-white/40 backdrop-blur-xl border border-white/40">
                   <CardHeader>
                     <CardTitle className="text-base">Trade Offer</CardTitle>
                   </CardHeader>
@@ -327,7 +327,7 @@ export default function Marketplace() {
               const banner = skinsMap[seller.equippedBoothSkinId];
               const boothBgUrl = sellerBgMap[sellerId] || banner?.imageUrl;
               return (
-                <div key={sellerId} className="mb-6 rounded-2xl overflow-hidden border border-slate-200">
+                <div key={sellerId} className="mb-6 rounded-2xl overflow-hidden border border-white/30 bg-white/20 backdrop-blur-xl shadow-lg">
                   <div className="relative h-32 sm:h-40 w-full">
                     {boothBgUrl ? (
                       <img src={boothBgUrl} alt={banner?.name || 'Booth background'} className="absolute inset-0 w-full h-full object-cover" />
@@ -341,12 +341,12 @@ export default function Marketplace() {
                     </div>
                   </div>
 
-                  <div className="p-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-white">
+                  <div className="p-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-white/40 backdrop-blur-sm">
                     {listings.map((l) => {
                       const isMine = l.sellerProfileId === profile.id;
                       const canAfford = (profile?.questCoins || 0) >= Number(l.priceCoins || 0);
                       return (
-                        <Card key={l.id} className="overflow-hidden">
+                        <Card key={l.id} className="overflow-hidden bg-white/50 backdrop-blur-sm border border-white/40">
                           <CardContent className="pt-4">
                             <div className="flex items-center justify-between">
                               <PetAvatar petId={l.petId} size="md" />

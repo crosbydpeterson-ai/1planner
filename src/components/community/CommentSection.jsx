@@ -31,7 +31,7 @@ export default function CommentSection({ comments, canComment, isAdmin, channelI
   const visibleComments = isAdmin ? comments : comments.filter(c => c.status === 'approved');
 
   return (
-    <div className="mx-4 mb-3 ml-8 border-l-2 border-indigo-100 pl-4 space-y-2 pt-1">
+    <div className="mx-4 mb-3 ml-8 border-l-2 border-indigo-200/40 pl-4 space-y-2 pt-1">
       {visibleComments.map((c) => (
         <div key={c.id} className={cn(
           "flex items-start gap-2.5 py-1.5 group/comment",
@@ -74,7 +74,7 @@ export default function CommentSection({ comments, canComment, isAdmin, channelI
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Write a reply..."
-            className="text-xs h-8 bg-slate-50 border-slate-200 text-slate-700 placeholder:text-slate-400 focus-visible:ring-indigo-300 rounded-full px-3"
+            className="text-xs h-8 bg-white/50 backdrop-blur-sm border-white/40 text-slate-700 placeholder:text-slate-400 focus-visible:ring-indigo-300 rounded-full px-3"
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
           <Button size="icon" className="h-8 w-8 shrink-0 bg-indigo-500 hover:bg-indigo-600 rounded-full" onClick={handleSubmit} disabled={!text.trim() || submitting}>

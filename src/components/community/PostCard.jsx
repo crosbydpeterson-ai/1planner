@@ -13,8 +13,8 @@ export default function PostCard({ post, isAdmin, currentProfileId, onReact, onD
 
   return (
     <div className={cn(
-      "bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all hover:shadow-md",
-      isPending && "border-amber-200 bg-amber-50/30"
+      "bg-white/40 backdrop-blur-xl rounded-2xl shadow-sm border border-white/40 overflow-hidden transition-all hover:shadow-md",
+      isPending && "border-amber-300/40 bg-amber-50/20"
     )}>
       <div className="p-4">
         {/* Author header */}
