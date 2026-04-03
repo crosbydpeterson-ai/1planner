@@ -305,13 +305,20 @@ export default function Assignments() {
       const rewardEggId = globalAssignmentEggId || assignment.lootEggId;
       if (rewardEggId && !profile.isBanned) {
         assignmentEgg = lootEggsById[rewardEggId] || null;
-        await base44.entities.LootEggDrop.create({
-          lootEggId: rewardEggId,
+        const existingDrops = await base44.entities.LootEggDrop.filter({
           profileId: profile.id,
-          username: profile.username,
-          source: 'assignment_completion',
-          assignmentId: assignment.id
+          assignmentId: assignment.id,
+          source: 'assignment_completion'
         });
+        if (existingDrops.length === 0) {
+          await base44.entities.LootEggDrop.create({
+            lootEggId: rewardEggId,
+            profileId: profile.id,
+            username: profile.username,
+            source: 'assignment_completion',
+            assignmentId: assignment.id
+          });
+        }
       }
 
       // Track XP gain
