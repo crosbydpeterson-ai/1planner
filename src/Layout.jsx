@@ -222,7 +222,7 @@ export default function Layout({ children, currentPageName }) {
             { name: 'Marketplace', icon: Coins, label: 'Market' },
             { name: 'Leaderboard', icon: Trophy, label: 'Rank' },
             { name: 'Rewards', icon: Gem, label: 'Collection' },
-            { name: 'Season', icon: Sparkles, label: 'Season' },
+            { name: 'Season', icon: Sparkles, label: '1Pass' },
             { name: 'Events', icon: CalendarHeart, label: 'Events' },
             { name: 'Info', icon: Info, label: 'Info' },
             { name: 'community', icon: MessageSquare, label: 'Community', customPath: '/community' },

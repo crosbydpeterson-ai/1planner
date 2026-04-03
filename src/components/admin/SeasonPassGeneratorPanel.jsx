@@ -55,7 +55,7 @@ export default function SeasonPassGeneratorPanel({ adminProfile, customPets, cus
       }[spacing];
 
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are designing a season pass for a school gamification app called 1Planner.
+        prompt: `You are designing a 1Pass for a school gamification app called 1Planner.
         
 Theme: "${theme}"
 Number of rewards: ${rewardCount}
@@ -140,7 +140,7 @@ RULES:
       setStep("review");
     } catch (e) {
       console.error(e);
-      toast.error("Failed to generate season pass");
+      toast.error("Failed to generate 1Pass");
       setStep("input");
     }
     setLoading(false);
@@ -316,7 +316,7 @@ RULES:
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-amber-400" /> AI Season Pass Generator
+          <Sparkles className="w-5 h-5 text-amber-400" /> AI 1Pass Generator
         </h2>
         {step !== "input" && (
           <Button variant="outline" size="sm" onClick={handleReset} className="text-slate-300 border-slate-600 hover:bg-slate-700">
@@ -329,7 +329,7 @@ RULES:
       {step === "input" && (
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-4 space-y-4">
-            <p className="text-sm text-slate-400">Describe a theme and let AI generate a complete season pass with rewards, XP requirements, and even new pets!</p>
+            <p className="text-sm text-slate-400">Describe a theme and let AI generate a complete 1Pass with rewards, XP requirements, 1Pass Plus-ready rewards, and even new pets!</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -368,7 +368,7 @@ RULES:
             </div>
 
             <Button onClick={handleGenerate} disabled={!theme.trim() || !startDate || !endDate} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 gap-2">
-              <Wand2 className="w-4 h-4" /> Generate Season Pass
+              <Wand2 className="w-4 h-4" /> Generate 1Pass
             </Button>
           </CardContent>
         </Card>
@@ -379,7 +379,7 @@ RULES:
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-8 text-center">
             <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-amber-400" />
-            <p className="text-white font-semibold text-lg">Generating "{theme}" Season Pass...</p>
+            <p className="text-white font-semibold text-lg">Generating "{theme}" 1Pass...</p>
             <p className="text-slate-400 text-sm mt-2">Creating {rewardCount} rewards with {SPACING_LABELS[spacing].toLowerCase()} spacing</p>
           </CardContent>
         </Card>
