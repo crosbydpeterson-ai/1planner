@@ -81,19 +81,22 @@ export default function Season() {
       const fl = settings.find(s => s.key === 'feature_locks');
       setLocks(fl ? fl.value : null);
 
-      // Load active season — pick the one whose date range includes today, or the latest
+      // Load active season — if user has an activeSeasonId, show that season; otherwise pick by date
       const seasons = await base44.entities.Season.filter({ isActive: true });
       if (seasons.length > 0) {
-        const now = new Date();
-        const current = seasons.find(s => new Date(s.startDate) <= now && new Date(s.endDate) >= now) || seasons[0];
-        setSeason(current);
-        // Auto-bind user to this season if their activeSeasonId is stale
-        if (me.activeSeasonId !== current.id) {
+        // Prefer the season the user is already tracking
+        let current = me.activeSeasonId ? seasons.find(s => s.id === me.activeSeasonId) : null;
+        if (!current) {
+          // User has no activeSeasonId or it doesn't match any active season — pick by date
+          const now = new Date();
+          current = seasons.find(s => new Date(s.startDate) <= now && new Date(s.endDate) >= now) || seasons[0];
+          // Bind user to this season (first visit)
           await base44.entities.UserProfile.update(me.id, { activeSeasonId: current.id, seasonXp: 0 });
           me.activeSeasonId = current.id;
           me.seasonXp = 0;
           setProfile({ ...me });
         }
+        setSeason(current);
       }
     } catch (e) {
       console.error('Error loading data:', e);
