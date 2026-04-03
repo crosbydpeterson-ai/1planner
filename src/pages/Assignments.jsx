@@ -109,15 +109,20 @@ export default function Assignments() {
       setAssignments(visible);
 
       // Build creator map from all users
-      const [allUsers, allLootEggs] = await Promise.all([
+      const [allUsers, allLootEggs, assignmentSettings] = await Promise.all([
         base44.entities.UserProfile.list(),
-        base44.entities.LootEgg.list('-created_date')
+        base44.entities.LootEgg.list('-created_date'),
+        base44.entities.AppSetting.list()
       ]);
       const cMap = {};
       allUsers.forEach(u => { cMap[u.userId] = u.username; });
       setCreatorMap(cMap);
       const eggMap = {};
       allLootEggs.forEach(egg => { eggMap[egg.id] = egg; });
+      const defaultAssignmentEggId = assignmentSettings.find(s => s.key === 'default_assignment_loot_egg')?.value?.lootEggId;
+      if (defaultAssignmentEggId) {
+        eggMap.__defaultAssignmentEggId = defaultAssignmentEggId;
+      }
       setLootEggsById(eggMap);
 
       // Load Super Assignments for this user
@@ -299,10 +304,11 @@ export default function Assignments() {
       }
 
       let assignmentEgg = null;
-      if (assignment.lootEggId && !profile.isBanned) {
-        assignmentEgg = lootEggsById[assignment.lootEggId] || null;
+      const awardedLootEggId = assignment.lootEggId || lootEggsById.__defaultAssignmentEggId;
+      if (awardedLootEggId && !profile.isBanned) {
+        assignmentEgg = lootEggsById[awardedLootEggId] || null;
         await base44.entities.LootEggDrop.create({
-          lootEggId: assignment.lootEggId,
+          lootEggId: awardedLootEggId,
           profileId: profile.id,
           username: profile.username,
           source: 'assignment_completion',
