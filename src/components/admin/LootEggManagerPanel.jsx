@@ -14,6 +14,7 @@ const COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#3b82f6','#ec
 
 export default function LootEggManagerPanel({ users = [], customPets = [], customThemes = [] }) {
   const [lootEggs, setLootEggs] = useState([]);
+  const [globalAssignmentEggId, setGlobalAssignmentEggId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -27,8 +28,13 @@ export default function LootEggManagerPanel({ users = [], customPets = [], custo
   useEffect(() => { loadEggs(); }, []);
 
   const loadEggs = async () => {
-    const eggs = await base44.entities.LootEgg.list('-created_date');
+    const [eggs, settings] = await Promise.all([
+      base44.entities.LootEgg.list('-created_date'),
+      base44.entities.AppSetting.list()
+    ]);
     setLootEggs(eggs);
+    const globalEggSetting = settings.find(s => s.key === 'assignment_default_loot_egg_id');
+    setGlobalAssignmentEggId(globalEggSetting?.value || null);
     setLoading(false);
   };
 
@@ -78,6 +84,26 @@ export default function LootEggManagerPanel({ users = [], customPets = [], custo
     if (!user) return;
     await base44.entities.LootEggDrop.create({ lootEggId: egg.id, profileId: user.id, username: user.username, source: 'admin_gift' });
     toast.success(`Gifted ${egg.name} to ${user.username}`);
+  };
+
+  const handleToggleGlobalAssignmentEgg = async (eggId, checked) => {
+    const settings = await base44.entities.AppSetting.list();
+    const existing = settings.find(s => s.key === 'assignment_default_loot_egg_id');
+    const value = checked ? eggId : null;
+
+    if (existing) {
+      await base44.entities.AppSetting.update(existing.id, { value });
+    } else {
+      await base44.entities.AppSetting.create({ key: 'assignment_default_loot_egg_id', value });
+    }
+
+    setGlobalAssignmentEggId(value);
+    if (checked) {
+      const egg = lootEggs.find(e => e.id === eggId);
+      toast.success(`${egg?.emoji || '🥚'} ${egg?.name || 'Egg'} is now the assignment egg for all completions.`);
+    } else {
+      toast.success('Global assignment egg cleared.');
+    }
   };
 
   const handleAIGenerate = async () => {
@@ -165,7 +191,17 @@ Make it fun and engaging for 10-14 year old students.`,
         ) : (
           <div className="space-y-3">
             {lootEggs.map(egg => (
-              <EggRow key={egg.id} egg={egg} users={users} onDelete={handleDelete} onGiftAll={handleGiftToAll} onGiftUser={handleGiftToUser} giftingAll={giftingAll} />
+              <EggRow
+                key={egg.id}
+                egg={egg}
+                users={users}
+                onDelete={handleDelete}
+                onGiftAll={handleGiftToAll}
+                onGiftUser={handleGiftToUser}
+                giftingAll={giftingAll}
+                isGlobalAssignmentEgg={globalAssignmentEggId === egg.id}
+                onToggleGlobalAssignmentEgg={handleToggleGlobalAssignmentEgg}
+              />
             ))}
           </div>
         )}
@@ -270,7 +306,7 @@ Make it fun and engaging for 10-14 year old students.`,
   );
 }
 
-function EggRow({ egg, users, onDelete, onGiftAll, onGiftUser, giftingAll }) {
+function EggRow({ egg, users, onDelete, onGiftAll, onGiftUser, giftingAll, isGlobalAssignmentEgg, onToggleGlobalAssignmentEgg }) {
   const [expanded, setExpanded] = useState(false);
   const [giftUserId, setGiftUserId] = useState('');
   const totalWeight = (egg.prizes || []).reduce((s, p) => s + (p.weight || 0), 0);
@@ -283,6 +319,18 @@ function EggRow({ egg, users, onDelete, onGiftAll, onGiftUser, giftingAll }) {
           <div>
             <h4 className="font-semibold text-white">{egg.name}</h4>
             <p className="text-xs text-slate-400">{egg.prizes?.length || 0} prizes • {egg.description || 'No description'}</p>
+            <label className="mt-1 inline-flex items-center gap-2 text-[11px] text-amber-300">
+              <input
+                type="checkbox"
+                checked={isGlobalAssignmentEgg}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onToggleGlobalAssignmentEgg(egg.id, e.target.checked);
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+              Use for all assignment completions
+            </label>
           </div>
         </div>
         <div className="flex items-center gap-2">
