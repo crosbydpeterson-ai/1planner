@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -37,7 +37,7 @@ export default function Assignments() {
   const [showDailyClaim, setShowDailyClaim] = useState(false);
   const [creatorMap, setCreatorMap] = useState({});
   const [lootEggsById, setLootEggsById] = useState({});
-  const [globalAssignmentEggId, setGlobalAssignmentEggId] = useState(null);
+  const globalAssignmentEggIdRef = useRef(null);
 
 
    useEffect(() => {
@@ -69,7 +69,7 @@ export default function Assignments() {
       const dr = settings.find(s => s.key === 'daily_rewards_config');
       setDailyConfig(dr ? dr.value : null);
       const defaultEgg = settings.find(s => s.key === 'assignment_default_loot_egg_id');
-      setGlobalAssignmentEggId(defaultEgg?.value || null);
+      globalAssignmentEggIdRef.current = defaultEgg?.value || null;
 
       // Load or init progress
       const progList = await base44.entities.DailyRewardProgress.filter({ userProfileId: p.id });
@@ -302,7 +302,7 @@ export default function Assignments() {
       }
 
       let assignmentEgg = null;
-      const rewardEggId = globalAssignmentEggId || assignment.lootEggId;
+      const rewardEggId = globalAssignmentEggIdRef.current || assignment.lootEggId;
       if (rewardEggId && !profile.isBanned) {
         assignmentEgg = lootEggsById[rewardEggId] || null;
         const existingDrops = await base44.entities.LootEggDrop.filter({
