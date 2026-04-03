@@ -29,6 +29,7 @@
       "enum": [
         "everyone",
         "admin_only",
+        "whitelist",
         "math_best",
         "math_libbey",
         "math_hannan",
@@ -46,6 +47,7 @@
       "enum": [
         "everyone",
         "admin_only",
+        "whitelist",
         "math_best",
         "math_libbey",
         "math_hannan",
@@ -64,6 +66,7 @@
         "everyone",
         "admin_only",
         "nobody",
+        "whitelist",
         "math_best",
         "math_libbey",
         "math_hannan",
@@ -82,6 +85,13 @@
         "type": "string"
       },
       "description": "Profile IDs banned from this channel (channel invisible to them)"
+    },
+    "whitelistedProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Profile IDs allowed in this channel when permission is set to whitelist"
     }
   },
   "required": [

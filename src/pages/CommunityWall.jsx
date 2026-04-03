@@ -102,10 +102,10 @@ export default function CommunityWall() {
 
   const activeChannel = channels.find(c => c.id === activeChannelId);
   const isBannedFromChannel = !isAdmin && isProfileBannedFromChannel(activeChannel, profile?.id);
-  const canView = !isBannedFromChannel && hasPermission(activeChannel?.viewPermission || 'everyone', profile, isAdmin) && (isAdmin || activeChannel?.isActive);
-  const canPost = !isBannedFromChannel && hasPermission(activeChannel?.postPermission || 'everyone', profile, isAdmin);
-  const canCommentPerm = !isBannedFromChannel && hasPermission(activeChannel?.commentPermission || 'everyone', profile, isAdmin);
-  const visibleChannels = channels.filter(ch => { if (isAdmin) return true; if (!ch.isActive) return false; if (isProfileBannedFromChannel(ch, profile?.id)) return false; return hasPermission(ch.viewPermission || 'everyone', profile, isAdmin); });
+  const canView = !isBannedFromChannel && hasPermission(activeChannel?.viewPermission || 'everyone', profile, isAdmin, activeChannel) && (isAdmin || activeChannel?.isActive);
+  const canPost = !isBannedFromChannel && hasPermission(activeChannel?.postPermission || 'everyone', profile, isAdmin, activeChannel);
+  const canCommentPerm = !isBannedFromChannel && hasPermission(activeChannel?.commentPermission || 'everyone', profile, isAdmin, activeChannel);
+  const visibleChannels = channels.filter(ch => { if (isAdmin) return true; if (!ch.isActive) return false; if (isProfileBannedFromChannel(ch, profile?.id)) return false; return hasPermission(ch.viewPermission || 'everyone', profile, isAdmin, ch); });
 
   const getChannelSlug = (ch) => ch.name.toLowerCase().replace(/\s+/g, '-');
   const selectChannel = (ch) => {

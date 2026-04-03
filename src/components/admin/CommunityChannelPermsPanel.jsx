@@ -4,8 +4,76 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Search, UserX, UserPlus, Hash, Shield } from 'lucide-react';
+import { Search, UserX, UserPlus, Hash, Shield, Check } from 'lucide-react';
 import { PERMISSION_OPTIONS, COMMENT_PERMISSION_OPTIONS } from '@/components/community/permissionUtils';
+
+function WhitelistManager({ channel, users, onUpdate }) {
+  const [wlSearch, setWlSearch] = useState('');
+  const whitelisted = channel.whitelistedProfileIds || [];
+  const whitelistedUsers = users.filter(u => whitelisted.includes(u.id));
+  const searchResults = users.filter(u =>
+    u.username?.toLowerCase().includes(wlSearch.toLowerCase()) &&
+    !whitelisted.includes(u.id)
+  );
+
+  const addUser = async (profileId) => {
+    const updated = [...whitelisted, profileId];
+    await base44.entities.CommunityChannel.update(channel.id, { whitelistedProfileIds: updated });
+    const user = users.find(u => u.id === profileId);
+    toast.success(`${user?.username || 'User'} added to whitelist`);
+    onUpdate();
+  };
+
+  const removeUser = async (profileId) => {
+    const updated = whitelisted.filter(id => id !== profileId);
+    await base44.entities.CommunityChannel.update(channel.id, { whitelistedProfileIds: updated });
+    const user = users.find(u => u.id === profileId);
+    toast.success(`${user?.username || 'User'} removed from whitelist`);
+    onUpdate();
+  };
+
+  return (
+    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 space-y-3">
+      <h4 className="text-sm font-semibold text-emerald-400 flex items-center gap-2">
+        <Check className="w-4 h-4" /> Allowed Users ({whitelistedUsers.length})
+      </h4>
+      <p className="text-xs text-slate-400">Only these users can access this channel. Admins always have access.</p>
+
+      {whitelistedUsers.length > 0 && (
+        <div className="space-y-1 max-h-40 overflow-y-auto">
+          {whitelistedUsers.map(u => (
+            <div key={u.id} className="flex items-center justify-between bg-emerald-500/10 rounded-lg px-3 py-1.5">
+              <span className="text-sm text-emerald-300">{u.username}</span>
+              <Button size="sm" variant="ghost" className="h-6 text-xs text-red-400 hover:text-red-300" onClick={() => removeUser(u.id)}>
+                <UserX className="w-3 h-3 mr-1" /> Remove
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <div className="relative mb-2">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input value={wlSearch} onChange={(e) => setWlSearch(e.target.value)} placeholder="Search to add user..." className="pl-8 bg-slate-700 border-slate-600 text-white text-sm h-8" />
+        </div>
+        {wlSearch.trim() && (
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {searchResults.slice(0, 10).map(u => (
+              <div key={u.id} className="flex items-center justify-between bg-slate-700/60 rounded-lg px-3 py-1.5">
+                <span className="text-sm text-slate-200">{u.username}</span>
+                <Button size="sm" variant="ghost" className="h-6 text-xs text-emerald-400 hover:text-emerald-300" onClick={() => addUser(u.id)}>
+                  <UserPlus className="w-3 h-3 mr-1" /> Add
+                </Button>
+              </div>
+            ))}
+            {searchResults.length === 0 && <p className="text-xs text-slate-500">No matching users</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function CommunityChannelPermsPanel() {
   const [channels, setChannels] = useState([]);
@@ -65,6 +133,7 @@ export default function CommunityChannelPermsPanel() {
 
   if (loading) return <div className="text-slate-400 text-sm py-4">Loading...</div>;
 
+  const whitelistedIds = selectedChannel?.whitelistedProfileIds || [];
   const bannedIds = selectedChannel?.bannedProfileIds || [];
   const bannedUsers = users.filter(u => bannedIds.includes(u.id));
   const filteredUsers = users.filter(u =>
@@ -130,6 +199,11 @@ export default function CommunityChannelPermsPanel() {
               </Select>
             </div>
           </div>
+
+          {/* Whitelist manager */}
+          {(selectedChannel.viewPermission === 'whitelist' || selectedChannel.postPermission === 'whitelist' || selectedChannel.commentPermission === 'whitelist') && (
+            <WhitelistManager channel={selectedChannel} users={users} onUpdate={refreshChannels} />
+          )}
 
           {/* Banned users */}
           <div>
