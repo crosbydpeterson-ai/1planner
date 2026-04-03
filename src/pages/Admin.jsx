@@ -48,6 +48,7 @@ import PetMojiGeneratorPanel from '@/components/admin/PetMojiGeneratorPanel';
 import BulkPetMojiCreatorPanel from '@/components/admin/BulkPetMojiCreatorPanel';
 import CommunityModerationPanel from '@/components/admin/CommunityModerationPanel';
 import PetConceptReviewPanel from '@/components/admin/PetConceptReviewPanel';
+import CommunityChannelPermsPanel from '@/components/admin/CommunityChannelPermsPanel';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -243,6 +244,7 @@ export default function Admin() {
             {(isSuperAdmin || can('manageLocks')) && <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700"><Lock className="w-4 h-4 mr-2" />Locks</TabsTrigger>}
             {(isSuperAdmin || can('banFlagUsers')) && <TabsTrigger value="bans_flags" className="data-[state=active]:bg-slate-700"><Ban className="w-4 h-4 mr-2" />Bans & Flags</TabsTrigger>}
             <TabsTrigger value="updates" className="data-[state=active]:bg-slate-700">📢 Updates</TabsTrigger>
+            <TabsTrigger value="community_perms" className="data-[state=active]:bg-slate-700">💬 Community</TabsTrigger>
             <TabsTrigger value="moderation" className="data-[state=active]:bg-slate-700">🛡️ Moderation</TabsTrigger>
             <TabsTrigger value="concepts" className="data-[state=active]:bg-slate-700">💡 Pet Concepts</TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">⚙️ Settings</TabsTrigger>
@@ -334,6 +336,7 @@ export default function Admin() {
 
           <TabsContent value="locks"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><h3 className="text-white font-semibold mb-3">Global Feature Locks</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{['shop','market','battlePass','pets','xpGain'].map((k) => (<label key={k} className="flex items-center gap-2 bg-slate-700/60 rounded-lg px-3 py-2 text-sm text-slate-200"><input type="checkbox" checked={!!featureLocks.global?.[k]} onChange={(e) => setFeatureLocks({ ...featureLocks, global: { ...(featureLocks.global || {}), [k]: e.target.checked } })} />{k}</label>))}</div><div className="flex justify-end mt-4"><Button onClick={saveFeatureLocks} className="bg-emerald-600">Save Locks</Button></div></div></TabsContent>
 
+          <TabsContent value="community_perms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityChannelPermsPanel /></div></TabsContent>
           <TabsContent value="moderation"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityModerationPanel /></div></TabsContent>
           <TabsContent value="concepts"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><PetConceptReviewPanel customPets={customPets} setCustomPets={setCustomPets} customThemes={customThemes} setCustomThemes={setCustomThemes} /></div></TabsContent>
           <TabsContent value="settings"><AdminSettingsPanel appSettings={appSettings} setAppSettings={setAppSettings} referralSettings={referralSettings} setReferralSettings={setReferralSettings} adminReferralLinks={adminReferralLinks} setAdminReferralLinks={setAdminReferralLinks} newLinkMaxUses={newLinkMaxUses} setNewLinkMaxUses={setNewLinkMaxUses} rewardLinks={rewardLinks} setRewardLinks={setRewardLinks} showRewardLinkForm={showRewardLinkForm} setShowRewardLinkForm={setShowRewardLinkForm} isSuperAdmin={isSuperAdmin} /></TabsContent>

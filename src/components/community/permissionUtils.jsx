@@ -20,6 +20,12 @@ export function hasPermission(permission, profile, isAdmin) {
   return false;
 }
 
+// Check if a profile is banned from a channel
+export function isProfileBannedFromChannel(channel, profileId) {
+  if (!channel || !profileId) return false;
+  return (channel.bannedProfileIds || []).includes(profileId);
+}
+
 // All permission options for selects
 export const PERMISSION_OPTIONS = [
   { value: 'everyone', label: 'Everyone' },

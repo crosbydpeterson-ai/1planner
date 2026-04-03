@@ -75,6 +75,13 @@
       ],
       "default": "everyone",
       "description": "Who can comment on posts"
+    },
+    "bannedProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Profile IDs banned from this channel (channel invisible to them)"
     }
   },
   "required": [

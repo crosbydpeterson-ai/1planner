@@ -84,6 +84,8 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/Events" element={<LayoutWrapper currentPageName="Events"><Events /></LayoutWrapper>} />
       <Route path="/Info" element={<LayoutWrapper currentPageName="Info"><Info /></LayoutWrapper>} />
+      <Route path="/community" element={<LayoutWrapper currentPageName="CommunityWall"><CommunityWall /></LayoutWrapper>} />
+      <Route path="/community/:channelName" element={<LayoutWrapper currentPageName="CommunityWall"><CommunityWall /></LayoutWrapper>} />
       <Route path="/CommunityWall" element={<LayoutWrapper currentPageName="CommunityWall"><CommunityWall /></LayoutWrapper>} />
       <Route path="/PetConceptSubmit" element={<LayoutWrapper currentPageName="PetConceptSubmit"><PetConceptSubmit /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />

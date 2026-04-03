@@ -212,7 +212,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   // Don't show navigation on Home (login) page or Admin page
-  const hideNav = currentPageName === 'Home' || currentPageName === 'Admin' || currentPageName === 'CommunityWall';
+  const hideNav = currentPageName === 'Home' || currentPageName === 'Admin' || currentPageName === 'CommunityWall' || currentPageName === 'community';
 
   
   const navItems = [
@@ -225,7 +225,7 @@ export default function Layout({ children, currentPageName }) {
             { name: 'Season', icon: Sparkles, label: 'Season' },
             { name: 'Events', icon: CalendarHeart, label: 'Events' },
             { name: 'Info', icon: Info, label: 'Info' },
-            { name: 'CommunityWall', icon: MessageSquare, label: 'Community' },
+            { name: 'community', icon: MessageSquare, label: 'Community', customPath: '/community' },
           ];
 
   const visibleNavItems = navItems.filter((item) => {
@@ -256,17 +256,17 @@ export default function Layout({ children, currentPageName }) {
         <BrandLogo size="md" />
       </header>
       {children}
-      {!hideNav && currentPageName !== 'CommunityWall' && <ChatbotWidget />}
+      {!hideNav && currentPageName !== 'CommunityWall' && currentPageName !== 'community' && <ChatbotWidget />}
       
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 safe-area-pb z-40">
           <div className="max-w-md mx-auto flex items-center justify-around">
             {visibleNavItems.map((item) => {
-              const isActive = currentPageName === item.name;
+              const isActive = currentPageName === item.name || (item.name === 'community' && currentPageName === 'CommunityWall');
               return (
                 <Link
                   key={item.name}
-                  to={createPageUrl(item.name)}
+                  to={item.customPath || createPageUrl(item.name)}
                   className={cn(
                     "flex flex-col items-center py-1 px-3 rounded-xl transition-all",
                     isActive 

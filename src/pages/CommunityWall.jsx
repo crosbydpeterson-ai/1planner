@@ -16,9 +16,12 @@ import { loadModSettings } from '@/components/community/ContentModeration';
 import UserPetMojiCreator from '@/components/community/UserPetMojiCreator';
 import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { isProfileBannedFromChannel } from '@/components/community/permissionUtils';
 
 export default function CommunityWall() {
+  const { channelName } = useParams();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -67,6 +70,11 @@ export default function CommunityWall() {
   const loadChannels = async () => {
     const all = await base44.entities.CommunityChannel.list('sortOrder');
     setChannels(all);
+    // If URL has a channel name, find and select it
+    if (channelName) {
+      const match = all.find(ch => ch.name.toLowerCase().replace(/\s+/g, '-') === channelName.toLowerCase());
+      if (match) { setActiveChannelId(match.id); return; }
+    }
     if (all.length > 0 && !activeChannelId) {
       const firstVisible = all.find(ch => ch.isActive);
       if (firstVisible) setActiveChannelId(firstVisible.id);
@@ -93,10 +101,17 @@ export default function CommunityWall() {
   };
 
   const activeChannel = channels.find(c => c.id === activeChannelId);
-  const canView = hasPermission(activeChannel?.viewPermission || 'everyone', profile, isAdmin) && (isAdmin || activeChannel?.isActive);
-  const canPost = hasPermission(activeChannel?.postPermission || 'everyone', profile, isAdmin);
-  const canCommentPerm = hasPermission(activeChannel?.commentPermission || 'everyone', profile, isAdmin);
-  const visibleChannels = channels.filter(ch => { if (isAdmin) return true; if (!ch.isActive) return false; return hasPermission(ch.viewPermission || 'everyone', profile, isAdmin); });
+  const isBannedFromChannel = !isAdmin && isProfileBannedFromChannel(activeChannel, profile?.id);
+  const canView = !isBannedFromChannel && hasPermission(activeChannel?.viewPermission || 'everyone', profile, isAdmin) && (isAdmin || activeChannel?.isActive);
+  const canPost = !isBannedFromChannel && hasPermission(activeChannel?.postPermission || 'everyone', profile, isAdmin);
+  const canCommentPerm = !isBannedFromChannel && hasPermission(activeChannel?.commentPermission || 'everyone', profile, isAdmin);
+  const visibleChannels = channels.filter(ch => { if (isAdmin) return true; if (!ch.isActive) return false; if (isProfileBannedFromChannel(ch, profile?.id)) return false; return hasPermission(ch.viewPermission || 'everyone', profile, isAdmin); });
+
+  const getChannelSlug = (ch) => ch.name.toLowerCase().replace(/\s+/g, '-');
+  const selectChannel = (ch) => {
+    setActiveChannelId(ch.id);
+    navigate(`/community/${getChannelSlug(ch)}`, { replace: true });
+  };
   const visiblePosts = isAdmin ? posts : posts.filter(p => p.status === 'approved');
 
   const getTagsForProfile = (profileId) => tags.filter(t => (t.assignedProfileIds || []).includes(profileId));
@@ -177,7 +192,7 @@ export default function CommunityWall() {
       {/* Channel pills — glass */}
       <div className="bg-white/20 backdrop-blur-xl border-b border-white/20 px-4 py-2.5 flex items-center gap-2 overflow-x-auto">
         {visibleChannels.map(ch => (
-          <button key={ch.id} onClick={() => setActiveChannelId(ch.id)}
+          <button key={ch.id} onClick={() => selectChannel(ch)}
             className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all backdrop-blur-sm ${activeChannelId === ch.id ? 'bg-white/60 text-indigo-700 shadow-sm border border-white/50' : 'bg-white/20 text-slate-500 hover:bg-white/40 border border-transparent'}`}
           >
             {ch.icon || '💬'} {ch.name}
