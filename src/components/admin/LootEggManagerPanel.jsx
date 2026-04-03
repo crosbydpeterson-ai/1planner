@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, Trash2, Wand2, Loader2, Gift, Send } from 'lucide-react';
+import { Plus, Trash2, Wand2, Loader2, Gift, Send, ClipboardList } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { PETS } from '@/components/quest/PetCatalog';
 
 const COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#3b82f6','#ec4899','#14b8a6','#f97316'];
@@ -19,17 +20,37 @@ export default function LootEggManagerPanel({ users = [], customPets = [], custo
   const [generating, setGenerating] = useState(false);
   const [giftingAll, setGiftingAll] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
+  const [defaultEggId, setDefaultEggId] = useState(null);
 
   const [form, setForm] = useState({
     name: '', description: '', emoji: '🥚', color: '#6366f1', prizes: [],
   });
 
-  useEffect(() => { loadEggs(); }, []);
+  useEffect(() => { loadEggs(); loadDefaultEgg(); }, []);
 
   const loadEggs = async () => {
     const eggs = await base44.entities.LootEgg.list('-created_date');
     setLootEggs(eggs);
     setLoading(false);
+  };
+
+  const loadDefaultEgg = async () => {
+    const settings = await base44.entities.AppSetting.list();
+    const setting = settings.find(s => s.key === 'default_assignment_loot_egg');
+    setDefaultEggId(setting?.value?.lootEggId || null);
+  };
+
+  const toggleDefaultEgg = async (eggId) => {
+    const newId = defaultEggId === eggId ? null : eggId;
+    const settings = await base44.entities.AppSetting.list();
+    const existing = settings.find(s => s.key === 'default_assignment_loot_egg');
+    if (existing) {
+      await base44.entities.AppSetting.update(existing.id, { value: { lootEggId: newId } });
+    } else {
+      await base44.entities.AppSetting.create({ key: 'default_assignment_loot_egg', value: { lootEggId: newId } });
+    }
+    setDefaultEggId(newId);
+    toast.success(newId ? 'Set as default assignment egg' : 'Default assignment egg cleared');
   };
 
   const addPrize = () => {
@@ -165,7 +186,7 @@ Make it fun and engaging for 10-14 year old students.`,
         ) : (
           <div className="space-y-3">
             {lootEggs.map(egg => (
-              <EggRow key={egg.id} egg={egg} users={users} onDelete={handleDelete} onGiftAll={handleGiftToAll} onGiftUser={handleGiftToUser} giftingAll={giftingAll} />
+              <EggRow key={egg.id} egg={egg} users={users} onDelete={handleDelete} onGiftAll={handleGiftToAll} onGiftUser={handleGiftToUser} giftingAll={giftingAll} isDefaultEgg={defaultEggId === egg.id} onToggleDefault={() => toggleDefaultEgg(egg.id)} />
             ))}
           </div>
         )}
@@ -270,7 +291,7 @@ Make it fun and engaging for 10-14 year old students.`,
   );
 }
 
-function EggRow({ egg, users, onDelete, onGiftAll, onGiftUser, giftingAll }) {
+function EggRow({ egg, users, onDelete, onGiftAll, onGiftUser, giftingAll, isDefaultEgg, onToggleDefault }) {
   const [expanded, setExpanded] = useState(false);
   const [giftUserId, setGiftUserId] = useState('');
   const totalWeight = (egg.prizes || []).reduce((s, p) => s + (p.weight || 0), 0);
@@ -286,6 +307,14 @@ function EggRow({ egg, users, onDelete, onGiftAll, onGiftUser, giftingAll }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleDefault(); }}
+            title={isDefaultEgg ? 'Currently the default assignment egg (click to unset)' : 'Set as default assignment egg'}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs transition-all ${isDefaultEgg ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300' : 'border-slate-600 bg-slate-700/50 text-slate-400 hover:border-slate-500'}`}
+          >
+            <ClipboardList className="w-3.5 h-3.5" />
+            <Checkbox checked={isDefaultEgg} className="h-3.5 w-3.5 border-current data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500" />
+          </button>
           <Button size="sm" onClick={(e) => { e.stopPropagation(); onGiftAll(egg); }} disabled={giftingAll} className="bg-amber-600 text-xs h-7">
             <Send className="w-3 h-3 mr-1" />{giftingAll ? 'Sending...' : 'Gift All'}
           </Button>
