@@ -1,0 +1,62 @@
+{
+  "name": "LootEgg",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Egg name (e.g. Golden Egg, Mystery Egg)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description"
+    },
+    "emoji": {
+      "type": "string",
+      "default": "\ud83e\udd5a",
+      "description": "Emoji icon"
+    },
+    "color": {
+      "type": "string",
+      "default": "#6366f1",
+      "description": "Primary color hex"
+    },
+    "prizes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "pet",
+              "theme",
+              "xp",
+              "coins",
+              "magic_egg",
+              "title",
+              "cosmetic"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Array of prizes with type, label, value, and weight (chance)"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "prizes"
+  ]
+}

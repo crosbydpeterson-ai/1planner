@@ -1,0 +1,40 @@
+{
+  "name": "LootEggDrop",
+  "type": "object",
+  "properties": {
+    "lootEggId": {
+      "type": "string",
+      "description": "LootEgg template ID"
+    },
+    "profileId": {
+      "type": "string",
+      "description": "UserProfile ID of owner"
+    },
+    "username": {
+      "type": "string",
+      "description": "Username at time of drop"
+    },
+    "isOpened": {
+      "type": "boolean",
+      "default": false
+    },
+    "wonPrize": {
+      "type": "object",
+      "description": "The prize won: {type, label, value, weight}"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "admin_gift",
+        "assignment_reward",
+        "shop_purchase",
+        "event_reward"
+      ],
+      "default": "admin_gift"
+    }
+  },
+  "required": [
+    "lootEggId",
+    "profileId"
+  ]
+}

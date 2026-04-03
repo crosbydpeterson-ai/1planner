@@ -13,6 +13,7 @@ import Events from './pages/Events';
 import Info from './pages/Info';
 import CommunityWall from './pages/CommunityWall';
 import PetConceptSubmit from './pages/PetConceptSubmit';
+import Eggs from './pages/Eggs';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -88,6 +89,7 @@ const AuthenticatedApp = () => {
       <Route path="/community/:channelName" element={<LayoutWrapper currentPageName="CommunityWall"><CommunityWall /></LayoutWrapper>} />
       <Route path="/CommunityWall" element={<LayoutWrapper currentPageName="CommunityWall"><CommunityWall /></LayoutWrapper>} />
       <Route path="/PetConceptSubmit" element={<LayoutWrapper currentPageName="PetConceptSubmit"><PetConceptSubmit /></LayoutWrapper>} />
+      <Route path="/Eggs" element={<LayoutWrapper currentPageName="Eggs"><Eggs /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
