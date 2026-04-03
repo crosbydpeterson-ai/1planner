@@ -3,14 +3,11 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowLeft, Calendar, Zap } from 'lucide-react';
-import { PETS } from '@/components/quest/PetCatalog';
-import { THEMES } from '@/components/quest/ThemeCatalog';
+import { Sparkles, ArrowLeft, Calendar, Zap, Crown, Star } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
 import SeasonRewards from '@/components/quest/SeasonRewards';
-import GlassIcon from '@/components/ui/GlassIcon';
 import { toast } from 'sonner';
 
 export default function Season() {
@@ -173,90 +170,106 @@ export default function Season() {
   const isLocked = !isAdmin && ((typeof userLock === 'object' ? userLock.locked : !!userLock));
   const lockMsg = typeof userLock === 'object' ? (userLock.message || '') : '';
   if (isLocked) {
-    return <LockedOverlay featureLabel="Season Pass" message={lockMsg || "An Admin or Mod has locked this feature. You can't currently use it."} />;
+    return <LockedOverlay featureLabel="1Pass" message={lockMsg || "An Admin or Mod has locked this feature. You can't currently use it."} />;
   }
 
   const userXp = getSeasonXp(profile, season);
   const daysLeft = season ? differenceInDays(new Date(season.endDate), new Date()) : 0;
 
   return (
-    <div className="min-h-screen">
-      <div className="w-full px-4 lg:px-8 xl:px-12 2xl:px-16">
-        {/* Header */}
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#7c3aed_0%,_#581c87_35%,_#2e1065_100%)] px-4 py-5 md:px-6 md:py-6">
+      <div className="mx-auto max-w-[1500px] space-y-5">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 mb-6"
+          className="flex items-center justify-between gap-4"
         >
-          <Link to={createPageUrl('Dashboard')}>
-            <Button variant="ghost" size="icon" className="rounded-xl">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3">
-            <GlassIcon icon={Sparkles} color="primary" />
+          <div className="flex items-center gap-3 md:gap-4">
+            <Link to={createPageUrl('Dashboard')}>
+              <Button variant="ghost" size="icon" className="rounded-2xl border-2 border-white/20 bg-black/20 text-white hover:bg-white/10 hover:text-white">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">Season Pass</h1>
-              <p className="text-sm text-slate-500">Earn exclusive rewards</p>
+              <div className="text-white/70 text-xs md:text-sm font-black uppercase tracking-[0.2em]">1planner</div>
+              <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white">1Pass</h1>
             </div>
+          </div>
+          <div className="rounded-2xl border-[3px] border-lime-300 bg-lime-400 px-4 py-2 text-slate-900 shadow-[0_8px_0_rgba(0,0,0,0.22)]">
+            <div className="text-[10px] md:text-xs font-black uppercase">Rewards</div>
+            <div className="text-sm md:text-base font-black">{getClaimedRewardsForSeason(profile, season).length}/{season?.rewards?.length || 0}</div>
           </div>
         </motion.div>
 
         {season ? (
           <>
-            {/* Season Banner - Liquid Glass */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="relative rounded-2xl p-6 text-white mb-6 shadow-xl overflow-hidden backdrop-blur-xl bg-gradient-to-r from-indigo-500/90 via-purple-500/90 to-pink-500/90 border border-white/20"
+              className="rounded-[32px] border-[4px] border-violet-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.16),_rgba(255,255,255,0.04))] p-5 md:p-6 shadow-[0_14px_0_rgba(0,0,0,0.28)] backdrop-blur-sm"
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
-              <div className="flex items-start justify-between relative z-10">
-                <div>
-                  <h2 className="text-2xl font-bold mb-1 drop-shadow-lg">{season.name}</h2>
-                  <div className="flex items-center gap-2 text-indigo-100">
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-sm">
-                      {format(new Date(season.startDate), 'MMM d')} - {format(new Date(season.endDate), 'MMM d, yyyy')}
-                    </span>
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-yellow-400 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-900 shadow-[0_5px_0_rgba(0,0,0,0.18)]">
+                    <Crown className="w-4 h-4" />
+                    1Pass Live
+                  </div>
+                  <div>
+                    <h2 className="text-2xl md:text-4xl font-black uppercase text-white">{season.name}</h2>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-white/80 text-xs md:text-sm font-bold uppercase">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>{format(new Date(season.startDate), 'MMM d')} - {format(new Date(season.endDate), 'MMM d, yyyy')}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Star className="w-4 h-4" />
+                        <span>{daysLeft} Days Left</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold drop-shadow-lg">{daysLeft}</div>
-                  <div className="text-indigo-200 text-sm">days left</div>
-                </div>
-              </div>
-              
-              <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between relative z-10">
-                <div>
-                  <p className="text-indigo-200 text-sm">Your XP</p>
-                  <p className="text-2xl font-bold flex items-center gap-1 drop-shadow-lg">
-                    <Zap className="w-5 h-5" />
-                    {userXp.toLocaleString()}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-indigo-200 text-sm">Rewards Claimed</p>
-                  <p className="text-2xl font-bold drop-shadow-lg">
-                    {getClaimedRewardsForSeason(profile, season).length}/{season.rewards?.length || 0}
-                  </p>
+
+                <div className="w-full max-w-xl rounded-[28px] border-[4px] border-slate-900/20 bg-black/20 p-4">
+                  <div className="mb-2 flex items-center justify-between text-white font-black uppercase text-xs md:text-sm">
+                    <span className="flex items-center gap-2"><Zap className="w-4 h-4 text-yellow-300" /> XP Progress</span>
+                    <span>{userXp}/200</span>
+                  </div>
+                  <div className="h-6 rounded-full border-[3px] border-slate-900/20 bg-slate-900/30 p-1">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-yellow-300 via-orange-400 to-yellow-500"
+                      style={{ width: `${Math.min((userXp / 200) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                    <div className="rounded-2xl bg-white/10 px-3 py-3 text-white">
+                      <div className="text-[10px] font-black uppercase text-white/70">Your XP</div>
+                      <div className="text-lg font-black">{userXp}</div>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 px-3 py-3 text-white">
+                      <div className="text-[10px] font-black uppercase text-white/70">Claimed</div>
+                      <div className="text-lg font-black">{getClaimedRewardsForSeason(profile, season).length}</div>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 px-3 py-3 text-white">
+                      <div className="text-[10px] font-black uppercase text-white/70">1Pass Plus</div>
+                      <div className="text-lg font-black">{profile.has1PassPlus ? 'ON' : 'OFF'}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Rewards Track */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100"
             >
               <SeasonRewards
                 season={season}
                 userXp={userXp}
                 claimedRewards={getClaimedRewardsForSeason(profile, season)}
                 onClaim={handleClaimReward}
+                hasPlus={!!profile.has1PassPlus}
               />
             </motion.div>
           </>
@@ -264,11 +277,11 @@ export default function Season() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-12 bg-white rounded-2xl border border-slate-100"
+            className="rounded-[28px] border-[4px] border-violet-300 bg-white/10 p-12 text-center shadow-[0_12px_0_rgba(0,0,0,0.25)]"
           >
-            <Sparkles className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">No Active Season</h3>
-            <p className="text-slate-500">Check back later for the next season!</p>
+            <Sparkles className="w-12 h-12 mx-auto text-yellow-300 mb-3" />
+            <h3 className="text-2xl font-black uppercase text-white mb-2">No Active 1Pass</h3>
+            <p className="text-white/70 font-bold uppercase text-sm">Check back later for the next drop.</p>
           </motion.div>
         )}
       </div>
