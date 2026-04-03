@@ -24,13 +24,18 @@ export default function Season() {
   }, []);
 
   // Compute season XP: if profile is tracking the current season, use seasonXp; otherwise 0
+  // Also auto-migrate: if activeSeasonId is stale/missing, bind to the displayed season
   const getSeasonXp = (userProfile, activeSeason) => {
     if (!userProfile || !activeSeason) return 0;
     if (userProfile.activeSeasonId === activeSeason.id) {
       return userProfile.seasonXp || 0;
     }
+    // activeSeasonId doesn't match — either stale or never set
+    // If user has seasonXp but wrong activeSeasonId, show 0 (they haven't earned in this season)
     return 0;
   };
+
+
 
   const getRewardClaimKey = (seasonId, reward, rewardIndex) => {
     const rewardValue = reward?.value || reward?.name || 'reward';
@@ -76,10 +81,19 @@ export default function Season() {
       const fl = settings.find(s => s.key === 'feature_locks');
       setLocks(fl ? fl.value : null);
 
-      // Load active season
+      // Load active season — pick the one whose date range includes today, or the latest
       const seasons = await base44.entities.Season.filter({ isActive: true });
       if (seasons.length > 0) {
-        setSeason(seasons[0]);
+        const now = new Date();
+        const current = seasons.find(s => new Date(s.startDate) <= now && new Date(s.endDate) >= now) || seasons[0];
+        setSeason(current);
+        // Auto-bind user to this season if their activeSeasonId is stale
+        if (me.activeSeasonId !== current.id) {
+          await base44.entities.UserProfile.update(me.id, { activeSeasonId: current.id, seasonXp: 0 });
+          me.activeSeasonId = current.id;
+          me.seasonXp = 0;
+          setProfile({ ...me });
+        }
       }
     } catch (e) {
       console.error('Error loading data:', e);
@@ -175,6 +189,7 @@ export default function Season() {
 
   const userXp = getSeasonXp(profile, season);
   const daysLeft = season ? differenceInDays(new Date(season.endDate), new Date()) : 0;
+  const maxXp = season?.rewards?.length > 0 ? Math.max(...season.rewards.map(r => r.xpRequired || 0)) : 200;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#7c3aed_0%,_#581c87_35%,_#2e1065_100%)] px-4 py-5 md:px-6 md:py-6">
@@ -233,12 +248,12 @@ export default function Season() {
                 <div className="w-full max-w-xl rounded-[28px] border-[4px] border-slate-900/20 bg-black/20 p-4">
                   <div className="mb-2 flex items-center justify-between text-white font-black uppercase text-xs md:text-sm">
                     <span className="flex items-center gap-2"><Zap className="w-4 h-4 text-yellow-300" /> XP Progress</span>
-                    <span>{userXp}/200</span>
+                    <span>{userXp}/{maxXp}</span>
                   </div>
                   <div className="h-6 rounded-full border-[3px] border-slate-900/20 bg-slate-900/30 p-1">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-yellow-300 via-orange-400 to-yellow-500"
-                      style={{ width: `${Math.min((userXp / 200) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((userXp / maxXp) * 100, 100)}%` }}
                     />
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-3 text-center">
