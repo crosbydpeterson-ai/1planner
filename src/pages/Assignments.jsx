@@ -36,6 +36,7 @@ export default function Assignments() {
   const [dailyProgress, setDailyProgress] = useState(null);
   const [showDailyClaim, setShowDailyClaim] = useState(false);
   const [creatorMap, setCreatorMap] = useState({});
+  const [lootEggsById, setLootEggsById] = useState({});
 
 
    useEffect(() => {
@@ -108,10 +109,16 @@ export default function Assignments() {
       setAssignments(visible);
 
       // Build creator map from all users
-      const allUsers = await base44.entities.UserProfile.list();
+      const [allUsers, allLootEggs] = await Promise.all([
+        base44.entities.UserProfile.list(),
+        base44.entities.LootEgg.list('-created_date')
+      ]);
       const cMap = {};
       allUsers.forEach(u => { cMap[u.userId] = u.username; });
       setCreatorMap(cMap);
+      const eggMap = {};
+      allLootEggs.forEach(egg => { eggMap[egg.id] = egg; });
+      setLootEggsById(eggMap);
 
       // Load Super Assignments for this user
       const [allSuper, userResponses] = await Promise.all([
@@ -291,6 +298,18 @@ export default function Assignments() {
         }).catch(() => {}); // fire-and-forget
       }
 
+      let assignmentEgg = null;
+      if (assignment.lootEggId && !profile.isBanned) {
+        assignmentEgg = lootEggsById[assignment.lootEggId] || null;
+        await base44.entities.LootEggDrop.create({
+          lootEggId: assignment.lootEggId,
+          profileId: profile.id,
+          username: profile.username,
+          source: 'assignment_completion',
+          assignmentId: assignment.id
+        });
+      }
+
       // Track XP gain
       base44.analytics.track({
         eventName: "assignment_completed_xp_gained",
@@ -304,7 +323,7 @@ export default function Assignments() {
       });
 
       toast.success(`+25 XP & +1 Quest Coin earned!`, {
-        description: `Assignment "${assignment.title}" completed${shouldFlagUser ? ' • (Flag set for review)' : ''}`
+        description: `Assignment "${assignment.title}" completed${assignmentEgg ? ` • Received ${assignmentEgg.emoji || '🥚'} ${assignmentEgg.name}` : ''}${shouldFlagUser ? ' • (Flag set for review)' : ''}`
       });
 
       if (isNewPet && !profile.isBanned) {
