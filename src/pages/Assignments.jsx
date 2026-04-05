@@ -100,6 +100,7 @@ export default function Assignments() {
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
         if (a.subject === 'math' && a.target === p.mathTeacher) return true;
         if (a.subject === 'reading' && a.target === p.readingTeacher) return true;
+        if (a.target === 'Admin' && (p.rank === 'admin' || p.rank === 'super_admin' || p.mathTeacher === 'Admin' || p.readingTeacher === 'Admin')) return true;
         return false;
       });
       

@@ -40,7 +40,8 @@
         "Best",
         "Libbey",
         "Hannan",
-        "Paulson"
+        "Paulson",
+        "Admin"
       ],
       "description": "Math teacher assignment"
     },
@@ -50,7 +51,8 @@
         "Riener",
         "Libbey",
         "Hannan",
-        "Paulson"
+        "Paulson",
+        "Admin"
       ],
       "description": "Reading teacher assignment"
     },
