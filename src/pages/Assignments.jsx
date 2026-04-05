@@ -652,13 +652,18 @@ export default function Assignments() {
         open={showPetClearance}
         onClose={() => setShowPetClearance(false)}
         onClaim={async (pet) => {
-          if (!profile) return;
-          const petKey = pet.id; // e.g. "custom_696e37288ff62b308c37e509"
-          const currentPets = profile.unlockedPets || [];
+          const profileId = localStorage.getItem('quest_profile_id');
+          if (!profileId) return;
+          // Re-fetch fresh profile to avoid stale closure
+          const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+          if (profiles.length === 0) return;
+          const freshProfile = profiles[0];
+          const petKey = pet.id;
+          const currentPets = freshProfile.unlockedPets || [];
           const alreadyOwned = currentPets.includes(petKey);
           const newUnlockedPets = alreadyOwned ? currentPets : [...currentPets, petKey];
-          const newFakeAdClicks = (profile.fakeAdClicks || 0) + 1;
-          await base44.entities.UserProfile.update(profile.id, {
+          const newFakeAdClicks = (freshProfile.fakeAdClicks || 0) + 1;
+          await base44.entities.UserProfile.update(freshProfile.id, {
             unlockedPets: newUnlockedPets,
             fakeAdClicks: newFakeAdClicks
           });
