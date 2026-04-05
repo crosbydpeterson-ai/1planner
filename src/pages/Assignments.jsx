@@ -522,7 +522,7 @@ export default function Assignments() {
             <div className="flex items-center gap-2 relative z-10">
               <ClipboardList className="w-5 h-5 text-slate-400" />
               <span className="text-2xl font-bold text-slate-800">
-                {assignments.length - completedIds.length}
+                {Math.max(0, assignments.length - completedIds.filter(id => assignments.some(a => a.id === id)).length)}
               </span>
             </div>
             <p className="text-sm text-slate-500 relative z-10">Remaining</p>
