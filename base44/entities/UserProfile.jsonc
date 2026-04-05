@@ -233,6 +233,11 @@
       "type": "boolean",
       "default": false,
       "description": "Whether the user was gifted 1Pass Plus"
+    },
+    "fakeAdClicks": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of times user clicked a fake ad pet event (for future badges)"
     }
   },
   "required": [

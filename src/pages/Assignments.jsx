@@ -19,6 +19,7 @@ import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
 
  import { toast } from 'sonner';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
+import PetClearanceEventModal from '@/components/events/PetClearanceEventModal';
 
 export default function Assignments() {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ export default function Assignments() {
   const [showDailyClaim, setShowDailyClaim] = useState(false);
   const [creatorMap, setCreatorMap] = useState({});
   const [lootEggsById, setLootEggsById] = useState({});
+  const [showPetClearance, setShowPetClearance] = useState(false);
 
 
    useEffect(() => {
@@ -331,6 +333,16 @@ export default function Assignments() {
       toast.success(`+25 XP & +1 Quest Coin earned!`, {
         description: `Assignment "${assignment.title}" completed${assignmentEgg ? ` • Received ${assignmentEgg.emoji || '🥚'} ${assignmentEgg.name}` : ''}${shouldFlagUser ? ' • (Flag set for review)' : ''}`
       });
+
+      // Pet Clearance Event: 5% chance, once per session (admin or ?testAd=1 always shows)
+      const urlParams = new URLSearchParams(window.location.search);
+      const isAdmin = profile.rank === 'admin' || profile.rank === 'super_admin';
+      const forceShow = urlParams.get('testAd') === '1' || isAdmin;
+      const alreadyShownThisSession = sessionStorage.getItem('petClearanceShown') === '1';
+      if (!alreadyShownThisSession && !profile.isBanned && (forceShow || Math.random() < 0.05)) {
+        sessionStorage.setItem('petClearanceShown', '1');
+        setTimeout(() => setShowPetClearance(true), 800);
+      }
 
       if (isNewPet && !profile.isBanned) {
         setTimeout(() => {
@@ -634,6 +646,26 @@ export default function Assignments() {
          config={dailyConfig}
          onClaimed={(p) => setDailyProgress(prev => ({ ...prev, ...p }))}
        />
+
+      {/* Pet Clearance Event Modal */}
+      <PetClearanceEventModal
+        open={showPetClearance}
+        onClose={() => setShowPetClearance(false)}
+        onClaim={async (pet) => {
+          if (!profile) return;
+          const petKey = pet.id; // e.g. "custom_696e37288ff62b308c37e509"
+          const currentPets = profile.unlockedPets || [];
+          const alreadyOwned = currentPets.includes(petKey);
+          const newUnlockedPets = alreadyOwned ? currentPets : [...currentPets, petKey];
+          const newFakeAdClicks = (profile.fakeAdClicks || 0) + 1;
+          await base44.entities.UserProfile.update(profile.id, {
+            unlockedPets: newUnlockedPets,
+            fakeAdClicks: newFakeAdClicks
+          });
+          setProfile(prev => ({ ...prev, unlockedPets: newUnlockedPets, fakeAdClicks: newFakeAdClicks }));
+          base44.analytics.track({ eventName: 'fake_ad_pet_claimed', properties: { pet_id: petKey, fake_ad_clicks: newFakeAdClicks } });
+        }}
+      />
       </div>
       );
 }
