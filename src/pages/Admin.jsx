@@ -52,6 +52,7 @@ import PetConceptReviewPanel from '@/components/admin/PetConceptReviewPanel';
 import CommunityChannelPermsPanel from '@/components/admin/CommunityChannelPermsPanel';
 import LootEggManagerPanel from '@/components/admin/LootEggManagerPanel';
 import GeneralImageGeneratorPanel from '@/components/admin/GeneralImageGeneratorPanel';
+import LoreComicPanel from '@/components/admin/LoreComicPanel';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -258,6 +259,7 @@ export default function Admin() {
             <TabsTrigger value="moderation" className="data-[state=active]:bg-slate-700">🛡️ Moderation</TabsTrigger>
             <TabsTrigger value="concepts" className="data-[state=active]:bg-slate-700">💡 Pet Concepts</TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">⚙️ Settings</TabsTrigger>
+            {isSuperAdmin && <TabsTrigger value="lore" className="data-[state=active]:bg-slate-700">📖 Lore Comic</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="updates"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AnnouncementManager /></div></TabsContent>
@@ -357,6 +359,7 @@ export default function Admin() {
           <TabsContent value="community_perms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityChannelPermsPanel /></div></TabsContent>
           <TabsContent value="moderation"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityModerationPanel /></div></TabsContent>
           <TabsContent value="concepts"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><PetConceptReviewPanel customPets={customPets} setCustomPets={setCustomPets} customThemes={customThemes} setCustomThemes={setCustomThemes} /></div></TabsContent>
+          {isSuperAdmin && <TabsContent value="lore"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><LoreComicPanel /></div></TabsContent>}
           <TabsContent value="settings"><AdminSettingsPanel appSettings={appSettings} setAppSettings={setAppSettings} referralSettings={referralSettings} setReferralSettings={setReferralSettings} adminReferralLinks={adminReferralLinks} setAdminReferralLinks={setAdminReferralLinks} newLinkMaxUses={newLinkMaxUses} setNewLinkMaxUses={setNewLinkMaxUses} rewardLinks={rewardLinks} setRewardLinks={setRewardLinks} showRewardLinkForm={showRewardLinkForm} setShowRewardLinkForm={setShowRewardLinkForm} isSuperAdmin={isSuperAdmin} /></TabsContent>
         </Tabs>
 

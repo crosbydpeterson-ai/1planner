@@ -1,0 +1,100 @@
+{
+  "name": "CustomPet",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Pet name"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "common",
+        "uncommon",
+        "rare",
+        "epic",
+        "legendary"
+      ]
+    },
+    "xpRequired": {
+      "type": "number",
+      "description": "XP needed to unlock"
+    },
+    "description": {
+      "type": "string"
+    },
+    "emoji": {
+      "type": "string",
+      "description": "Emoji or leave empty if using image"
+    },
+    "imageUrl": {
+      "type": "string",
+      "description": "Base64 image data URL or external image URL"
+    },
+    "isGiftOnly": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, only available via admin gifting"
+    },
+    "theme": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "type": "string"
+        },
+        "secondary": {
+          "type": "string"
+        },
+        "accent": {
+          "type": "string"
+        },
+        "bg": {
+          "type": "string"
+        }
+      },
+      "description": "Theme colors for this pet"
+    },
+    "lore": {
+      "type": "string",
+      "description": "AI-generated lore story for this pet, connected to the overarching wifi incident narrative"
+    },
+    "loreGeneratedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the lore was last generated"
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "Creator user email/id"
+    },
+    "createdByProfileId": {
+      "type": "string",
+      "description": "Creator UserProfile ID"
+    },
+    "createdSourceTab": {
+      "type": "string",
+      "enum": [
+        "admin_pets",
+        "admin_eggs",
+        "bulk_pet_creator",
+        "pet_creator",
+        "unknown"
+      ],
+      "description": "Where in the app the pet was created"
+    },
+    "imageSource": {
+      "type": "string",
+      "enum": [
+        "ai_generated",
+        "uploaded",
+        "emoji_only"
+      ],
+      "description": "How the image was provided"
+    }
+  },
+  "required": [
+    "name",
+    "rarity",
+    "xpRequired"
+  ]
+}
