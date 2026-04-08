@@ -23,11 +23,10 @@ export default function LoreComicPanel() {
     setLoading(false);
   };
 
-  const generateLoreForPet = async (pet) => {
+  const generateLoreForPet = async (pet, sharedConv) => {
     setGeneratingLore(pet.id);
     try {
-      // Start or reuse a conversation with the loreMaster agent
-      let conv = conversation;
+      let conv = sharedConv || conversation;
       if (!conv) {
         conv = await base44.agents.createConversation({
           agent_name: 'loreMaster',
@@ -38,38 +37,39 @@ export default function LoreComicPanel() {
 
       await base44.agents.addMessage(conv, {
         role: 'user',
-        content: `Generate lore for this pet and save it:\n\nName: ${pet.name}\nRarity: ${pet.rarity}\nDescription: ${pet.description || 'No description provided'}\nEmoji: ${pet.emoji || 'none'}\nPet ID: ${pet.id}\n\nPlease read existing pet lore first, then write connected lore for this pet and update the CustomPet record.`,
+        content: `Generate lore for this pet and save it:\n\nName: ${pet.name}\nRarity: ${pet.rarity}\nDescription: ${pet.description || 'No description provided'}\nEmoji: ${pet.emoji || 'none'}\nPet ID: ${pet.id}\n\nWrite connected lore for this pet and update the CustomPet record.`,
       });
 
       // Poll for completion (wait up to 30s)
-      let done = false;
       for (let i = 0; i < 30; i++) {
         await new Promise(r => setTimeout(r, 1000));
         const updated = await base44.entities.CustomPet.filter({ id: pet.id });
-        if (updated[0]?.lore && updated[0].lore !== pet.lore) {
-          done = true;
-          break;
-        }
-      }
-
-      if (done) {
-        toast.success(`Lore generated for ${pet.name}!`);
-      } else {
-        toast.info(`Lore request sent for ${pet.name} — check back in a moment.`);
+        if (updated[0]?.lore && updated[0].lore !== pet.lore) break;
       }
 
       await loadPets();
     } catch (e) {
-      toast.error('Failed to generate lore: ' + e.message);
+      toast.error(`Failed lore for ${pet.name}: ` + e.message);
     }
     setGeneratingLore(null);
   };
 
   const generateAllLore = async () => {
     const noLore = pets.filter(p => !p.lore);
-    for (const pet of noLore) {
-      await generateLoreForPet(pet);
-    }
+    if (noLore.length === 0) return;
+
+    // Create ONE shared conversation so the agent has full context for all pets
+    const conv = await base44.agents.createConversation({
+      agent_name: 'loreMaster',
+      metadata: { name: 'Bulk Lore Generation' },
+    });
+    setConversation(conv);
+
+    // Send all requests in parallel using the same conversation
+    toast.info(`Generating lore for ${noLore.length} pets in parallel...`);
+    await Promise.all(noLore.map(pet => generateLoreForPet(pet, conv)));
+    toast.success(`Done! Lore generated for ${noLore.length} pets.`);
+    await loadPets();
   };
 
   const downloadComic = async () => {
