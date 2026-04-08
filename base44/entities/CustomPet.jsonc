@@ -63,6 +63,15 @@
       "format": "date-time",
       "description": "When the lore was last generated"
     },
+    "loreImageUrl": {
+      "type": "string",
+      "description": "AI-generated illustration URL based on the pet's lore and theme"
+    },
+    "loreImageGeneratedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the lore image was last generated"
+    },
     "createdBy": {
       "type": "string",
       "description": "Creator user email/id"

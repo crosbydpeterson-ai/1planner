@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     doc.setLineWidth(0.5);
     doc.line(15, 36, W - 15, 36);
 
-    // Pet image panel (left side)
+    // Pet image panel (left side) — prefer loreImageUrl, fallback to imageUrl
     const imgX = 15;
     const imgY = 42;
     const imgSize = 70;
@@ -124,13 +124,27 @@ Deno.serve(async (req) => {
     doc.setLineWidth(1.5);
     doc.roundedRect(imgX, imgY, imgSize, imgSize, 4, 4, 'FD');
 
-    // Try to embed image
-    if (pet.imageUrl && !pet.imageUrl.startsWith('data:image/svg')) {
+    const displayImageUrl = pet.loreImageUrl || pet.imageUrl;
+
+    if (displayImageUrl && !displayImageUrl.startsWith('data:image/svg')) {
       try {
-        const imgFormat = pet.imageUrl.includes('data:image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(pet.imageUrl, imgFormat, imgX + 3, imgY + 3, imgSize - 6, imgSize - 6);
+        // Fetch and convert to base64 for reliable jsPDF embedding
+        const imgResp = await fetch(displayImageUrl);
+        const imgBuf = await imgResp.arrayBuffer();
+        const imgBase64 = btoa(String.fromCharCode(...new Uint8Array(imgBuf)));
+        const contentType = imgResp.headers.get('content-type') || 'image/jpeg';
+        const imgFormat = contentType.includes('png') ? 'PNG' : 'JPEG';
+        const dataUrl = `data:${contentType};base64,${imgBase64}`;
+        doc.addImage(dataUrl, imgFormat, imgX + 3, imgY + 3, imgSize - 6, imgSize - 6);
+        // "Lore Art" badge if using lore image
+        if (pet.loreImageUrl) {
+          doc.setFillColor(cr, cg, cb);
+          doc.setFontSize(6);
+          doc.setTextColor(255, 255, 255);
+          doc.roundedRect(imgX + 2, imgY + imgSize - 10, 22, 8, 2, 2, 'F');
+          doc.text('LORE ART', imgX + 13, imgY + imgSize - 5, { align: 'center' });
+        }
       } catch (e) {
-        // fallback: emoji centered
         doc.setFontSize(36);
         doc.text(pet.emoji || '🐾', imgX + imgSize / 2, imgY + imgSize / 2 + 8, { align: 'center' });
       }

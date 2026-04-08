@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, Wand2, Download, Loader2, ScrollText, RefreshCw } from 'lucide-react';
+import { BookOpen, Wand2, Download, Loader2, ScrollText, RefreshCw, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ export default function LoreComicPanel() {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generatingLore, setGeneratingLore] = useState(null); // petId
+  const [generatingImage, setGeneratingImage] = useState(null); // petId
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [conversation, setConversation] = useState(null);
 
@@ -58,17 +59,62 @@ export default function LoreComicPanel() {
     const noLore = pets.filter(p => !p.lore);
     if (noLore.length === 0) return;
 
-    // Create ONE shared conversation so the agent has full context for all pets
     const conv = await base44.agents.createConversation({
       agent_name: 'loreMaster',
       metadata: { name: 'Bulk Lore Generation' },
     });
     setConversation(conv);
 
-    // Send all requests in parallel using the same conversation
     toast.info(`Generating lore for ${noLore.length} pets in parallel...`);
     await Promise.all(noLore.map(pet => generateLoreForPet(pet, conv)));
     toast.success(`Done! Lore generated for ${noLore.length} pets.`);
+    await loadPets();
+  };
+
+  const generateImageForPet = async (pet, sharedConv) => {
+    setGeneratingImage(pet.id);
+    try {
+      let conv = sharedConv || conversation;
+      if (!conv) {
+        conv = await base44.agents.createConversation({
+          agent_name: 'loreMaster',
+          metadata: { name: 'Lore Image Session' },
+        });
+        setConversation(conv);
+      }
+
+      await base44.agents.addMessage(conv, {
+        role: 'user',
+        content: `Generate a lore illustration image for this pet and save it to loreImageUrl:\n\nName: ${pet.name}\nRarity: ${pet.rarity}\nDescription: ${pet.description || 'none'}\nLore: ${pet.lore || 'none'}\nTheme colors: ${JSON.stringify(pet.theme || {})}\nPet ID: ${pet.id}\n\nCreate an image prompt based on the pet's lore and theme, generate the image using Core.GenerateImage, then save the URL to the CustomPet record's loreImageUrl field and set loreImageGeneratedAt to now.`,
+      });
+
+      // Poll for loreImageUrl (up to 60s — image gen takes longer)
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        const updated = await base44.entities.CustomPet.filter({ id: pet.id });
+        if (updated[0]?.loreImageUrl && updated[0].loreImageUrl !== pet.loreImageUrl) break;
+      }
+
+      await loadPets();
+    } catch (e) {
+      toast.error(`Failed image for ${pet.name}: ` + e.message);
+    }
+    setGeneratingImage(null);
+  };
+
+  const generateAllImages = async () => {
+    const noImage = pets.filter(p => p.lore && !p.loreImageUrl);
+    if (noImage.length === 0) return;
+
+    const conv = await base44.agents.createConversation({
+      agent_name: 'loreMaster',
+      metadata: { name: 'Bulk Lore Image Generation' },
+    });
+    setConversation(conv);
+
+    toast.info(`Generating lore images for ${noImage.length} pets in parallel...`);
+    await Promise.all(noImage.map(pet => generateImageForPet(pet, conv)));
+    toast.success(`Done! Lore images generated for ${noImage.length} pets.`);
     await loadPets();
   };
 
@@ -101,6 +147,8 @@ export default function LoreComicPanel() {
 
   const withLore = pets.filter(p => p.lore);
   const withoutLore = pets.filter(p => !p.lore);
+  const withImage = pets.filter(p => p.loreImageUrl);
+  const loreButNoImage = pets.filter(p => p.lore && !p.loreImageUrl);
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -132,6 +180,10 @@ export default function LoreComicPanel() {
             <div className="text-2xl font-bold text-red-300">{withoutLore.length}</div>
             <div className="text-xs text-red-400">Need Lore</div>
           </div>
+          <div className="bg-blue-800/60 rounded-lg px-4 py-2 text-center">
+            <div className="text-2xl font-bold text-blue-300">{withImage.length}</div>
+            <div className="text-xs text-blue-400">Lore Art</div>
+          </div>
         </div>
       </div>
 
@@ -148,11 +200,21 @@ export default function LoreComicPanel() {
         {withoutLore.length > 0 && (
           <Button
             onClick={generateAllLore}
-            disabled={generatingLore !== null}
+            disabled={generatingLore !== null || generatingImage !== null}
             className="bg-purple-600 hover:bg-purple-500"
           >
             <Wand2 className="w-4 h-4 mr-2" />
             Generate All Missing Lore ({withoutLore.length})
+          </Button>
+        )}
+        {loreButNoImage.length > 0 && (
+          <Button
+            onClick={generateAllImages}
+            disabled={generatingLore !== null || generatingImage !== null}
+            className="bg-blue-600 hover:bg-blue-500"
+          >
+            <ImageIcon className="w-4 h-4 mr-2" />
+            Generate All Lore Art ({loreButNoImage.length})
           </Button>
         )}
         <Button variant="outline" onClick={loadPets} className="border-slate-600 text-slate-300">
@@ -167,8 +229,14 @@ export default function LoreComicPanel() {
           <div key={pet.id} className="bg-slate-800 rounded-xl border border-slate-700 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                {pet.imageUrl ? (
-                  <img src={pet.imageUrl} alt={pet.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                {/* Show lore art if available, else pet image */}
+                {(pet.loreImageUrl || pet.imageUrl) ? (
+                  <div className="relative flex-shrink-0">
+                    <img src={pet.loreImageUrl || pet.imageUrl} alt={pet.name} className="w-12 h-12 rounded-lg object-cover" />
+                    {pet.loreImageUrl && (
+                      <span className="absolute -bottom-1 -right-1 bg-blue-500 text-white text-[8px] px-1 rounded">ART</span>
+                    )}
+                  </div>
                 ) : (
                   <div className="w-12 h-12 rounded-lg bg-slate-700 flex items-center justify-center text-2xl flex-shrink-0">
                     {pet.emoji || '🐾'}
@@ -183,27 +251,44 @@ export default function LoreComicPanel() {
                     ) : (
                       <Badge className="bg-red-800 text-red-200 text-xs">No Lore</Badge>
                     )}
+                    {pet.loreImageUrl && (
+                      <Badge className="bg-blue-700 text-blue-100 text-xs">🎨 Art</Badge>
+                    )}
                   </div>
                   {pet.lore && (
                     <p className="text-slate-400 text-xs mt-1 line-clamp-2">{pet.lore}</p>
                   )}
                 </div>
               </div>
-              <Button
-                size="sm"
-                onClick={() => generateLoreForPet(pet)}
-                disabled={generatingLore !== null}
-                className={pet.lore ? 'bg-slate-600 hover:bg-slate-500' : 'bg-purple-600 hover:bg-purple-500'}
-              >
-                {generatingLore === pet.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <ScrollText className="w-4 h-4 mr-1" />
-                    {pet.lore ? 'Regenerate' : 'Generate'}
-                  </>
+              <div className="flex gap-2 flex-shrink-0">
+                <Button
+                  size="sm"
+                  onClick={() => generateLoreForPet(pet)}
+                  disabled={generatingLore !== null || generatingImage !== null}
+                  className={pet.lore ? 'bg-slate-600 hover:bg-slate-500' : 'bg-purple-600 hover:bg-purple-500'}
+                >
+                  {generatingLore === pet.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ScrollText className="w-4 h-4" />
+                  )}
+                </Button>
+                {pet.lore && (
+                  <Button
+                    size="sm"
+                    onClick={() => generateImageForPet(pet)}
+                    disabled={generatingLore !== null || generatingImage !== null}
+                    className={pet.loreImageUrl ? 'bg-slate-600 hover:bg-slate-500' : 'bg-blue-600 hover:bg-blue-500'}
+                    title={pet.loreImageUrl ? 'Regenerate lore art' : 'Generate lore art'}
+                  >
+                    {generatingImage === pet.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ImageIcon className="w-4 h-4" />
+                    )}
+                  </Button>
                 )}
-              </Button>
+              </div>
             </div>
           </div>
         ))}
