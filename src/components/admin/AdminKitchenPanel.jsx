@@ -4,7 +4,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Edit2, Save, X, Loader2, Coins, Eye } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Trash2, Edit2, Save, X, Loader2, Eye, Coins, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import KitchenAIPanel from '@/components/admin/KitchenAIPanel';
 import VendingMachine from '@/components/kitchen/VendingMachine';
@@ -19,7 +21,7 @@ const RARITY_BADGE = {
 };
 
 export default function AdminKitchenPanel() {
-  const [subTab, setSubTab] = useState('all_food');
+  const [subTab, setSubTab] = useState('vending_stock');
   const [foodItems, setFoodItems] = useState([]);
   const [foodInventories, setFoodInventories] = useState([]);
   const [users, setUsers] = useState([]);
@@ -41,7 +43,6 @@ export default function AdminKitchenPanel() {
     setFoodItems(items);
     setFoodInventories(inventories);
     setUsers(allUsers);
-    // Use first admin as preview profile for vending machine
     const admin = allUsers.find(u => u.rank === 'super_admin' || u.rank === 'admin') || allUsers[0];
     setPreviewProfile(admin);
     setLoading(false);
@@ -58,6 +59,21 @@ export default function AdminKitchenPanel() {
     await base44.entities.FoodItem.update(item.id, { isActive: updated });
     setFoodItems(prev => prev.map(f => f.id === item.id ? { ...f, isActive: updated } : f));
     toast.success(updated ? 'Activated' : 'Deactivated');
+  };
+
+  const handleToggleVending = async (item) => {
+    const updated = !item.inVendingMachine;
+    await base44.entities.FoodItem.update(item.id, { inVendingMachine: updated });
+    setFoodItems(prev => prev.map(f => f.id === item.id ? { ...f, inVendingMachine: updated } : f));
+    toast.success(updated ? `${item.name} added to vending machine` : `${item.name} removed from vending machine`);
+  };
+
+  const handleUpdatePrice = async (item, newPrice) => {
+    const price = parseInt(newPrice);
+    if (isNaN(price) || price < 0) return;
+    await base44.entities.FoodItem.update(item.id, { price });
+    setFoodItems(prev => prev.map(f => f.id === item.id ? { ...f, price } : f));
+    toast.success(`${item.name} price set to ${price} 🪙`);
   };
 
   const handleSaveEdit = async () => {
@@ -77,18 +93,54 @@ export default function AdminKitchenPanel() {
 
   if (loading) return <div className="text-center py-8 text-slate-400"><Loader2 className="w-5 h-5 animate-spin inline mr-2" />Loading kitchen data...</div>;
 
+  const vendingItems = foodItems.filter(f => f.inVendingMachine && f.isActive);
   const activeItems = foodItems.filter(f => f.isActive);
 
   return (
     <div className="space-y-4">
       <Tabs value={subTab} onValueChange={setSubTab}>
-        <TabsList className="bg-slate-700/60 p-1">
+        <TabsList className="bg-slate-700/60 p-1 flex-wrap h-auto gap-1">
+          <TabsTrigger value="vending_stock" className="data-[state=active]:bg-slate-600"><Package className="w-3.5 h-3.5 mr-1" />Vending Stock</TabsTrigger>
           <TabsTrigger value="all_food" className="data-[state=active]:bg-slate-600">🍽️ All Food ({foodItems.length})</TabsTrigger>
-          <TabsTrigger value="vending_preview" className="data-[state=active]:bg-slate-600">🎰 Vending Preview</TabsTrigger>
+          <TabsTrigger value="vending_preview" className="data-[state=active]:bg-slate-600">🎰 Preview</TabsTrigger>
           <TabsTrigger value="inventories" className="data-[state=active]:bg-slate-600">🎒 Inventories</TabsTrigger>
           <TabsTrigger value="feed" className="data-[state=active]:bg-slate-600">🍴 Feed Pets</TabsTrigger>
           <TabsTrigger value="generate" className="data-[state=active]:bg-slate-600">✨ AI Generate</TabsTrigger>
         </TabsList>
+
+        {/* VENDING STOCK MANAGEMENT */}
+        <TabsContent value="vending_stock">
+          <div className="space-y-3">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+              <h4 className="text-amber-300 font-semibold text-sm mb-1">🎰 Vending Machine Stock</h4>
+              <p className="text-slate-400 text-xs">Toggle items in/out of the vending machine and set their price. Only active items with "In Machine" on will show for students.</p>
+            </div>
+            <div className="text-slate-300 text-sm font-medium">{vendingItems.length} items currently in machine</div>
+            {activeItems.length === 0 ? (
+              <p className="text-slate-400 text-center py-8">No food items yet. Generate some in the AI tab!</p>
+            ) : activeItems.map(item => (
+              <VendingStockRow
+                key={item.id}
+                item={item}
+                onToggleVending={() => handleToggleVending(item)}
+                onUpdatePrice={(price) => handleUpdatePrice(item, price)}
+              />
+            ))}
+            {foodItems.filter(f => !f.isActive).length > 0 && (
+              <div className="mt-4">
+                <p className="text-slate-500 text-xs mb-2">Deactivated items (not shown to students):</p>
+                {foodItems.filter(f => !f.isActive).map(item => (
+                  <div key={item.id} className="flex items-center gap-3 bg-slate-800/40 rounded-lg p-2 border border-red-900/20 opacity-50 mb-1">
+                    {item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="w-8 h-8 rounded object-cover" /> : <div className="w-8 h-8 rounded bg-slate-700 text-center text-sm leading-8">🍽️</div>}
+                    <span className="text-white text-sm">{item.name}</span>
+                    <span className="text-red-400 text-xs ml-auto">Deactivated</span>
+                    <Button size="sm" variant="ghost" onClick={() => handleToggleActive(item)} className="text-slate-400 hover:text-green-400 h-6 px-2 text-xs">Activate</Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
 
         {/* ALL FOOD */}
         <TabsContent value="all_food">
@@ -103,10 +155,11 @@ export default function AdminKitchenPanel() {
                   <div className="w-12 h-12 rounded-lg bg-slate-700 flex items-center justify-center text-xl flex-shrink-0">🍽️</div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-white font-medium text-sm truncate">{item.name}</p>
                     <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${RARITY_BADGE[item.rarity] || RARITY_BADGE.common}`}>{item.rarity}</span>
                     {!item.isActive && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">Hidden</span>}
+                    {item.inVendingMachine && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">In Machine</span>}
                   </div>
                   <p className="text-slate-400 text-xs">{item.flavor} • {item.price} 🪙</p>
                 </div>
@@ -125,7 +178,6 @@ export default function AdminKitchenPanel() {
             ))}
           </div>
 
-          {/* Inline edit */}
           {editingItem && (
             <div className="mt-4 bg-slate-700/60 rounded-xl p-4 border border-slate-600 space-y-3">
               <h4 className="text-white font-medium text-sm">Edit: {editingItem.name}</h4>
@@ -153,10 +205,10 @@ export default function AdminKitchenPanel() {
 
         {/* VENDING PREVIEW */}
         <TabsContent value="vending_preview">
-          <p className="text-slate-400 text-sm mb-3">This is how students see the vending machine. Only active items show.</p>
+          <p className="text-slate-400 text-sm mb-3">This is how students see the vending machine. Only items marked "In Machine" + active show.</p>
           <div className="max-w-md mx-auto">
             <VendingMachine
-              foodItems={activeItems}
+              foodItems={vendingItems}
               profile={previewProfile || { questCoins: 9999 }}
               onPurchase={async () => { toast.info('Preview mode — no purchase made'); return false; }}
             />
@@ -233,6 +285,62 @@ export default function AdminKitchenPanel() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function VendingStockRow({ item, onToggleVending, onUpdatePrice }) {
+  const [editPrice, setEditPrice] = useState(false);
+  const [priceVal, setPriceVal] = useState(String(item.price));
+
+  return (
+    <div className={`flex items-center gap-3 rounded-xl p-3 border transition-all ${item.inVendingMachine ? 'bg-amber-500/5 border-amber-500/30' : 'bg-slate-800 border-slate-700'}`}>
+      {item.imageUrl ? (
+        <img src={item.imageUrl} alt={item.name} className="w-11 h-11 rounded-lg object-cover flex-shrink-0" />
+      ) : (
+        <div className="w-11 h-11 rounded-lg bg-slate-700 flex items-center justify-center text-lg flex-shrink-0">🍽️</div>
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-white font-medium text-sm">{item.name}</p>
+          <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${RARITY_BADGE[item.rarity] || RARITY_BADGE.common}`}>{item.rarity}</span>
+        </div>
+        <p className="text-slate-400 text-xs">{item.flavor}</p>
+      </div>
+
+      {/* Price control */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {editPrice ? (
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              value={priceVal}
+              onChange={e => setPriceVal(e.target.value)}
+              className="w-20 h-7 bg-slate-700 border-slate-600 text-white text-xs"
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  onUpdatePrice(priceVal);
+                  setEditPrice(false);
+                }
+              }}
+            />
+            <Button size="sm" variant="ghost" onClick={() => { onUpdatePrice(priceVal); setEditPrice(false); }} className="h-7 px-1.5 text-green-400"><Save className="w-3 h-3" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => { setPriceVal(String(item.price)); setEditPrice(false); }} className="h-7 px-1.5 text-slate-400"><X className="w-3 h-3" /></Button>
+          </div>
+        ) : (
+          <button onClick={() => setEditPrice(true)} className="flex items-center gap-1 bg-slate-700/60 hover:bg-slate-600/60 rounded-lg px-2 py-1 transition-colors">
+            <Coins className="w-3 h-3 text-amber-400" />
+            <span className="text-amber-300 font-bold text-xs">{item.price}</span>
+            <Edit2 className="w-2.5 h-2.5 text-slate-500" />
+          </button>
+        )}
+      </div>
+
+      {/* In machine toggle */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Label className="text-slate-400 text-xs whitespace-nowrap">In Machine</Label>
+        <Switch checked={!!item.inVendingMachine} onCheckedChange={onToggleVending} />
+      </div>
     </div>
   );
 }

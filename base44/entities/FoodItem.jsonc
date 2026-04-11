@@ -33,6 +33,11 @@
       "default": 50,
       "description": "Price in Quest Coins"
     },
+    "inVendingMachine": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this item appears in the student vending machine"
+    },
     "isActive": {
       "type": "boolean",
       "default": true

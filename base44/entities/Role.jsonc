@@ -1,0 +1,83 @@
+{
+  "name": "Role",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Role name"
+    },
+    "permissions": {
+      "type": "object",
+      "properties": {
+        "accessAI": {
+          "type": "boolean",
+          "default": false
+        },
+        "deleteAssets": {
+          "type": "boolean",
+          "default": false
+        },
+        "grantAdminTokens": {
+          "type": "boolean",
+          "default": false
+        },
+        "toggleAdminRole": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageLocks": {
+          "type": "boolean",
+          "default": false
+        },
+        "banFlagUsers": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageShop": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageEvents": {
+          "type": "boolean",
+          "default": false
+        },
+        "viewAnalytics": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageAssignments": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageSuperAssignments": {
+          "type": "boolean",
+          "default": false
+        },
+        "managePets": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageThemes": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageCosmetics": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageKitchen": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "description": "Granular permissions for admin panel features"
+    },
+    "description": {
+      "type": "string",
+      "description": "Notes about this role"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

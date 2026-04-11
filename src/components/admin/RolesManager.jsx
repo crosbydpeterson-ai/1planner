@@ -17,6 +17,7 @@ const PERMISSIONS = [
   { key: "manageCosmetics", label: "Manage cosmetics" },
   { key: "manageShop", label: "Manage shop" },
   { key: "manageEvents", label: "Manage events" },
+  { key: "manageKitchen", label: "Manage kitchen" },
   { key: "manageLocks", label: "Manage locks" },
   { key: "banFlagUsers", label: "Ban/flag users" },
   { key: "grantAdminTokens", label: "Grant admin tokens" },

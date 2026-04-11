@@ -68,7 +68,7 @@ export default function Admin() {
   const [adminProfile, setAdminProfile] = useState(null);
   const [isAdminRole, setIsAdminRole] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [permissions, setPermissions] = useState({ accessAI: false, deleteAssets: false, grantAdminTokens: false, toggleAdminRole: false, manageLocks: false, banFlagUsers: false, manageShop: false, manageEvents: false, viewAnalytics: false, manageAssignments: false, manageSuperAssignments: false, managePets: false, manageThemes: false, manageCosmetics: false });
+  const [permissions, setPermissions] = useState({ accessAI: false, deleteAssets: false, grantAdminTokens: false, toggleAdminRole: false, manageLocks: false, banFlagUsers: false, manageShop: false, manageEvents: false, viewAnalytics: false, manageAssignments: false, manageSuperAssignments: false, managePets: false, manageThemes: false, manageCosmetics: false, manageKitchen: false });
   const can = (key) => isSuperAdmin || !!permissions[key];
   const [users, setUsers] = useState([]);
   const [showForceTrade, setShowForceTrade] = useState(false);
@@ -248,7 +248,7 @@ export default function Admin() {
             {isSuperAdmin && <TabsTrigger value="eggs" className="data-[state=active]:bg-slate-700">🥚 Magic Eggs</TabsTrigger>}
             <TabsTrigger value="loot_eggs" className="data-[state=active]:bg-slate-700">🎰 Loot Eggs</TabsTrigger>
             {can('manageEvents') && <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">🫧 Events</TabsTrigger>}
-            <TabsTrigger value="kitchen" className="data-[state=active]:bg-slate-700">👨‍🍳 Kitchen</TabsTrigger>
+            {can('manageKitchen') && <TabsTrigger value="kitchen" className="data-[state=active]:bg-slate-700">👨‍🍳 Kitchen</TabsTrigger>}
             {can('manageShop') && <TabsTrigger value="shop" className="data-[state=active]:bg-slate-700"><ShoppingBag className="w-4 h-4 mr-2" />Shop</TabsTrigger>}
             {can('viewAnalytics') && <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">📊 Analytics</TabsTrigger>}
             <TabsTrigger value="email" className="data-[state=active]:bg-slate-700">✉️ Email</TabsTrigger>
@@ -256,15 +256,15 @@ export default function Admin() {
             {(isSuperAdmin || can('manageSuperAssignments')) && <TabsTrigger value="super_assignments" className="data-[state=active]:bg-slate-700">⭐ Super Assignments</TabsTrigger>}
             {(isSuperAdmin || can('manageLocks')) && <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700"><Lock className="w-4 h-4 mr-2" />Locks</TabsTrigger>}
             {(isSuperAdmin || can('banFlagUsers')) && <TabsTrigger value="bans_flags" className="data-[state=active]:bg-slate-700"><Ban className="w-4 h-4 mr-2" />Bans & Flags</TabsTrigger>}
-            <TabsTrigger value="updates" className="data-[state=active]:bg-slate-700">📢 Updates</TabsTrigger>
-            <TabsTrigger value="community_perms" className="data-[state=active]:bg-slate-700">💬 Community</TabsTrigger>
-            <TabsTrigger value="moderation" className="data-[state=active]:bg-slate-700">🛡️ Moderation</TabsTrigger>
-            <TabsTrigger value="concepts" className="data-[state=active]:bg-slate-700">💡 Pet Concepts</TabsTrigger>
+            {can('manageEvents') && <TabsTrigger value="updates" className="data-[state=active]:bg-slate-700">📢 Updates</TabsTrigger>}
+            {can('manageEvents') && <TabsTrigger value="community_perms" className="data-[state=active]:bg-slate-700">💬 Community</TabsTrigger>}
+            {can('manageEvents') && <TabsTrigger value="moderation" className="data-[state=active]:bg-slate-700">🛡️ Moderation</TabsTrigger>}
+            {can('managePets') && <TabsTrigger value="concepts" className="data-[state=active]:bg-slate-700">💡 Pet Concepts</TabsTrigger>}
             <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">⚙️ Settings</TabsTrigger>
             {isSuperAdmin && <TabsTrigger value="lore" className="data-[state=active]:bg-slate-700">📖 Lore Comic</TabsTrigger>}
           </TabsList>
 
-          <TabsContent value="updates"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AnnouncementManager /></div></TabsContent>
+          {can('manageEvents') && <TabsContent value="updates"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AnnouncementManager /></div></TabsContent>}
 
           <TabsContent value="users">
             <div className="mb-4 flex items-center gap-2">
@@ -334,7 +334,7 @@ export default function Admin() {
 
           <TabsContent value="events"><div className="space-y-6"><GlobalEventManager /><hr className="border-slate-700" /><AdminEventsPanel /></div></TabsContent>
 
-          <TabsContent value="kitchen"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AdminKitchenPanel /></div></TabsContent>
+          {can('manageKitchen') && <TabsContent value="kitchen"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AdminKitchenPanel /></div></TabsContent>}
 
           <TabsContent value="themes">
             <div className="flex justify-end mb-4"><Button onClick={() => setShowThemeForm(true)} className="bg-gradient-to-r from-cyan-500 to-blue-600"><Plus className="w-4 h-4 mr-2" />New Theme</Button></div>
@@ -360,9 +360,9 @@ export default function Admin() {
 
           <TabsContent value="locks"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><h3 className="text-white font-semibold mb-3">Global Feature Locks</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{['shop','market','battlePass','pets','xpGain'].map((k) => (<label key={k} className="flex items-center gap-2 bg-slate-700/60 rounded-lg px-3 py-2 text-sm text-slate-200"><input type="checkbox" checked={!!featureLocks.global?.[k]} onChange={(e) => setFeatureLocks({ ...featureLocks, global: { ...(featureLocks.global || {}), [k]: e.target.checked } })} />{k}</label>))}</div><div className="flex justify-end mt-4"><Button onClick={saveFeatureLocks} className="bg-emerald-600">Save Locks</Button></div></div></TabsContent>
 
-          <TabsContent value="community_perms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityChannelPermsPanel /></div></TabsContent>
-          <TabsContent value="moderation"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityModerationPanel /></div></TabsContent>
-          <TabsContent value="concepts"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><PetConceptReviewPanel customPets={customPets} setCustomPets={setCustomPets} customThemes={customThemes} setCustomThemes={setCustomThemes} /></div></TabsContent>
+          {can('manageEvents') && <TabsContent value="community_perms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityChannelPermsPanel /></div></TabsContent>}
+          {can('manageEvents') && <TabsContent value="moderation"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityModerationPanel /></div></TabsContent>}
+          {can('managePets') && <TabsContent value="concepts"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><PetConceptReviewPanel customPets={customPets} setCustomPets={setCustomPets} customThemes={customThemes} setCustomThemes={setCustomThemes} /></div></TabsContent>}
           {isSuperAdmin && <TabsContent value="lore"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><LoreComicPanel /></div></TabsContent>}
           <TabsContent value="settings"><AdminSettingsPanel appSettings={appSettings} setAppSettings={setAppSettings} referralSettings={referralSettings} setReferralSettings={setReferralSettings} adminReferralLinks={adminReferralLinks} setAdminReferralLinks={setAdminReferralLinks} newLinkMaxUses={newLinkMaxUses} setNewLinkMaxUses={setNewLinkMaxUses} rewardLinks={rewardLinks} setRewardLinks={setRewardLinks} showRewardLinkForm={showRewardLinkForm} setShowRewardLinkForm={setShowRewardLinkForm} isSuperAdmin={isSuperAdmin} /></TabsContent>
         </Tabs>

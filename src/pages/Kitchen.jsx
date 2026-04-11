@@ -37,7 +37,7 @@ export default function Kitchen() {
       setProfile(me);
 
       const [items, inventory] = await Promise.all([
-        base44.entities.FoodItem.filter({ isActive: true }),
+        base44.entities.FoodItem.filter({ isActive: true, inVendingMachine: true }),
         base44.entities.FoodInventory.filter({ userProfileId: profileId })
       ]);
       setFoodItems(items);
@@ -148,6 +148,18 @@ export default function Kitchen() {
                 onPurchase={handlePurchaseFood}
               />
             </div>
+            {foodInventory.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center mt-6">
+                <Button
+                  onClick={() => setShowFeeding(true)}
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold px-8 h-12 rounded-xl shadow-lg"
+                >
+                  <UtensilsCrossed className="w-5 h-5 mr-2" />
+                  Feed a Pet! 🌟
+                </Button>
+                <p className="text-slate-400 text-xs mt-2">Use food from your inventory to create a new Legendary pet!</p>
+              </motion.div>
+            )}
           </TabsContent>
 
           <TabsContent value="inventory" className="mt-4">
