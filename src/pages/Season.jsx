@@ -149,9 +149,13 @@ export default function Season() {
           updateData.unlockedThemes = [...currentThemes, themeId];
         }
       } else if (reward.type === 'title') {
+        const titleValue = (reward.value || reward.name || '').trim();
+        if (!titleValue) {
+          throw new Error('Title reward is missing a value');
+        }
         const currentTitles = profile.unlockedTitles || [];
-        if (!currentTitles.includes(reward.value)) {
-          updateData.unlockedTitles = [...currentTitles, reward.value];
+        if (!currentTitles.includes(titleValue)) {
+          updateData.unlockedTitles = [...currentTitles, titleValue];
         }
       } else if (reward.type === 'coins') {
         const coinAmount = parseInt(reward.value, 10) || 0;
