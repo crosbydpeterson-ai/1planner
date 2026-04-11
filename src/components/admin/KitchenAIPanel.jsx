@@ -60,7 +60,22 @@ Return JSON.`,
           }
         }
       });
-      setGeneratedItems((result.items || []).map(item => ({ ...item, imageUrl: null, generatingImg: false, saved: false })));
+      // Auto-generate images for all items
+      const itemsWithPlaceholders = (result.items || []).map(item => ({ ...item, imageUrl: null, generatingImg: true, saved: false }));
+      setGeneratedItems(itemsWithPlaceholders);
+
+      // Generate images in parallel-ish
+      for (let i = 0; i < itemsWithPlaceholders.length; i++) {
+        const item = itemsWithPlaceholders[i];
+        try {
+          const imgResult = await base44.integrations.Core.GenerateImage({
+            prompt: item.imagePrompt || `Cute cartoon ${item.name} food item, ${item.flavor} theme, vibrant colors, white background, game icon style, kid-friendly`
+          });
+          setGeneratedItems(prev => prev.map((it, idx) => idx === i ? { ...it, imageUrl: imgResult.url, generatingImg: false } : it));
+        } catch {
+          setGeneratedItems(prev => prev.map((it, idx) => idx === i ? { ...it, generatingImg: false } : it));
+        }
+      }
     } catch (e) {
       toast.error('Generation failed: ' + e.message);
     }

@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import ActiveEggJobs from "@/components/admin/ActiveEggJobs";
 
-const REWARD_TYPES = ["pet", "theme", "title", "coins", "magic_egg"];
+const REWARD_TYPES = ["pet", "theme", "title", "coins", "magic_egg", "food"];
 const SPACING_LABELS = { 1: "Very Compact", 2: "Compact", 3: "Normal", 4: "Spaced", 5: "Very Far Apart" };
 
 export default function SeasonPassGeneratorPanel({ adminProfile, customPets, customThemes, onSeasonCreated }) {

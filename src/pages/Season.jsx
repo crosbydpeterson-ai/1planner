@@ -156,6 +156,31 @@ export default function Season() {
       } else if (reward.type === 'coins') {
         const coinAmount = parseInt(reward.value, 10) || 0;
         updateData.questCoins = (profile.questCoins || 0) + coinAmount;
+      } else if (reward.type === 'food' && reward.value) {
+        // Grant a food item to inventory
+        try {
+          const foodItems = await base44.entities.FoodItem.filter({ id: reward.value });
+          if (foodItems.length > 0) {
+            const food = foodItems[0];
+            const existingInv = await base44.entities.FoodInventory.filter({ userProfileId: profile.id, foodItemId: food.id });
+            if (existingInv.length > 0) {
+              await base44.entities.FoodInventory.update(existingInv[0].id, { quantity: (existingInv[0].quantity || 0) + 1 });
+            } else {
+              await base44.entities.FoodInventory.create({
+                userProfileId: profile.id,
+                foodItemId: food.id,
+                foodName: food.name,
+                foodImageUrl: food.imageUrl || '',
+                foodFlavor: food.flavor,
+                foodDescription: food.description || '',
+                foodRarity: food.rarity,
+                quantity: 1
+              });
+            }
+          }
+        } catch (e) {
+          console.error('Error granting food reward:', e);
+        }
       }
 
       await base44.entities.UserProfile.update(profile.id, updateData);

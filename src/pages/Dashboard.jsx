@@ -11,7 +11,7 @@ import GlassIcon from '@/components/ui/GlassIcon';
 // Widget components
 import WidgetGrid from '@/components/dashboard/WidgetGrid';
 import WidgetCustomizer from '@/components/dashboard/WidgetCustomizer';
-import EventManager from '@/components/events/EventManager';
+// EventManager removed — events only show on Events page
 import XPWidget from '@/components/dashboard/widgets/XPWidget';
 import PetWidget from '@/components/dashboard/widgets/PetWidget';
 import StatsWidget from '@/components/dashboard/widgets/StatsWidget';
@@ -280,8 +280,7 @@ export default function Dashboard() {
 
       }
 
-      {/* Event Manager */}
-      <EventManager profile={profile} />
+      {/* Events only on Events page now */}
 
       {/* Tutorial */}
       <Tutorial profile={profile} currentPage="Dashboard" onComplete={handleTutorialComplete} />
