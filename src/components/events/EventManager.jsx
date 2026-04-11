@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import BubblePopEvent from './BubblePopEvent';
 import BalloonPopEvent from './BalloonPopEvent';
 import FusionLabEvent from './FusionLabEvent';
+import FoodFeedingModal from '../student/FoodFeedingModal';
 
 export default function EventManager({ profile }) {
   const [activeEvent, setActiveEvent] = useState(null);
@@ -112,6 +113,12 @@ export default function EventManager({ profile }) {
         <FusionLabEvent
           event={activeEvent}
           profile={profile}
+          onClose={handleClose}
+        />
+      )}
+      {activeEvent.type === 'pet_food' && (
+        <FoodFeedingModal
+          profileId={profile?.id}
           onClose={handleClose}
         />
       )}

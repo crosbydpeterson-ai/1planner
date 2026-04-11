@@ -1,0 +1,63 @@
+{
+  "name": "AdminEvent",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Event name"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "bubble_pop",
+        "balloon_pop",
+        "fusion_lab",
+        "pet_food",
+        "xp_boost",
+        "mystery_box"
+      ],
+      "description": "Event type"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether event is currently active"
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "bubbleCount": {
+          "type": "number",
+          "description": "Number of bubbles for bubble_pop"
+        },
+        "eggChance": {
+          "type": "number",
+          "description": "Chance to win magic egg (0-100)"
+        },
+        "xpBoostMultiplier": {
+          "type": "number",
+          "description": "XP multiplier for xp_boost events"
+        },
+        "duration": {
+          "type": "number",
+          "description": "Event duration in minutes"
+        }
+      },
+      "description": "Event-specific configuration"
+    },
+    "startTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When event started"
+    },
+    "endTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When event ends"
+    }
+  },
+  "required": [
+    "name",
+    "type"
+  ]
+}

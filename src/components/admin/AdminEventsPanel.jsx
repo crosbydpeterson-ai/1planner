@@ -27,6 +27,13 @@ const EVENT_TYPES = [
     description: 'Students pick 2 of their pets to fuse into a brand new Legendary pet!',
     defaultConfig: {},
   },
+  {
+    type: 'pet_food',
+    emoji: '🍽️',
+    name: 'Pet Food Kitchen',
+    description: 'Students feed food items to their pets to create new food-themed Legendary pets!',
+    defaultConfig: {},
+  },
 ];
 
 export default function AdminEventsPanel() {
