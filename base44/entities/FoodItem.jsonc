@@ -1,0 +1,47 @@
+{
+  "name": "FoodItem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Food item name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Fun description for kids"
+    },
+    "imageUrl": {
+      "type": "string",
+      "description": "AI generated food illustration URL"
+    },
+    "flavor": {
+      "type": "string",
+      "description": "Food flavor/theme (e.g. tropical, spicy, sweet)"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "common",
+        "uncommon",
+        "rare",
+        "epic",
+        "legendary"
+      ]
+    },
+    "price": {
+      "type": "number",
+      "default": 50,
+      "description": "Price in Quest Coins"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "flavor",
+    "rarity",
+    "price"
+  ]
+}

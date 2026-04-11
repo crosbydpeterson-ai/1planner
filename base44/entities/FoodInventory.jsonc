@@ -1,0 +1,38 @@
+{
+  "name": "FoodInventory",
+  "type": "object",
+  "properties": {
+    "userProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of owner"
+    },
+    "foodItemId": {
+      "type": "string",
+      "description": "FoodItem ID"
+    },
+    "foodName": {
+      "type": "string"
+    },
+    "foodImageUrl": {
+      "type": "string"
+    },
+    "foodFlavor": {
+      "type": "string"
+    },
+    "foodDescription": {
+      "type": "string"
+    },
+    "foodRarity": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    }
+  },
+  "required": [
+    "userProfileId",
+    "foodItemId",
+    "quantity"
+  ]
+}

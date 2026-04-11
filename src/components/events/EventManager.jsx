@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { AnimatePresence } from 'framer-motion';
 import BubblePopEvent from './BubblePopEvent';
 import BalloonPopEvent from './BalloonPopEvent';
+import FusionLabEvent from './FusionLabEvent';
 
 export default function EventManager({ profile }) {
   const [activeEvent, setActiveEvent] = useState(null);
@@ -13,10 +14,17 @@ export default function EventManager({ profile }) {
     
     // Subscribe to event changes
     const unsubscribe = base44.entities.AdminEvent.subscribe((event) => {
-      if (event.type === 'create' || event.type === 'update') {
-        if (event.data.isActive) {
+      if (event.type === 'update') {
+        if (event.data?.isActive) {
           setActiveEvent(event.data);
+          setShowEvent(true);
+        } else {
+          // Event was deactivated
+          setActiveEvent(prev => (prev?.id === event.id ? null : prev));
+          setShowEvent(false);
         }
+      } else if (event.type === 'create' && event.data?.isActive) {
+        setActiveEvent(event.data);
       }
     });
 
@@ -95,6 +103,13 @@ export default function EventManager({ profile }) {
       )}
       {activeEvent.type === 'balloon_pop' && (
         <BalloonPopEvent 
+          event={activeEvent}
+          profile={profile}
+          onClose={handleClose}
+        />
+      )}
+      {activeEvent.type === 'fusion_lab' && (
+        <FusionLabEvent
           event={activeEvent}
           profile={profile}
           onClose={handleClose}
