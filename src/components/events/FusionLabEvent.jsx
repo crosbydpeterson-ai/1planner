@@ -20,13 +20,16 @@ export default function FusionLabEvent({ event, profile, onClose }) {
     setLoading(true);
     const unlockedIds = profile?.unlockedPets || [];
     const petList = [];
-    for (const id of unlockedIds.slice(0, 30)) {
+
+    // Batch-fetch all custom pets at once instead of one-by-one
+    const allCustomPets = await base44.entities.CustomPet.list();
+    const customPetMap = {};
+    allCustomPets.forEach(p => { customPetMap[p.id] = p; });
+
+    for (const id of unlockedIds) {
       if (id.startsWith('custom_')) {
-        try {
-          const dbId = id.replace('custom_', '');
-          const recs = await base44.entities.CustomPet.filter({ id: dbId });
-          if (recs[0]) petList.push({ ...recs[0], displayId: id });
-        } catch {}
+        const dbId = id.replace('custom_', '');
+        if (customPetMap[dbId]) petList.push({ ...customPetMap[dbId], displayId: id });
       } else {
         const builtIn = PETS.find(p => p.id === id);
         if (builtIn) petList.push({ ...builtIn, displayId: id });
