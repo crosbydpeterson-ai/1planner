@@ -4,10 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, Sparkles, Wand2, Check, X, Edit2, Save } from "lucide-react";
+import { Loader2, Sparkles, Wand2, X, Save } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import ActiveEggJobs from "@/components/admin/ActiveEggJobs";
@@ -30,7 +29,27 @@ export default function SeasonPassGeneratorPanel({ adminProfile, customPets, cus
 
   // Generated rewards
   const [generatedRewards, setGeneratedRewards] = useState([]);
-  const [editingIndex, setEditingIndex] = useState(null);
+
+  const waitForEggJobCompletion = async (jobId, timeoutMs = 180000, pollMs = 2000) => {
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < timeoutMs) {
+      const jobs = await base44.entities.EggGenerationJob.filter({ id: jobId });
+      const job = jobs?.[0];
+      if (!job) {
+        throw new Error("Pet generation job not found");
+      }
+      if (job.status === "failed") {
+        throw new Error(job.error || "Pet generation failed");
+      }
+      if (job.status === "completed") {
+        return job;
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollMs));
+    }
+
+    throw new Error("Pet generation timed out");
+  };
 
   const handleGenerate = async () => {
     if (!theme.trim()) {
@@ -175,7 +194,7 @@ RULES:
             xpRequired: reward.xpRequired,
             type: "pet",
             name: reward.name,
-            value: `pending_${petJobs.length - 1}` // temporary
+            value: `pending_pet_${petJobs.length - 1}` // temporary
           });
         } else if (reward.type === "theme" && reward.themeData) {
           // Create theme directly
@@ -210,11 +229,15 @@ RULES:
             value: "magic_egg"
           });
         } else if (reward.type === "title") {
+          const titleValue = (reward.value || reward.name || "").trim();
+          if (!titleValue) {
+            throw new Error(`Title reward "${reward.name || "Untitled"}" is missing a value`);
+          }
           processedRewards.push({
             xpRequired: reward.xpRequired,
             type: "title",
             name: reward.name,
-            value: reward.name
+            value: titleValue
           });
         }
       }
@@ -237,18 +260,21 @@ RULES:
         toast.info(`Generating ${petJobs.length} pets with AI... this may take a minute.`);
         await base44.functions.invoke("generateMagicEggs", { jobId: job.id });
 
-        // Fetch the completed job to get created pet IDs
-        const completedJobs = await base44.entities.EggGenerationJob.filter({ id: job.id });
-        const completedJob = completedJobs[0];
+        // Wait for completion to ensure rewards are saved with real IDs
+        const completedJob = await waitForEggJobCompletion(job.id);
         const createdPetIds = completedJob?.createdPetIds || [];
+
+        if (createdPetIds.length < petJobs.length) {
+          throw new Error(`Only ${createdPetIds.length}/${petJobs.length} season pets were generated`);
+        }
 
         // Backfill pet reward values with actual IDs
         let petIdx = 0;
         for (let i = 0; i < processedRewards.length; i++) {
-          if (processedRewards[i].value?.startsWith("pending_")) {
+          if (processedRewards[i].value?.startsWith("pending_pet_")) {
             processedRewards[i].value = createdPetIds[petIdx]
               ? `custom_${createdPetIds[petIdx]}`
-              : "pending";
+              : "";
             petIdx++;
           }
         }
