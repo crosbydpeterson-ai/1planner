@@ -55,6 +55,7 @@ import GeneralImageGeneratorPanel from '@/components/admin/GeneralImageGenerator
 import LoreComicPanel from '@/components/admin/LoreComicPanel';
 import AdminEventsPanel from '@/components/admin/AdminEventsPanel';
 import KitchenAIPanel from '@/components/admin/KitchenAIPanel';
+import AdminKitchenPanel from '@/components/admin/AdminKitchenPanel';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -247,7 +248,7 @@ export default function Admin() {
             {isSuperAdmin && <TabsTrigger value="eggs" className="data-[state=active]:bg-slate-700">🥚 Magic Eggs</TabsTrigger>}
             <TabsTrigger value="loot_eggs" className="data-[state=active]:bg-slate-700">🎰 Loot Eggs</TabsTrigger>
             {can('manageEvents') && <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">🫧 Events</TabsTrigger>}
-            {can('accessAI') && <TabsTrigger value="food" className="data-[state=active]:bg-slate-700">🍽️ Food</TabsTrigger>}
+            <TabsTrigger value="kitchen" className="data-[state=active]:bg-slate-700">👨‍🍳 Kitchen</TabsTrigger>
             {can('manageShop') && <TabsTrigger value="shop" className="data-[state=active]:bg-slate-700"><ShoppingBag className="w-4 h-4 mr-2" />Shop</TabsTrigger>}
             {can('viewAnalytics') && <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">📊 Analytics</TabsTrigger>}
             <TabsTrigger value="email" className="data-[state=active]:bg-slate-700">✉️ Email</TabsTrigger>
@@ -333,7 +334,7 @@ export default function Admin() {
 
           <TabsContent value="events"><div className="space-y-6"><GlobalEventManager /><hr className="border-slate-700" /><AdminEventsPanel /></div></TabsContent>
 
-          <TabsContent value="food"><div className="space-y-6"><KitchenAIPanel /></div></TabsContent>
+          <TabsContent value="kitchen"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AdminKitchenPanel /></div></TabsContent>
 
           <TabsContent value="themes">
             <div className="flex justify-end mb-4"><Button onClick={() => setShowThemeForm(true)} className="bg-gradient-to-r from-cyan-500 to-blue-600"><Plus className="w-4 h-4 mr-2" />New Theme</Button></div>
