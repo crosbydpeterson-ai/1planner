@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import GlobalEventWidget from '@/components/events/GlobalEventWidget';
+import EventManager from '@/components/events/EventManager';
 import { Loader2 } from 'lucide-react';
 
 export default function Events() {
@@ -37,6 +38,7 @@ export default function Events() {
       {!profile && (
         <p className="text-center text-slate-400 text-sm py-8">Log in to participate in events.</p>
       )}
+      {profile && <EventManager profile={profile} />}
     </div>
   );
 }
