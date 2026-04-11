@@ -37,6 +37,7 @@ export default function EventManager({ profile }) {
       const events = await base44.entities.AdminEvent.filter({ isActive: true });
       if (events.length > 0) {
         setActiveEvent(events[0]);
+        setShowEvent(true);
       }
     } catch (e) {
       console.error('Error checking events:', e);
@@ -46,7 +47,16 @@ export default function EventManager({ profile }) {
   useEffect(() => {
     const run = async () => {
       if (!activeEvent?.isActive || !profile?.userId) return;
-      if (!activeEvent.startTime) return;
+
+      // Interactive events (fusion_lab, pet_food) always show while active — no participation gate
+      const alwaysShowTypes = ['fusion_lab', 'pet_food'];
+      if (alwaysShowTypes.includes(activeEvent.type)) {
+        setShowEvent(true);
+        return;
+      }
+
+      // For other events, check participation so they only see it once per startTime
+      if (!activeEvent.startTime) { setShowEvent(true); return; }
       try {
         const existing = await base44.entities.EventParticipation.filter({
           eventId: activeEvent.id,
