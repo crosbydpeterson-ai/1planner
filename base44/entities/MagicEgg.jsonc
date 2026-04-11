@@ -24,6 +24,7 @@
         "bubble_pop_event",
         "global_event",
         "reward_link",
+        "new_player",
         "unknown"
       ],
       "default": "unknown",

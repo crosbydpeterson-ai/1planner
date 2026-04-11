@@ -226,13 +226,18 @@ export default function Home() {
         xp: referralCode ? referredRewardXP : 0,
         isLocked: false,
         hiddenFromLeaderboard: false,
-        unlockedPets: ['starter_slime'],
+        unlockedPets: [],
         unlockedThemes: ['default'],
-        equippedPetId: 'starter_slime',
         equippedThemeId: 'default',
         claimedSeasonRewards: [],
         completedAssignments: []
       });
+
+      // Grant 2 Magic Eggs to new players
+      await base44.entities.MagicEgg.bulkCreate([
+        { userId: uniqueId, source: 'new_player' },
+        { userId: uniqueId, source: 'new_player' }
+      ]);
 
       // Award XP to referrer
       if (referrerProfile) {
