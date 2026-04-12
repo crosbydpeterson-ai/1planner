@@ -141,6 +141,38 @@ export default function Season() {
         if (!currentPets.includes(petId)) {
           updateData.unlockedPets = [...currentPets, petId];
         }
+
+        // For custom pets, also unlock their matching custom theme
+        if (typeof petId === 'string' && petId.startsWith('custom_')) {
+          const petDbId = petId.replace('custom_', '');
+          const currentThemes = profile.unlockedThemes || [];
+          let themeIdToUnlock = null;
+
+          const petRows = await base44.entities.CustomPet.filter({ id: petDbId });
+          const customPet = petRows[0];
+          if (customPet) {
+            const existingThemes = await base44.entities.CustomTheme.filter({ name: customPet.name });
+            if (existingThemes.length > 0) {
+              themeIdToUnlock = `custom_${existingThemes[0].id}`;
+            } else if (customPet.theme) {
+              const createdTheme = await base44.entities.CustomTheme.create({
+                name: customPet.name,
+                rarity: customPet.rarity || 'common',
+                xpRequired: 0,
+                description: `Theme from ${customPet.name}`,
+                primaryColor: customPet.theme.primary || '#6366f1',
+                secondaryColor: customPet.theme.secondary || '#a5b4fc',
+                accentColor: customPet.theme.accent || '#f59e0b',
+                bgColor: customPet.theme.bg || '#f0f9ff'
+              });
+              themeIdToUnlock = `custom_${createdTheme.id}`;
+            }
+          }
+
+          if (themeIdToUnlock && !currentThemes.includes(themeIdToUnlock)) {
+            updateData.unlockedThemes = [...currentThemes, themeIdToUnlock];
+          }
+        }
       } else if (reward.type === 'theme') {
         // Use the value as-is — it already has the correct format (built-in ID or custom_<id>)
         const themeId = reward.value;

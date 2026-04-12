@@ -16,7 +16,8 @@ const REWARD_TYPE_ICONS = {
 };
 
 function RewardCard({ reward, index, tier, userXp, claimedRewards, onClaim, petCache, hasPlus }) {
-  const claimKey = `${reward.seasonId}:${index}:${reward.type}:${reward?.value || reward?.name || 'reward'}`;
+  const claimIndex = typeof reward.seasonRewardIndex === 'number' ? reward.seasonRewardIndex : index;
+  const claimKey = `${reward.seasonId}:${claimIndex}:${reward.type}:${reward?.value || reward?.name || 'reward'}`;
   const isUnlocked = userXp >= reward.xpRequired;
   const isClaimed = claimedRewards.includes(claimKey);
   const isPlusCard = tier === 'plus';
@@ -75,7 +76,7 @@ function RewardCard({ reward, index, tier, userXp, claimedRewards, onClaim, petC
               </div>
             ) : isUnlocked && canUse ? (
               <Button
-                onClick={() => onClaim?.(reward, index)}
+                onClick={() => onClaim?.(reward, claimIndex)}
                 className="w-full rounded-xl border-2 border-yellow-200 bg-yellow-400 text-slate-900 hover:bg-yellow-300 font-black uppercase shadow-[0_4px_0_rgba(146,93,0,0.45)]"
               >
                 Claim
@@ -171,9 +172,10 @@ export default function SeasonRewards({ season, userXp, claimedRewards = [], onC
 
   if (!season) return null;
 
-  const normalizedRewards = (season.rewards || []).map((reward) => ({
+  const normalizedRewards = (season.rewards || []).map((reward, index) => ({
     ...reward,
-    seasonId: season.id
+    seasonId: season.id,
+    seasonRewardIndex: index
   }));
 
   const freeRewards = normalizedRewards.filter((_, index) => index % 2 === 0);
