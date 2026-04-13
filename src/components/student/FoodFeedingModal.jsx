@@ -37,7 +37,7 @@ export default function FoodFeedingModal({ profileId, onClose }) {
 
       const unlockedIds = p.unlockedPets || [];
       const petList = [];
-      const allCustomPets = await base44.entities.CustomPet.list();
+      const allCustomPets = await base44.entities.CustomPet.list('-created_date', 1000);
       const customPetMap = {};
       allCustomPets.forEach(pet => { customPetMap[pet.id] = pet; });
 
