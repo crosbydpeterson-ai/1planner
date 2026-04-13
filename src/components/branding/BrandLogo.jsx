@@ -1,6 +1,3 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 
 const LOGO_URL = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/696e36c523c92e1a3cd5dbd6/365d54d5d_lanner.png';
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ChevronRight, ClipboardList } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 export default function RecentAssignmentsWidget({ assignments, completedIds, ...props }) {
   if (!assignments || assignments.length === 0) return null;

@@ -1,6 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { motion, useAnimation } from 'framer-motion';
-import { Zap, Coins, PawPrint, Palette, Tag, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Segment colors cycling palette

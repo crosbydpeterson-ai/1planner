@@ -5,7 +5,7 @@ import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { Sword, LogOut, Settings, Wand2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
+import { PETS } from '@/components/quest/PetCatalog';
 import GlassIcon from '@/components/ui/GlassIcon';
 
 // Widget components

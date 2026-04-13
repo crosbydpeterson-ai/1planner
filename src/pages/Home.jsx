@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sword, Shield, Sparkles, User, Hash, BookOpen, Calculator, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Sword, Sparkles, User, Hash, BookOpen, Calculator, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Search, UserX, UserPlus, Hash, Shield, Check } from 'lucide-react';
+import { Search, UserX, UserPlus, Shield, Check } from 'lucide-react';
 import { PERMISSION_OPTIONS, COMMENT_PERMISSION_OPTIONS } from '@/components/community/permissionUtils';
 
 function WhitelistManager({ channel, users, onUpdate }) {

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Bug, Bot, X, Send, Loader2, Wrench } from 'lucide-react';
+import { Bug, Bot, Send, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 
 export default function DebugChatWidget() {

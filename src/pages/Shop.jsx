@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Coins, Sparkles, Clock, Package, Shield } from 'lucide-react';
+import { ShoppingBag, Coins, Sparkles, Clock, Package } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
