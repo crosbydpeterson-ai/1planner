@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { motion } from 'framer-motion';
-import { X, Loader2, ChefHat, Heart, Sparkles } from 'lucide-react';
+import { X, Loader2, ChefHat, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PETS } from '@/components/quest/PetCatalog';
 import { toast } from 'sonner';
@@ -37,13 +37,14 @@ export default function FoodFeedingModal({ profileId, onClose }) {
 
       const unlockedIds = p.unlockedPets || [];
       const petList = [];
-      for (const id of unlockedIds.slice(0, 24)) {
+      const allCustomPets = await base44.entities.CustomPet.list();
+      const customPetMap = {};
+      allCustomPets.forEach(pet => { customPetMap[pet.id] = pet; });
+
+      for (const id of unlockedIds) {
         if (id.startsWith('custom_')) {
-          try {
-            const dbId = id.replace('custom_', '');
-            const recs = await base44.entities.CustomPet.filter({ id: dbId });
-            if (recs[0]) petList.push({ ...recs[0], displayId: id });
-          } catch {}
+          const dbId = id.replace('custom_', '');
+          if (customPetMap[dbId]) petList.push({ ...customPetMap[dbId], displayId: id });
         } else {
           const builtIn = PETS.find(p2 => p2.id === id);
           if (builtIn) petList.push({ ...builtIn, displayId: id });
