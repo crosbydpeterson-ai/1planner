@@ -56,7 +56,7 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
     if (key.startsWith('petmoji:')) {
       const id = key.replace('petmoji:', '');
       const moji = findMoji(id);
-      if (moji) return <img src={moji.imageUrl} alt={moji.name} className="w-5 h-5 rounded object-cover inline-block" />;
+      if (moji) return <img src={moji.imageUrl} alt={moji.name} className="w-[60px] h-[60px] rounded-lg object-cover inline-block" />;
       return <span className="text-xs">?</span>;
     }
     return <span className="text-sm leading-none">{key}</span>;
@@ -84,7 +84,7 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
                 <button
                   onClick={() => onReact(key)}
                   className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all border",
+                    "flex items-center gap-1 px-3 py-2 rounded-full text-xs transition-all border",
                     hasReacted
                       ? "bg-indigo-50 border-indigo-200 text-indigo-700"
                       : "bg-slate-50 border-slate-200 text-slate-500 hover:border-indigo-200 hover:bg-indigo-50/50"
@@ -140,15 +140,15 @@ export default function ReactionBar({ reactions, currentProfileId, onReact, user
                 </div>
               )}
               {tab === 'petmoji' && (
-                <div className="grid grid-cols-4 gap-1.5 max-h-56 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto">
                   {petMojis.map((moji) => (
                     <button
                       key={moji.id}
                       onClick={() => handleReact(`petmoji:${moji.id}`)}
-                      className="w-14 h-14 flex flex-col items-center justify-center hover:bg-indigo-50 rounded-lg transition-colors p-1 relative"
+                      className="w-[72px] h-[72px] flex flex-col items-center justify-center hover:bg-indigo-50 rounded-lg transition-colors p-1 relative"
                       title={moji.name}
                     >
-                      <img src={moji.imageUrl} alt={moji.name} className="w-10 h-10 rounded-lg object-cover" />
+                      <img src={moji.imageUrl} alt={moji.name} className="w-[60px] h-[60px] rounded-lg object-cover" />
                       {moji.isExclusive && <span className="absolute top-0 right-0 text-[8px]">✨</span>}
                     </button>
                   ))}
