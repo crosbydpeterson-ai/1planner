@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Loader2, CheckCircle, XCircle, Trash2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import moment from 'moment';

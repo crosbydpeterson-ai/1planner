@@ -3,12 +3,11 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Egg } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import EggCard from '@/components/eggs/EggCard';
 import EggOpenAnimation from '@/components/eggs/EggOpenAnimation';
-import { PETS } from '@/components/quest/PetCatalog';
 
 export default function Eggs() {
   const navigate = useNavigate();

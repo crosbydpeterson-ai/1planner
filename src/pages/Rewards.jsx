@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PETS, RARITY_COLORS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
 import { colorStyle } from '@/components/theme/themeUtils';
-import PetAvatar from '@/components/quest/PetAvatar';
 import GlassIcon from '@/components/ui/GlassIcon';
 import MagicEggCreator from '@/components/rewards/MagicEggCreator';
 import Tutorial from '@/components/tutorial/Tutorial';

@@ -18,7 +18,7 @@ import Tutorial from '@/components/tutorial/Tutorial';
 import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
 
  import { toast } from 'sonner';
-import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
+import { getRandomPet } from '@/components/quest/PetCatalog';
 import PetClearanceEventModal from '@/components/events/PetClearanceEventModal';
 
 export default function Assignments() {

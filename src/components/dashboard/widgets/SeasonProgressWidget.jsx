@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Sparkles, ChevronRight, Calendar } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { differenceInDays, format } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 
 export default function SeasonProgressWidget({ userXp, claimedRewards, seasonXp, activeSeasonId }) {
   const [season, setSeason] = useState(null);

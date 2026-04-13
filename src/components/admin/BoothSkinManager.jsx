@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { base44 } from '@/api/base44Client';
-import { Image, Sparkles, Trash2, Gift } from 'lucide-react';
+import { Sparkles, Trash2, Gift } from 'lucide-react';
 
 export default function BoothSkinManager() {
   const [prompt, setPrompt] = useState('stylized arcade booth banner, neon lights, 1024x512');
