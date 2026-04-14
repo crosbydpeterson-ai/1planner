@@ -30,13 +30,13 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
     setGeneratingImage(true);
 
     try {
-      const { data } = await base44.functions.invoke('generateEggPet', {
+      const result = await base44.functions.invoke('generateEggPet', {
         action: 'generate',
         petIdea: petIdea.trim()
       });
 
-      setGeneratedPet(data.concept);
-      setGeneratedImageUrl(data.imageUrl || null);
+      setGeneratedPet(result.concept);
+      setGeneratedImageUrl(result.imageUrl || null);
       setStep('preview');
     } catch (e) {
       toast.error('Magic failed! Try again.');
@@ -52,7 +52,7 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
     setStep('hatching');
 
     try {
-      const { data } = await base44.functions.invoke('generateEggPet', {
+      const result = await base44.functions.invoke('generateEggPet', {
         action: 'hatch',
         eggId: egg.id,
         profileId: profile.id,
@@ -71,7 +71,7 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
       });
 
       window.dispatchEvent(new Event('themeUpdated'));
-      onPetCreated(data.pet, data.petId, data.theme, data.themeId);
+      onPetCreated(result.pet, result.petId, result.theme, result.themeId);
       setShowDialog(false);
       setStep('idea');
       setPetIdea('');
