@@ -1,19 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Bot, X, Send, Loader2, Sparkles, RotateCcw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 
 const CONV_STORAGE_KEY = 'admin_ai_conversation_id';
 
+// Call the backend function so we use service role auth (works outside Base44 preview)
+const agentCall = (action, params = {}) =>
+  base44.functions.invoke('adminAgentChat', { action, ...params }).then(r => r.data);
+
 export default function AdminChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [conversation, setConversation] = useState(null);
+  const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [initializing, setInitializing] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const pollRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -22,54 +26,56 @@ export default function AdminChatWidget() {
 
   useEffect(() => { scrollToBottom(); }, [messages, isThinking]);
 
-  // Load or create conversation when widget opens
   useEffect(() => {
-    if (isOpen && !conversation) {
+    if (isOpen && !conversationId) {
       loadOrCreateConversation();
     }
   }, [isOpen]);
 
-  // Subscribe to conversation updates
+  // Poll for updates when thinking
   useEffect(() => {
-    if (!conversation?.id) return;
-    const unsubscribe = base44.agents.subscribeToConversation(conversation.id, (data) => {
-      const msgs = data.messages || [];
-      setMessages(msgs);
-      // If last message is assistant, we're done thinking
-      if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
-        setIsThinking(false);
+    if (!conversationId) return;
+    if (!isThinking) {
+      clearInterval(pollRef.current);
+      return;
+    }
+    pollRef.current = setInterval(async () => {
+      try {
+        const { conversation } = await agentCall('get_conversation', { conversationId });
+        const msgs = conversation?.messages || [];
+        setMessages(msgs);
+        // Stop polling when last message is from assistant
+        if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
+          setIsThinking(false);
+        }
+      } catch (e) {
+        console.error('Poll error:', e);
       }
-    });
-    return () => unsubscribe();
-  }, [conversation?.id]);
+    }, 2000);
+    return () => clearInterval(pollRef.current);
+  }, [isThinking, conversationId]);
 
   const loadOrCreateConversation = async () => {
     setInitializing(true);
     try {
-      // Try to resume existing conversation
       const savedId = localStorage.getItem(CONV_STORAGE_KEY);
       if (savedId) {
         try {
-          const conv = await base44.agents.getConversation(savedId);
-          if (conv?.id) {
-            setConversation(conv);
-            setMessages(conv.messages || []);
+          const { conversation } = await agentCall('get_conversation', { conversationId: savedId });
+          if (conversation?.id) {
+            setConversationId(conversation.id);
+            setMessages(conversation.messages || []);
             setInitializing(false);
             return;
           }
         } catch (e) {
-          // Saved conversation not found, create new one
           localStorage.removeItem(CONV_STORAGE_KEY);
         }
       }
-      // Create new conversation
-      const conv = await base44.agents.createConversation({
-        agent_name: 'admin_assistant',
-        metadata: { name: 'Admin Chat' }
-      });
-      setConversation(conv);
-      setMessages(conv.messages || []);
-      localStorage.setItem(CONV_STORAGE_KEY, conv.id);
+      const { conversation } = await agentCall('create_conversation', { agentName: 'admin_assistant' });
+      setConversationId(conversation.id);
+      setMessages(conversation.messages || []);
+      localStorage.setItem(CONV_STORAGE_KEY, conversation.id);
     } catch (e) {
       console.error('Failed to load conversation:', e);
     }
@@ -78,18 +84,15 @@ export default function AdminChatWidget() {
 
   const startNewConversation = async () => {
     localStorage.removeItem(CONV_STORAGE_KEY);
-    setConversation(null);
+    setConversationId(null);
     setMessages([]);
     setIsThinking(false);
     setInitializing(true);
     try {
-      const conv = await base44.agents.createConversation({
-        agent_name: 'admin_assistant',
-        metadata: { name: 'Admin Chat' }
-      });
-      setConversation(conv);
-      setMessages(conv.messages || []);
-      localStorage.setItem(CONV_STORAGE_KEY, conv.id);
+      const { conversation } = await agentCall('create_conversation', { agentName: 'admin_assistant' });
+      setConversationId(conversation.id);
+      setMessages(conversation.messages || []);
+      localStorage.setItem(CONV_STORAGE_KEY, conversation.id);
     } catch (e) {
       console.error('Failed to create conversation:', e);
     }
@@ -98,18 +101,20 @@ export default function AdminChatWidget() {
 
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text || !conversation?.id) return;
+    if (!text || !conversationId) return;
+    // Optimistically add user message
+    setMessages(prev => [...prev, { role: 'user', content: text }]);
     setInput('');
     setIsThinking(true);
     try {
-      await base44.agents.addMessage(conversation, { role: 'user', content: text });
+      await agentCall('send_message', { conversationId, message: text });
     } catch (e) {
       console.error('Failed to send message:', e);
       setIsThinking(false);
     }
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -118,7 +123,6 @@ export default function AdminChatWidget() {
 
   return (
     <>
-      {/* Floating Button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-red-500 to-orange-600 text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform pointer-events-auto"
@@ -128,7 +132,6 @@ export default function AdminChatWidget() {
         {isOpen ? <X className="w-6 h-6" /> : <Bot className="w-6 h-6" />}
       </motion.button>
 
-      {/* Chat Window */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -159,7 +162,7 @@ export default function AdminChatWidget() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-transparent">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {initializing ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-6 h-6 animate-spin text-red-500" />
@@ -168,15 +171,15 @@ export default function AdminChatWidget() {
                 <div className="text-center text-slate-400 text-sm mt-8">
                   <Bot className="w-10 h-10 mx-auto mb-2 opacity-50" />
                   <p>Hi! I'm your Admin Assistant.</p>
-                  <p className="text-xs mt-2 text-slate-500">Try: "Create a legendary pet called Dragon King" or "Gift 100 coins to username Crosby"</p>
+                  <p className="text-xs mt-2 text-slate-500">Try: "Create a legendary pet called Dragon King" or "Gift 100 coins to Crosby"</p>
                 </div>
               ) : (
                 messages.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[85%] rounded-2xl px-4 py-2 ${
                       msg.role === 'user'
-                        ? 'bg-red-500/90 backdrop-blur-sm text-white'
-                        : 'bg-white/10 backdrop-blur-sm border border-white/10 text-slate-200'
+                        ? 'bg-red-500/90 text-white'
+                        : 'bg-white/10 border border-white/10 text-slate-200'
                     }`}>
                       {msg.role === 'user' ? (
                         <p className="text-sm">{msg.content}</p>
@@ -190,10 +193,9 @@ export default function AdminChatWidget() {
                 ))
               )}
 
-              {/* Thinking indicator */}
               {isThinking && (
                 <div className="flex justify-start">
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/10 text-slate-200 rounded-2xl px-4 py-3 flex items-center gap-2">
+                  <div className="bg-white/10 border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-orange-400" />
                     <span className="text-sm text-slate-400">Thinking...</span>
                   </div>
@@ -213,14 +215,14 @@ export default function AdminChatWidget() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyPress}
+                  onKeyDown={handleKeyDown}
                   placeholder="Create a space season with rewards..."
-                  disabled={initializing || !conversation}
+                  disabled={initializing || !conversationId}
                   className="flex-1 h-9 rounded-md border bg-white/10 border-white/10 text-white placeholder:text-slate-400 px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
                 />
                 <button
                   type="submit"
-                  disabled={!input.trim() || initializing || !conversation}
+                  disabled={!input.trim() || initializing || !conversationId || isThinking}
                   className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
