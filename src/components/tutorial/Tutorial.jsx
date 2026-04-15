@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { X, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+
+const BYTE_IMAGE = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/696e36c523c92e1a3cd5dbd6/e5d1726bd_image.png";
 
 const TUTORIAL_STEPS = [
   {
     id: 'welcome',
     title: 'Welcome to Quest Planner! 🎉',
-    description: 'Let me show you around! Complete this quick tutorial to earn 50 XP and 100 Quest Coins!',
+    description: 'Hey! I\'m Byte, your Quest Planner buddy. Let me give you a quick tour — you\'ll earn 100 Quest Coins just for finishing!',
     target: null,
     position: 'center',
     page: 'Dashboard'
@@ -16,23 +17,23 @@ const TUTORIAL_STEPS = [
   {
     id: 'xp',
     title: 'Your XP & Level 📈',
-    description: 'This tracks your experience points. Every assignment you complete earns XP — level up to unlock pets and themes!',
+    description: 'This tracks your XP. Complete assignments to level up and unlock pets, themes, and titles!',
     target: '[data-tutorial="xp-widget"]',
     position: 'bottom',
     page: 'Dashboard'
   },
   {
     id: 'pet',
-    title: 'Your Pet Companion 🐾',
-    description: 'This is your pet! Equip different pets to change your whole color theme. Unlock more in the Collection tab.',
+    title: 'Your Pet 🐾',
+    description: 'This is your equipped pet! Each pet changes your whole color theme. Unlock more in the Collection tab.',
     target: '[data-tutorial="pet-widget"]',
     position: 'bottom',
     page: 'Dashboard'
   },
   {
     id: 'widgets',
-    title: 'Customize Your Dashboard ⚙️',
-    description: 'Tap this icon to rearrange and show/hide dashboard widgets — make it your own!',
+    title: 'Customize Dashboard ⚙️',
+    description: 'Tap this icon to rearrange and toggle dashboard widgets.',
     target: '[data-tutorial="widget-settings"]',
     position: 'bottom',
     page: 'Dashboard',
@@ -41,7 +42,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'assignments-intro',
     title: 'Your Quests 📋',
-    description: 'Here you can see your active assignments. Tap "Quests" in the nav to view and complete them!',
+    description: 'Your active assignments show here. Tap "Quests" in the nav bar to see them all!',
     target: '[data-tutorial="assignments-widget"]',
     position: 'top',
     page: 'Dashboard'
@@ -49,7 +50,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'assignments-page',
     title: 'Quest Page',
-    description: 'All your assignments live here. Teachers add them — you complete them to earn XP and Quest Coins!',
+    description: 'All assignments from your teachers live here. Complete them to earn XP and Quest Coins!',
     target: null,
     position: 'center',
     page: 'Assignments'
@@ -57,42 +58,24 @@ const TUTORIAL_STEPS = [
   {
     id: 'add-quest',
     title: 'Add Personal Goals ✍️',
-    description: 'You can create your own assignments too — personal goals, reminders, anything you want to track.',
+    description: 'You can create your own assignments — personal goals, reminders, anything you want to track.',
     target: '[data-tutorial="add-assignment"]',
     position: 'bottom',
     page: 'Assignments',
     allowClick: true
   },
   {
-    id: 'rewards-nav',
-    title: 'Your Collection 💎',
-    description: 'Check out all your pets, themes, and titles! Tap "Collection" in the nav.',
-    target: 'a[href*="Rewards"]',
-    position: 'top',
-    page: 'Assignments',
-    allowClick: true
-  },
-  {
     id: 'rewards-page',
-    title: 'Pets, Themes & Titles',
-    description: 'Unlock and equip pets, themes, and titles here. Each pet changes your whole dashboard color scheme!',
+    title: 'Collection 💎',
+    description: 'Here you unlock and equip pets, themes, and titles. Each pet gives you a unique color theme!',
     target: null,
     position: 'center',
     page: 'Rewards'
   },
   {
-    id: 'shop-nav',
-    title: 'The Shop 🛍️',
-    description: 'Spend your Quest Coins on exclusive items! Tap "Shop" — you\'ve got a welcome bonus waiting.',
-    target: 'a[href*="Shop"]',
-    position: 'top',
-    page: 'Rewards',
-    allowClick: true
-  },
-  {
     id: 'shop-page',
-    title: 'Free Welcome Coins! 🪙',
-    description: 'You just got 100 free Quest Coins as a welcome gift! Browse the shop and grab something cool.',
+    title: 'The Shop 🛍️',
+    description: 'Spend Quest Coins on exclusive items! You just got 100 free coins as a welcome bonus — go spend them!',
     target: null,
     position: 'center',
     page: 'Shop',
@@ -101,92 +84,213 @@ const TUTORIAL_STEPS = [
   {
     id: 'season',
     title: '1Pass — Season Rewards ✨',
-    description: 'The "1Pass" tab is your seasonal battle pass. Earn XP to climb tiers and unlock exclusive pets, themes, and titles!',
+    description: 'The "1Pass" tab is your seasonal battle pass. Earn XP to unlock exclusive pets, themes, and titles each season!',
     target: 'a[href*="Season"]',
     position: 'top',
-    page: 'Shop',
-    allowClick: false
+    page: 'Shop'
   },
   {
     id: 'kitchen',
     title: 'The Kitchen 🍔',
-    description: 'Buy food from the vending machine and feed it to your pet to fuse a brand new legendary pet! Find it in the "Kitchen" tab.',
+    description: 'Buy food from the vending machine, then feed it to your pet to fuse a brand-new legendary pet!',
     target: 'a[href*="Kitchen"]',
     position: 'top',
-    page: 'Shop',
-    allowClick: false
+    page: 'Shop'
   },
   {
     id: 'community',
     title: 'Community Wall 💬',
-    description: 'Chat, share pet ideas, vote in polls, and connect with other players in the Community tab!',
+    description: 'Post ideas, vote in polls, and chat with other players. You can even submit pet concepts!',
     target: 'a[href*="community"]',
     position: 'top',
-    page: 'Shop',
-    allowClick: false
+    page: 'Shop'
   },
   {
     id: 'byte',
-    title: 'Meet Byte! 🤖',
-    description: 'See that little icon in the bottom-right corner? That\'s Byte — your AI assistant! Tap it and say hi. Byte can simplify assignments and help you use the planner.',
+    title: 'Say hi to me! 👋',
+    description: 'Tap the icon in the bottom-right corner anytime to chat with me. I can simplify assignments and help you navigate the app!',
     target: null,
     position: 'center',
     page: 'any'
   },
   {
     id: 'complete',
-    title: 'You\'re All Set! 🎉',
-    description: 'Tutorial complete! Go complete that practice assignment to earn your first 50 XP. Good luck on your quests!',
+    title: 'You\'re all set! 🎉',
+    description: 'Tutorial complete! Go finish that practice assignment to earn your first 50 XP. Good luck on your quests!',
     target: null,
     position: 'center',
     page: 'any'
   }
 ];
 
+function useElementRect(selector, step) {
+  const [rect, setRect] = useState(null);
+
+  useEffect(() => {
+    if (!selector) { setRect(null); return; }
+
+    const update = () => {
+      const el = document.querySelector(selector);
+      if (el) setRect(el.getBoundingClientRect());
+    };
+
+    update();
+    const timer = setInterval(update, 300);
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [selector, step]);
+
+  return rect;
+}
+
+function TooltipCard({ step, currentStep, totalSteps, onNext, onPrev, onSkip, rect }) {
+  const isCenter = step.position === 'center' || !rect;
+
+  const getTooltipStyle = () => {
+    if (isCenter) return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+
+    const PAD = 12;
+    const TW = 300;
+    const TH = 180;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    let top, left;
+
+    if (step.position === 'bottom') {
+      top = rect.bottom + PAD;
+      left = rect.left + rect.width / 2 - TW / 2;
+    } else {
+      top = rect.top - TH - PAD;
+      left = rect.left + rect.width / 2 - TW / 2;
+    }
+
+    // Clamp within viewport
+    left = Math.max(12, Math.min(vw - TW - 12, left));
+    top = Math.max(12, Math.min(vh - TH - 12, top));
+
+    return { top, left };
+  };
+
+  const arrowStyle = () => {
+    if (isCenter || !rect) return null;
+    if (step.position === 'bottom') {
+      return { top: -8, left: '50%', transform: 'translateX(-50%) rotate(45deg)', borderLeft: '1px solid #6366f1', borderTop: '1px solid #6366f1' };
+    }
+    return { bottom: -8, left: '50%', transform: 'translateX(-50%) rotate(45deg)', borderRight: '1px solid #6366f1', borderBottom: '1px solid #6366f1' };
+  };
+
+  const arrow = arrowStyle();
+
+  return (
+    <motion.div
+      key={currentStep}
+      initial={{ opacity: 0, scale: 0.9, y: 8 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9, y: 8 }}
+      transition={{ duration: 0.2 }}
+      className="fixed z-[10000] pointer-events-auto"
+      style={getTooltipStyle()}
+    >
+      <div className="relative bg-white rounded-2xl shadow-2xl border border-indigo-200 w-[300px]">
+        {/* Arrow */}
+        {arrow && (
+          <div className="absolute w-4 h-4 bg-white" style={arrow} />
+        )}
+
+        {/* Skip button */}
+        <button
+          onClick={onSkip}
+          className="absolute top-3 right-3 text-slate-300 hover:text-slate-500 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Content */}
+        <div className="p-5 pb-4">
+          {/* Byte avatar on welcome/byte steps */}
+          {(step.id === 'welcome' || step.id === 'byte') && (
+            <img src={BYTE_IMAGE} alt="Byte" className="w-12 h-12 rounded-full mb-3 border-2 border-sky-200" />
+          )}
+          <h3 className="font-bold text-slate-800 text-base mb-1.5 pr-6">{step.title}</h3>
+          <p className="text-sm text-slate-500 leading-relaxed">{step.description}</p>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 pb-4 flex items-center justify-between">
+          {/* Dots */}
+          <div className="flex gap-1 items-center">
+            {TUTORIAL_STEPS.map((_, idx) => (
+              <div
+                key={idx}
+                className={`rounded-full transition-all duration-200 ${
+                  idx === currentStep
+                    ? 'bg-indigo-500 w-4 h-2'
+                    : 'bg-slate-200 w-2 h-2'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-2 items-center">
+            {currentStep > 0 && (
+              <button
+                onClick={onPrev}
+                className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4 text-slate-600" />
+              </button>
+            )}
+            <button
+              onClick={onNext}
+              className="h-8 px-3 flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              {currentStep === totalSteps - 1 ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Done!
+                </>
+              ) : (
+                <>
+                  Next
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function Tutorial({ profile, onComplete, currentPage }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [highlightRect, setHighlightRect] = useState(null);
   const [coinsGiven, setCoinsGiven] = useState(false);
 
+  const step = TUTORIAL_STEPS[currentStep];
+  const rect = useElementRect(step?.target || null, currentStep);
+
   useEffect(() => {
-    // Show tutorial if user hasn't completed it
     if (profile && !profile.tutorialCompleted) {
       setShowTutorial(true);
     }
   }, [profile]);
 
-  useEffect(() => {
-    if (!showTutorial) return;
+  if (!showTutorial) return null;
 
-    const step = TUTORIAL_STEPS[currentStep];
-    if (!step.target) {
-      setHighlightRect(null);
-      return;
-    }
-
-    const updateHighlight = () => {
-      const element = document.querySelector(step.target);
-      if (element) {
-        const rect = element.getBoundingClientRect();
-        setHighlightRect(rect);
-      }
-    };
-
-    updateHighlight();
-    window.addEventListener('resize', updateHighlight);
-    window.addEventListener('scroll', updateHighlight);
-
-    return () => {
-      window.removeEventListener('resize', updateHighlight);
-      window.removeEventListener('scroll', updateHighlight);
-    };
-  }, [currentStep, showTutorial]);
+  // Skip rendering if on wrong page (unless step is 'any')
+  if (step.page !== 'any' && currentPage && step.page !== currentPage) return null;
 
   const handleNext = async () => {
-    const step = TUTORIAL_STEPS[currentStep];
-    
-    // Give coins on shop page step
     if (step.giveCoins && !coinsGiven && profile) {
       try {
         await base44.entities.UserProfile.update(profile.id, {
@@ -197,7 +301,7 @@ export default function Tutorial({ profile, onComplete, currentPage }) {
         console.error('Failed to give coins:', e);
       }
     }
-    
+
     if (currentStep < TUTORIAL_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -205,139 +309,93 @@ export default function Tutorial({ profile, onComplete, currentPage }) {
     }
   };
 
+  const handlePrev = () => {
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
+  };
+
   const handleComplete = async () => {
     setShowTutorial(false);
-    await base44.entities.UserProfile.update(profile.id, {
-      tutorialCompleted: true
-    });
+    await base44.entities.UserProfile.update(profile.id, { tutorialCompleted: true });
     onComplete?.();
   };
 
   const handleSkip = async () => {
     setShowTutorial(false);
-    await base44.entities.UserProfile.update(profile.id, {
-      tutorialCompleted: true
-    });
+    await base44.entities.UserProfile.update(profile.id, { tutorialCompleted: true });
   };
 
-  if (!showTutorial) return null;
-
-  const step = TUTORIAL_STEPS[currentStep];
-  
-  // Check if we're on the right page for this step
-  if (step.page !== 'any' && currentPage && step.page !== currentPage) {
-    // Don't show tutorial if we're not on the right page
-    return null;
-  }
-  
-  const isCenter = step.position === 'center';
+  const isCenter = step.position === 'center' || !rect;
 
   return (
-    <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* Overlay with cutout */}
-      <div 
-        className="absolute inset-0 bg-black/60 pointer-events-auto" 
-        onClick={step.allowClick ? undefined : handleSkip}
-        style={step.allowClick ? { pointerEvents: 'none' } : {}}
-      >
-        {highlightRect && (
-          <div
-            className={step.allowClick ? "absolute border-4 border-white rounded-xl shadow-2xl pointer-events-auto" : "absolute border-4 border-white rounded-xl shadow-2xl pointer-events-none"}
-            style={{
-              left: highlightRect.left - 8,
-              top: highlightRect.top - 8,
-              width: highlightRect.width + 16,
-              height: highlightRect.height + 16,
-              boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)',
-              zIndex: 51
-            }}
-          />
-        )}
-      </div>
-
-      {/* Tutorial Card */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="absolute pointer-events-auto"
-          style={
-            isCenter
-              ? {
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)'
-                }
-              : highlightRect
-              ? {
-                  left: Math.max(16, Math.min(window.innerWidth - 320, highlightRect.left + highlightRect.width / 2 - 160)),
-                  top: step.position === 'bottom'
-                    ? highlightRect.bottom + 24
-                    : highlightRect.top - 24,
-                  transform: step.position === 'top' ? 'translateY(-100%)' : 'none'
-                }
-              : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
-          }
+    <div className="fixed inset-0 z-[9998] pointer-events-none">
+      {/* Spotlight overlay — only dims outside the target */}
+      {rect && !isCenter ? (
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-auto"
+          onClick={step.allowClick ? undefined : undefined}
+          style={{ pointerEvents: 'none' }}
         >
-          <div className="relative bg-white rounded-2xl shadow-2xl p-6 max-w-sm border-4 border-indigo-500">
-            {/* Arrow pointer */}
-            {!isCenter && highlightRect && (
-              <div
-                className="absolute w-6 h-6 bg-white border-indigo-500 transform rotate-45"
-                style={{
-                  left: '50%',
-                  marginLeft: '-12px',
-                  [step.position === 'bottom' ? 'top' : 'bottom']: '-15px',
-                  borderWidth: step.position === 'bottom' ? '4px 0 0 4px' : '0 4px 4px 0'
-                }}
+          <defs>
+            <mask id="spotlight-mask">
+              <rect width="100%" height="100%" fill="white" />
+              <rect
+                x={rect.left - 6}
+                y={rect.top - 6}
+                width={rect.width + 12}
+                height={rect.height + 12}
+                rx="10"
+                fill="black"
               />
-            )}
+            </mask>
+          </defs>
+          <rect
+            width="100%"
+            height="100%"
+            fill="rgba(0,0,0,0.55)"
+            mask="url(#spotlight-mask)"
+          />
+          {/* Glowing border around target */}
+          <rect
+            x={rect.left - 6}
+            y={rect.top - 6}
+            width={rect.width + 12}
+            height={rect.height + 12}
+            rx="10"
+            fill="none"
+            stroke="#6366f1"
+            strokeWidth="2.5"
+            opacity="0.9"
+          />
+        </svg>
+      ) : (
+        /* Full dim for center steps */
+        <div className="absolute inset-0 bg-black/50 pointer-events-auto" style={{ pointerEvents: 'none' }} />
+      )}
 
-            <button
-              onClick={handleSkip}
-              className="absolute top-3 right-3 text-slate-400 hover:text-slate-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {/* Clickthrough layer for allowClick targets */}
+      {step.allowClick && rect && (
+        <div
+          className="absolute pointer-events-auto"
+          style={{
+            left: rect.left - 6,
+            top: rect.top - 6,
+            width: rect.width + 12,
+            height: rect.height + 12,
+          }}
+        />
+      )}
 
-            <div className="mb-4">
-              <h3 className="text-lg font-bold text-slate-800 mb-2">{step.title}</h3>
-              <p className="text-sm text-slate-600">{step.description}</p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex gap-1">
-                {TUTORIAL_STEPS.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      idx === currentStep ? 'bg-indigo-500 w-6' : 'bg-slate-300'
-                    }`}
-                  />
-                ))}
-              </div>
-              <Button
-                onClick={handleNext}
-                size="sm"
-                className="bg-gradient-to-r from-indigo-500 to-purple-600"
-              >
-                {currentStep === TUTORIAL_STEPS.length - 1 ? (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Got it!
-                  </>
-                ) : (
-                  <>
-                    Next
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </motion.div>
+      <AnimatePresence mode="wait">
+        <TooltipCard
+          key={currentStep}
+          step={step}
+          currentStep={currentStep}
+          totalSteps={TUTORIAL_STEPS.length}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          onSkip={handleSkip}
+          rect={isCenter ? null : rect}
+        />
       </AnimatePresence>
     </div>
   );
