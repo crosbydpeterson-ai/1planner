@@ -24,7 +24,7 @@ const TYPE_EMOJI = {
   title: '🏷️', magic_egg: '🥚', cosmetic: '👒', default: '🎁',
 };
 
-export default function EggOpenAnimation({ egg, prizes, onOpen, onClose }) {
+export default function EggOpenAnimation({ egg, prizes, onOpen, onClose, customPets = [] }) {
   const [phase, setPhase] = useState('idle'); // idle, shaking, cracking, reveal
   const [wonPrize, setWonPrize] = useState(null);
   const [showChances, setShowChances] = useState(false);
@@ -176,14 +176,27 @@ export default function EggOpenAnimation({ egg, prizes, onOpen, onClose }) {
                 />
               ))}
 
-              <div className="w-40 h-40 rounded-full flex items-center justify-center text-6xl"
-                style={{ 
-                  background: `radial-gradient(circle, ${glowColor}33, ${glowColor}11)`,
-                  border: `3px solid ${glowColor}`
-                }}
-              >
-                {TYPE_EMOJI[wonPrize?.type] || '🎁'}
-              </div>
+              {(() => {
+                // Show pet image if it's a custom pet prize
+                let petImg = null;
+                if (wonPrize?.type === 'pet' && wonPrize.value?.startsWith('custom_')) {
+                  const petId = wonPrize.value.replace('custom_', '');
+                  const pet = customPets.find(cp => cp.id === petId);
+                  petImg = pet?.imageUrl || null;
+                }
+                return (
+                  <div className="w-40 h-40 rounded-full flex items-center justify-center text-6xl overflow-hidden"
+                    style={{ 
+                      background: `radial-gradient(circle, ${glowColor}33, ${glowColor}11)`,
+                      border: `3px solid ${glowColor}`
+                    }}
+                  >
+                    {petImg
+                      ? <img src={petImg} className="w-full h-full object-cover rounded-full" alt={wonPrize.label} />
+                      : <span>{TYPE_EMOJI[wonPrize?.type] || '🎁'}</span>}
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
         </AnimatePresence>

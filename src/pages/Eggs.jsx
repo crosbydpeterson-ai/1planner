@@ -174,6 +174,7 @@ export default function Eggs() {
             prizes={openingEgg.egg.prizes || []}
             onOpen={handleOpenEgg}
             onClose={() => setOpeningEgg(null)}
+            customPets={customPets}
           />
         )}
       </AnimatePresence>
