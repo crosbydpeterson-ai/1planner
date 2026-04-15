@@ -19,6 +19,20 @@ export default function ThemedBackground({ colors }) {
   // Generate unique pattern ID to avoid conflicts
   const patternId = useMemo(() => `pattern-${Math.random().toString(36).substr(2, 9)}`, []);
 
+  // Pre-generate sparkle positions so they're stable across renders
+  const sparkles = useMemo(() => 
+    Array.from({ length: 35 }, (_, i) => ({
+      width: Math.random() * 4 + 2,
+      height: Math.random() * 4 + 2,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 8,
+      duration: Math.random() * 3 + 3,
+      glow: Math.random() * 10 + 5,
+      colorIndex: i % 4,
+    }))
+  , []);
+
   // Determine if it's a dark theme based on background luminance
   const isDark = useMemo(() => {
     const hex = bg.replace('#', '');
@@ -181,19 +195,19 @@ export default function ThemedBackground({ colors }) {
 
       {/* Enhanced sparkle particles */}
       <div className="absolute inset-0">
-        {[...Array(35)].map((_, i) => (
+        {sparkles.map((s, i) => (
           <div
             key={i}
-            className={`absolute rounded-full animate-sparkle-enhanced`}
+            className="absolute rounded-full animate-sparkle-enhanced"
             style={{
-              width: `${Math.random() * 4 + 2}px`,
-              height: `${Math.random() * 4 + 2}px`,
-              backgroundColor: i % 4 === 0 ? primary : i % 4 === 1 ? secondary : i % 4 === 2 ? accent : '#ffffff',
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 8}s`,
-              animationDuration: `${Math.random() * 3 + 3}s`,
-              boxShadow: `0 0 ${Math.random() * 10 + 5}px currentColor`,
+              width: `${s.width}px`,
+              height: `${s.height}px`,
+              backgroundColor: s.colorIndex === 0 ? primary : s.colorIndex === 1 ? secondary : s.colorIndex === 2 ? accent : '#ffffff',
+              left: `${s.left}%`,
+              top: `${s.top}%`,
+              animationDelay: `${s.delay}s`,
+              animationDuration: `${s.duration}s`,
+              boxShadow: `0 0 ${s.glow}px currentColor`,
             }}
           />
         ))}
