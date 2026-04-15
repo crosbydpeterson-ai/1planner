@@ -19,9 +19,13 @@ export default function LootEggManagerPanel({ users = [], customPets = [], custo
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generatingStep, setGeneratingStep] = useState('');
   const [giftingAll, setGiftingAll] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [defaultEggId, setDefaultEggId] = useState(null);
+  // Pets created during this session (not yet in parent's customPets)
+  const [localCustomPets, setLocalCustomPets] = useState([]);
+  const allCustomPets = [...customPets, ...localCustomPets];
 
   const [form, setForm] = useState({
     name: '', description: '', emoji: '🥚', color: '#6366f1', prizes: [],
@@ -105,9 +109,9 @@ export default function LootEggManagerPanel({ users = [], customPets = [], custo
   const handleAIGenerate = async () => {
     if (!aiPrompt.trim()) { toast.error('Describe the egg theme'); return; }
     setGenerating(true);
+    setGeneratingStep('Designing egg & prizes...');
     try {
       // Step 1: Generate egg concept with prize ideas
-      toast.info('🧠 Designing egg & prizes...');
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: `You are creating a loot egg for a classroom gamification app. The theme is: "${aiPrompt}". 
 Generate a loot egg with:
@@ -153,43 +157,54 @@ Make it fun and engaging for 10-14 year old students.`,
 
       // Step 2: For each pet prize, generate the actual pet with an image
       const finalPrizes = [];
-      for (const prize of (result.prizes || [])) {
-        if (prize.type === 'pet' && prize.petName) {
-          toast.info(`🎨 Creating pet: ${prize.petName}...`);
-          try {
-            const imgResult = await base44.integrations.Core.GenerateImage({
-              prompt: prize.petImagePrompt || `Cute cartoon ${prize.petName} creature, vibrant colors, kid-friendly digital art style, white background, ${prize.petDescription || ''}`
-            });
-            const rarity = prize.petRarity || 'rare';
-            const xpMap = { common: 0, uncommon: 100, rare: 300, epic: 800, legendary: 2000 };
-            const petRecord = await base44.entities.CustomPet.create({
-              name: prize.petName,
-              description: prize.petDescription || '',
-              rarity,
-              xpRequired: xpMap[rarity] || 300,
-              isGiftOnly: true,
-              imageUrl: imgResult.url,
-              imageSource: 'ai_generated',
-              createdSourceTab: 'unknown',
-            });
-            finalPrizes.push({
-              type: 'pet',
-              label: prize.label || prize.petName,
-              value: `custom_${petRecord.id}`,
-              weight: prize.weight,
-            });
-          } catch (e) {
-            console.error('Failed to create pet for prize', e);
-            // Skip this prize if it fails
-          }
-        } else {
+      const newLocalPets = [];
+      const petPrizes = (result.prizes || []).filter(p => p.type === 'pet' && p.petName);
+      const otherPrizes = (result.prizes || []).filter(p => !(p.type === 'pet' && p.petName));
+
+      for (const prize of petPrizes) {
+        setGeneratingStep(`Creating pet: ${prize.petName}...`);
+        try {
+          const imgResult = await base44.integrations.Core.GenerateImage({
+            prompt: prize.petImagePrompt
+              ? `${prize.petImagePrompt}, cute cartoon style, vibrant colors, kid-friendly, white background, digital art`
+              : `Cute cartoon ${prize.petName} creature, vibrant colors, kid-friendly digital art style, white background`
+          });
+          const rarity = prize.petRarity || 'rare';
+          const xpMap = { common: 0, uncommon: 100, rare: 300, epic: 800, legendary: 2000 };
+          const petRecord = await base44.entities.CustomPet.create({
+            name: prize.petName,
+            description: prize.petDescription || '',
+            rarity,
+            xpRequired: xpMap[rarity] || 300,
+            isGiftOnly: true,
+            imageUrl: imgResult.url,
+            imageSource: 'ai_generated',
+            createdSourceTab: 'unknown',
+          });
+          newLocalPets.push(petRecord);
           finalPrizes.push({
-            type: prize.type,
-            label: prize.label,
-            value: prize.value,
+            type: 'pet',
+            label: prize.label || prize.petName,
+            value: `custom_${petRecord.id}`,
             weight: prize.weight,
           });
+        } catch (e) {
+          console.error('Failed to create pet for prize', e);
+          toast.error(`Failed to create pet: ${prize.petName}`);
         }
+      }
+
+      // Add non-pet prizes
+      for (const prize of otherPrizes) {
+        finalPrizes.push({ type: prize.type, label: prize.label, value: prize.value, weight: prize.weight });
+      }
+
+      // Sort by weight descending (most common first)
+      finalPrizes.sort((a, b) => (b.weight || 0) - (a.weight || 0));
+
+      // Register new pets locally so EggRow and dialog can show their images
+      if (newLocalPets.length > 0) {
+        setLocalCustomPets(prev => [...prev, ...newLocalPets]);
       }
 
       setForm({
@@ -199,12 +214,14 @@ Make it fun and engaging for 10-14 year old students.`,
         description: result.description || '',
         prizes: finalPrizes,
       });
+      setGeneratingStep('');
       setShowCreate(true);
-      toast.success('✅ Egg generated with real pets!');
+      toast.success(`✅ Egg generated! Created ${newLocalPets.length} pet(s).`);
     } catch (e) {
       toast.error('Generation failed: ' + e.message);
     }
     setGenerating(false);
+    setGeneratingStep('');
   };
 
   const totalWeight = form.prizes.reduce((s, p) => s + (p.weight || 0), 0);
@@ -223,7 +240,7 @@ Make it fun and engaging for 10-14 year old students.`,
         <div className="flex gap-2">
           <Input value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="e.g. Ocean depths with sea creature rewards..." className="bg-slate-800/50 border-white/10 text-white flex-1" />
           <Button onClick={handleAIGenerate} disabled={generating} className="bg-gradient-to-r from-purple-500 to-pink-500">
-            {generating ? <><Loader2 className="w-4 h-4 animate-spin mr-1" />Generating...</> : <><Wand2 className="w-4 h-4 mr-1" />Generate</>}
+            {generating ? <><Loader2 className="w-4 h-4 animate-spin mr-1" />{generatingStep || 'Generating...'}</> : <><Wand2 className="w-4 h-4 mr-1" />Generate</>}
           </Button>
         </div>
         <Button onClick={() => setShowCreate(true)} className="mt-3 bg-emerald-600">
@@ -241,7 +258,7 @@ Make it fun and engaging for 10-14 year old students.`,
         ) : (
           <div className="space-y-3">
             {lootEggs.map(egg => (
-              <EggRow key={egg.id} egg={egg} users={users} customPets={customPets} onDelete={handleDelete} onGiftAll={handleGiftToAll} onGiftUser={handleGiftToUser} giftingAll={giftingAll} isDefaultEgg={defaultEggId === egg.id} onToggleDefault={() => toggleDefaultEgg(egg.id)} />
+              <EggRow key={egg.id} egg={egg} users={users} customPets={allCustomPets} onDelete={handleDelete} onGiftAll={handleGiftToAll} onGiftUser={handleGiftToUser} giftingAll={giftingAll} isDefaultEgg={defaultEggId === egg.id} onToggleDefault={() => toggleDefaultEgg(egg.id)} />
             ))}
           </div>
         )}
@@ -286,10 +303,20 @@ Make it fun and engaging for 10-14 year old students.`,
               <div className="space-y-2">
                 {form.prizes.map((prize, i) => {
                   const pct = totalWeight > 0 ? ((prize.weight / totalWeight) * 100).toFixed(1) : 0;
+                  // Find pet image for display
+                  let prizeImg = null;
+                  if (prize.type === 'pet' && prize.value?.startsWith('custom_')) {
+                    const petId = prize.value.replace('custom_', '');
+                    const pet = allCustomPets.find(cp => cp.id === petId);
+                    prizeImg = pet?.imageUrl || null;
+                  }
                   return (
                     <div key={i} className="bg-slate-700/60 rounded-lg p-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-400">Prize {i + 1} — {pct}% chance</span>
+                        <div className="flex items-center gap-2">
+                          {prizeImg && <img src={prizeImg} className="w-8 h-8 rounded object-cover border border-slate-500" alt={prize.label} />}
+                          <span className="text-xs text-slate-400">Prize {i + 1} — {pct}% chance</span>
+                        </div>
                         <Button size="sm" variant="ghost" onClick={() => removePrize(i)} className="h-6 text-red-400"><Trash2 className="w-3 h-3" /></Button>
                       </div>
                       <div className="grid grid-cols-4 gap-2">
@@ -311,7 +338,7 @@ Make it fun and engaging for 10-14 year old students.`,
                             <SelectTrigger className="bg-slate-600 border-slate-500 text-xs h-8"><SelectValue placeholder="Pick pet" /></SelectTrigger>
                             <SelectContent>
                               {PETS.map(p => <SelectItem key={p.id} value={p.id}>{p.emoji} {p.name}</SelectItem>)}
-                              {customPets.map(p => <SelectItem key={p.id} value={`custom_${p.id}`}>{p.emoji || '🎁'} {p.name}</SelectItem>)}
+                              {allCustomPets.map(p => <SelectItem key={p.id} value={`custom_${p.id}`}>{p.imageUrl ? '🖼️' : (p.emoji || '🎁')} {p.name}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         ) : prize.type === 'theme' ? (
