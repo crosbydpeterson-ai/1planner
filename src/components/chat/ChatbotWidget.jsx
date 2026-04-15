@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { X, Send, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { getISOWeek, getISOWeekYear } from 'date-fns';
@@ -78,29 +76,43 @@ export default function ChatbotWidget() {
     })();
   }, []);
 
+  const pollRef = useRef(null);
+  const [isThinking, setIsThinking] = useState(false);
+
+  const agentCall = (action, params = {}) =>
+    base44.functions.invoke('adminAgentChat', { action, agentName: 'guide_chatbot', ...params }).then(r => r.data);
+
   useEffect(() => {
     if (isOpen && !conversation) {
       initConversation();
     }
   }, [isOpen]);
 
+  // Poll for assistant response
   useEffect(() => {
-    if (!conversation?.id) return;
-    
-    const unsubscribe = base44.agents.subscribeToConversation(conversation.id, (data) => {
-      setMessages(data.messages || []);
-    });
-
-    return () => unsubscribe();
-  }, [conversation?.id]);
+    if (!conversation?.id || !isThinking) {
+      clearInterval(pollRef.current);
+      return;
+    }
+    pollRef.current = setInterval(async () => {
+      try {
+        const { conversation: conv } = await agentCall('get_conversation', { conversationId: conversation.id });
+        const msgs = conv?.messages || [];
+        setMessages(msgs);
+        if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
+          setIsThinking(false);
+        }
+      } catch (e) {
+        console.error('Poll error:', e);
+      }
+    }, 2000);
+    return () => clearInterval(pollRef.current);
+  }, [isThinking, conversation?.id]);
 
   const initConversation = async () => {
     setLoading(true);
     try {
-      const conv = await base44.agents.createConversation({
-        agent_name: "guide_chatbot",
-        metadata: { name: "Guide Chat" }
-      });
+      const { conversation: conv } = await agentCall('create_conversation');
       setConversation(conv);
       setMessages(conv.messages || []);
     } catch (e) {
@@ -109,38 +121,21 @@ export default function ChatbotWidget() {
     setLoading(false);
   };
 
-  const ensureConversation = async () => {
-    if (conversation?.id) return conversation;
-    try {
-      const conv = await base44.agents.createConversation({
-        agent_name: "guide_chatbot",
-        metadata: { name: "Guide Chat" }
-      });
-      setConversation(conv);
-      setMessages(conv.messages || []);
-      return conv;
-    } catch (e) {
-      console.error('Failed to create conversation:', e);
-      return null;
-    }
-  };
-
   const sendMessage = async () => {
     if (isDisabled) return;
     const text = input.trim();
     if (!text) return;
     const ok = await checkAndIncrementUsage();
     if (!ok) return;
-    const conv = conversation?.id ? conversation : await ensureConversation();
-    if (!conv) return;
+    if (!conversation?.id) return;
+    setMessages(prev => [...prev, { role: 'user', content: text }]);
     setInput('');
+    setIsThinking(true);
     try {
-      await base44.agents.addMessage(conv, {
-        role: "user",
-        content: text
-      });
+      await agentCall('send_message', { conversationId: conversation.id, message: text });
     } catch (e) {
       console.error('Failed to send message:', e);
+      setIsThinking(false);
     }
   };
 
@@ -217,6 +212,14 @@ export default function ChatbotWidget() {
                     </div>
                   </div>
                 ))
+              )}
+              {isThinking && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
+                    <span className="text-sm text-slate-400">Byte is thinking...</span>
+                  </div>
+                </div>
               )}
               <div ref={messagesEndRef} />
             </div>

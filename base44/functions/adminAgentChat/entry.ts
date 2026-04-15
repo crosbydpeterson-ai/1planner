@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
     if (action === 'create_conversation') {
       const conv = await base44.asServiceRole.agents.createConversation({
         agent_name: agentName || 'admin_assistant',
-        metadata: { name: 'Admin Chat' }
+        metadata: { name: agentName === 'guide_chatbot' ? 'Byte Chat' : 'Admin Chat' }
       });
       return Response.json({ conversation: conv });
     }
