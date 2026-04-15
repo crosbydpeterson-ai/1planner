@@ -35,11 +35,17 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
         petIdea: petIdea.trim()
       });
 
-      setGeneratedPet(result.concept);
-      setGeneratedImageUrl(result.imageUrl || null);
+      const data = result?.data || result;
+      setGeneratedPet(data.concept);
+      setGeneratedImageUrl(data.imageUrl || null);
       setStep('preview');
     } catch (e) {
-      toast.error('Magic failed! Try again.');
+      const msg = e?.response?.data?.error || e?.message || '';
+      if (msg.includes('credits') || msg.includes('quota') || msg.includes('limit')) {
+        toast.error('Out of magic credits! Ask your teacher to refill.');
+      } else {
+        toast.error('Magic failed! Try again in a moment.');
+      }
       setStep('idea');
     }
     setGenerating(false);
@@ -66,12 +72,14 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
         }
       });
 
+      const hatchData = result?.data || result;
+
       toast.success(`🎉 ${generatedPet.name} hatched!`, {
         description: 'Your new pet is now equipped!'
       });
 
       window.dispatchEvent(new Event('themeUpdated'));
-      onPetCreated(result.pet, result.petId, result.theme, result.themeId);
+      onPetCreated(hatchData.pet, hatchData.petId, hatchData.theme, hatchData.themeId);
       setShowDialog(false);
       setStep('idea');
       setPetIdea('');
