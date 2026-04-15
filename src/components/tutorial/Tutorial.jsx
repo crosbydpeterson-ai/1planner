@@ -15,24 +15,24 @@ const TUTORIAL_STEPS = [
   },
   {
     id: 'xp',
-    title: 'Your XP Progress',
-    description: 'This shows your experience points and level. Complete assignments to earn XP!',
+    title: 'Your XP & Level 📈',
+    description: 'This tracks your experience points. Every assignment you complete earns XP — level up to unlock pets and themes!',
     target: '[data-tutorial="xp-widget"]',
     position: 'bottom',
     page: 'Dashboard'
   },
   {
     id: 'pet',
-    title: 'Your Pet Companion',
-    description: 'This is your magical pet! Unlock new pets and themes as you level up.',
+    title: 'Your Pet Companion 🐾',
+    description: 'This is your pet! Equip different pets to change your whole color theme. Unlock more in the Collection tab.',
     target: '[data-tutorial="pet-widget"]',
     position: 'bottom',
     page: 'Dashboard'
   },
   {
     id: 'widgets',
-    title: 'Customize Your Dashboard',
-    description: 'Tap this settings icon to customize which widgets you want to see on your dashboard!',
+    title: 'Customize Your Dashboard ⚙️',
+    description: 'Tap this icon to rearrange and show/hide dashboard widgets — make it your own!',
     target: '[data-tutorial="widget-settings"]',
     position: 'bottom',
     page: 'Dashboard',
@@ -40,8 +40,8 @@ const TUTORIAL_STEPS = [
   },
   {
     id: 'assignments-intro',
-    title: 'Your Quests',
-    description: 'Here you\'ll see your assignments. Let\'s check them out! Tap "Quests" below.',
+    title: 'Your Quests 📋',
+    description: 'Here you can see your active assignments. Tap "Quests" in the nav to view and complete them!',
     target: '[data-tutorial="assignments-widget"]',
     position: 'top',
     page: 'Dashboard'
@@ -49,15 +49,15 @@ const TUTORIAL_STEPS = [
   {
     id: 'assignments-page',
     title: 'Quest Page',
-    description: 'This is where all your assignments appear. Complete them to earn XP and Quest Coins!',
+    description: 'All your assignments live here. Teachers add them — you complete them to earn XP and Quest Coins!',
     target: null,
     position: 'center',
     page: 'Assignments'
   },
   {
     id: 'add-quest',
-    title: 'Add Your Own Quests',
-    description: 'You can add personal goals here! Tap this button to create your own assignments.',
+    title: 'Add Personal Goals ✍️',
+    description: 'You can create your own assignments too — personal goals, reminders, anything you want to track.',
     target: '[data-tutorial="add-assignment"]',
     position: 'bottom',
     page: 'Assignments',
@@ -65,8 +65,8 @@ const TUTORIAL_STEPS = [
   },
   {
     id: 'rewards-nav',
-    title: 'Your Collection',
-    description: 'Now let\'s check out your pets and rewards! Tap "Collection" in the nav.',
+    title: 'Your Collection 💎',
+    description: 'Check out all your pets, themes, and titles! Tap "Collection" in the nav.',
     target: 'a[href*="Rewards"]',
     position: 'top',
     page: 'Assignments',
@@ -74,16 +74,16 @@ const TUTORIAL_STEPS = [
   },
   {
     id: 'rewards-page',
-    title: 'Collection Page',
-    description: 'Here you can see all your pets, titles, and unlock new ones as you level up!',
+    title: 'Pets, Themes & Titles',
+    description: 'Unlock and equip pets, themes, and titles here. Each pet changes your whole dashboard color scheme!',
     target: null,
     position: 'center',
     page: 'Rewards'
   },
   {
     id: 'shop-nav',
-    title: 'The Shop',
-    description: 'Let\'s visit the shop! You\'ll get some free Quest Coins to spend. Tap "Shop"!',
+    title: 'The Shop 🛍️',
+    description: 'Spend your Quest Coins on exclusive items! Tap "Shop" — you\'ve got a welcome bonus waiting.',
     target: 'a[href*="Shop"]',
     position: 'top',
     page: 'Rewards',
@@ -91,17 +91,52 @@ const TUTORIAL_STEPS = [
   },
   {
     id: 'shop-page',
-    title: 'Shop - Buy Items! 🛍️',
-    description: 'I gave you 100 free Quest Coins! Try buying something - everyone gets this welcome bonus.',
+    title: 'Free Welcome Coins! 🪙',
+    description: 'You just got 100 free Quest Coins as a welcome gift! Browse the shop and grab something cool.',
     target: null,
     position: 'center',
     page: 'Shop',
     giveCoins: true
   },
   {
+    id: 'season',
+    title: '1Pass — Season Rewards ✨',
+    description: 'The "1Pass" tab is your seasonal battle pass. Earn XP to climb tiers and unlock exclusive pets, themes, and titles!',
+    target: 'a[href*="Season"]',
+    position: 'top',
+    page: 'Shop',
+    allowClick: false
+  },
+  {
+    id: 'kitchen',
+    title: 'The Kitchen 🍔',
+    description: 'Buy food from the vending machine and feed it to your pet to fuse a brand new legendary pet! Find it in the "Kitchen" tab.',
+    target: 'a[href*="Kitchen"]',
+    position: 'top',
+    page: 'Shop',
+    allowClick: false
+  },
+  {
+    id: 'community',
+    title: 'Community Wall 💬',
+    description: 'Chat, share pet ideas, vote in polls, and connect with other players in the Community tab!',
+    target: 'a[href*="community"]',
+    position: 'top',
+    page: 'Shop',
+    allowClick: false
+  },
+  {
+    id: 'byte',
+    title: 'Meet Byte! 🤖',
+    description: 'See that little icon in the bottom-right corner? That\'s Byte — your AI assistant! Tap it and say hi. Byte can simplify assignments and help you use the planner.',
+    target: null,
+    position: 'center',
+    page: 'any'
+  },
+  {
     id: 'complete',
-    title: 'You\'re All Set! ✨',
-    description: 'Tutorial complete! Go to Quests and finish that practice assignment to earn 50 XP. Have fun!',
+    title: 'You\'re All Set! 🎉',
+    description: 'Tutorial complete! Go complete that practice assignment to earn your first 50 XP. Good luck on your quests!',
     target: null,
     position: 'center',
     page: 'any'
