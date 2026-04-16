@@ -57,6 +57,16 @@
     "isActive": {
       "type": "boolean",
       "default": true
+    },
+    "inVendingMachine": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this egg appears in the Kitchen Egg Shop vending machine"
+    },
+    "vendingGemPrice": {
+      "type": "number",
+      "default": 2,
+      "description": "Cost in gems (Quest Coins) to purchase from the vending machine"
     }
   },
   "required": [

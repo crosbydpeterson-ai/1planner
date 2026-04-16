@@ -18,14 +18,20 @@ export default function EggCard({ egg, count, onClick }) {
       
       {/* Egg glow */}
       <div 
-        className="w-20 h-24 rounded-full flex items-center justify-center text-4xl relative"
+        className="w-20 h-24 rounded-full flex items-center justify-center text-4xl relative overflow-hidden"
         style={{ 
-          background: `radial-gradient(ellipse at 30% 30%, ${egg.color || '#6366f1'}55, ${egg.color || '#6366f1'}22)`,
+          background: egg.imageUrl ? 'transparent' : `radial-gradient(ellipse at 30% 30%, ${egg.color || '#6366f1'}55, ${egg.color || '#6366f1'}22)`,
           boxShadow: `0 0 20px ${egg.color || '#6366f1'}33`
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent rounded-full" />
-        <span className="relative">{egg.emoji || '🥚'}</span>
+        {egg.imageUrl ? (
+          <img src={egg.imageUrl} alt={egg.name} className="w-full h-full object-contain" />
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent rounded-full" />
+            <span className="relative">{egg.emoji || '🥚'}</span>
+          </>
+        )}
       </div>
       
       <div className="text-center">

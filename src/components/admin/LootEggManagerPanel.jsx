@@ -28,7 +28,7 @@ export default function LootEggManagerPanel({ users = [], customPets = [], custo
   const allCustomPets = [...customPets, ...localCustomPets];
 
   const [form, setForm] = useState({
-    name: '', description: '', emoji: '🥚', color: '#6366f1', prizes: [],
+    name: '', description: '', emoji: '🥚', color: '#6366f1', prizes: [], inVendingMachine: false, vendingGemPrice: 2,
   });
 
   useEffect(() => { loadEggs(); loadDefaultEgg(); }, []);
@@ -80,7 +80,7 @@ export default function LootEggManagerPanel({ users = [], customPets = [], custo
     await base44.entities.LootEgg.create({ ...form, isActive: true });
     toast.success('Loot Egg created!');
     setShowCreate(false);
-    setForm({ name: '', description: '', emoji: '🥚', color: '#6366f1', prizes: [] });
+    setForm({ name: '', description: '', emoji: '🥚', color: '#6366f1', prizes: [], inVendingMachine: false, vendingGemPrice: 2 });
     await loadEggs();
   };
 
@@ -294,6 +294,20 @@ Make it fun and engaging for 10-14 year old students.`,
               </div>
             </div>
 
+            {/* Vending Machine */}
+            <div className="flex items-center gap-4 bg-slate-700/40 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox checked={form.inVendingMachine} onCheckedChange={(v) => setForm({ ...form, inVendingMachine: !!v })} id="vm-check" />
+                <Label htmlFor="vm-check" className="cursor-pointer">Show in Kitchen Vending Machine</Label>
+              </div>
+              {form.inVendingMachine && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <Label className="text-xs whitespace-nowrap">💎 Gem Price</Label>
+                  <Input type="number" min="1" value={form.vendingGemPrice} onChange={(e) => setForm({ ...form, vendingGemPrice: Number(e.target.value) || 1 })} className="bg-slate-600 border-slate-500 w-20 h-8 text-xs" />
+                </div>
+              )}
+            </div>
+
             {/* Prizes */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -382,10 +396,18 @@ function EggRow({ egg, users, customPets = [], onDelete, onGiftAll, onGiftUser, 
     <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
       <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{egg.emoji || '🥚'}</span>
+          <div className="w-10 h-12 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
+            style={{ background: egg.imageUrl ? 'transparent' : `radial-gradient(ellipse at 30% 30%, ${egg.color || '#6366f1'}55, ${egg.color || '#6366f1'}22)` }}>
+            {egg.imageUrl ? (
+              <img src={egg.imageUrl} alt={egg.name} className="w-full h-full object-contain" />
+            ) : (
+              <span className="text-2xl">{egg.emoji || '🥚'}</span>
+            )}
+          </div>
           <div>
             <h4 className="font-semibold text-white">{egg.name}</h4>
             <p className="text-xs text-slate-400">{egg.prizes?.length || 0} prizes • {egg.description || 'No description'}</p>
+            {egg.inVendingMachine && <span className="text-[10px] bg-emerald-600/30 text-emerald-400 px-2 py-0.5 rounded-full">💎 {egg.vendingGemPrice || '?'} gems • In Vending Machine</span>}
           </div>
         </div>
         <div className="flex items-center gap-2">
