@@ -632,7 +632,7 @@ export default function Shop() {
             autoOpen={true}
           />
         )}
-      </ShopAnimatePresence>
+      </AnimatePresence>
     </div>
   );
 }
