@@ -101,20 +101,20 @@ export default function Kitchen() {
 
   const handleBuyEgg = async (egg) => {
     const gemCost = egg.vendingGemPrice || 2;
-    const currentGems = profile?.questCoins || 0;
+    const currentGems = profile?.gems || 0;
     if (currentGems < gemCost) {
       toast.error(`Not enough gems! Need ${gemCost} 💎`);
       return;
     }
     const newGems = currentGems - gemCost;
-    await base44.entities.UserProfile.update(profile.id, { questCoins: newGems });
+    await base44.entities.UserProfile.update(profile.id, { gems: newGems });
     const drop = await base44.entities.LootEggDrop.create({
       lootEggId: egg.id,
       profileId: profile.id,
       username: profile.username,
       source: 'shop_purchase',
     });
-    setProfile(prev => ({ ...prev, questCoins: newGems }));
+    setProfile(prev => ({ ...prev, gems: newGems }));
     // Auto-open the egg immediately
     setOpeningEgg({ egg, drop });
     toast.success(`Egg purchased! Opening now...`);
@@ -192,7 +192,7 @@ export default function Kitchen() {
           </div>
           <div className="flex items-center gap-2 bg-purple-100 px-4 py-2 rounded-xl">
             <Gem className="w-5 h-5 text-purple-600" />
-            <span className="font-bold text-purple-900">{profile.questCoins || 0} gems</span>
+            <span className="font-bold text-purple-900">{profile.gems || 0} 💎</span>
           </div>
         </motion.div>
 
@@ -243,7 +243,7 @@ export default function Kitchen() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {lootEggs.map(egg => {
                   const gemCost = egg.vendingGemPrice || 2;
-                  const canAfford = (profile?.questCoins || 0) >= gemCost;
+                  const canAfford = (profile?.gems || 0) >= gemCost;
                   return (
                     <motion.div
                       key={egg.id}

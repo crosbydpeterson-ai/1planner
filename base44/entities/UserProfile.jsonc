@@ -34,6 +34,11 @@
       "default": 0,
       "description": "Quest Coins currency for shop purchases"
     },
+    "gems": {
+      "type": "number",
+      "default": 0,
+      "description": "Gems currency for Loot Egg shop (Kitchen). Earned separately from Quest Coins."
+    },
     "mathTeacher": {
       "type": "string",
       "enum": [

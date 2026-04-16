@@ -3,23 +3,28 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Coins, Sparkles, Clock, Package, Shield } from 'lucide-react';
+import { ShoppingBag, Coins, Sparkles, Clock, Package, Shield, Gem } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GlassIcon from '@/components/ui/GlassIcon';
 import Tutorial from '@/components/tutorial/Tutorial';
 import { toast } from 'sonner';
+import EggOpenAnimation from '@/components/eggs/EggOpenAnimation';
 
 export default function Shop() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [mainTab, setMainTab] = useState('shop');
   const [filter, setFilter] = useState('all');
   const [shopItems, setShopItems] = useState([]);
   const [locks, setLocks] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [bundles, setBundles] = useState([]);
+  const [lootEggs, setLootEggs] = useState([]);
+  const [customPets, setCustomPets] = useState([]);
+  const [openingEgg, setOpeningEgg] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -90,6 +95,14 @@ export default function Shop() {
 
       setShopItems(activeItems);
       setBundles(activeBundles);
+
+      // Load loot eggs for egg shop tab
+      const [allLootEggs, allCustomPets] = await Promise.all([
+        base44.entities.LootEgg.filter({ isActive: true, inVendingMachine: true }),
+        base44.entities.CustomPet.list()
+      ]);
+      setLootEggs(allLootEggs);
+      setCustomPets(allCustomPets);
     } catch (e) {
       console.error('Error loading shop:', e);
     }
@@ -268,6 +281,65 @@ export default function Shop() {
     }
   };
 
+  const handleBuyEgg = async (egg) => {
+    const gemCost = egg.vendingGemPrice || 2;
+    const currentGems = profile?.gems || 0;
+    if (currentGems < gemCost) {
+      toast.error(`Not enough gems! Need ${gemCost} 💎`);
+      return;
+    }
+    const newGems = currentGems - gemCost;
+    await base44.entities.UserProfile.update(profile.id, { gems: newGems });
+    const drop = await base44.entities.LootEggDrop.create({
+      lootEggId: egg.id,
+      profileId: profile.id,
+      username: profile.username,
+      source: 'shop_purchase',
+    });
+    setProfile(prev => ({ ...prev, gems: newGems }));
+    setOpeningEgg({ egg, drop });
+    toast.success('Egg purchased! Opening now...');
+  };
+
+  const handleOpenEgg = async (prize) => {
+    if (!openingEgg) return;
+    const { drop } = openingEgg;
+    await base44.entities.LootEggDrop.update(drop.id, { isOpened: true, wonPrize: prize });
+    const p = profile;
+    if (prize.type === 'xp') {
+      await base44.entities.UserProfile.update(p.id, { xp: (p.xp || 0) + parseInt(prize.value || '0') });
+      toast.success(`+${prize.value} XP!`);
+    } else if (prize.type === 'coins') {
+      await base44.entities.UserProfile.update(p.id, { questCoins: (p.questCoins || 0) + parseInt(prize.value || '0') });
+      toast.success(`+${prize.value} Quest Coins!`);
+    } else if (prize.type === 'pet') {
+      const up = [...(p.unlockedPets || [])];
+      if (!up.includes(prize.value)) up.push(prize.value);
+      await base44.entities.UserProfile.update(p.id, { unlockedPets: up });
+      toast.success('New pet unlocked!');
+    } else if (prize.type === 'theme') {
+      const ut = [...(p.unlockedThemes || [])];
+      if (!ut.includes(prize.value)) ut.push(prize.value);
+      await base44.entities.UserProfile.update(p.id, { unlockedThemes: ut });
+      toast.success('New theme unlocked!');
+    } else if (prize.type === 'magic_egg') {
+      await base44.entities.MagicEgg.create({ userId: p.userId, source: 'global_event' });
+      toast.success('Magic Egg received!');
+    } else if (prize.type === 'title') {
+      const titles = [...(p.unlockedTitles || [])];
+      if (!titles.includes(prize.value)) titles.push(prize.value);
+      await base44.entities.UserProfile.update(p.id, { unlockedTitles: titles });
+      toast.success(`New title: ${prize.value}!`);
+    } else if (prize.type === 'cosmetic') {
+      const uc = [...(p.unlockedCosmetics || [])];
+      if (!uc.includes(prize.value)) uc.push(prize.value);
+      await base44.entities.UserProfile.update(p.id, { unlockedCosmetics: uc });
+      toast.success('Cosmetic unlocked!');
+    }
+    setOpeningEgg(null);
+    await loadData();
+  };
+
   const getTimeRemaining = (endDate) => {
     const now = new Date();
     const end = new Date(endDate);
@@ -310,22 +382,88 @@ export default function Shop() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+          className="mb-4"
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <GlassIcon icon={ShoppingBag} color="purple" />
               <div>
                 <h1 className="text-2xl font-bold text-slate-800">Quest Shop</h1>
-                <p className="text-sm text-slate-500">Spend your coins on cool items</p>
+                <p className="text-sm text-slate-500">Spend your currencies</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 bg-amber-100 px-4 py-2 rounded-xl">
-              <Coins className="w-5 h-5 text-amber-600" />
-              <span className="font-bold text-amber-900">{profile.questCoins || 0}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-amber-100 px-3 py-2 rounded-xl">
+                <Coins className="w-4 h-4 text-amber-600" />
+                <span className="font-bold text-amber-900 text-sm">{profile.questCoins || 0}</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-purple-100 px-3 py-2 rounded-xl">
+                <Gem className="w-4 h-4 text-purple-600" />
+                <span className="font-bold text-purple-900 text-sm">{profile.gems || 0}</span>
+              </div>
             </div>
           </div>
         </motion.div>
+
+        {/* Main tabs: Shop vs Egg Shop */}
+        <Tabs value={mainTab} onValueChange={setMainTab} className="mb-4">
+          <TabsList className="bg-white shadow-sm border border-slate-100 p-1 rounded-xl">
+            <TabsTrigger value="shop" className="rounded-lg gap-1.5">
+              🛒 Shop
+            </TabsTrigger>
+            <TabsTrigger value="egg_shop" className="rounded-lg gap-1.5">
+              🥚 Loot Eggs
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="egg_shop" className="mt-4">
+            <p className="text-xs text-slate-400 mb-4 flex items-center gap-1">
+              <Gem className="w-3 h-3 text-purple-500" />
+              Loot Eggs cost <strong>Gems</strong> — earn gems by completing assignments.
+            </p>
+            {lootEggs.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
+                <span className="text-6xl block mb-4">🥚</span>
+                <p className="text-slate-500 font-semibold">No eggs in the shop yet!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {lootEggs.map(egg => {
+                  const gemCost = egg.vendingGemPrice || 2;
+                  const canAfford = (profile?.gems || 0) >= gemCost;
+                  return (
+                    <motion.div
+                      key={egg.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={`bg-white rounded-2xl border-2 p-4 flex flex-col items-center gap-2 shadow-md transition-all ${canAfford ? 'border-purple-200 hover:border-purple-400 cursor-pointer' : 'border-slate-100 opacity-60'}`}
+                      onClick={() => canAfford && handleBuyEgg(egg)}
+                    >
+                      <div className="w-20 h-24 rounded-full flex items-center justify-center text-4xl relative overflow-hidden"
+                        style={{
+                          background: egg.imageUrl ? 'transparent' : `radial-gradient(ellipse at 30% 30%, ${egg.color || '#6366f1'}55, ${egg.color || '#6366f1'}22)`,
+                          boxShadow: `0 0 16px ${egg.color || '#6366f1'}33`
+                        }}>
+                        {egg.imageUrl
+                          ? <img src={egg.imageUrl} alt={egg.name} className="w-full h-full object-contain" />
+                          : <><div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent rounded-full" /><span className="relative">{egg.emoji || '🥚'}</span></>
+                        }
+                      </div>
+                      <p className="font-bold text-slate-800 text-sm text-center">{egg.name}</p>
+                      {egg.description && <p className="text-xs text-slate-400 text-center line-clamp-2">{egg.description}</p>}
+                      <div className="flex items-center gap-1.5 bg-purple-100 px-3 py-1.5 rounded-full mt-1">
+                        <Gem className="w-4 h-4 text-purple-600" />
+                        <span className="font-black text-purple-800 text-sm">{gemCost}</span>
+                      </div>
+                      {!canAfford && <p className="text-xs text-red-400 font-semibold">Not enough gems</p>}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="shop" className="mt-4">
 
         {/* Bundles Section */}
         {bundles.length > 0 && (
@@ -476,10 +614,25 @@ export default function Shop() {
             )}
           </AnimatePresence>
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
       
       {/* Tutorial */}
       <Tutorial profile={profile} currentPage="Shop" onComplete={() => {}} />
+
+      <AnimatePresence>
+        {openingEgg && (
+          <EggOpenAnimation
+            egg={openingEgg.egg}
+            prizes={openingEgg.egg.prizes || []}
+            onOpen={handleOpenEgg}
+            onClose={() => setOpeningEgg(null)}
+            customPets={customPets}
+            autoOpen={true}
+          />
+        )}
+      </ShopAnimatePresence>
     </div>
   );
 }

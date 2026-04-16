@@ -228,6 +228,7 @@ export default function Assignments() {
 
       const newXp = (profile.xp || 0) + xpToAdd;
       const newCoins = (profile.questCoins || 0) + coinsToAdd;
+      const newGems = (profile.gems || 0) + (profile.isBanned ? 0 : 1);
 
       // Track season-specific XP
       let seasonXpUpdate = {};
@@ -260,6 +261,7 @@ export default function Assignments() {
       const userUpdate = {
         xp: newXp,
         questCoins: newCoins,
+        gems: newGems,
         completedAssignments,
         unlockedPets: newUnlockedPets,
         ...seasonXpUpdate
@@ -275,6 +277,7 @@ export default function Assignments() {
         ...profile,
         xp: newXp,
         questCoins: newCoins,
+        gems: newGems,
         completedAssignments,
         unlockedPets: newUnlockedPets,
         flagged: shouldFlagUser ? true : profile.flagged,
@@ -337,7 +340,7 @@ export default function Assignments() {
         }
       });
 
-      toast.success(`+25 XP & +1 Quest Coin earned!`, {
+      toast.success(`+25 XP, +1 Quest Coin & +1 Gem earned!`, {
         description: `Assignment "${assignment.title}" completed${shouldFlagUser ? ' • (Flag set for review)' : ''}`
       });
 
