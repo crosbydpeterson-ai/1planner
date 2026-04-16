@@ -125,7 +125,7 @@ export default function Admin() {
       const hasCustomRole = Array.isArray(currentProfile.assignedRoleIds) && currentProfile.assignedRoleIds.length > 0;
       if (!(role === 'admin' || role === 'super_admin' || superByName || hasCustomRole)) { navigate(createPageUrl('Dashboard')); return; }
       setIsSuperAdmin(superByName || role === 'super_admin'); setIsAdminRole(true); setAdminProfile(currentProfile);
-      const basePerms = { accessAI: false, deleteAssets: false, grantAdminTokens: false, toggleAdminRole: false, manageLocks: false, banFlagUsers: false, manageShop: false, manageEvents: false, viewAnalytics: false, manageAssignments: false, manageSuperAssignments: false, managePets: false, manageThemes: false, manageCosmetics: false };
+      const basePerms = { accessAI: false, deleteAssets: false, grantAdminTokens: false, toggleAdminRole: false, manageLocks: false, banFlagUsers: false, manageShop: false, manageEvents: false, viewAnalytics: false, manageAssignments: false, manageSuperAssignments: false, managePets: false, manageThemes: false, manageCosmetics: false, manageKitchen: false };
       if (superByName || role === 'super_admin') { setPermissions(Object.fromEntries(Object.keys(basePerms).map(k => [k, true]))); }
       else if (hasCustomRole) { try { const allRoles = await base44.entities.Role.list(); const myRoles = allRoles.filter(r => currentProfile.assignedRoleIds.includes(r.id)); const merged = { ...basePerms }; myRoles.forEach(r => { const p = r.permissions || {}; Object.keys(merged).forEach(k => { merged[k] = merged[k] || !!p[k]; }); }); setPermissions(merged); } catch (e) { setPermissions(basePerms); } }
       else { setPermissions(basePerms); }

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { moderateContent, loadModSettings } from './ContentModeration';
 import { toast } from 'sonner';
 
-export default function CommentSection({ comments, canComment, isAdmin, channelId, onSubmit, onDelete, onApprove, onReject }) {
+export default function CommentSection({ comments, canComment, isAdmin, channelId, onSubmit, onDelete, onApprove, onReject, currentProfileId }) {
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -28,7 +28,10 @@ export default function CommentSection({ comments, canComment, isAdmin, channelI
     setSubmitting(false);
   };
 
-  const visibleComments = isAdmin ? comments : comments.filter(c => c.status === 'approved');
+  // Admins see all; users see approved + their own pending comments
+  const visibleComments = isAdmin
+    ? comments
+    : comments.filter(c => c.status === 'approved' || c.authorProfileId === currentProfileId);
 
   return (
     <div className="mx-4 mb-3 ml-8 border-l-2 border-indigo-200/40 pl-4 space-y-2 pt-1">

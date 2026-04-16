@@ -44,7 +44,7 @@ export default function PostCard({ post, isAdmin, currentProfileId, onReact, onD
                 <span className="text-[10px] text-amber-500 flex items-center gap-0.5"><Pin className="w-3 h-3" />Pinned</span>
               )}
               {isPending && (
-                <span className="text-[10px] text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full font-medium">Pending</span>
+                <span className="text-[10px] text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full font-medium">⏳ Awaiting approval</span>
               )}
             </div>
           </div>
