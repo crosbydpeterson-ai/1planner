@@ -16,6 +16,7 @@ import SuperAssignmentCard from '@/components/quest/SuperAssignmentCard';
 import GlassIcon from '@/components/ui/GlassIcon';
 import Tutorial from '@/components/tutorial/Tutorial';
 import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
+import EggOpenAnimation from '@/components/eggs/EggOpenAnimation';
 
  import { toast } from 'sonner';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
@@ -39,6 +40,8 @@ export default function Assignments() {
   const [creatorMap, setCreatorMap] = useState({});
   const [lootEggsById, setLootEggsById] = useState({});
   const [showPetClearance, setShowPetClearance] = useState(false);
+  const [autoOpenEgg, setAutoOpenEgg] = useState(null); // { egg, drop } for auto-open animation
+  const [customPets, setCustomPets] = useState([]);
 
 
    useEffect(() => {
@@ -112,11 +115,13 @@ export default function Assignments() {
       setAssignments(visible);
 
       // Build creator map from all users
-      const [allUsers, allLootEggs, assignmentSettings] = await Promise.all([
+      const [allUsers, allLootEggs, assignmentSettings, pets] = await Promise.all([
         base44.entities.UserProfile.list(),
         base44.entities.LootEgg.list('-created_date'),
-        base44.entities.AppSetting.list()
+        base44.entities.AppSetting.list(),
+        base44.entities.CustomPet.list()
       ]);
+      setCustomPets(pets);
       const cMap = {};
       allUsers.forEach(u => { cMap[u.userId] = u.username; });
       setCreatorMap(cMap);
@@ -307,10 +312,11 @@ export default function Assignments() {
       }
 
       let assignmentEgg = null;
+      let newDrop = null;
       const awardedLootEggId = assignment.lootEggId || lootEggsById.__defaultAssignmentEggId;
       if (awardedLootEggId && !profile.isBanned) {
         assignmentEgg = lootEggsById[awardedLootEggId] || null;
-        await base44.entities.LootEggDrop.create({
+        newDrop = await base44.entities.LootEggDrop.create({
           lootEggId: awardedLootEggId,
           profileId: profile.id,
           username: profile.username,
@@ -332,8 +338,13 @@ export default function Assignments() {
       });
 
       toast.success(`+25 XP & +1 Quest Coin earned!`, {
-        description: `Assignment "${assignment.title}" completed${assignmentEgg ? ` • Received ${assignmentEgg.emoji || '🥚'} ${assignmentEgg.name}` : ''}${shouldFlagUser ? ' • (Flag set for review)' : ''}`
+        description: `Assignment "${assignment.title}" completed${shouldFlagUser ? ' • (Flag set for review)' : ''}`
       });
+
+      // Auto-open egg animation
+      if (assignmentEgg && newDrop) {
+        setTimeout(() => setAutoOpenEgg({ egg: assignmentEgg, drop: newDrop }), 600);
+      }
 
       // Pet Clearance Event: 5% chance, once per session (admin or ?testAd=1 always shows)
       const urlParams = new URLSearchParams(window.location.search);
@@ -363,6 +374,46 @@ export default function Assignments() {
       console.error('Error completing assignment:', e);
       toast.error('Failed to complete assignment');
     }
+  };
+
+  const handleEggPrizeClaim = async (prize) => {
+    if (!autoOpenEgg) return;
+    const { drop } = autoOpenEgg;
+    await base44.entities.LootEggDrop.update(drop.id, { isOpened: true, wonPrize: prize });
+    const p = profile;
+    if (prize.type === 'xp') {
+      const newXp = (p.xp || 0) + parseInt(prize.value || '0');
+      await base44.entities.UserProfile.update(p.id, { xp: newXp });
+      toast.success(`+${prize.value} XP from the egg!`);
+    } else if (prize.type === 'coins') {
+      const newCoins = (p.questCoins || 0) + parseInt(prize.value || '0');
+      await base44.entities.UserProfile.update(p.id, { questCoins: newCoins });
+      toast.success(`+${prize.value} Quest Coins from the egg!`);
+    } else if (prize.type === 'pet') {
+      const up = [...(p.unlockedPets || [])];
+      if (!up.includes(prize.value)) up.push(prize.value);
+      await base44.entities.UserProfile.update(p.id, { unlockedPets: up });
+      toast.success(`New pet unlocked from the egg!`);
+    } else if (prize.type === 'theme') {
+      const ut = [...(p.unlockedThemes || [])];
+      if (!ut.includes(prize.value)) ut.push(prize.value);
+      await base44.entities.UserProfile.update(p.id, { unlockedThemes: ut });
+      toast.success(`New theme unlocked from the egg!`);
+    } else if (prize.type === 'magic_egg') {
+      await base44.entities.MagicEgg.create({ userId: p.userId, source: 'global_event' });
+      toast.success(`Magic Egg received!`);
+    } else if (prize.type === 'title') {
+      const titles = [...(p.unlockedTitles || [])];
+      if (!titles.includes(prize.value)) titles.push(prize.value);
+      await base44.entities.UserProfile.update(p.id, { unlockedTitles: titles });
+      toast.success(`New title: ${prize.value}!`);
+    } else if (prize.type === 'cosmetic') {
+      const uc = [...(p.unlockedCosmetics || [])];
+      if (!uc.includes(prize.value)) uc.push(prize.value);
+      await base44.entities.UserProfile.update(p.id, { unlockedCosmetics: uc });
+      toast.success(`Cosmetic unlocked!`);
+    }
+    setAutoOpenEgg(null);
   };
 
   if (loading) {
@@ -647,6 +698,20 @@ export default function Assignments() {
          config={dailyConfig}
          onClaimed={(p) => setDailyProgress(prev => ({ ...prev, ...p }))}
        />
+
+      {/* Auto-open egg animation on assignment completion */}
+      <AnimatePresence>
+        {autoOpenEgg && (
+          <EggOpenAnimation
+            egg={autoOpenEgg.egg}
+            prizes={autoOpenEgg.egg.prizes || []}
+            onOpen={handleEggPrizeClaim}
+            onClose={() => setAutoOpenEgg(null)}
+            customPets={customPets}
+            autoOpen={true}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Pet Clearance Event Modal */}
       <PetClearanceEventModal

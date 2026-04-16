@@ -24,12 +24,20 @@ const TYPE_EMOJI = {
   title: '🏷️', magic_egg: '🥚', cosmetic: '👒', default: '🎁',
 };
 
-export default function EggOpenAnimation({ egg, prizes, onOpen, onClose, customPets = [] }) {
+export default function EggOpenAnimation({ egg, prizes, onOpen, onClose, customPets = [], autoOpen = false }) {
   const [phase, setPhase] = useState('idle'); // idle, shaking, cracking, reveal
   const [wonPrize, setWonPrize] = useState(null);
   const [showChances, setShowChances] = useState(false);
 
   const totalWeight = prizes.reduce((s, p) => s + (p.weight || 0), 0);
+
+  // Auto-open: skip idle and start shaking immediately
+  useEffect(() => {
+    if (autoOpen && phase === 'idle') {
+      handleOpen();
+    }
+  }, [autoOpen]);
+
 
   const pickPrize = () => {
     const r = Math.random() * totalWeight;
