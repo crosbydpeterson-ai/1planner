@@ -13,7 +13,11 @@
     "emoji": {
       "type": "string",
       "default": "\ud83e\udd5a",
-      "description": "Emoji icon"
+      "description": "Emoji icon (fallback if no image)"
+    },
+    "imageUrl": {
+      "type": "string",
+      "description": "AI-generated egg image URL"
     },
     "color": {
       "type": "string",

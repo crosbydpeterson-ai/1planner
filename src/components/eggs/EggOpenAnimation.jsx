@@ -77,7 +77,7 @@ export default function EggOpenAnimation({ egg, prizes, onOpen, onClose, customP
         )}
 
         {/* Egg name */}
-        <h2 className="text-2xl font-bold text-white text-center">{egg.emoji || '🥚'} {egg.name}</h2>
+        <h2 className="text-2xl font-bold text-white text-center">{!egg.imageUrl && (egg.emoji || '🥚')} {egg.name}</h2>
 
         {/* Egg visual */}
         <AnimatePresence mode="wait">
@@ -102,12 +102,19 @@ export default function EggOpenAnimation({ egg, prizes, onOpen, onClose, customP
               <div 
                 className="w-40 h-48 rounded-full flex items-center justify-center text-7xl relative overflow-hidden"
                 style={{ 
-                  background: `radial-gradient(ellipse at 30% 30%, ${egg.color || '#6366f1'}88, ${egg.color || '#6366f1'})`,
+                  background: egg.imageUrl ? 'transparent' : `radial-gradient(ellipse at 30% 30%, ${egg.color || '#6366f1'}88, ${egg.color || '#6366f1'})`,
                   boxShadow: `0 0 40px ${egg.color || '#6366f1'}66`
                 }}
               >
-                {/* Shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent rounded-full" />
+                {egg.imageUrl ? (
+                  <img src={egg.imageUrl} alt={egg.name} className="w-full h-full object-contain" />
+                ) : (
+                  <>
+                    {/* Shine effect */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent rounded-full" />
+                    <span className="relative z-10">{egg.emoji || '🥚'}</span>
+                  </>
+                )}
                 
                 {/* Crack lines during cracking */}
                 {phase === 'cracking' && (
@@ -125,7 +132,6 @@ export default function EggOpenAnimation({ egg, prizes, onOpen, onClose, customP
                     />
                   </>
                 )}
-                <span className="relative z-10">{egg.emoji || '🥚'}</span>
               </div>
 
               {/* Particle effects during shaking */}
