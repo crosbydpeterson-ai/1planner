@@ -314,7 +314,7 @@ Make it fun and engaging for 10-14 year old students.`,
       </Tabs>
 
       {/* Create dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Create Loot Egg</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
