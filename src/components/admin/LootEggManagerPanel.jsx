@@ -6,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Plus, Trash2, Wand2, Loader2, Gift, Send, ClipboardList } from 'lucide-react';
+import { Plus, Trash2, Wand2, Loader2, Gift, Send, ClipboardList, Edit2, Save, X, Gem } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PETS } from '@/components/quest/PetCatalog';
 
@@ -228,46 +230,91 @@ Make it fun and engaging for 10-14 year old students.`,
 
   const totalWeight = form.prizes.reduce((s, p) => s + (p.weight || 0), 0);
 
-  return (
-    <div className="space-y-6">
-      {/* AI Generator */}
-      <div className="bg-gradient-to-br from-amber-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl p-5 border border-white/10">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-3xl">🥚✨</span>
-          <div>
-            <h3 className="text-lg font-bold text-white">AI Egg Creator</h3>
-            <p className="text-sm text-slate-400">Describe a theme and AI will design prizes + chances</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Input value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="e.g. Ocean depths with sea creature rewards..." className="bg-slate-800/50 border-white/10 text-white flex-1" />
-          <Button onClick={handleAIGenerate} disabled={generating} className="bg-gradient-to-r from-purple-500 to-pink-500">
-            {generating ? <><Loader2 className="w-4 h-4 animate-spin mr-1" />{generatingStep || 'Generating...'}</> : <><Wand2 className="w-4 h-4 mr-1" />Generate</>}
-          </Button>
-        </div>
-        <Button onClick={() => setShowCreate(true)} className="mt-3 bg-emerald-600">
-          <Plus className="w-4 h-4 mr-2" /> Create Egg Manually
-        </Button>
-      </div>
+  const handleToggleVending = async (egg) => {
+    const newVal = !egg.inVendingMachine;
+    await base44.entities.LootEgg.update(egg.id, { inVendingMachine: newVal });
+    setLootEggs(prev => prev.map(e => e.id === egg.id ? { ...e, inVendingMachine: newVal } : e));
+    toast.success(newVal ? `${egg.name} added to Kitchen Egg Shop` : `${egg.name} removed from Kitchen Egg Shop`);
+  };
 
-      {/* Existing eggs */}
-      <div>
-        <h3 className="text-lg font-semibold text-white mb-3">Loot Eggs ({lootEggs.length})</h3>
-        {loading ? (
-          <p className="text-slate-400">Loading...</p>
-        ) : lootEggs.length === 0 ? (
-          <p className="text-slate-500 text-center py-8">No loot eggs yet. Create one above!</p>
-        ) : (
-          <div className="space-y-3">
-            {lootEggs.map(egg => (
-              <EggRow key={egg.id} egg={egg} users={users} customPets={allCustomPets} onDelete={handleDelete} onGiftAll={handleGiftToAll} onGiftUser={handleGiftToUser} giftingAll={giftingAll} isDefaultEgg={defaultEggId === egg.id} onToggleDefault={() => toggleDefaultEgg(egg.id)} onUpdate={(updated) => setLootEggs(prev => prev.map(e => e.id === updated.id ? updated : e))} />
-            ))}
+  const handleUpdateVendingPrice = async (egg, val) => {
+    const num = Number(val) || 1;
+    await base44.entities.LootEgg.update(egg.id, { vendingGemPrice: num });
+    setLootEggs(prev => prev.map(e => e.id === egg.id ? { ...e, vendingGemPrice: num } : e));
+    toast.success(`Price set to ${num} 💎`);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Tabs defaultValue="stock">
+        <TabsList className="bg-slate-700/60 p-1 gap-1">
+          <TabsTrigger value="stock" className="data-[state=active]:bg-slate-600">🥚 Kitchen Egg Stock</TabsTrigger>
+          <TabsTrigger value="manage" className="data-[state=active]:bg-slate-600">⚙️ Manage Eggs</TabsTrigger>
+        </TabsList>
+
+        {/* KITCHEN EGG SHOP STOCKING */}
+        <TabsContent value="stock" className="mt-4 space-y-3">
+          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3">
+            <h4 className="text-purple-300 font-semibold text-sm mb-1">🥚 Kitchen Egg Shop Stock</h4>
+            <p className="text-slate-400 text-xs">Toggle eggs in/out of the Kitchen's Egg Shop and set their gem price. Only eggs toggled "In Shop" will appear for students.</p>
           </div>
-        )}
-      </div>
+          <div className="text-slate-300 text-sm font-medium">{lootEggs.filter(e => e.inVendingMachine).length} eggs currently in Kitchen shop</div>
+          {loading ? (
+            <p className="text-slate-400">Loading...</p>
+          ) : lootEggs.length === 0 ? (
+            <p className="text-slate-500 text-center py-8">No loot eggs yet. Create some in the Manage tab!</p>
+          ) : lootEggs.map(egg => (
+            <EggStockRow
+              key={egg.id}
+              egg={egg}
+              onToggle={() => handleToggleVending(egg)}
+              onUpdatePrice={(val) => handleUpdateVendingPrice(egg, val)}
+            />
+          ))}
+        </TabsContent>
+
+        {/* MANAGE EGGS */}
+        <TabsContent value="manage" className="mt-4 space-y-6">
+          {/* AI Generator */}
+          <div className="bg-gradient-to-br from-amber-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl p-5 border border-white/10">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-3xl">🥚✨</span>
+              <div>
+                <h3 className="text-lg font-bold text-white">AI Egg Creator</h3>
+                <p className="text-sm text-slate-400">Describe a theme and AI will design prizes + chances</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Input value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="e.g. Ocean depths with sea creature rewards..." className="bg-slate-800/50 border-white/10 text-white flex-1" />
+              <Button onClick={handleAIGenerate} disabled={generating} className="bg-gradient-to-r from-purple-500 to-pink-500">
+                {generating ? <><Loader2 className="w-4 h-4 animate-spin mr-1" />{generatingStep || 'Generating...'}</> : <><Wand2 className="w-4 h-4 mr-1" />Generate</>}
+              </Button>
+            </div>
+            <Button onClick={() => setShowCreate(true)} className="mt-3 bg-emerald-600">
+              <Plus className="w-4 h-4 mr-2" /> Create Egg Manually
+            </Button>
+          </div>
+
+          {/* Existing eggs */}
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-3">Loot Eggs ({lootEggs.length})</h3>
+            {loading ? (
+              <p className="text-slate-400">Loading...</p>
+            ) : lootEggs.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">No loot eggs yet. Create one above!</p>
+            ) : (
+              <div className="space-y-3">
+                {lootEggs.map(egg => (
+                  <EggRow key={egg.id} egg={egg} users={users} customPets={allCustomPets} onDelete={handleDelete} onGiftAll={handleGiftToAll} onGiftUser={handleGiftToUser} giftingAll={giftingAll} isDefaultEgg={defaultEggId === egg.id} onToggleDefault={() => toggleDefaultEgg(egg.id)} onUpdate={(updated) => setLootEggs(prev => prev.map(e => e.id === updated.id ? updated : e))} />
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Create dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+      <Dialog open={showCreate} onOpenChange={setShowCreate}
         <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Create Loot Egg</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
@@ -399,6 +446,55 @@ Make it fun and engaging for 10-14 year old students.`,
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function EggStockRow({ egg, onToggle, onUpdatePrice }) {
+  const [editPrice, setEditPrice] = useState(false);
+  const [priceVal, setPriceVal] = useState(String(egg.vendingGemPrice || 2));
+
+  return (
+    <div className={`flex items-center gap-3 rounded-xl p-3 border transition-all ${egg.inVendingMachine ? 'bg-purple-500/5 border-purple-500/30' : 'bg-slate-800 border-slate-700'}`}>
+      <div className="w-11 h-13 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
+        style={{ background: egg.imageUrl ? 'transparent' : `radial-gradient(ellipse at 30% 30%, ${egg.color || '#6366f1'}55, ${egg.color || '#6366f1'}22)` }}>
+        {egg.imageUrl
+          ? <img src={egg.imageUrl} alt={egg.name} className="w-11 h-11 object-contain" />
+          : <span className="text-2xl">{egg.emoji || '🥚'}</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-white font-medium text-sm">{egg.name}</p>
+        <p className="text-slate-400 text-xs">{egg.prizes?.length || 0} prizes</p>
+      </div>
+
+      {/* Gem price control */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {editPrice ? (
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              value={priceVal}
+              onChange={e => setPriceVal(e.target.value)}
+              className="w-16 h-7 bg-slate-700 border-slate-600 text-white text-xs"
+              onKeyDown={e => { if (e.key === 'Enter') { onUpdatePrice(priceVal); setEditPrice(false); } }}
+            />
+            <Button size="sm" variant="ghost" onClick={() => { onUpdatePrice(priceVal); setEditPrice(false); }} className="h-7 px-1.5 text-green-400"><Save className="w-3 h-3" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => { setPriceVal(String(egg.vendingGemPrice || 2)); setEditPrice(false); }} className="h-7 px-1.5 text-slate-400"><X className="w-3 h-3" /></Button>
+          </div>
+        ) : (
+          <button onClick={() => setEditPrice(true)} className="flex items-center gap-1 bg-slate-700/60 hover:bg-slate-600/60 rounded-lg px-2 py-1 transition-colors">
+            <Gem className="w-3 h-3 text-purple-400" />
+            <span className="text-purple-300 font-bold text-xs">{egg.vendingGemPrice || 2}</span>
+            <Edit2 className="w-2.5 h-2.5 text-slate-500" />
+          </button>
+        )}
+      </div>
+
+      {/* In Kitchen toggle */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Label className="text-slate-400 text-xs whitespace-nowrap">In Kitchen</Label>
+        <Switch checked={!!egg.inVendingMachine} onCheckedChange={onToggle} />
+      </div>
     </div>
   );
 }
