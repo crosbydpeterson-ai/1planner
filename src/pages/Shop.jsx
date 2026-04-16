@@ -417,48 +417,107 @@ export default function Shop() {
           </TabsList>
 
           <TabsContent value="egg_shop" className="mt-4">
-            <p className="text-xs text-slate-400 mb-4 flex items-center gap-1">
-              <Gem className="w-3 h-3 text-purple-500" />
-              Loot Eggs cost <strong>Gems</strong> — earn gems by completing assignments.
-            </p>
             {lootEggs.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
                 <span className="text-6xl block mb-4">🥚</span>
-                <p className="text-slate-500 font-semibold">No eggs in the shop yet!</p>
+                <p className="text-slate-500 font-semibold">No eggs stocked yet!</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {lootEggs.map(egg => {
-                  const gemCost = egg.shopGemPrice || egg.vendingGemPrice || 2;
-                  const canAfford = (profile?.gems || 0) >= gemCost;
-                  return (
-                    <motion.div
-                      key={egg.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className={`bg-white rounded-2xl border-2 p-4 flex flex-col items-center gap-2 shadow-md transition-all ${canAfford ? 'border-purple-200 hover:border-purple-400 cursor-pointer' : 'border-slate-100 opacity-60'}`}
-                      onClick={() => canAfford && handleBuyEgg(egg)}
-                    >
-                      <div className="w-20 h-24 rounded-full flex items-center justify-center text-4xl relative overflow-hidden"
-                        style={{
-                          background: egg.imageUrl ? 'transparent' : `radial-gradient(ellipse at 30% 30%, ${egg.color || '#6366f1'}55, ${egg.color || '#6366f1'}22)`,
-                          boxShadow: `0 0 16px ${egg.color || '#6366f1'}33`
-                        }}>
-                        {egg.imageUrl
-                          ? <img src={egg.imageUrl} alt={egg.name} className="w-full h-full object-contain" />
-                          : <><div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent rounded-full" /><span className="relative">{egg.emoji || '🥚'}</span></>
-                        }
-                      </div>
-                      <p className="font-bold text-slate-800 text-sm text-center">{egg.name}</p>
-                      {egg.description && <p className="text-xs text-slate-400 text-center line-clamp-2">{egg.description}</p>}
-                      <div className="flex items-center gap-1.5 bg-purple-100 px-3 py-1.5 rounded-full mt-1">
-                        <Gem className="w-4 h-4 text-purple-600" />
-                        <span className="font-black text-purple-800 text-sm">{gemCost}</span>
-                      </div>
-                      {!canAfford && <p className="text-xs text-red-400 font-semibold">Not enough gems</p>}
-                    </motion.div>
-                  );
-                })}
+              /* Vending Machine */
+              <div className="relative mx-auto max-w-sm">
+                {/* Machine body */}
+                <div className="relative rounded-3xl overflow-hidden shadow-2xl"
+                  style={{ background: 'linear-gradient(160deg, #1e1b4b 0%, #312e81 40%, #1e1b4b 100%)' }}>
+                  
+                  {/* Top branding strip */}
+                  <div className="bg-gradient-to-r from-purple-500 to-indigo-500 px-4 py-2 flex items-center justify-between">
+                    <span className="text-white font-black text-sm tracking-widest uppercase">✨ Loot Eggs</span>
+                    <div className="flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full">
+                      <Gem className="w-3 h-3 text-purple-200" />
+                      <span className="text-white text-xs font-bold">{profile.gems || 0} gems</span>
+                    </div>
+                  </div>
+
+                  {/* Glass panel */}
+                  <div className="mx-3 mt-3 mb-2 rounded-2xl overflow-hidden border-2 border-indigo-400/30"
+                    style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(4px)' }}>
+                    
+                    {/* Shelf rows — group eggs into rows of 3 */}
+                    {Array.from({ length: Math.ceil(lootEggs.length / 3) }, (_, rowIdx) => {
+                      const rowEggs = lootEggs.slice(rowIdx * 3, rowIdx * 3 + 3);
+                      return (
+                        <div key={rowIdx}>
+                          <div className="grid grid-cols-3 gap-1 px-2 pt-3 pb-1">
+                            {rowEggs.map((egg, colIdx) => {
+                              const gemCost = egg.shopGemPrice || 2;
+                              const canAfford = (profile?.gems || 0) >= gemCost;
+                              const slotLabel = String.fromCharCode(65 + rowIdx) + (colIdx + 1);
+                              return (
+                                <motion.button
+                                  key={egg.id}
+                                  whileHover={canAfford ? { scale: 1.05 } : {}}
+                                  whileTap={canAfford ? { scale: 0.95 } : {}}
+                                  disabled={!canAfford}
+                                  onClick={() => handleBuyEgg(egg)}
+                                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${canAfford ? 'hover:bg-white/10 cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
+                                >
+                                  {/* Slot label */}
+                                  <span className="text-[9px] font-bold text-indigo-300 tracking-wider">{slotLabel}</span>
+                                  {/* Egg image */}
+                                  <div className="w-14 h-16 flex items-center justify-center relative"
+                                    style={{ filter: canAfford ? `drop-shadow(0 0 8px ${egg.color || '#6366f1'}88)` : 'none' }}>
+                                    {egg.imageUrl
+                                      ? <img src={egg.imageUrl} alt={egg.name} className="w-full h-full object-contain" />
+                                      : <span className="text-3xl">{egg.emoji || '🥚'}</span>}
+                                  </div>
+                                  {/* Egg name */}
+                                  <span className="text-white text-[10px] font-semibold text-center leading-tight line-clamp-2">{egg.name}</span>
+                                  {/* Price tag */}
+                                  <div className="flex items-center gap-0.5 bg-purple-900/60 border border-purple-500/40 px-1.5 py-0.5 rounded-full">
+                                    <Gem className="w-2.5 h-2.5 text-purple-300" />
+                                    <span className="text-purple-200 text-[10px] font-black">{gemCost}</span>
+                                  </div>
+                                </motion.button>
+                              );
+                            })}
+                            {/* Fill empty slots in last row */}
+                            {rowEggs.length < 3 && Array.from({ length: 3 - rowEggs.length }, (_, i) => (
+                              <div key={`empty-${i}`} className="flex flex-col items-center gap-1 p-2 opacity-20">
+                                <span className="text-[9px] text-indigo-400">—</span>
+                                <div className="w-14 h-16 rounded-lg border border-dashed border-indigo-700/40" />
+                              </div>
+                            ))}
+                          </div>
+                          {/* Shelf ledge */}
+                          <div className="mx-2 h-1.5 rounded-full mb-1"
+                            style={{ background: 'linear-gradient(90deg, #4338ca, #6d28d9, #4338ca)' }} />
+                        </div>
+                      );
+                    })}
+                    <div className="h-2" />
+                  </div>
+
+                  {/* Bottom panel — coin slot / gem indicator */}
+                  <div className="mx-3 mb-3 bg-indigo-950/60 rounded-2xl px-4 py-3 flex items-center justify-between border border-indigo-500/20">
+                    <div className="text-xs text-indigo-300">
+                      <p className="font-bold text-white text-sm">💎 Gem Store</p>
+                      <p className="text-indigo-400 text-[10px]">Click an egg to purchase</p>
+                    </div>
+                    <div className="w-8 h-6 bg-indigo-900 rounded border-2 border-indigo-600 flex items-center justify-center">
+                      <div className="w-4 h-1 bg-indigo-400 rounded-full" />
+                    </div>
+                  </div>
+
+                  {/* Side accent lines */}
+                  <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b from-purple-800 via-indigo-900 to-purple-800 rounded-l-3xl" />
+                  <div className="absolute right-0 top-0 bottom-0 w-2 bg-gradient-to-b from-purple-800 via-indigo-900 to-purple-800 rounded-r-3xl" />
+                </div>
+
+                {/* Machine legs */}
+                <div className="flex justify-center gap-24 mt-1">
+                  <div className="w-4 h-3 bg-indigo-900 rounded-b-lg" />
+                  <div className="w-4 h-3 bg-indigo-900 rounded-b-lg" />
+                </div>
               </div>
             )}
           </TabsContent>
