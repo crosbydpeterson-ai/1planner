@@ -98,7 +98,7 @@ export default function Shop() {
 
       // Load loot eggs for egg shop tab
       const [allLootEggs, allCustomPets] = await Promise.all([
-        base44.entities.LootEgg.filter({ isActive: true, inVendingMachine: true }),
+        base44.entities.LootEgg.filter({ isActive: true, inShop: true }),
         base44.entities.CustomPet.list()
       ]);
       setLootEggs(allLootEggs);
@@ -282,7 +282,7 @@ export default function Shop() {
   };
 
   const handleBuyEgg = async (egg) => {
-    const gemCost = egg.vendingGemPrice || 2;
+    const gemCost = egg.shopGemPrice || egg.vendingGemPrice || 2;
     const currentGems = profile?.gems || 0;
     if (currentGems < gemCost) {
       toast.error(`Not enough gems! Need ${gemCost} 💎`);
@@ -429,7 +429,7 @@ export default function Shop() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {lootEggs.map(egg => {
-                  const gemCost = egg.vendingGemPrice || 2;
+                  const gemCost = egg.shopGemPrice || egg.vendingGemPrice || 2;
                   const canAfford = (profile?.gems || 0) >= gemCost;
                   return (
                     <motion.div

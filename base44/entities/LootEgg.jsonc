@@ -66,7 +66,17 @@
     "vendingGemPrice": {
       "type": "number",
       "default": 2,
-      "description": "Cost in gems (Quest Coins) to purchase from the vending machine"
+      "description": "Cost in gems to purchase from the Kitchen vending machine"
+    },
+    "inShop": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this egg appears in the main Shop's Loot Eggs tab"
+    },
+    "shopGemPrice": {
+      "type": "number",
+      "default": 2,
+      "description": "Cost in gems to purchase from the Shop's Loot Eggs tab"
     }
   },
   "required": [

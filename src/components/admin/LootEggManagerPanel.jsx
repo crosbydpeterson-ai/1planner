@@ -28,7 +28,9 @@ export default function LootEggManagerPanel({ users = [], customPets = [], custo
   const allCustomPets = [...customPets, ...localCustomPets];
 
   const [form, setForm] = useState({
-    name: '', description: '', emoji: '🥚', color: '#6366f1', prizes: [], inVendingMachine: false, vendingGemPrice: 2,
+    name: '', description: '', emoji: '🥚', color: '#6366f1', prizes: [],
+    inVendingMachine: false, vendingGemPrice: 2,
+    inShop: false, shopGemPrice: 2,
   });
 
   useEffect(() => { loadEggs(); loadDefaultEgg(); }, []);
@@ -80,7 +82,7 @@ export default function LootEggManagerPanel({ users = [], customPets = [], custo
     await base44.entities.LootEgg.create({ ...form, isActive: true });
     toast.success('Loot Egg created!');
     setShowCreate(false);
-    setForm({ name: '', description: '', emoji: '🥚', color: '#6366f1', prizes: [], inVendingMachine: false, vendingGemPrice: 2 });
+    setForm({ name: '', description: '', emoji: '🥚', color: '#6366f1', prizes: [], inVendingMachine: false, vendingGemPrice: 2, inShop: false, shopGemPrice: 2 });
     await loadEggs();
   };
 
@@ -258,7 +260,7 @@ Make it fun and engaging for 10-14 year old students.`,
         ) : (
           <div className="space-y-3">
             {lootEggs.map(egg => (
-              <EggRow key={egg.id} egg={egg} users={users} customPets={allCustomPets} onDelete={handleDelete} onGiftAll={handleGiftToAll} onGiftUser={handleGiftToUser} giftingAll={giftingAll} isDefaultEgg={defaultEggId === egg.id} onToggleDefault={() => toggleDefaultEgg(egg.id)} />
+              <EggRow key={egg.id} egg={egg} users={users} customPets={allCustomPets} onDelete={handleDelete} onGiftAll={handleGiftToAll} onGiftUser={handleGiftToUser} giftingAll={giftingAll} isDefaultEgg={defaultEggId === egg.id} onToggleDefault={() => toggleDefaultEgg(egg.id)} onUpdate={(updated) => setLootEggs(prev => prev.map(e => e.id === updated.id ? updated : e))} />
             ))}
           </div>
         )}
@@ -294,18 +296,32 @@ Make it fun and engaging for 10-14 year old students.`,
               </div>
             </div>
 
-            {/* Vending Machine */}
-            <div className="flex items-center gap-4 bg-slate-700/40 rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <Checkbox checked={form.inVendingMachine} onCheckedChange={(v) => setForm({ ...form, inVendingMachine: !!v })} id="vm-check" />
-                <Label htmlFor="vm-check" className="cursor-pointer">Show in Kitchen Vending Machine</Label>
-              </div>
-              {form.inVendingMachine && (
-                <div className="flex items-center gap-2 ml-auto">
-                  <Label className="text-xs whitespace-nowrap">💎 Gem Price</Label>
-                  <Input type="number" min="1" value={form.vendingGemPrice} onChange={(e) => setForm({ ...form, vendingGemPrice: Number(e.target.value) || 1 })} className="bg-slate-600 border-slate-500 w-20 h-8 text-xs" />
+            {/* Shop stocking */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-4 bg-slate-700/40 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox checked={form.inShop} onCheckedChange={(v) => setForm({ ...form, inShop: !!v })} id="shop-check" />
+                  <Label htmlFor="shop-check" className="cursor-pointer">🛒 Show in Shop (Loot Eggs tab)</Label>
                 </div>
-              )}
+                {form.inShop && (
+                  <div className="flex items-center gap-2 ml-auto">
+                    <Label className="text-xs whitespace-nowrap">💎 Shop Gem Price</Label>
+                    <Input type="number" min="1" value={form.shopGemPrice} onChange={(e) => setForm({ ...form, shopGemPrice: Number(e.target.value) || 1 })} className="bg-slate-600 border-slate-500 w-20 h-8 text-xs" />
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-4 bg-slate-700/40 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox checked={form.inVendingMachine} onCheckedChange={(v) => setForm({ ...form, inVendingMachine: !!v })} id="vm-check" />
+                  <Label htmlFor="vm-check" className="cursor-pointer">🍳 Show in Kitchen Vending Machine</Label>
+                </div>
+                {form.inVendingMachine && (
+                  <div className="flex items-center gap-2 ml-auto">
+                    <Label className="text-xs whitespace-nowrap">💎 Kitchen Gem Price</Label>
+                    <Input type="number" min="1" value={form.vendingGemPrice} onChange={(e) => setForm({ ...form, vendingGemPrice: Number(e.target.value) || 1 })} className="bg-slate-600 border-slate-500 w-20 h-8 text-xs" />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Prizes */}
@@ -387,10 +403,26 @@ Make it fun and engaging for 10-14 year old students.`,
   );
 }
 
-function EggRow({ egg, users, customPets = [], onDelete, onGiftAll, onGiftUser, giftingAll, isDefaultEgg, onToggleDefault }) {
+function EggRow({ egg, users, customPets = [], onDelete, onGiftAll, onGiftUser, giftingAll, isDefaultEgg, onToggleDefault, onUpdate }) {
   const [expanded, setExpanded] = useState(false);
   const [giftUserId, setGiftUserId] = useState('');
-  const totalWeight = (egg.prizes || []).reduce((s, p) => s + (p.weight || 0), 0);
+  const [localEgg, setLocalEgg] = useState(egg);
+  const totalWeight = (localEgg.prizes || []).reduce((s, p) => s + (p.weight || 0), 0);
+
+  const toggleField = async (field, priceField) => {
+    const newVal = !localEgg[field];
+    await base44.entities.LootEgg.update(localEgg.id, { [field]: newVal });
+    const updated = { ...localEgg, [field]: newVal };
+    setLocalEgg(updated);
+    onUpdate?.(updated);
+    toast.success(newVal ? 'Added to listing' : 'Removed from listing');
+  };
+
+  const updatePrice = async (priceField, val) => {
+    const num = Number(val) || 1;
+    await base44.entities.LootEgg.update(localEgg.id, { [priceField]: num });
+    setLocalEgg(prev => ({ ...prev, [priceField]: num }));
+  };
 
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
@@ -407,7 +439,10 @@ function EggRow({ egg, users, customPets = [], onDelete, onGiftAll, onGiftUser, 
           <div>
             <h4 className="font-semibold text-white">{egg.name}</h4>
             <p className="text-xs text-slate-400">{egg.prizes?.length || 0} prizes • {egg.description || 'No description'}</p>
-            {egg.inVendingMachine && <span className="text-[10px] bg-emerald-600/30 text-emerald-400 px-2 py-0.5 rounded-full">💎 {egg.vendingGemPrice || '?'} gems • In Vending Machine</span>}
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {egg.inShop && <span className="text-[10px] bg-indigo-600/30 text-indigo-300 px-2 py-0.5 rounded-full">🛒 {egg.shopGemPrice || '?'} gems • In Shop</span>}
+              {egg.inVendingMachine && <span className="text-[10px] bg-emerald-600/30 text-emerald-400 px-2 py-0.5 rounded-full">🍳 {egg.vendingGemPrice || '?'} gems • Kitchen</span>}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -430,6 +465,34 @@ function EggRow({ egg, users, customPets = [], onDelete, onGiftAll, onGiftUser, 
 
       {expanded && (
         <div className="px-4 pb-4 space-y-3 border-t border-slate-700 pt-3">
+          {/* Quick stocking toggles */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-slate-700/40 rounded-lg p-2.5 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Checkbox checked={!!localEgg.inShop} onCheckedChange={() => toggleField('inShop', 'shopGemPrice')} id={`shop-${localEgg.id}`} />
+                <label htmlFor={`shop-${localEgg.id}`} className="text-xs text-slate-300 cursor-pointer">🛒 In Shop</label>
+              </div>
+              {localEgg.inShop && (
+                <div className="flex items-center gap-1 ml-5">
+                  <span className="text-[10px] text-slate-400">💎</span>
+                  <Input type="number" min="1" defaultValue={localEgg.shopGemPrice || 2} onBlur={(e) => updatePrice('shopGemPrice', e.target.value)} className="bg-slate-600 border-slate-500 text-xs h-6 w-16 px-1" />
+                </div>
+              )}
+            </div>
+            <div className="bg-slate-700/40 rounded-lg p-2.5 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Checkbox checked={!!localEgg.inVendingMachine} onCheckedChange={() => toggleField('inVendingMachine', 'vendingGemPrice')} id={`vm-${localEgg.id}`} />
+                <label htmlFor={`vm-${localEgg.id}`} className="text-xs text-slate-300 cursor-pointer">🍳 In Kitchen</label>
+              </div>
+              {localEgg.inVendingMachine && (
+                <div className="flex items-center gap-1 ml-5">
+                  <span className="text-[10px] text-slate-400">💎</span>
+                  <Input type="number" min="1" defaultValue={localEgg.vendingGemPrice || 2} onBlur={(e) => updatePrice('vendingGemPrice', e.target.value)} className="bg-slate-600 border-slate-500 text-xs h-6 w-16 px-1" />
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Gift to specific user */}
           <div className="flex gap-2">
             <Select value={giftUserId} onValueChange={setGiftUserId}>
