@@ -29,7 +29,9 @@ export default function EggOpenAnimation({ egg, prizes, onOpen, onClose, customP
   const [wonPrize, setWonPrize] = useState(null);
   const [showChances, setShowChances] = useState(false);
 
-  const totalWeight = prizes.reduce((s, p) => s + (p.weight || 0), 0);
+  // If all prizes have zero/missing weight, assign equal weight of 10 to each
+  const normalizedPrizes = prizes.map(p => ({ ...p, weight: (p.weight && p.weight > 0) ? p.weight : 10 }));
+  const totalWeight = normalizedPrizes.reduce((s, p) => s + p.weight, 0);
 
   // Auto-open: skip idle and start shaking immediately
   useEffect(() => {
@@ -42,11 +44,11 @@ export default function EggOpenAnimation({ egg, prizes, onOpen, onClose, customP
   const pickPrize = () => {
     const r = Math.random() * totalWeight;
     let sum = 0;
-    for (const p of prizes) {
-      sum += (p.weight || 0);
+    for (const p of normalizedPrizes) {
+      sum += p.weight;
       if (r <= sum) return p;
     }
-    return prizes[prizes.length - 1];
+    return normalizedPrizes[normalizedPrizes.length - 1];
   };
 
   const handleOpen = async () => {
@@ -252,7 +254,7 @@ export default function EggOpenAnimation({ egg, prizes, onOpen, onClose, customP
             animate={{ opacity: 1, height: 'auto' }}
             className="w-full space-y-1"
           >
-            {prizes.map((p, i) => {
+            {normalizedPrizes.map((p, i) => {
               const pct = ((p.weight / totalWeight) * 100).toFixed(1);
               const r = getPrizeRarity(p.weight, totalWeight);
               return (
