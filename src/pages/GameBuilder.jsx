@@ -9,10 +9,16 @@ import ReactMarkdown from 'react-markdown';
 
 const AGENT_NAME = 'game_builder';
 
+const SAMPLE_QUESTIONS = [
+  { question: "What is 2 + 2?", options: ["3", "4", "5", "6"], correctAnswer: "4" },
+  { question: "What color is the sky?", options: ["Red", "Blue", "Green", "Yellow"], correctAnswer: "Blue" },
+  { question: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correctAnswer: "Paris" },
+];
+
 export default function GameBuilder() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
   const [authorized, setAuthorized] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -23,10 +29,12 @@ export default function GameBuilder() {
   const [publishing, setPublishing] = useState(false);
 
   const chatEndRef = useRef(null);
+  const unsubRef = useRef(null);
   const profileId = localStorage.getItem('quest_profile_id');
 
   useEffect(() => {
     checkAuth();
+    return () => { unsubRef.current?.(); };
   }, []);
 
   useEffect(() => {
@@ -35,33 +43,32 @@ export default function GameBuilder() {
 
   const checkAuth = async () => {
     const profiles = await base44.entities.UserProfile.filter({ id: profileId });
-    if (profiles.length > 0) {
-      const p = profiles[0];
-      setProfile(p);
-      if (p.isGameCreator || p.rank === 'admin' || p.rank === 'super_admin') {
-        setAuthorized(true);
-        const params = new URLSearchParams(window.location.search);
-        const editId = params.get('edit');
-        if (editId) {
-          await loadExistingGame(editId, p);
-        } else {
-          await startNewConversation();
-        }
+    if (profiles.length === 0) { setChecking(false); return; }
+    const p = profiles[0];
+    if (p.isGameCreator || p.rank === 'admin' || p.rank === 'super_admin') {
+      setAuthorized(true);
+      const params = new URLSearchParams(window.location.search);
+      const editId = params.get('edit');
+      if (editId) {
+        await initEditSession(editId, p);
+      } else {
+        await initNewSession();
       }
     }
+    setChecking(false);
   };
 
-  const startNewConversation = async () => {
+  const initNewSession = async () => {
     const conv = await base44.agents.createConversation({
       agent_name: AGENT_NAME,
-      metadata: { name: 'New Game Build' },
+      metadata: { name: 'New Game' },
     });
     setConversation(conv);
-    subscribeToConversation(conv.id);
     setMessages(conv.messages || []);
+    subscribe(conv.id);
   };
 
-  const loadExistingGame = async (editId, p) => {
+  const initEditSession = async (editId, p) => {
     const games = await base44.entities.MiniGame.filter({ id: editId });
     if (games.length === 0) return;
     const g = games[0];
@@ -76,43 +83,45 @@ export default function GameBuilder() {
       metadata: { name: `Editing: ${g.name}`, gameId: g.id },
     });
     setConversation(conv);
-    subscribeToConversation(conv.id);
+    subscribe(conv.id);
 
-    // Seed the agent with context about the game being edited
-    const seedMsg = `I want to edit my existing game called "${g.name}" (ID: ${g.id}). Here is the current game code:\n\n\`\`\`\n${g.gameCode}\n\`\`\`\n\nOriginal description: ${g.gamePrompt || g.description || 'N/A'}. What changes would you like to make?`;
-    const updated = await base44.agents.addMessage(conv, { role: 'user', content: seedMsg });
+    // Send initial context message to agent
+    const updated = await base44.agents.addMessage(conv, {
+      role: 'user',
+      content: `I want to edit my existing game "${g.name}" (MiniGame ID: ${g.id}). Original prompt: "${g.gamePrompt || g.description || ''}". Current code:\n\`\`\`\n${g.gameCode}\n\`\`\`\nWhat would you like to change?`,
+    });
     setMessages(updated.messages || []);
   };
 
-  const subscribeToConversation = (convId) => {
-    base44.agents.subscribeToConversation(convId, (data) => {
-      setMessages(data.messages || []);
+  const subscribe = (convId) => {
+    unsubRef.current?.();
+    unsubRef.current = base44.agents.subscribeToConversation(convId, (data) => {
+      const msgs = data.messages || [];
+      setMessages(msgs);
 
-      // Try to extract game code from latest assistant message
-      const lastMsg = [...(data.messages || [])].reverse().find(m => m.role === 'assistant');
-      if (lastMsg?.content) {
-        const codeMatch = lastMsg.content.match(/```(?:jsx?|javascript)?\n([\s\S]*?)```/);
-        if (codeMatch) {
-          setGameCode(codeMatch[1]);
-        }
-        // Try to extract game name
-        const nameMatch = lastMsg.content.match(/\*\*([^*]+)\*\* is ready/i);
+      // Extract game code from latest assistant message
+      const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant' && m.content);
+      if (lastAssistant?.content) {
+        const codeMatch = lastAssistant.content.match(/```(?:jsx?|javascript)?\n([\s\S]*?)```/);
+        if (codeMatch) setGameCode(codeMatch[1]);
+
+        const nameMatch = lastAssistant.content.match(/\*\*([^*]+)\*\*\s+is ready/i);
         if (nameMatch) setGameName(nameMatch[1]);
       }
-
-      // Check if a MiniGame was created/updated by the agent
-      (async () => {
-        try {
-          const games = await base44.entities.MiniGame.filter({ createdByProfileId: profileId });
-          const latest = games.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
-          if (latest) {
-            setGameId(latest.id);
-            setGameName(latest.name || '');
-            if (latest.gameCode) setGameCode(latest.gameCode);
-          }
-        } catch {}
-      })();
     });
+  };
+
+  // Poll for newly created MiniGame after agent responds
+  const refreshGameFromDB = async () => {
+    if (gameId) return; // already have one
+    try {
+      const games = await base44.entities.MiniGame.filter({ createdByProfileId: profileId });
+      if (games.length === 0) return;
+      const latest = games.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
+      setGameId(latest.id);
+      setGameName(prev => prev || latest.name);
+      if (latest.gameCode && !gameCode) setGameCode(latest.gameCode);
+    } catch {}
   };
 
   const handleSend = async () => {
@@ -123,6 +132,8 @@ export default function GameBuilder() {
     const updated = await base44.agents.addMessage(conversation, { role: 'user', content: text });
     setMessages(updated.messages || []);
     setSending(false);
+    // Check if agent created a game
+    setTimeout(refreshGameFromDB, 3000);
   };
 
   const handlePublish = async () => {
@@ -132,6 +143,14 @@ export default function GameBuilder() {
     setPublishing(false);
     navigate('/Games');
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   if (!authorized) {
     return (
@@ -177,17 +196,13 @@ export default function GameBuilder() {
           {gameCode ? (
             <GameRenderer
               gameCode={gameCode}
-              questions={[
-                { question: "What is 2 + 2?", options: ["3", "4", "5", "6"], correctAnswer: "4" },
-                { question: "What color is the sky?", options: ["Red", "Blue", "Green", "Yellow"], correctAnswer: "Blue" },
-                { question: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correctAnswer: "Paris" },
-              ]}
+              questions={SAMPLE_QUESTIONS}
               onGameEnd={() => {}}
               onAnswerResult={() => {}}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center text-slate-500">
+              <div className="text-center">
                 <div className="text-6xl mb-4">🎮</div>
                 <p className="text-slate-400">Your game will appear here once built</p>
               </div>
@@ -202,7 +217,6 @@ export default function GameBuilder() {
             <span className="font-semibold text-slate-800">AI Game Builder</span>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, i) => (
               <AgentMessage key={i} message={msg} />
@@ -215,7 +229,6 @@ export default function GameBuilder() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Input */}
           <div className="p-3 border-t border-slate-100">
             <div className="flex gap-2">
               <Input
