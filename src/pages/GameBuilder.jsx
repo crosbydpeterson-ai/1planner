@@ -156,15 +156,29 @@ export default function GameBuilder() {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || sending || !convRef.current) return;
     const text = input.trim();
+    if (!text || sending) return;
+
+    // If conversation not ready yet, wait up to 5s
+    if (!convRef.current) {
+      let waited = 0;
+      while (!convRef.current && waited < 5000) {
+        await new Promise(r => setTimeout(r, 200));
+        waited += 200;
+      }
+      if (!convRef.current) return;
+    }
+
     setInput('');
     setSending(true);
     setAgentTyping(true);
-    // Optimistically add user message to UI
     setMessages(prev => [...prev, { role: 'user', content: text }]);
-    await base44.agents.addMessage(convRef.current, { role: 'user', content: text });
-    // Re-enable send button immediately; agentTyping stays until subscription fires
+    try {
+      await base44.agents.addMessage(convRef.current, { role: 'user', content: text });
+    } catch (e) {
+      console.error('Send failed:', e);
+      setAgentTyping(false);
+    }
     setSending(false);
   };
 
@@ -286,14 +300,13 @@ export default function GameBuilder() {
                 placeholder="Describe your game or ask for changes..."
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSend()}
+                onKeyDown={e => e.key === 'Enter' && !sending && handleSend()}
                 className="rounded-xl"
-                readOnly={sending}
               />
               <button
-                onTouchEnd={(e) => { e.preventDefault(); handleSend(); }}
-                onClick={handleSend}
-                className="rounded-xl bg-indigo-500 text-white shrink-0 w-9 h-9 flex items-center justify-center active:opacity-70"
+                onTouchEnd={(e) => { e.preventDefault(); if (!sending) handleSend(); }}
+                onClick={() => { if (!sending) handleSend(); }}
+                className="rounded-xl bg-indigo-500 text-white shrink-0 w-9 h-9 flex items-center justify-center active:opacity-70 disabled:opacity-50"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
