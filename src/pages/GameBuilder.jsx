@@ -72,8 +72,18 @@ export default function GameBuilder() {
       setMessages(msgs);
 
       // Detect if agent just finished responding
-      const assistantMsgs = msgs.filter(m => m.role === 'assistant');
-      if (assistantMsgs.length > lastMsgCountRef.current) {
+      // Only consider complete (non-streaming) assistant messages
+      const assistantMsgs = msgs.filter(m => m.role === 'assistant' && m.status !== 'streaming' && m.status !== 'pending');
+      const lastMsg = msgs[msgs.length - 1];
+      const isAgentStreaming = lastMsg && lastMsg.role === 'assistant' && (lastMsg.status === 'streaming' || lastMsg.status === 'pending');
+      const isAgentDone = lastMsg && lastMsg.role === 'assistant' && !isAgentStreaming;
+
+      // While streaming, show typing indicator (hide bubble) — once done, clear it
+      if (isAgentStreaming) {
+        setAgentTyping(true);
+      }
+
+      if (assistantMsgs.length > lastMsgCountRef.current && isAgentDone) {
         lastMsgCountRef.current = assistantMsgs.length;
         setAgentTyping(false);
         // Try to extract game code from latest assistant message
