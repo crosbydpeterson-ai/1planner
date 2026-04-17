@@ -23,10 +23,29 @@ export default function GamePlayDialog({ game, profile, onClose }) {
     setAssignments(all.slice(0, 20));
   };
 
+  const generateQuestionsViaAgent = async (prompt, saveData) => {
+    const conv = await base44.agents.createConversation({ agent_name: 'question_generator', metadata: { name: 'Game Questions' } });
+    const updated = await base44.agents.addMessage(conv, { role: 'user', content: prompt });
+    const msgs = updated.messages || [];
+    // Find the last assistant message and parse JSON questions from it
+    const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant' && m.content);
+    let qs = [];
+    if (lastAssistant?.content) {
+      const jsonMatch = lastAssistant.content.match(/```(?:json)?\n?([\s\S]*?)```/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[1]);
+        qs = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+      }
+    }
+    if (qs.length > 0) {
+      await base44.entities.GameQuestion.create({ ...saveData, questions: qs });
+    }
+    return qs;
+  };
+
   const startWithAssignment = async (assignment) => {
     setLoadingQuestions(true);
     setStep('loading');
-    // Check if questions already exist
     const existing = await base44.entities.GameQuestion.filter({ assignmentId: assignment.id });
     if (existing.length > 0 && existing[0].questions?.length > 0) {
       setQuestions(existing[0].questions);
@@ -34,16 +53,8 @@ export default function GamePlayDialog({ game, profile, onClose }) {
       setStep('playing');
       return;
     }
-    // Generate new
-    const res = await base44.functions.invoke('generateGameCode', {
-      action: 'generateQuestions',
-      assignmentTitle: assignment.title,
-      assignmentDescription: assignment.description,
-      pdfUrl: assignment.pdfUrl || null,
-      questionCount: 10,
-    });
-    const qs = res.data.questions || [];
-    await base44.entities.GameQuestion.create({ assignmentId: assignment.id, questions: qs });
+    const prompt = `Generate 10 multiple-choice questions for the assignment titled "${assignment.title}". Description: ${assignment.description || 'N/A'}.${assignment.pdfUrl ? ` PDF: ${assignment.pdfUrl}` : ''} Return them as a JSON array in a code block, each with fields: question, options (array of 4), correctAnswer.`;
+    const qs = await generateQuestionsViaAgent(prompt, { assignmentId: assignment.id });
     setQuestions(qs);
     setLoadingQuestions(false);
     setStep('playing');
@@ -60,13 +71,8 @@ export default function GamePlayDialog({ game, profile, onClose }) {
       setStep('playing');
       return;
     }
-    const res = await base44.functions.invoke('generateGameCode', {
-      action: 'generateQuestions',
-      topic: topic.trim(),
-      questionCount: 10,
-    });
-    const qs = res.data.questions || [];
-    await base44.entities.GameQuestion.create({ topic: topic.trim(), questions: qs });
+    const prompt = `Generate 10 multiple-choice questions about "${topic.trim()}". Return them as a JSON array in a code block, each with fields: question, options (array of 4), correctAnswer.`;
+    const qs = await generateQuestionsViaAgent(prompt, { topic: topic.trim() });
     setQuestions(qs);
     setLoadingQuestions(false);
     setStep('playing');
