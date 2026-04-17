@@ -70,6 +70,24 @@
     "gameVibe": {
       "type": "string",
       "description": "Game vibe/feel description"
+    },
+    "codeSnapshots": {
+      "type": "array",
+      "description": "Version history of game code snapshots",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "savedAt": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "required": [

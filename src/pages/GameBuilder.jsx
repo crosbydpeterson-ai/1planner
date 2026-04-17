@@ -5,6 +5,7 @@ import { ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import GameRenderer from '@/components/games/GameRenderer';
+import SnapshotPanel from '@/components/games/SnapshotPanel';
 import ReactMarkdown from 'react-markdown';
 
 const AGENT_NAME = 'game_builder';
@@ -28,6 +29,7 @@ export default function GameBuilder() {
   const [gameId, setGameId] = useState(null);
   const [publishing, setPublishing] = useState(false);
   const [agentTyping, setAgentTyping] = useState(false);
+  const [snapshots, setSnapshots] = useState([]);
 
   const chatEndRef = useRef(null);
   const unsubRef = useRef(null);
@@ -119,6 +121,7 @@ export default function GameBuilder() {
     setGameId(g.id);
     setGameCode(g.gameCode || '');
     setGameName(g.name || '');
+    setSnapshots(g.codeSnapshots || []);
 
     const conv = await base44.agents.createConversation({
       agent_name: AGENT_NAME,
@@ -147,6 +150,7 @@ export default function GameBuilder() {
         setGameId(latest.id);
         setGameName(prev => prev || latest.name || '');
         if (latest.gameCode) setGameCode(latest.gameCode);
+        setSnapshots(latest.codeSnapshots || []);
       }
     } catch {}
   };
@@ -267,6 +271,14 @@ export default function GameBuilder() {
             )}
             <div ref={chatEndRef} />
           </div>
+
+          <SnapshotPanel
+            gameId={gameId}
+            gameCode={gameCode}
+            snapshots={snapshots}
+            onRevert={(code) => setGameCode(code)}
+            onSnapshotSaved={(updated) => setSnapshots(updated)}
+          />
 
           <div className="p-3 border-t border-slate-100">
             <div className="flex gap-2">
