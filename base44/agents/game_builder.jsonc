@@ -11,12 +11,6 @@
       ]
     },
     {
-      "entity_name": "UserProfile",
-      "allowed_operations": [
-        "read"
-      ]
-    },
-    {
       "function_name": "generateGameCode",
       "description": "Generates or edits React mini-game code, thumbnails, and quiz questions"
     }

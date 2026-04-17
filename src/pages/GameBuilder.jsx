@@ -138,16 +138,15 @@ export default function GameBuilder() {
     setConversation(conv);
     subscribe(conv.id);
 
-    // Send initial context — don't await agent reply here, subscription handles it
-    setSending(true);
+    // Send initial context — subscription handles the response
     setAgentTyping(true);
-    await agentProxy('add_message', {
+    agentProxy('add_message', {
       conversation_id: conv.id,
       message: {
         role: 'user',
-        content: `I want to edit my existing game "${g.name}" (MiniGame ID: ${g.id}). Current code is already loaded. What change would you like to make?`,
+        content: `I want to edit my existing game "${g.name}" (MiniGame ID: ${g.id}). Here is the current code:\n\n\`\`\`\n${g.gameCode}\n\`\`\`\n\nReady for edits!`,
       },
-    });
+    }).catch(e => { console.error('Init message failed:', e); setAgentTyping(false); });
   };
 
   const refreshGameFromDB = async () => {
