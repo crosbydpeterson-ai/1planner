@@ -30,7 +30,7 @@ This is MANDATORY because the code runs via new Function() which cannot parse JS
 NEVER use <> or </> fragment syntax either. Use React.createElement(React.Fragment, null, ...) instead.
 `;
 
-    if (action === 'generate') {
+    if (action === 'generate' || action === 'create') {
       const systemPrompt = `You are an expert React game developer creating educational mini-games for kids (ages 10-14). You write complete, self-contained React components.
 
 CRITICAL RULES:

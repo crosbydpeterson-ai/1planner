@@ -27,9 +27,12 @@ export default function GameBuilder() {
   const [gameName, setGameName] = useState('');
   const [gameId, setGameId] = useState(null);
   const [publishing, setPublishing] = useState(false);
+  const [agentTyping, setAgentTyping] = useState(false);
 
   const chatEndRef = useRef(null);
   const unsubRef = useRef(null);
+  const lastMsgCountRef = useRef(0);
+  const convRef = useRef(null);
   const profileId = localStorage.getItem('quest_profile_id');
 
   useEffect(() => {
@@ -39,23 +42,51 @@ export default function GameBuilder() {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, agentTyping]);
 
   const checkAuth = async () => {
-    const profiles = await base44.entities.UserProfile.filter({ id: profileId });
-    if (profiles.length === 0) { setChecking(false); return; }
-    const p = profiles[0];
-    if (p.isGameCreator || p.rank === 'admin' || p.rank === 'super_admin') {
-      setAuthorized(true);
-      const params = new URLSearchParams(window.location.search);
-      const editId = params.get('edit');
-      if (editId) {
-        await initEditSession(editId, p);
-      } else {
-        await initNewSession();
+    try {
+      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      if (profiles.length === 0) { setChecking(false); return; }
+      const p = profiles[0];
+      if (p.isGameCreator || p.rank === 'admin' || p.rank === 'super_admin') {
+        setAuthorized(true);
+        const params = new URLSearchParams(window.location.search);
+        const editId = params.get('edit');
+        if (editId) {
+          await initEditSession(editId, p);
+        } else {
+          await initNewSession();
+        }
       }
+    } catch (e) {
+      console.error('Auth check failed:', e);
     }
     setChecking(false);
+  };
+
+  const subscribe = (convId) => {
+    unsubRef.current?.();
+    unsubRef.current = base44.agents.subscribeToConversation(convId, (data) => {
+      const msgs = data.messages || [];
+      setMessages(msgs);
+
+      // Detect if agent just finished responding
+      const assistantMsgs = msgs.filter(m => m.role === 'assistant');
+      if (assistantMsgs.length > lastMsgCountRef.current) {
+        lastMsgCountRef.current = assistantMsgs.length;
+        setAgentTyping(false);
+        setSending(false);
+        // Try to extract game code from latest assistant message
+        const last = assistantMsgs[assistantMsgs.length - 1];
+        if (last?.content) {
+          const codeMatch = last.content.match(/```(?:jsx?|javascript)?\n([\s\S]*?)```/);
+          if (codeMatch) setGameCode(codeMatch[1]);
+        }
+        // Poll for newly saved MiniGame
+        setTimeout(refreshGameFromDB, 2000);
+      }
+    });
   };
 
   const initNewSession = async () => {
@@ -63,8 +94,10 @@ export default function GameBuilder() {
       agent_name: AGENT_NAME,
       metadata: { name: 'New Game' },
     });
+    convRef.current = conv;
     setConversation(conv);
     setMessages(conv.messages || []);
+    lastMsgCountRef.current = (conv.messages || []).filter(m => m.role === 'assistant').length;
     subscribe(conv.id);
   };
 
@@ -82,58 +115,43 @@ export default function GameBuilder() {
       agent_name: AGENT_NAME,
       metadata: { name: `Editing: ${g.name}`, gameId: g.id },
     });
+    convRef.current = conv;
     setConversation(conv);
     subscribe(conv.id);
 
-    // Send initial context message to agent
-    const updated = await base44.agents.addMessage(conv, {
+    // Send initial context — don't await agent reply here, subscription handles it
+    setSending(true);
+    setAgentTyping(true);
+    await base44.agents.addMessage(conv, {
       role: 'user',
-      content: `I want to edit my existing game "${g.name}" (MiniGame ID: ${g.id}). Original prompt: "${g.gamePrompt || g.description || ''}". Current code:\n\`\`\`\n${g.gameCode}\n\`\`\`\nWhat would you like to change?`,
-    });
-    setMessages(updated.messages || []);
-  };
-
-  const subscribe = (convId) => {
-    unsubRef.current?.();
-    unsubRef.current = base44.agents.subscribeToConversation(convId, (data) => {
-      const msgs = data.messages || [];
-      setMessages(msgs);
-
-      // Extract game code from latest assistant message
-      const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant' && m.content);
-      if (lastAssistant?.content) {
-        const codeMatch = lastAssistant.content.match(/```(?:jsx?|javascript)?\n([\s\S]*?)```/);
-        if (codeMatch) setGameCode(codeMatch[1]);
-
-        const nameMatch = lastAssistant.content.match(/\*\*([^*]+)\*\*\s+is ready/i);
-        if (nameMatch) setGameName(nameMatch[1]);
-      }
+      content: `I want to edit my existing game "${g.name}" (MiniGame ID: ${g.id}). Current code is already loaded. What change would you like to make?`,
     });
   };
 
-  // Poll for newly created MiniGame after agent responds
   const refreshGameFromDB = async () => {
-    if (gameId) return; // already have one
     try {
       const games = await base44.entities.MiniGame.filter({ createdByProfileId: profileId });
       if (games.length === 0) return;
-      const latest = games.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
-      setGameId(latest.id);
-      setGameName(prev => prev || latest.name);
-      if (latest.gameCode && !gameCode) setGameCode(latest.gameCode);
+      const sorted = games.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+      const latest = sorted[0];
+      if (!gameId || latest.id === gameId) {
+        setGameId(latest.id);
+        setGameName(prev => prev || latest.name || '');
+        if (latest.gameCode) setGameCode(latest.gameCode);
+      }
     } catch {}
   };
 
   const handleSend = async () => {
-    if (!input.trim() || sending || !conversation) return;
+    if (!input.trim() || sending || !convRef.current) return;
     const text = input.trim();
     setInput('');
     setSending(true);
-    const updated = await base44.agents.addMessage(conversation, { role: 'user', content: text });
-    setMessages(updated.messages || []);
-    setSending(false);
-    // Check if agent created a game
-    setTimeout(refreshGameFromDB, 3000);
+    setAgentTyping(true);
+    // Optimistically add user message to UI
+    setMessages(prev => [...prev, { role: 'user', content: text }]);
+    await base44.agents.addMessage(convRef.current, { role: 'user', content: text });
+    // Agent reply comes via subscription
   };
 
   const handlePublish = async () => {
@@ -218,12 +236,23 @@ export default function GameBuilder() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.length === 0 && !sending && (
+              <div className="text-center text-sm text-slate-400 pt-8">
+                <p className="text-2xl mb-2">🕹️</p>
+                <p>Describe your game idea to get started!</p>
+                <p className="mt-1 text-xs">e.g. "A bubble shooter where you answer math questions to shoot"</p>
+              </div>
+            )}
             {messages.map((msg, i) => (
               <AgentMessage key={i} message={msg} />
             ))}
-            {sending && (
-              <div className="flex gap-2 items-center text-sm text-slate-400">
-                <Loader2 className="w-4 h-4 animate-spin" /> Thinking...
+            {agentTyping && (
+              <div className="flex gap-2 items-center">
+                <div className="bg-slate-100 rounded-2xl rounded-bl-md px-4 py-2.5 flex gap-1 items-center">
+                  <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
               </div>
             )}
             <div ref={chatEndRef} />
@@ -245,7 +274,7 @@ export default function GameBuilder() {
                 size="icon"
                 className="rounded-xl bg-indigo-500 text-white shrink-0"
               >
-                <Send className="w-4 h-4" />
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
           </div>
