@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import GamePlayDialog from '@/components/games/GamePlayDialog';
+import LockedOverlay from '@/components/common/LockedOverlay';
 
 export default function Games() {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ export default function Games() {
   const [profile, setProfile] = useState(null);
   const [isCreator, setIsCreator] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
+  const [locks, setLocks] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const profileId = localStorage.getItem('quest_profile_id');
 
@@ -26,17 +29,22 @@ export default function Games() {
 
   const loadData = async () => {
     setLoading(true);
-    const [allGames, profiles] = await Promise.all([
+    const [allGames, profiles, settings] = await Promise.all([
       base44.entities.MiniGame.filter({ isActive: true }),
       base44.entities.UserProfile.filter({ id: profileId }),
+      base44.entities.AppSetting.list(),
     ]);
     setGames(allGames);
+    const fl = settings.find(s => s.key === 'feature_locks');
+    setLocks(fl ? fl.value : null);
     if (profiles.length > 0) {
-      setProfile(profiles[0]);
+      const p = profiles[0];
+      setProfile(p);
+      setIsAdmin(p.rank === 'admin' || p.rank === 'super_admin');
       setIsCreator(
-        profiles[0].isGameCreator ||
-        profiles[0].rank === 'admin' ||
-        profiles[0].rank === 'super_admin'
+        p.isGameCreator ||
+        p.rank === 'admin' ||
+        p.rank === 'super_admin'
       );
     }
     setLoading(false);
@@ -69,6 +77,19 @@ export default function Games() {
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
       </div>
     );
+  }
+
+  const userLock = locks?.users?.[profileId]?.games;
+  const globalLock = locks?.global?.games;
+  const mathLock = profile ? locks?.classes?.math?.[profile.mathTeacher]?.games : false;
+  const readingLock = profile ? locks?.classes?.reading?.[profile.readingTeacher]?.games : false;
+  const isLocked = !isAdmin && (
+    (typeof userLock === 'object' ? userLock.locked : !!userLock) ||
+    !!globalLock || !!mathLock || !!readingLock
+  );
+  const lockMsg = typeof userLock === 'object' ? (userLock.message || '') : '';
+  if (isLocked) {
+    return <LockedOverlay featureLabel="Game Studio" message={lockMsg || "An Admin or Mod has locked this feature."} />;
   }
 
   return (

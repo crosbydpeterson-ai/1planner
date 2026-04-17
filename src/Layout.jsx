@@ -236,6 +236,7 @@ export default function Layout({ children, currentPageName }) {
     if (item.name === 'Rewards') return !isFeatureLockedForUser('pets');
     if (item.name === 'Season') return !isFeatureLockedForUser('battlePass');
     if (item.name === 'Marketplace') return !isFeatureLockedForUser('market');
+    if (item.name === 'Games') return !isFeatureLockedForUser('games');
     return true;
   });
 
