@@ -76,7 +76,6 @@ export default function GameBuilder() {
       if (assistantMsgs.length > lastMsgCountRef.current) {
         lastMsgCountRef.current = assistantMsgs.length;
         setAgentTyping(false);
-        setSending(false);
         // Try to extract game code from latest assistant message
         const last = assistantMsgs[assistantMsgs.length - 1];
         if (last?.content) {
@@ -151,7 +150,8 @@ export default function GameBuilder() {
     // Optimistically add user message to UI
     setMessages(prev => [...prev, { role: 'user', content: text }]);
     await base44.agents.addMessage(convRef.current, { role: 'user', content: text });
-    // Agent reply comes via subscription
+    // Re-enable send button immediately; agentTyping stays until subscription fires
+    setSending(false);
   };
 
   const handlePublish = async () => {
