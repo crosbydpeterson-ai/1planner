@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Clock, BookOpen, Calculator, Users, AlertTriangle } from 'lucide-react';
+import { Check, Clock, BookOpen, Calculator, Users, AlertTriangle, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -79,6 +79,12 @@ export default function AssignmentCard({ assignment, isCompleted, onComplete, cr
             {assignment.isFlagged && (
               <div className="text-xs text-amber-600">
                 XP pending review
+              </div>
+            )}
+            {assignment.pdfUrl && (
+              <div className="flex items-center gap-1 text-xs text-indigo-500 font-medium">
+                <FileText className="w-3 h-3" />
+                PDF
               </div>
             )}
             {creatorName && (

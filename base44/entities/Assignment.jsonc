@@ -1,0 +1,60 @@
+{
+  "name": "Assignment",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Assignment title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Assignment description"
+    },
+    "subject": {
+      "type": "string",
+      "enum": [
+        "math",
+        "reading",
+        "everyone"
+      ],
+      "description": "Subject type or everyone"
+    },
+    "target": {
+      "type": "string",
+      "description": "Target teacher name or 'everyone'"
+    },
+    "pdfUrl": {
+      "type": "string",
+      "description": "URL of attached PDF file for AI question generation"
+    },
+    "isApproved": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether assignment is approved"
+    },
+    "isFlagged": {
+      "type": "boolean",
+      "default": false,
+      "description": "Flagged by AI for admin review - no XP until cleared"
+    },
+    "flagReason": {
+      "type": "string",
+      "description": "Why the AI flagged this assignment"
+    },
+    "dueDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Due date"
+    },
+    "xpReward": {
+      "type": "number",
+      "default": 25,
+      "description": "XP awarded for completion"
+    }
+  },
+  "required": [
+    "title",
+    "subject",
+    "target"
+  ]
+}

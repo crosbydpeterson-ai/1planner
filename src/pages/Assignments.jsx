@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ClipboardList, ArrowLeft, CheckCircle, Plus, AlertTriangle, Gift } from 'lucide-react';
+import { ClipboardList, ArrowLeft, CheckCircle, Plus, AlertTriangle, Gift, FileText, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,8 @@ export default function Assignments() {
   const [filter, setFilter] = useState('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAssignment, setNewAssignment] = useState({ title: '', description: '', dueDate: '', subject: 'everyone' });
+  const [pdfFile, setPdfFile] = useState(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showFlagDialog, setShowFlagDialog] = useState(false);
   const [dailyConfig, setDailyConfig] = useState(null);
@@ -182,6 +184,15 @@ export default function Assignments() {
         target = profile.readingTeacher;
       }
 
+      // Upload PDF if attached
+      let pdfUrl = null;
+      if (pdfFile) {
+        setUploadingPdf(true);
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: pdfFile });
+        pdfUrl = file_url;
+        setUploadingPdf(false);
+      }
+
       const assignment = await base44.entities.Assignment.create({
         title: newAssignment.title,
         description: newAssignment.description,
@@ -189,6 +200,7 @@ export default function Assignments() {
         target: target,
         xpReward: 25,
         dueDate: newAssignment.dueDate || null,
+        pdfUrl: pdfUrl || null,
         isApproved: true
       });
 
@@ -197,6 +209,7 @@ export default function Assignments() {
       setAssignments((prevAssignments) => [assignment, ...prevAssignments]);
       setShowAddForm(false);
       setNewAssignment({ title: '', description: '', dueDate: '', subject: 'everyone' });
+      setPdfFile(null);
     } catch (e) {
       toast.error('Failed to submit assignment');
     }
@@ -527,11 +540,38 @@ export default function Assignments() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label>Attach PDF (optional)</Label>
+                <p className="text-xs text-slate-400">AI will generate game questions from this PDF</p>
+                {pdfFile ? (
+                  <div className="flex items-center gap-2 p-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
+                    <span className="text-sm text-indigo-700 truncate flex-1">{pdfFile.name}</span>
+                    <button onClick={() => setPdfFile(null)} className="text-slate-400 hover:text-red-500">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 p-3 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors">
+                    <Upload className="w-4 h-4 text-slate-400" />
+                    <span className="text-sm text-slate-500">Choose a PDF file</span>
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) setPdfFile(e.target.files[0]);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
-              <Button onClick={handleAddAssignment} disabled={submitting || profile?.isBanned} className="bg-emerald-600">
-                {submitting ? 'Adding...' : 'Add Assignment'}
+              <Button onClick={handleAddAssignment} disabled={submitting || uploadingPdf || profile?.isBanned} className="bg-emerald-600">
+                {uploadingPdf ? 'Uploading PDF...' : submitting ? 'Adding...' : 'Add Assignment'}
               </Button>
             </DialogFooter>
           </DialogContent>

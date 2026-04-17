@@ -39,6 +39,7 @@ export default function GamePlayDialog({ game, profile, onClose }) {
       action: 'generateQuestions',
       assignmentTitle: assignment.title,
       assignmentDescription: assignment.description,
+      pdfUrl: assignment.pdfUrl || null,
       questionCount: 10,
     });
     const qs = res.data.questions || [];

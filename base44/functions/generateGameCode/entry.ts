@@ -146,14 +146,19 @@ Font: ${font || 'Inter'}`;
       });
 
     } else if (action === 'generateQuestions') {
-      const { assignmentTitle, assignmentDescription, topic, questionCount } = body;
+      const { assignmentTitle, assignmentDescription, topic, questionCount, pdfUrl } = body;
       const count = questionCount || 10;
 
-      const prompt = topic
-        ? `Generate exactly ${count} multiple-choice quiz questions about: "${topic}". For ages 10-14. Each: 4 options, one correct. correctAnswer must match one option exactly.`
-        : `Generate exactly ${count} multiple-choice quiz questions based on:\nTitle: ${assignmentTitle}\nDescription: ${assignmentDescription || 'N/A'}\nFor ages 10-14. Each: 4 options, one correct.`;
+      let prompt;
+      if (topic) {
+        prompt = `Generate exactly ${count} multiple-choice quiz questions about: "${topic}". For ages 10-14. Each: 4 options, one correct. correctAnswer must match one option exactly.`;
+      } else if (pdfUrl) {
+        prompt = `Generate exactly ${count} multiple-choice quiz questions based on the content of the attached PDF document.\nAssignment title: ${assignmentTitle}\nDescription: ${assignmentDescription || 'N/A'}\nFor ages 10-14. Each question must have 4 options, one correct. correctAnswer must match one option exactly. Focus on key concepts from the PDF.`;
+      } else {
+        prompt = `Generate exactly ${count} multiple-choice quiz questions based on:\nTitle: ${assignmentTitle}\nDescription: ${assignmentDescription || 'N/A'}\nFor ages 10-14. Each: 4 options, one correct.`;
+      }
 
-      const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      const llmParams = {
         prompt,
         response_json_schema: {
           type: 'object',
@@ -171,7 +176,14 @@ Font: ${font || 'Inter'}`;
             }
           }
         },
-      });
+      };
+
+      // Attach PDF for the LLM to read
+      if (pdfUrl) {
+        llmParams.file_urls = [pdfUrl];
+      }
+
+      const result = await base44.asServiceRole.integrations.Core.InvokeLLM(llmParams);
       return Response.json({ questions: result?.questions || [] });
 
     } else if (action === 'generateThumbnail') {
