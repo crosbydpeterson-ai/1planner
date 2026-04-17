@@ -35,6 +35,9 @@ export default function GameBuilder() {
   const unsubRef = useRef(null);
   const lastMsgCountRef = useRef(0);
   const convRef = useRef(null);
+
+  const agentProxy = (action, params) =>
+    base44.functions.invoke('agentProxy', { action, ...params }).then(r => r.data);
   const profileId = localStorage.getItem('quest_profile_id');
 
   useEffect(() => {
@@ -102,7 +105,7 @@ export default function GameBuilder() {
 
   const initNewSession = async () => {
     try {
-      const conv = await base44.agents.createConversation({
+      const conv = await agentProxy('create_conversation', {
         agent_name: AGENT_NAME,
         metadata: { name: 'New Game', profileId },
       });
@@ -127,9 +130,9 @@ export default function GameBuilder() {
     setGameName(g.name || '');
     setSnapshots(g.codeSnapshots || []);
 
-    const conv = await base44.agents.createConversation({
+    const conv = await agentProxy('create_conversation', {
       agent_name: AGENT_NAME,
-      metadata: { name: `Editing: ${g.name}`, gameId: g.id },
+      metadata: { name: `Editing: ${g.name}`, gameId: g.id, profileId },
     });
     convRef.current = conv;
     setConversation(conv);
@@ -138,9 +141,12 @@ export default function GameBuilder() {
     // Send initial context — don't await agent reply here, subscription handles it
     setSending(true);
     setAgentTyping(true);
-    await base44.agents.addMessage(conv, {
-      role: 'user',
-      content: `I want to edit my existing game "${g.name}" (MiniGame ID: ${g.id}). Current code is already loaded. What change would you like to make?`,
+    await agentProxy('add_message', {
+      conversation_id: conv.id,
+      message: {
+        role: 'user',
+        content: `I want to edit my existing game "${g.name}" (MiniGame ID: ${g.id}). Current code is already loaded. What change would you like to make?`,
+      },
     });
   };
 
@@ -178,7 +184,10 @@ export default function GameBuilder() {
     setAgentTyping(true);
     setMessages(prev => [...prev, { role: 'user', content: text }]);
     try {
-      await base44.agents.addMessage(convRef.current, { role: 'user', content: text });
+      await agentProxy('add_message', {
+        conversation_id: convRef.current.id,
+        message: { role: 'user', content: text },
+      });
     } catch (e) {
       console.error('Send failed:', e);
       setAgentTyping(false);
