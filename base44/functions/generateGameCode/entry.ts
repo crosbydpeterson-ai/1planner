@@ -84,13 +84,26 @@ Start directly with: function GameComponent({ questions, onGameEnd, onAnswerResu
       const generatedDesc = metaResult?.description || gameDescription;
 
       // Generate the actual game code
-      const codeResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
-        prompt: `${systemPrompt}\n\n${userPrompt}`,
-        model: 'claude_sonnet_4_6',
-      });
+      let code = '';
+      const maxAttempts = 2;
+      
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const extraWarning = attempt > 0 
+          ? '\n\nWARNING: Your previous response contained JSX syntax (<div>, <span>, etc). This is FORBIDDEN. You MUST use React.createElement() for ALL elements. Do NOT use any angle-bracket HTML/JSX tags.' 
+          : '';
+        
+        const codeResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
+          prompt: `${systemPrompt}${extraWarning}\n\n${userPrompt}`,
+          model: 'claude_sonnet_4_6',
+        });
 
-      let code = codeResult || '';
-      code = code.replace(/^```(?:jsx?|javascript)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
+        code = (codeResult || '').replace(/^```(?:jsx?|javascript)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
+        
+        // Check if code contains JSX patterns
+        const hasJSX = /return\s*\(?\s*<[a-zA-Z]/.test(code) || /<[a-zA-Z][a-zA-Z0-9]*[\s>]/.test(code);
+        if (!hasJSX) break; // Clean code, no retry needed
+        console.log(`Attempt ${attempt + 1}: JSX detected in generated code, retrying...`);
+      }
 
       if (!code) {
         return Response.json({ error: 'Failed to generate game code' }, { status: 500 });
@@ -109,13 +122,23 @@ Return ONLY the complete updated component code. No markdown, no explanation. Th
 Current color theme: ${JSON.stringify(colors)}
 Font: ${font || 'Inter'}`;
 
-      const codeResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
-        prompt: `${editSystemPrompt}\n\nHere is the current game code:\n\n${existingCode}\n\nPlease make this change: ${editPrompt}\n\nReturn the COMPLETE updated code. No markdown fences, no explanation.`,
-        model: 'claude_sonnet_4_6',
-      });
+      let editedCode = '';
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const extraWarning = attempt > 0
+          ? '\n\nCRITICAL: Your previous output contained JSX (<div>, etc). You MUST only use React.createElement(). NO JSX.'
+          : '';
+        
+        const codeResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
+          prompt: `${editSystemPrompt}${extraWarning}\n\nHere is the current game code:\n\n${existingCode}\n\nPlease make this change: ${editPrompt}\n\nReturn the COMPLETE updated code. No markdown fences, no explanation.`,
+          model: 'claude_sonnet_4_6',
+        });
 
-      let editedCode = codeResult || '';
-      editedCode = editedCode.replace(/^```(?:jsx?|javascript)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
+        editedCode = (codeResult || '').replace(/^```(?:jsx?|javascript)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
+        
+        const hasJSX = /return\s*\(?\s*<[a-zA-Z]/.test(editedCode) || /<[a-zA-Z][a-zA-Z0-9]*[\s>]/.test(editedCode);
+        if (!hasJSX) break;
+        console.log(`Edit attempt ${attempt + 1}: JSX detected, retrying...`);
+      }
 
       return Response.json({
         code: editedCode,
