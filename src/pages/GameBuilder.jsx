@@ -101,15 +101,19 @@ export default function GameBuilder() {
   };
 
   const initNewSession = async () => {
-    const conv = await base44.agents.createConversation({
-      agent_name: AGENT_NAME,
-      metadata: { name: 'New Game' },
-    });
-    convRef.current = conv;
-    setConversation(conv);
-    setMessages(conv.messages || []);
-    lastMsgCountRef.current = (conv.messages || []).filter(m => m.role === 'assistant').length;
-    subscribe(conv.id);
+    try {
+      const conv = await base44.agents.createConversation({
+        agent_name: AGENT_NAME,
+        metadata: { name: 'New Game', profileId },
+      });
+      convRef.current = conv;
+      setConversation(conv);
+      setMessages(conv.messages || []);
+      lastMsgCountRef.current = (conv.messages || []).filter(m => m.role === 'assistant').length;
+      subscribe(conv.id);
+    } catch (e) {
+      console.error('Failed to create conversation:', e);
+    }
   };
 
   const initEditSession = async (editId, p) => {
