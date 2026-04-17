@@ -130,7 +130,7 @@ export default function Games() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab} className="mb-6">
-        <TabsList className="w-full">
+        <TabsList className="w-full justify-center">
           <TabsTrigger value="all" className="flex-1">All Games</TabsTrigger>
           <TabsTrigger value="mine" className="flex-1">My Games</TabsTrigger>
         </TabsList>

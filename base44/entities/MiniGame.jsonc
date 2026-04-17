@@ -14,6 +14,10 @@
       "type": "string",
       "description": "React component code for the game"
     },
+    "gamePrompt": {
+      "type": "string",
+      "description": "Original prompt/description used to generate this game"
+    },
     "thumbnailUrl": {
       "type": "string",
       "description": "URL to the game thumbnail image"

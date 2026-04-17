@@ -83,9 +83,11 @@ export default function GameBuilder() {
     setColorTheme(g.colorTheme || '');
     setFont(g.font || '');
     setGameVibe(g.gameVibe || '');
+    setGameDescription(g.gamePrompt || g.description || '');
     setQuestionIntegration(g.questionIntegration || '');
     setStep(STEPS.LIVE);
-    setMessages([{ role: 'assistant', content: `Editing **${g.name}**! Tell me what changes you'd like to make.` }]);
+    const promptInfo = g.gamePrompt ? `\n\nOriginal prompt: *"${g.gamePrompt}"*` : '';
+    setMessages([{ role: 'assistant', content: `Editing **${g.name}**! Tell me what changes you'd like to make.${promptInfo}` }]);
   };
 
   const addBotMessage = (text, component = null) => {
@@ -188,6 +190,7 @@ export default function GameBuilder() {
         name,
         description: desc,
         gameCode: code,
+        gamePrompt: gameDescription,
         createdByProfileId: profileId,
         createdByUsername: profile?.username || '',
         colorTheme: color,
