@@ -276,16 +276,16 @@ export default function GameBuilder() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSend()}
                 className="rounded-xl"
-                disabled={sending}
+                readOnly={sending}
               />
-              <Button
+              <button
+                onTouchEnd={(e) => { e.preventDefault(); handleSend(); }}
                 onClick={handleSend}
-                disabled={!input.trim() || sending}
-                size="icon"
-                className="rounded-xl bg-indigo-500 text-white shrink-0"
+                className="rounded-xl bg-indigo-500 text-white shrink-0 w-9 h-9 flex items-center justify-center active:opacity-70"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
+              </button>
             </div>
           </div>
         </div>
