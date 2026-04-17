@@ -56,24 +56,39 @@ Generate a COMPLETE, WORKING React component. The code must be production-ready 
 
 IMPORTANT: Return ONLY the JavaScript code, no markdown, no explanation, no code fences. Just the pure component code starting with "function GameComponent({" or "const GameComponent = ({".`;
 
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: userPrompt,
-        model: 'claude_opus_4_6',
+      // First get the game name and description
+      const metaResult = await base44.integrations.Core.InvokeLLM({
+        prompt: `Given this game concept, generate a creative catchy name and one-line description:\n\nConcept: ${gameDescription}\nVibe: ${gameVibe}`,
         response_json_schema: {
           type: 'object',
           properties: {
-            code: { type: 'string', description: 'Complete React component code' },
-            name: { type: 'string', description: 'Game name (creative, catchy)' },
+            name: { type: 'string', description: 'Creative catchy game name' },
             description: { type: 'string', description: 'One-line game description' }
           }
         },
-        file_urls: [],
       });
 
+      const generatedName = metaResult?.name || 'Mini Game';
+      const generatedDesc = metaResult?.description || gameDescription;
+
+      // Then generate the actual game code as a plain string (not JSON schema)
+      const codeResult = await base44.integrations.Core.InvokeLLM({
+        prompt: `${systemPrompt}\n\n${userPrompt}`,
+        model: 'claude_sonnet_4_6',
+      });
+
+      // Clean up the response - remove any markdown code fences
+      let code = codeResult || '';
+      code = code.replace(/^```(?:jsx?|javascript)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
+
+      if (!code) {
+        return Response.json({ error: 'Failed to generate game code' }, { status: 500 });
+      }
+
       return Response.json({
-        code: result.code,
-        name: result.name || gameName || 'Mini Game',
-        description: result.description || gameDescription,
+        code,
+        name: generatedName,
+        description: generatedDesc,
       });
 
     } else if (action === 'edit') {
@@ -82,21 +97,17 @@ IMPORTANT: Return ONLY the JavaScript code, no markdown, no explanation, no code
 Current color theme: ${JSON.stringify(colors)}
 Font: ${font || 'Inter'}`;
 
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Here is the current game code:\n\n${existingCode}\n\nPlease make this change: ${editPrompt}\n\nReturn the COMPLETE updated code. No markdown fences, no explanation.`,
+      const codeResult = await base44.integrations.Core.InvokeLLM({
+        prompt: `${editSystemPrompt}\n\nHere is the current game code:\n\n${existingCode}\n\nPlease make this change: ${editPrompt}\n\nReturn the COMPLETE updated code. No markdown fences, no explanation.`,
         model: 'claude_sonnet_4_6',
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            code: { type: 'string', description: 'Complete updated React component code' },
-            changeDescription: { type: 'string', description: 'Brief description of what changed' }
-          }
-        },
       });
 
+      let editedCode = codeResult || '';
+      editedCode = editedCode.replace(/^```(?:jsx?|javascript)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
+
       return Response.json({
-        code: result.code,
-        changeDescription: result.changeDescription,
+        code: editedCode,
+        changeDescription: `Applied: ${editPrompt}`,
       });
 
     } else if (action === 'generateQuestions') {
