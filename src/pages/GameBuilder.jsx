@@ -45,6 +45,7 @@ export default function GameBuilder() {
 
   useEffect(() => {
     checkAuth();
+    loadExistingGame();
   }, []);
 
   useEffect(() => {
@@ -58,9 +59,33 @@ export default function GameBuilder() {
       setProfile(p);
       if (p.isGameCreator || p.rank === 'admin' || p.rank === 'super_admin') {
         setAuthorized(true);
-        addBotMessage("Welcome to the Game Studio! 🎮\n\nDescribe the mini-game you want to create. Be creative — I'll build it for you!");
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get('edit')) {
+          addBotMessage("Welcome to the Game Studio! 🎮\n\nDescribe the mini-game you want to create. Be creative — I'll build it for you!");
+        }
       }
     }
+  };
+
+  const loadExistingGame = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    if (!editId) return;
+    const games = await base44.entities.MiniGame.filter({ id: editId });
+    if (games.length === 0) return;
+    const g = games[0];
+    // Only allow editing your own games
+    if (g.createdByProfileId !== profileId) return;
+    setGameId(g.id);
+    setGameCode(g.gameCode || '');
+    setGameName(g.name || '');
+    setGameDesc(g.description || '');
+    setColorTheme(g.colorTheme || '');
+    setFont(g.font || '');
+    setGameVibe(g.gameVibe || '');
+    setQuestionIntegration(g.questionIntegration || '');
+    setStep(STEPS.LIVE);
+    setMessages([{ role: 'assistant', content: `Editing **${g.name}**! Tell me what changes you'd like to make.` }]);
   };
 
   const addBotMessage = (text, component = null) => {

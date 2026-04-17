@@ -7,24 +7,35 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 export default function GameRenderer({ gameCode, questions, onGameEnd, onAnswerResult }) {
   const [error, setError] = useState(null);
   const [GameComponent, setGameComponent] = useState(null);
+  const keyRef = useRef(0);
 
   useEffect(() => {
     if (!gameCode) return;
     try {
       setError(null);
-      // Wrap the game code so it returns the component
-      // The code should define a function component. We need to extract it.
+      keyRef.current += 1;
+      
       let code = gameCode.trim();
       
       // Remove any markdown fences if present
       code = code.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
+
+      // Strip export default if present
+      code = code.replace(/export\s+default\s+/, '');
+      
+      // Quick check: if the code still has JSX angle-bracket patterns, show a clear error
+      // Look for patterns like: return ( <div  or  return <div  — strong JSX indicators
+      if (/return\s*\(?\s*<[a-zA-Z]/.test(code)) {
+        setError('Game code contains JSX syntax which cannot run in this environment. Please regenerate the game.');
+        return;
+      }
       
       // Create the component using Function constructor
-      // We pass React as a parameter so the game can use hooks
       const createComponent = new Function(
         'React',
         `
-        const { useState, useEffect, useRef, useCallback, useMemo, useReducer, useLayoutEffect, Fragment } = React;
+        const { useState, useEffect, useRef, useCallback, useMemo, useReducer, useLayoutEffect, Fragment, createElement } = React;
+        const h = React.createElement;
         
         ${code}
         
@@ -33,11 +44,7 @@ export default function GameRenderer({ gameCode, questions, onGameEnd, onAnswerR
         if (typeof Game !== 'undefined') return Game;
         if (typeof MiniGame !== 'undefined') return MiniGame;
         
-        // If the code uses export default, try to extract the function name
-        const match = ${JSON.stringify(code)}.match(/(?:export\\s+default\\s+)?function\\s+(\\w+)/);
-        if (match && typeof eval(match[1]) !== 'undefined') return eval(match[1]);
-        
-        throw new Error('Could not find game component in generated code');
+        throw new Error('Could not find game component. Make sure the function is named GameComponent.');
         `
       );
       
@@ -55,7 +62,7 @@ export default function GameRenderer({ gameCode, questions, onGameEnd, onAnswerR
         <div className="text-center max-w-md">
           <div className="text-4xl mb-4">⚠️</div>
           <h3 className="text-lg font-bold mb-2">Game Error</h3>
-          <p className="text-sm text-slate-400 mb-4">{error}</p>
+          <p className="text-sm text-slate-400 mb-4 whitespace-pre-wrap">{error}</p>
           <button
             onClick={() => onGameEnd?.({ score: 0, correctAnswers: 0, totalQuestions: 0, survivalTime: 0 })}
             className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
@@ -77,7 +84,7 @@ export default function GameRenderer({ gameCode, questions, onGameEnd, onAnswerR
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
-      <ErrorBoundary onError={(e) => setError(e)} onGameEnd={onGameEnd}>
+      <ErrorBoundary key={keyRef.current} onError={(e) => setError(e)} onGameEnd={onGameEnd}>
         <GameComponent
           questions={questions || []}
           onGameEnd={onGameEnd || (() => {})}

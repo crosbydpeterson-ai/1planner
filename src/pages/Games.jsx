@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Search, Gamepad2, Heart, Play, Plus, Sparkles } from 'lucide-react';
+import { Search, Gamepad2, Heart, Play, Plus, Sparkles, Pencil } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -29,12 +29,16 @@ export default function Games() {
 
   const loadData = async () => {
     setLoading(true);
-    const [allGames, profiles, settings] = await Promise.all([
+    const [activeGames, myDrafts, profiles, settings] = await Promise.all([
       base44.entities.MiniGame.filter({ isActive: true }),
+      base44.entities.MiniGame.filter({ createdByProfileId: profileId, isActive: false }),
       base44.entities.UserProfile.filter({ id: profileId }),
       base44.entities.AppSetting.list(),
     ]);
-    setGames(allGames);
+    // Combine active games + user's drafts (deduped)
+    const activeIds = new Set(activeGames.map(g => g.id));
+    const combined = [...activeGames, ...myDrafts.filter(d => !activeIds.has(d.id))];
+    setGames(combined);
     const fl = settings.find(s => s.key === 'feature_locks');
     setLocks(fl ? fl.value : null);
     if (profiles.length > 0) {
@@ -150,6 +154,7 @@ export default function Games() {
                 profileId={profileId}
                 onLike={() => handleLike(game)}
                 onPlay={() => setSelectedGame(game)}
+                onEdit={() => navigate(`/Games/Build?edit=${game.id}`)}
               />
             ))}
           </AnimatePresence>
@@ -168,7 +173,7 @@ export default function Games() {
   );
 }
 
-function GameCard({ game, index, profileId, onLike, onPlay }) {
+function GameCard({ game, index, profileId, onLike, onPlay, onEdit }) {
   const liked = (game.likedBy || []).includes(profileId);
   const themeColors = {
     'Electric Blue': 'from-blue-500 to-blue-700',
@@ -196,6 +201,9 @@ function GameCard({ game, index, profileId, onLike, onPlay }) {
         ) : (
           <Gamepad2 className="w-10 h-10 text-white/60" />
         )}
+        {!game.isActive && game.createdByProfileId === profileId && (
+          <span className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Draft</span>
+        )}
         <button
           onClick={(e) => { e.stopPropagation(); onLike(); }}
           className="absolute top-2 right-2 p-1.5 rounded-full bg-white/20 backdrop-blur-sm"
@@ -213,13 +221,25 @@ function GameCard({ game, index, profileId, onLike, onPlay }) {
             <span className="flex items-center gap-1"><Play className="w-3 h-3" />{game.playCount || 0}</span>
             <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{game.likes || 0}</span>
           </div>
-          <Button
-            size="sm"
-            onClick={onPlay}
-            className="h-7 text-xs rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white gap-1"
-          >
-            <Sparkles className="w-3 h-3" /> Play
-          </Button>
+          <div className="flex items-center gap-1.5">
+            {game.createdByProfileId === profileId && (
+              <Button
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                variant="outline"
+                className="h-7 text-xs rounded-lg gap-1 px-2"
+              >
+                <Pencil className="w-3 h-3" />
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={onPlay}
+              className="h-7 text-xs rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white gap-1"
+            >
+              <Sparkles className="w-3 h-3" /> Play
+            </Button>
+          </div>
         </div>
       </div>
     </motion.div>
