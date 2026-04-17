@@ -15,6 +15,8 @@ import CommunityWall from './pages/CommunityWall';
 import PetConceptSubmit from './pages/PetConceptSubmit';
 import Eggs from './pages/Eggs';
 import Kitchen from './pages/Kitchen';
+import Games from './pages/Games';
+import GameBuilder from './pages/GameBuilder';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -92,6 +94,8 @@ const AuthenticatedApp = () => {
       <Route path="/PetConceptSubmit" element={<LayoutWrapper currentPageName="PetConceptSubmit"><PetConceptSubmit /></LayoutWrapper>} />
       <Route path="/Eggs" element={<LayoutWrapper currentPageName="Eggs"><Eggs /></LayoutWrapper>} />
       <Route path="/Kitchen" element={<LayoutWrapper currentPageName="Kitchen"><Kitchen /></LayoutWrapper>} />
+      <Route path="/Games" element={<LayoutWrapper currentPageName="Games"><Games /></LayoutWrapper>} />
+      <Route path="/Games/Build" element={<GameBuilder />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

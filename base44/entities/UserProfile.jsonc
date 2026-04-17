@@ -76,6 +76,11 @@
       "default": false,
       "description": "Can create pets (admin-gifted ability)"
     },
+    "isGameCreator": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can create mini games (admin-gifted ability)"
+    },
     "equippedPetId": {
       "type": "string",
       "description": "Currently equipped pet ID"

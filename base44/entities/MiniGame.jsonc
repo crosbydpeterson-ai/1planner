@@ -1,0 +1,76 @@
+{
+  "name": "MiniGame",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the mini-game"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the game"
+    },
+    "gameCode": {
+      "type": "string",
+      "description": "React component code for the game"
+    },
+    "thumbnailUrl": {
+      "type": "string",
+      "description": "URL to the game thumbnail image"
+    },
+    "isApproved": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the game is approved"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the game is active and playable"
+    },
+    "createdByProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the creator"
+    },
+    "createdByUsername": {
+      "type": "string",
+      "description": "Username of the creator"
+    },
+    "playCount": {
+      "type": "number",
+      "default": 0
+    },
+    "likes": {
+      "type": "number",
+      "default": 0
+    },
+    "likedBy": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Profile IDs who liked this game"
+    },
+    "colorTheme": {
+      "type": "string",
+      "description": "Color theme name"
+    },
+    "font": {
+      "type": "string",
+      "description": "Font name"
+    },
+    "questionIntegration": {
+      "type": "string",
+      "description": "How questions integrate into the game"
+    },
+    "gameVibe": {
+      "type": "string",
+      "description": "Game vibe/feel description"
+    }
+  },
+  "required": [
+    "name",
+    "gameCode",
+    "createdByProfileId"
+  ]
+}

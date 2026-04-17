@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Shield, ArrowLeft, Search, Users, ClipboardList, Plus, Lock, Unlock, Eye, EyeOff, Key, Check, X, Edit2, Save, Palette, Star, Trash2, Gift, Sparkles, Wand2, Loader2, ShoppingBag, Ban } from 'lucide-react';
+import { Shield, ArrowLeft, Search, Users, ClipboardList, Plus, Lock, Unlock, Eye, EyeOff, Key, Check, X, Edit2, Save, Palette, Star, Trash2, Gift, Sparkles, Wand2, Loader2, ShoppingBag, Ban, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -279,7 +279,7 @@ export default function Admin() {
                     <div className="flex items-center gap-4">
                       <PetAvatar petId={user.equippedPetId} cosmeticIds={user.equippedCosmetics || []} cosmeticPositions={user.cosmeticPositions || {}} size="sm" />
                       <div>
-                        <h3 className="font-semibold text-white flex items-center gap-2">{user.username}{user.isLocked && <Lock className="w-4 h-4 text-red-400" />}{user.hiddenFromLeaderboard && <EyeOff className="w-4 h-4 text-yellow-400" />}{user.isPetCreator && <Wand2 className="w-4 h-4 text-pink-400" />}{user.has1PassPlus && <Sparkles className="w-4 h-4 text-yellow-300" />}</h3>
+                        <h3 className="font-semibold text-white flex items-center gap-2">{user.username}{user.isLocked && <Lock className="w-4 h-4 text-red-400" />}{user.hiddenFromLeaderboard && <EyeOff className="w-4 h-4 text-yellow-400" />}{user.isPetCreator && <Wand2 className="w-4 h-4 text-pink-400" />}{user.isGameCreator && <Gamepad2 className="w-4 h-4 text-teal-400" />}{user.has1PassPlus && <Sparkles className="w-4 h-4 text-yellow-300" />}</h3>
                         <p className="text-sm text-slate-400">Math: {user.mathTeacher} • Reading: {user.readingTeacher}{user.has1PassPlus ? ' • 1Pass Plus' : ''}</p>
                       </div>
                     </div>
@@ -292,7 +292,8 @@ export default function Admin() {
                         {isSuperAdmin && <Button size="sm" variant="ghost" onClick={() => { localStorage.setItem('quest_profile_id', user.id); navigate(createPageUrl('Dashboard')); }} className="text-emerald-400 hover:text-emerald-300" title="Switch to this user">Switch</Button>}
                         <Button size="sm" variant="ghost" onClick={() => { setGiftUser(user); setGiftUsername(user.username || ''); setGiftItemId(''); setGiftToAll(false); setShowGiftDialog(true); }} className="text-purple-400 hover:text-purple-300" title="Gift"><Gift className="w-4 h-4" /></Button>
                         {(isSuperAdmin || permissions.grantAdminTokens) && <Button size="sm" variant="ghost" onClick={async () => { const nt = (user.adminTokens || 0) + 10; await base44.entities.UserProfile.update(user.id, { adminTokens: nt }); setUsers(users.map(u => u.id === user.id ? { ...u, adminTokens: nt } : u)); toast.success(`Granted 10 admin tokens`); }} className="text-emerald-400 hover:text-emerald-300" title="Grant 10 Admin Tokens"><Plus className="w-4 h-4" /></Button>}
-                        <Button size="sm" variant="ghost" onClick={async () => { const ns = !user.isPetCreator; await base44.entities.UserProfile.update(user.id, { isPetCreator: ns }); setUsers(users.map(u => u.id === user.id ? { ...u, isPetCreator: ns } : u)); toast.success(ns ? 'Pet creator granted!' : 'Pet creator removed'); }} className={user.isPetCreator ? "text-pink-400 hover:text-pink-300" : "text-slate-400 hover:text-slate-300"}><Wand2 className="w-4 h-4" /></Button>
+                        <Button size="sm" variant="ghost" onClick={async () => { const ns = !user.isPetCreator; await base44.entities.UserProfile.update(user.id, { isPetCreator: ns }); setUsers(users.map(u => u.id === user.id ? { ...u, isPetCreator: ns } : u)); toast.success(ns ? 'Pet creator granted!' : 'Pet creator removed'); }} className={user.isPetCreator ? "text-pink-400 hover:text-pink-300" : "text-slate-400 hover:text-slate-300"} title="Pet Creator"><Wand2 className="w-4 h-4" /></Button>
+                        <Button size="sm" variant="ghost" onClick={async () => { const ns = !user.isGameCreator; await base44.entities.UserProfile.update(user.id, { isGameCreator: ns }); setUsers(users.map(u => u.id === user.id ? { ...u, isGameCreator: ns } : u)); toast.success(ns ? 'Game creator granted!' : 'Game creator removed'); }} className={user.isGameCreator ? "text-teal-400 hover:text-teal-300" : "text-slate-400 hover:text-slate-300"} title="Game Creator"><Gamepad2 className="w-4 h-4" /></Button>
                         {(isSuperAdmin || permissions.toggleAdminRole) && user.username?.toLowerCase() !== 'crosby' && <Button size="sm" variant="ghost" onClick={async () => { const nr = user.rank === 'admin' ? 'user' : 'admin'; await base44.entities.UserProfile.update(user.id, { rank: nr }); setUsers(users.map(u => u.id === user.id ? { ...u, rank: nr } : u)); toast.success(nr === 'admin' ? 'Now ADMIN' : 'Admin removed'); }} className="text-emerald-400 hover:text-emerald-300"><Shield className="w-4 h-4" /></Button>}
                       </div>
                     </div>

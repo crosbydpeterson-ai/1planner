@@ -1,0 +1,38 @@
+{
+  "name": "GameQuestion",
+  "type": "object",
+  "properties": {
+    "assignmentId": {
+      "type": "string",
+      "description": "Assignment ID this question set is based on"
+    },
+    "topic": {
+      "type": "string",
+      "description": "Topic if not based on assignment"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "correctAnswer": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Array of quiz questions with options and correct answer"
+    }
+  },
+  "required": [
+    "questions"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "name": "GameSession",
+  "type": "object",
+  "properties": {
+    "userProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the player"
+    },
+    "miniGameId": {
+      "type": "string",
+      "description": "MiniGame ID played"
+    },
+    "assignmentId": {
+      "type": "string"
+    },
+    "topic": {
+      "type": "string"
+    },
+    "score": {
+      "type": "number",
+      "default": 0
+    },
+    "xpEarned": {
+      "type": "number",
+      "default": 0
+    },
+    "coinsEarned": {
+      "type": "number",
+      "default": 0
+    },
+    "correctAnswers": {
+      "type": "number",
+      "default": 0
+    },
+    "totalQuestions": {
+      "type": "number",
+      "default": 0
+    },
+    "survivalTime": {
+      "type": "number",
+      "default": 0,
+      "description": "Seconds survived"
+    }
+  },
+  "required": [
+    "userProfileId",
+    "miniGameId"
+  ]
+}

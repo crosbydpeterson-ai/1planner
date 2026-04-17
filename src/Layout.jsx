@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, Coins, CalendarHeart, Info, MessageSquare, ChefHat } from 'lucide-react';
+import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, Coins, CalendarHeart, Info, MessageSquare, ChefHat, Gamepad2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 import ThemedBackground from '@/components/theme/ThemedBackground';
@@ -212,7 +212,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   // Don't show navigation on Home (login) page or Admin page
-  const hideNav = currentPageName === 'Home' || currentPageName === 'Admin' || currentPageName === 'CommunityWall' || currentPageName === 'community';
+  const hideNav = currentPageName === 'Home' || currentPageName === 'Admin' || currentPageName === 'CommunityWall' || currentPageName === 'community' || currentPageName === 'GameBuilder';
 
   
   const navItems = [
@@ -224,6 +224,7 @@ export default function Layout({ children, currentPageName }) {
             { name: 'Rewards', icon: Gem, label: 'Collection' },
             { name: 'Season', icon: Sparkles, label: '1Pass' },
             { name: 'Kitchen', icon: ChefHat, label: 'Kitchen', customPath: '/Kitchen' },
+            { name: 'Games', icon: Gamepad2, label: 'Games', customPath: '/Games' },
             { name: 'Events', icon: CalendarHeart, label: 'Events' },
             { name: 'Info', icon: Info, label: 'Info' },
             { name: 'community', icon: MessageSquare, label: 'Community', customPath: '/community' },
