@@ -48,24 +48,34 @@ export default function Eggs() {
     // Mark drop as opened
     await base44.entities.LootEggDrop.update(drop.id, { isOpened: true, wonPrize: prize });
 
-    // Apply prize to user profile
-    const p = profile;
+    // Always fetch fresh profile to avoid stale state bugs
+    const freshProfiles = await base44.entities.UserProfile.filter({ id: profile.id });
+    const p = freshProfiles[0] || profile;
+
     if (prize.type === 'xp') {
-      const newXp = (p.xp || 0) + parseInt(prize.value || '0');
-      await base44.entities.UserProfile.update(p.id, { xp: newXp });
+      await base44.entities.UserProfile.update(p.id, { xp: (p.xp || 0) + parseInt(prize.value || '0') });
       toast.success(`+${prize.value} XP!`);
     } else if (prize.type === 'coins') {
-      const newCoins = (p.questCoins || 0) + parseInt(prize.value || '0');
-      await base44.entities.UserProfile.update(p.id, { questCoins: newCoins });
+      await base44.entities.UserProfile.update(p.id, { questCoins: (p.questCoins || 0) + parseInt(prize.value || '0') });
       toast.success(`+${prize.value} Quest Coins!`);
     } else if (prize.type === 'pet') {
+      // Normalize pet ID — ensure custom_ prefix for custom pets
+      let petId = prize.value || '';
+      if (petId && !petId.startsWith('custom_') && petId.length > 10) {
+        petId = `custom_${petId}`;
+      }
       const up = [...(p.unlockedPets || [])];
-      if (!up.includes(prize.value)) up.push(prize.value);
+      if (!up.includes(petId)) up.push(petId);
       await base44.entities.UserProfile.update(p.id, { unlockedPets: up });
-      toast.success(`New pet unlocked!`);
+      toast.success(`🐾 New pet unlocked!`);
     } else if (prize.type === 'theme') {
       const ut = [...(p.unlockedThemes || [])];
-      if (!ut.includes(prize.value)) ut.push(prize.value);
+      // Normalize theme ID
+      let themeId = prize.value || '';
+      if (themeId && !themeId.startsWith('custom_') && themeId.length > 10) {
+        themeId = `custom_${themeId}`;
+      }
+      if (!ut.includes(themeId)) ut.push(themeId);
       await base44.entities.UserProfile.update(p.id, { unlockedThemes: ut });
       toast.success(`New theme unlocked!`);
     } else if (prize.type === 'magic_egg') {

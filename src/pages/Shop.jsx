@@ -305,7 +305,11 @@ export default function Shop() {
     if (!openingEgg) return;
     const { drop } = openingEgg;
     await base44.entities.LootEggDrop.update(drop.id, { isOpened: true, wonPrize: prize });
-    const p = profile;
+
+    // Always fetch fresh profile to avoid stale state bugs
+    const freshProfiles = await base44.entities.UserProfile.filter({ id: profile.id });
+    const p = freshProfiles[0] || profile;
+
     if (prize.type === 'xp') {
       await base44.entities.UserProfile.update(p.id, { xp: (p.xp || 0) + parseInt(prize.value || '0') });
       toast.success(`+${prize.value} XP!`);
@@ -313,13 +317,39 @@ export default function Shop() {
       await base44.entities.UserProfile.update(p.id, { questCoins: (p.questCoins || 0) + parseInt(prize.value || '0') });
       toast.success(`+${prize.value} Quest Coins!`);
     } else if (prize.type === 'pet') {
+      // Normalize pet ID to always have custom_ prefix for custom pets
+      let petId = prize.value || '';
+      if (petId && !petId.startsWith('custom_') && petId.length > 10) {
+        petId = `custom_${petId}`;
+      }
       const up = [...(p.unlockedPets || [])];
-      if (!up.includes(prize.value)) up.push(prize.value);
-      await base44.entities.UserProfile.update(p.id, { unlockedPets: up });
-      toast.success('New pet unlocked!');
+      if (!up.includes(petId)) up.push(petId);
+
+      // Also unlock the pet's theme if it has one
+      const ut = [...(p.unlockedThemes || [])];
+      if (petId.startsWith('custom_')) {
+        try {
+          const rawId = petId.replace('custom_', '');
+          const petRecords = await base44.entities.CustomPet.filter({ id: rawId });
+          if (petRecords.length > 0 && petRecords[0].theme) {
+            const themeKey = `pet_theme_${rawId}`;
+            if (!ut.includes(themeKey)) ut.push(themeKey);
+          }
+        } catch (e) {
+          console.error('Failed to fetch pet theme for egg prize', e);
+        }
+      }
+
+      await base44.entities.UserProfile.update(p.id, { unlockedPets: up, unlockedThemes: ut });
+      toast.success('🐾 New pet unlocked!');
     } else if (prize.type === 'theme') {
       const ut = [...(p.unlockedThemes || [])];
-      if (!ut.includes(prize.value)) ut.push(prize.value);
+      // Normalize theme ID
+      let themeId = prize.value || '';
+      if (themeId && !themeId.startsWith('custom_') && themeId.length > 10) {
+        themeId = `custom_${themeId}`;
+      }
+      if (!ut.includes(themeId)) ut.push(themeId);
       await base44.entities.UserProfile.update(p.id, { unlockedThemes: ut });
       toast.success('New theme unlocked!');
     } else if (prize.type === 'magic_egg') {
