@@ -100,6 +100,23 @@ function parseAttrsToProps(attrStr) {
 }
 
 /**
+ * Validates that a code string can be parsed by attempting to create a Function.
+ * Returns null if valid, or the error message if invalid.
+ */
+function validateSyntax(code) {
+  try {
+    new Function('React', `
+      const { useState, useEffect, useRef, useCallback, useMemo, useReducer, useLayoutEffect, Fragment, createElement } = React;
+      const h = React.createElement;
+      ${code}
+    `);
+    return null;
+  } catch (e) {
+    return e.message;
+  }
+}
+
+/**
  * Dynamically renders a game component from code string.
  * The code is compiled using new Function() and rendered as a React component.
  */
@@ -123,13 +140,29 @@ export default function GameRenderer({ gameCode, questions, onGameEnd, onAnswerR
       code = code.replace(/export\s+default\s+/, '');
       
       // Attempt to convert JSX to React.createElement if JSX is detected
-      if (/return\s*\(?\s*<[a-zA-Z]/.test(code) || /<[a-zA-Z][^>]*>/.test(code)) {
-        code = convertJSXToCreateElement(code);
-        // If it still contains JSX after conversion, show error
-        if (/<[a-zA-Z][^>]*\/?>/.test(code) && !/<!--/.test(code)) {
-          setError('Game code contains JSX syntax which cannot run in this environment. Please regenerate the game.');
-          return;
+      const hasJSX = /return\s*\(?\s*<[a-zA-Z]/.test(code) || /<[a-zA-Z][^>]*>/.test(code);
+      if (hasJSX) {
+        const converted = convertJSXToCreateElement(code);
+        // Only use converted code if it's valid JS; otherwise keep original
+        const conversionError = validateSyntax(converted);
+        if (!conversionError) {
+          code = converted;
+        } else {
+          // Conversion broke the code. If original also has JSX, show error.
+          const originalError = validateSyntax(code);
+          if (originalError) {
+            setError(`Game code has a syntax error: ${originalError}. Try regenerating the game or editing it to fix the issue.`);
+            return;
+          }
+          // else: original code is valid (maybe false positive on JSX detection), use it
         }
+      }
+      
+      // Final syntax check before execution
+      const syntaxError = validateSyntax(code);
+      if (syntaxError) {
+        setError(`Game code has a syntax error: ${syntaxError}. Try regenerating the game or editing it to fix the issue.`);
+        return;
       }
       
       // Create the component using Function constructor
