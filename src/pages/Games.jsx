@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Search, Gamepad2, Heart, Play, Plus, Sparkles, Pencil } from 'lucide-react';
+import { Search, Gamepad2, Heart, Play, Plus, Sparkles, Pencil, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -52,6 +52,69 @@ export default function Games() {
       );
     }
     setLoading(false);
+  };
+
+  const handleDelete = async (game) => {
+    if (!isAdmin) return;
+    if (!confirm(`Delete "${game.name}"? This cannot be undone.`)) return;
+    await base44.entities.MiniGame.delete(game.id);
+    setGames(prev => prev.filter(g => g.id !== game.id));
+  };
+
+  const handleRegenerateThumbnail = async (game) => {
+    try {
+      const res = await base44.functions.invoke('generateGameCode', {
+        action: 'generateThumbnail',
+        gameName: game.name,
+        gameDescriptionForThumb: game.description,
+        colorTheme: game.colorTheme,
+      });
+      const url = res.data?.thumbnailUrl;
+      if (url) {
+        await base44.entities.MiniGame.update(game.id, { thumbnailUrl: url });
+        setGames(prev => prev.map(g => g.id === game.id ? { ...g, thumbnailUrl: url } : g));
+      } else {
+        alert('Thumbnail generation failed: ' + (res.data?.error || 'unknown'));
+      }
+    } catch (e) {
+      alert('Thumbnail error: ' + e.message);
+    }
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      for (const item of items) {
+        if (!item.gameCode || !item.name) {
+          alert(`Skipping item: requires "name" and "gameCode"`);
+          continue;
+        }
+        await base44.entities.MiniGame.create({
+          name: item.name,
+          description: item.description || '',
+          gameCode: item.gameCode,
+          gamePrompt: item.gamePrompt || '',
+          thumbnailUrl: item.thumbnailUrl || '',
+          colorTheme: item.colorTheme || 'Electric Blue',
+          font: item.font || 'Inter',
+          questionIntegration: item.questionIntegration || 'periodic',
+          gameVibe: item.gameVibe || '',
+          createdByProfileId: profileId,
+          createdByUsername: profile?.username || 'Creator',
+          isActive: !!item.isActive,
+          isApproved: true,
+        });
+      }
+      await loadData();
+      alert(`Imported ${items.length} game(s)!`);
+    } catch (err) {
+      alert('Import failed: ' + err.message);
+    }
+    e.target.value = '';
   };
 
   const handleLike = async (game) => {
@@ -107,14 +170,34 @@ export default function Games() {
           </h1>
           <p className="text-slate-500 text-sm">Play mini-games to earn XP & coins!</p>
         </div>
-        {isCreator && (
-          <Button
-            onClick={() => navigate('/Games/Build')}
-            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl gap-2"
-          >
-            <Plus className="w-4 h-4" /> Create Game
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <>
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={handleImport}
+                id="game-import-input"
+                className="hidden"
+              />
+              <Button
+                onClick={() => document.getElementById('game-import-input').click()}
+                variant="outline"
+                className="rounded-xl gap-2"
+              >
+                <Upload className="w-4 h-4" /> Import
+              </Button>
+            </>
+          )}
+          {isCreator && (
+            <Button
+              onClick={() => navigate('/Games/Build')}
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl gap-2"
+            >
+              <Plus className="w-4 h-4" /> Create
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Search */}
@@ -152,9 +235,12 @@ export default function Games() {
                 game={game}
                 index={i}
                 profileId={profileId}
+                isAdmin={isAdmin}
                 onLike={() => handleLike(game)}
                 onPlay={() => setSelectedGame(game)}
                 onEdit={() => navigate(`/Games/Build?edit=${game.id}`)}
+                onDelete={() => handleDelete(game)}
+                onRegenerateThumbnail={() => handleRegenerateThumbnail(game)}
               />
             ))}
           </AnimatePresence>
@@ -173,8 +259,9 @@ export default function Games() {
   );
 }
 
-function GameCard({ game, index, profileId, onLike, onPlay, onEdit }) {
+function GameCard({ game, index, profileId, isAdmin, onLike, onPlay, onEdit, onDelete, onRegenerateThumbnail }) {
   const liked = (game.likedBy || []).includes(profileId);
+  const canEdit = game.createdByProfileId === profileId || isAdmin;
   const themeColors = {
     'Electric Blue': 'from-blue-500 to-blue-700',
     'Sunset Orange': 'from-orange-500 to-orange-700',
@@ -222,7 +309,29 @@ function GameCard({ game, index, profileId, onLike, onPlay, onEdit }) {
             <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{game.likes || 0}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            {game.createdByProfileId === profileId && (
+            {isAdmin && (
+              <Button
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); onRegenerateThumbnail(); }}
+                variant="outline"
+                title="Regenerate thumbnail"
+                className="h-7 text-xs rounded-lg gap-1 px-2"
+              >
+                <ImageIcon className="w-3 h-3" />
+              </Button>
+            )}
+            {isAdmin && (
+              <Button
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                variant="outline"
+                title="Delete game"
+                className="h-7 text-xs rounded-lg gap-1 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            )}
+            {canEdit && (
               <Button
                 size="sm"
                 onClick={(e) => { e.stopPropagation(); onEdit(); }}

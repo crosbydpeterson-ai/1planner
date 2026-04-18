@@ -194,9 +194,14 @@ Font: ${font || 'Inter'}`;
 
     } else if (action === 'generateThumbnail') {
       const result = await base44.asServiceRole.integrations.Core.GenerateImage({
-        prompt: `A colorful, fun, kid-friendly game thumbnail icon for "${gameName}". ${gameDescriptionForThumb || ''}. Style: flat design, vibrant ${colorTheme || 'blue'} colors, playful, school learning app. Square, simple, eye-catching.`,
+        prompt: `A colorful, fun, kid-friendly game thumbnail icon for "${gameName}". ${gameDescriptionForThumb || ''}. Style: flat design, vibrant ${colorTheme || 'blue'} colors, playful, school learning app. Square, simple, eye-catching. No text.`,
       });
-      return Response.json({ thumbnailUrl: result.url });
+      const thumbnailUrl = result?.url || result?.file_url || result?.image_url || null;
+      if (!thumbnailUrl) {
+        console.error('Thumbnail generation returned no URL:', result);
+        return Response.json({ error: 'No thumbnail URL returned', raw: result }, { status: 500 });
+      }
+      return Response.json({ thumbnailUrl });
     }
 
     return Response.json({ error: 'Invalid action' }, { status: 400 });
