@@ -86,31 +86,56 @@ export default function Games() {
     if (!file) return;
     try {
       const text = await file.text();
-      const parsed = JSON.parse(text);
-      const items = Array.isArray(parsed) ? parsed : [parsed];
-      for (const item of items) {
-        if (!item.gameCode || !item.name) {
-          alert(`Skipping item: requires "name" and "gameCode"`);
-          continue;
+      // JSON format: single object or array of {name, gameCode, ...}
+      if (file.name.endsWith('.json')) {
+        const parsed = JSON.parse(text);
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        for (const item of items) {
+          if (!item.gameCode || !item.name) { alert(`Skipping item: requires "name" and "gameCode"`); continue; }
+          await base44.entities.MiniGame.create({
+            name: item.name,
+            description: item.description || '',
+            gameCode: item.gameCode,
+            gamePrompt: item.gamePrompt || '',
+            thumbnailUrl: item.thumbnailUrl || '',
+            colorTheme: item.colorTheme || 'Electric Blue',
+            font: item.font || 'Inter',
+            questionIntegration: item.questionIntegration || 'periodic',
+            gameVibe: item.gameVibe || '',
+            createdByProfileId: profileId,
+            createdByUsername: profile?.username || 'Creator',
+            isActive: !!item.isActive,
+            isApproved: true,
+          });
         }
+        await loadData();
+        alert(`Imported ${items.length} game(s)!`);
+      } else {
+        // Raw code (.js/.jsx/.txt) — must contain a GameComponent function
+        if (!/function\s+GameComponent\s*\(/.test(text)) {
+          alert('Code must contain: function GameComponent({ questions, onGameEnd, onAnswerResult }) { ... }');
+          e.target.value = '';
+          return;
+        }
+        const name = prompt('Game name:', file.name.replace(/\.(jsx?|txt)$/, '')) || 'Imported Game';
+        const description = prompt('Short description (optional):', '') || '';
         await base44.entities.MiniGame.create({
-          name: item.name,
-          description: item.description || '',
-          gameCode: item.gameCode,
-          gamePrompt: item.gamePrompt || '',
-          thumbnailUrl: item.thumbnailUrl || '',
-          colorTheme: item.colorTheme || 'Electric Blue',
-          font: item.font || 'Inter',
-          questionIntegration: item.questionIntegration || 'periodic',
-          gameVibe: item.gameVibe || '',
+          name,
+          description,
+          gameCode: text,
+          gamePrompt: 'Imported from code file',
+          colorTheme: 'Electric Blue',
+          font: 'Inter',
+          questionIntegration: 'periodic',
+          gameVibe: '',
           createdByProfileId: profileId,
           createdByUsername: profile?.username || 'Creator',
-          isActive: !!item.isActive,
+          isActive: true,
           isApproved: true,
         });
+        await loadData();
+        alert(`Imported "${name}"!`);
       }
-      await loadData();
-      alert(`Imported ${items.length} game(s)!`);
     } catch (err) {
       alert('Import failed: ' + err.message);
     }
@@ -175,7 +200,7 @@ export default function Games() {
             <>
               <input
                 type="file"
-                accept=".json,application/json"
+                accept=".json,.js,.jsx,.txt,application/json,text/javascript"
                 onChange={handleImport}
                 id="game-import-input"
                 className="hidden"
