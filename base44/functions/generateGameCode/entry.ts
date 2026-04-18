@@ -68,7 +68,6 @@ The function MUST be named GameComponent.
 Return ONLY the JavaScript code. No markdown, no explanation, no code fences.
 Start directly with: function GameComponent({ questions, onGameEnd, onAnswerResult }) {`;
 
-      // Get name and description
       const metaResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
         prompt: `Given this game concept, generate a creative catchy name and one-line description:\n\nConcept: ${gameDescription}\nVibe: ${gameVibe}`,
         response_json_schema: {
@@ -83,8 +82,6 @@ Start directly with: function GameComponent({ questions, onGameEnd, onAnswerResu
       const generatedName = metaResult?.name || 'Mini Game';
       const generatedDesc = metaResult?.description || gameDescription;
 
-      // Generate the actual game code
-      // Helper: quick syntax check
       function checkSyntax(c) {
         try { new Function('React', c); return null; } catch (e) { return e.message; }
       }
@@ -95,9 +92,9 @@ Start directly with: function GameComponent({ questions, onGameEnd, onAnswerResu
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         let extraWarning = '';
         if (attempt === 1) {
-          extraWarning = '\n\nWARNING: Your previous response contained JSX syntax (<div>, <span>, etc). This is FORBIDDEN. You MUST use React.createElement() for ALL elements. Do NOT use any angle-bracket HTML/JSX tags.';
+          extraWarning = '\n\nWARNING: Your previous response contained JSX syntax (<div>, <span>, etc). This is FORBIDDEN. You MUST use React.createElement() for ALL elements.';
         } else if (attempt === 2) {
-          extraWarning = '\n\nCRITICAL FINAL ATTEMPT: Previous code had syntax errors. You MUST output ONLY valid JavaScript using React.createElement(). NO JSX at all. Double-check all parentheses and brackets are balanced.';
+          extraWarning = '\n\nCRITICAL FINAL ATTEMPT: Previous code had syntax errors. You MUST output ONLY valid JavaScript using React.createElement(). NO JSX at all.';
         }
         
         const codeResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -106,36 +103,20 @@ Start directly with: function GameComponent({ questions, onGameEnd, onAnswerResu
         });
 
         code = (codeResult || '').replace(/^```(?:jsx?|javascript)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
-        
-        // Strip export default if present
         code = code.replace(/export\s+default\s+/, '');
         
-        // Check for JSX
         const hasJSX = /return\s*\(?\s*<[a-zA-Z]/.test(code) || /<[a-zA-Z][a-zA-Z0-9]*[\s>]/.test(code);
-        if (hasJSX) {
-          console.log(`Attempt ${attempt + 1}: JSX detected, retrying...`);
-          continue;
-        }
+        if (hasJSX) { console.log(`Attempt ${attempt + 1}: JSX detected, retrying...`); continue; }
         
-        // Check for syntax errors
         const syntaxErr = checkSyntax(code);
-        if (syntaxErr) {
-          console.log(`Attempt ${attempt + 1}: Syntax error: ${syntaxErr}, retrying...`);
-          continue;
-        }
+        if (syntaxErr) { console.log(`Attempt ${attempt + 1}: Syntax error: ${syntaxErr}, retrying...`); continue; }
         
-        break; // Code is clean
+        break;
       }
 
-      if (!code) {
-        return Response.json({ error: 'Failed to generate game code' }, { status: 500 });
-      }
+      if (!code) return Response.json({ error: 'Failed to generate game code' }, { status: 500 });
 
-      return Response.json({
-        code,
-        name: generatedName,
-        description: generatedDesc,
-      });
+      return Response.json({ code, name: generatedName, description: generatedDesc });
 
     } else if (action === 'edit') {
       const editSystemPrompt = `You are editing a React game component. Apply the requested change while keeping all existing functionality working.
@@ -151,11 +132,8 @@ Font: ${font || 'Inter'}`;
       let editedCode = '';
       for (let attempt = 0; attempt < 3; attempt++) {
         let extraWarning = '';
-        if (attempt === 1) {
-          extraWarning = '\n\nCRITICAL: Your previous output contained JSX (<div>, etc). You MUST only use React.createElement(). NO JSX.';
-        } else if (attempt === 2) {
-          extraWarning = '\n\nFINAL ATTEMPT: Previous code had errors. Output ONLY valid JS with React.createElement. Check all brackets and parens are balanced.';
-        }
+        if (attempt === 1) extraWarning = '\n\nCRITICAL: Your previous output contained JSX (<div>, etc). You MUST only use React.createElement(). NO JSX.';
+        else if (attempt === 2) extraWarning = '\n\nFINAL ATTEMPT: Output ONLY valid JS with React.createElement. Check all brackets are balanced.';
         
         const codeResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
           prompt: `${editSystemPrompt}${extraWarning}\n\nHere is the current game code:\n\n${existingCode}\n\nPlease make this change: ${editPrompt}\n\nReturn the COMPLETE updated code. No markdown fences, no explanation.`,
@@ -166,24 +144,15 @@ Font: ${font || 'Inter'}`;
         editedCode = editedCode.replace(/export\s+default\s+/, '');
         
         const hasJSX = /return\s*\(?\s*<[a-zA-Z]/.test(editedCode) || /<[a-zA-Z][a-zA-Z0-9]*[\s>]/.test(editedCode);
-        if (hasJSX) {
-          console.log(`Edit attempt ${attempt + 1}: JSX detected, retrying...`);
-          continue;
-        }
+        if (hasJSX) { console.log(`Edit attempt ${attempt + 1}: JSX detected, retrying...`); continue; }
         
         const syntaxErr = checkSyntaxEdit(editedCode);
-        if (syntaxErr) {
-          console.log(`Edit attempt ${attempt + 1}: Syntax error: ${syntaxErr}, retrying...`);
-          continue;
-        }
+        if (syntaxErr) { console.log(`Edit attempt ${attempt + 1}: Syntax error: ${syntaxErr}, retrying...`); continue; }
         
         break;
       }
 
-      return Response.json({
-        code: editedCode,
-        changeDescription: `Applied: ${editPrompt}`,
-      });
+      return Response.json({ code: editedCode, changeDescription: `Applied: ${editPrompt}` });
 
     } else if (action === 'generateQuestions') {
       const { assignmentTitle, assignmentDescription, topic, questionCount, pdfUrl } = body;
@@ -193,7 +162,7 @@ Font: ${font || 'Inter'}`;
       if (topic) {
         prompt = `Generate exactly ${count} multiple-choice quiz questions about: "${topic}". For ages 10-14. Each: 4 options, one correct. correctAnswer must match one option exactly.`;
       } else if (pdfUrl) {
-        prompt = `Generate exactly ${count} multiple-choice quiz questions based on the content of the attached PDF document.\nAssignment title: ${assignmentTitle}\nDescription: ${assignmentDescription || 'N/A'}\nFor ages 10-14. Each question must have 4 options, one correct. correctAnswer must match one option exactly. Focus on key concepts from the PDF.`;
+        prompt = `Generate exactly ${count} multiple-choice quiz questions based on the content of the attached PDF document.\nAssignment title: ${assignmentTitle}\nDescription: ${assignmentDescription || 'N/A'}\nFor ages 10-14. Each question must have 4 options, one correct. correctAnswer must match one option exactly.`;
       } else {
         prompt = `Generate exactly ${count} multiple-choice quiz questions based on:\nTitle: ${assignmentTitle}\nDescription: ${assignmentDescription || 'N/A'}\nFor ages 10-14. Each: 4 options, one correct.`;
       }
@@ -218,10 +187,7 @@ Font: ${font || 'Inter'}`;
         },
       };
 
-      // Attach PDF for the LLM to read
-      if (pdfUrl) {
-        llmParams.file_urls = [pdfUrl];
-      }
+      if (pdfUrl) llmParams.file_urls = [pdfUrl];
 
       const result = await base44.asServiceRole.integrations.Core.InvokeLLM(llmParams);
       return Response.json({ questions: result?.questions || [] });
