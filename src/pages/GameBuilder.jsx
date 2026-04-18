@@ -43,8 +43,11 @@ export default function GameBuilder() {
   useEffect(() => { gameIdRef.current = gameId; }, [gameId]);
   useEffect(() => { conversationRef.current = conversation; }, [conversation]);
 
-  // Cleanup poll on unmount
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+  // Cleanup polls on unmount
+  useEffect(() => () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (convoPollRef.current) clearInterval(convoPollRef.current);
+  }, []);
 
   const checkAuth = async () => {
     try {
@@ -167,28 +170,41 @@ export default function GameBuilder() {
     if (!profile) throw new Error('Profile not loaded yet');
     const params = new URLSearchParams(window.location.search);
     const editId = params.get('edit');
-    const convo = await base44.agents.createConversation({
-      agent_name: 'game_builder',
-      metadata: {
-        name: editId ? `Edit Game ${editId}` : 'New Game',
-        description: 'Game Builder session',
-        profileId: profile.id,
-        username: profile.username,
-        editingGameId: editId || null,
-      },
+    const res = await base44.functions.invoke('gameBuilderAgent', {
+      action: 'create',
+      profileId: profile.id,
+      username: profile.username,
+      editingGameId: editId || null,
     });
+    const convo = res.data?.conversation;
+    if (!convo) throw new Error('Failed to start conversation');
     setConversation(convo);
     conversationRef.current = convo;
-
-    base44.agents.subscribeToConversation(convo.id, (data) => {
-      if (data?.messages) {
-        const mapped = data.messages
-          .filter(m => m.role === 'user' || m.role === 'assistant')
-          .map(m => ({ role: m.role, content: m.content || '', tool_calls: m.tool_calls }));
-        setMessages(mapped);
-      }
-    });
+    startConvoPolling(convo.id);
     return convo;
+  };
+
+  // Poll the agent conversation for streamed assistant messages (since realtime subscribe needs base44 auth)
+  const convoPollRef = useRef(null);
+  const startConvoPolling = (conversationId) => {
+    if (convoPollRef.current) clearInterval(convoPollRef.current);
+    convoPollRef.current = setInterval(async () => {
+      try {
+        const res = await base44.functions.invoke('gameBuilderAgent', {
+          action: 'get',
+          conversationId,
+        });
+        const data = res.data?.conversation;
+        if (data?.messages) {
+          const mapped = data.messages
+            .filter(m => m.role === 'user' || m.role === 'assistant')
+            .map(m => ({ role: m.role, content: m.content || '', tool_calls: m.tool_calls }));
+          setMessages(mapped);
+        }
+      } catch (e) {
+        console.error('Convo poll error:', e);
+      }
+    }, 3000);
   };
 
   const handleSend = async () => {
@@ -207,8 +223,12 @@ export default function GameBuilder() {
 
       startPolling(Date.now() - 1000);
 
-      await base44.agents.addMessage(convo, {
-        role: 'user',
+      // Optimistically append user message so it shows immediately
+      setMessages(prev => [...prev, { role: 'user', content: text }]);
+
+      await base44.functions.invoke('gameBuilderAgent', {
+        action: 'send',
+        conversationId: convo.id,
         content: contextualMessage,
       });
 
