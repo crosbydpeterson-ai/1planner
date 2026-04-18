@@ -127,11 +127,25 @@ export default function GameBuilder() {
         if (convo?.messages) {
           const mapped = convo.messages
             .filter(m => m.role === 'user' || m.role === 'assistant')
-            .map(m => ({
-              role: m.role,
-              content: m.content || '',
-              tool_calls: m.tool_calls || [],
-            }));
+            .map(m => {
+              // Strip our internal context prefix from user messages for display
+              let content = m.content || '';
+              content = content.replace(/^\[(Editing MiniGame id:[^\]]+|Creating new game[^\]]+)\]\s*(User request:|Game idea:)?\s*/i, '');
+              return {
+                role: m.role,
+                content,
+                tool_calls: m.tool_calls || [],
+              };
+            })
+            // Collapse assistant messages that are just tool-call placeholders into a single "working" indicator at the end
+            .filter((m, idx, arr) => {
+              if (m.role === 'assistant' && !m.content) {
+                // Only keep the last empty assistant message (as working indicator)
+                const laterEmpty = arr.slice(idx + 1).some(x => x.role === 'assistant' && !x.content);
+                return !laterEmpty;
+              }
+              return true;
+            });
           setMessages(mapped);
 
           // Detect when the agent is done working (last message is assistant with content, no pending tool calls)
@@ -366,7 +380,17 @@ export default function GameBuilder() {
 function ChatMessage({ message }) {
   const isUser = message.role === 'user';
   const hasToolCalls = message.tool_calls && message.tool_calls.length > 0;
-  if (!message.content && !hasToolCalls) return null;
+
+  // Assistant message with no text yet — show subtle "working" hint instead of a full bubble
+  if (!isUser && !message.content && hasToolCalls) {
+    return (
+      <div className="flex justify-start">
+        <div className="text-xs text-slate-400 italic px-2">🔧 Working on it...</div>
+      </div>
+    );
+  }
+
+  if (!message.content) return null;
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[90%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
@@ -374,7 +398,7 @@ function ChatMessage({ message }) {
           ? 'bg-slate-800 text-white rounded-br-md'
           : 'bg-slate-100 text-slate-700 rounded-bl-md'
       }`}>
-        {message.content || (hasToolCalls ? '🔧 Working on it...' : '')}
+        {message.content}
       </div>
     </div>
   );
