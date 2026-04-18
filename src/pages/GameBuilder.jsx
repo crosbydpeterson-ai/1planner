@@ -13,9 +13,6 @@ const SAMPLE_QUESTIONS = [
   { question: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correctAnswer: "Paris" },
 ];
 
-const DEFAULT_THEME = 'Electric Blue';
-const DEFAULT_FONT = 'Inter';
-
 export default function GameBuilder() {
   const navigate = useNavigate();
   const [authorized, setAuthorized] = useState(false);
@@ -29,17 +26,25 @@ export default function GameBuilder() {
   const [publishing, setPublishing] = useState(false);
   const [snapshots, setSnapshots] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [conversation, setConversation] = useState(null);
 
   const chatEndRef = useRef(null);
+  const conversationRef = useRef(null);
+  const gameIdRef = useRef(null);
+  const pollRef = useRef(null);
   const profileId = localStorage.getItem('quest_profile_id');
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  useEffect(() => { checkAuth(); }, []);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, working]);
+
+  useEffect(() => { gameIdRef.current = gameId; }, [gameId]);
+  useEffect(() => { conversationRef.current = conversation; }, [conversation]);
+
+  // Cleanup poll on unmount
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
   const checkAuth = async () => {
     try {
@@ -59,11 +64,42 @@ export default function GameBuilder() {
             content: "👋 Hey! Describe the mini-game you want to build and I'll create it. Try something like: \"A bubble shooter where you answer math questions to shoot\".",
           }]);
         }
+        await initConversation(p, editId);
       }
     } catch (e) {
       console.error('Auth check failed:', e);
     }
     setChecking(false);
+  };
+
+  const initConversation = async (p, editId) => {
+    try {
+      const convo = await base44.agents.createConversation({
+        agent_name: 'game_builder',
+        metadata: {
+          name: editId ? `Edit Game ${editId}` : 'New Game',
+          description: 'Game Builder session',
+          profileId: p.id,
+          username: p.username,
+          editingGameId: editId || null,
+        },
+      });
+      setConversation(convo);
+      conversationRef.current = convo;
+
+      // Subscribe to streaming updates
+      base44.agents.subscribeToConversation(convo.id, (data) => {
+        if (data?.messages) {
+          const mapped = data.messages
+            .filter(m => m.role === 'user' || m.role === 'assistant')
+            .map(m => ({ role: m.role, content: m.content || '', tool_calls: m.tool_calls }));
+          setMessages(mapped);
+          // If agent is still streaming tool calls we keep working=true via handleSend
+        }
+      });
+    } catch (e) {
+      console.error('Failed to create conversation:', e);
+    }
   };
 
   const loadExistingGame = async (editId, p) => {
@@ -73,6 +109,7 @@ export default function GameBuilder() {
     if (g.createdByProfileId !== profileId && p.rank !== 'admin' && p.rank !== 'super_admin') return;
 
     setGameId(g.id);
+    gameIdRef.current = g.id;
     setGameCode(g.gameCode || '');
     setGameName(g.name || '');
     setSnapshots(g.codeSnapshots || []);
@@ -82,93 +119,80 @@ export default function GameBuilder() {
     }]);
   };
 
+  // Poll MiniGame to pick up agent-created or agent-updated games for preview
+  const startPolling = (initialCreatedAt) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    const started = Date.now();
+    pollRef.current = setInterval(async () => {
+      try {
+        if (gameIdRef.current) {
+          // Editing: watch for code changes
+          const rows = await base44.entities.MiniGame.filter({ id: gameIdRef.current });
+          if (rows.length > 0) {
+            const g = rows[0];
+            if (g.gameCode && g.gameCode !== gameCode) {
+              setGameCode(g.gameCode);
+              setGameName(g.name || gameName);
+              setSnapshots(g.codeSnapshots || []);
+            }
+          }
+        } else {
+          // Creating: find most recent game by this user created after we started
+          const mine = await base44.entities.MiniGame.filter(
+            { createdByProfileId: profileId },
+            '-created_date',
+            3
+          );
+          const fresh = mine.find(g => new Date(g.created_date).getTime() > initialCreatedAt && g.gameCode);
+          if (fresh) {
+            setGameId(fresh.id);
+            gameIdRef.current = fresh.id;
+            setGameCode(fresh.gameCode);
+            setGameName(fresh.name || 'Mini Game');
+            setSnapshots(fresh.codeSnapshots || []);
+          }
+        }
+        // Stop polling after 3 min to avoid infinite loop
+        if (Date.now() - started > 180000) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+      } catch (e) {
+        console.error('Poll error:', e);
+      }
+    }, 3000);
+  };
+
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || working) return;
+    if (!text || working || !conversationRef.current) return;
 
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: text }]);
     setWorking(true);
 
     try {
-      if (!gameId) {
-        // CREATE flow
-        setMessages(prev => [...prev, { role: 'assistant', content: '🎮 Building your game... this takes about a minute.' }]);
-        const res = await base44.functions.invoke('generateGameCode', {
-          action: 'generate',
-          gameDescription: text,
-          gameVibe: 'fun and engaging',
-          questionIntegration: 'questions appear periodically during gameplay',
-          colorTheme: DEFAULT_THEME,
-          font: DEFAULT_FONT,
-        });
-        const { code, name, description } = res.data || {};
-        if (!code) throw new Error('No code generated');
+      // Build context-rich message for the agent
+      const contextualMessage = gameIdRef.current
+        ? `[Editing MiniGame id: ${gameIdRef.current}]\nUser request: ${text}`
+        : `[Creating new game for profileId: ${profileId}, username: ${profile?.username || 'Creator'}]\nGame idea: ${text}`;
 
-        const newGame = await base44.entities.MiniGame.create({
-          name: name || 'Mini Game',
-          description: description || text.slice(0, 100),
-          gameCode: code,
-          gamePrompt: text,
-          colorTheme: DEFAULT_THEME,
-          font: DEFAULT_FONT,
-          questionIntegration: 'periodic',
-          gameVibe: 'fun and engaging',
-          createdByProfileId: profileId,
-          createdByUsername: profile?.username || 'Creator',
-          isActive: false,
-          isApproved: true,
-        });
+      startPolling(Date.now() - 1000);
 
-        setGameId(newGame.id);
-        setGameCode(code);
-        setGameName(name || 'Mini Game');
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `✨ **${name}** is ready! ${description || ''}\n\nPreview it on the left. Ask me to tweak anything, or click **Publish** when you're happy.`,
-        }]);
+      await base44.agents.addMessage(conversationRef.current, {
+        role: 'user',
+        content: contextualMessage,
+      });
 
-        // Generate thumbnail in background
-        base44.functions.invoke('generateGameCode', {
-          action: 'generateThumbnail',
-          gameName: name,
-          gameDescriptionForThumb: description,
-          colorTheme: DEFAULT_THEME,
-        }).then(t => {
-          if (t.data?.thumbnailUrl) {
-            base44.entities.MiniGame.update(newGame.id, { thumbnailUrl: t.data.thumbnailUrl });
-          }
-        }).catch(() => {});
-
-      } else {
-        // EDIT flow
-        setMessages(prev => [...prev, { role: 'assistant', content: '🔧 Applying your changes...' }]);
-        const res = await base44.functions.invoke('generateGameCode', {
-          action: 'edit',
-          existingCode: gameCode,
-          editPrompt: text,
-          colorTheme: DEFAULT_THEME,
-          font: DEFAULT_FONT,
-        });
-        const { code } = res.data || {};
-        if (!code) throw new Error('No code returned');
-
-        await base44.entities.MiniGame.update(gameId, { gameCode: code });
-        setGameCode(code);
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: '✅ Done! Check the preview.',
-        }]);
-      }
+      // Stop working state after a reasonable window — subscription keeps UI updated
+      setTimeout(() => setWorking(false), 2000);
     } catch (e) {
-      console.error('Build error:', e);
+      console.error('Send error:', e);
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: `⚠️ Something went wrong: ${e.message || 'Unknown error'}. Try again?`,
       }]);
+      setWorking(false);
     }
-
-    setWorking(false);
   };
 
   const handlePublish = async () => {
@@ -283,13 +307,13 @@ export default function GameBuilder() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !working && handleSend()}
-                disabled={working}
+                disabled={working || !conversation}
                 className="rounded-xl"
               />
               <button
-                onTouchEnd={(e) => { e.preventDefault(); if (!working) handleSend(); }}
-                onClick={() => { if (!working) handleSend(); }}
-                disabled={working}
+                onTouchEnd={(e) => { e.preventDefault(); if (!working && conversation) handleSend(); }}
+                onClick={() => { if (!working && conversation) handleSend(); }}
+                disabled={working || !conversation}
                 className="rounded-xl bg-indigo-500 text-white shrink-0 w-9 h-9 flex items-center justify-center active:opacity-70 disabled:opacity-50"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
@@ -305,7 +329,7 @@ export default function GameBuilder() {
 
 function ChatMessage({ message }) {
   const isUser = message.role === 'user';
-  if (!message.content) return null;
+  if (!message.content && !message.tool_calls?.length) return null;
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[90%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
@@ -313,7 +337,7 @@ function ChatMessage({ message }) {
           ? 'bg-slate-800 text-white rounded-br-md'
           : 'bg-slate-100 text-slate-700 rounded-bl-md'
       }`}>
-        {message.content}
+        {message.content || (message.tool_calls?.length ? '🔧 Working...' : '')}
       </div>
     </div>
   );
