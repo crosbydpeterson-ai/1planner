@@ -37,13 +37,8 @@ export default function GameBuilder() {
   const convRef = useRef(null);
 
   const agentProxy = async (action, params) => {
-    const res = await fetch(`/functions/agentProxy`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, ...params }),
-    });
-    if (!res.ok) throw new Error(`agentProxy error: ${res.status}`);
-    return res.json();
+    const res = await base44.functions.invoke('agentProxy', { action, ...params });
+    return res.data;
   };
   const profileId = localStorage.getItem('quest_profile_id');
 

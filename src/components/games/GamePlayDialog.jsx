@@ -24,13 +24,8 @@ export default function GamePlayDialog({ game, profile, onClose }) {
   };
 
   const callBackend = async (functionName, payload) => {
-    const res = await fetch(`/functions/${functionName}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-    return res.json();
+    const res = await base44.functions.invoke(functionName, payload);
+    return res.data;
   };
 
   const generateQuestionsViaAgent = async (prompt, saveData) => {
