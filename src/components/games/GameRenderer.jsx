@@ -126,9 +126,10 @@ export default function GameRenderer({ gameCode, questions, onGameEnd, onAnswerR
   const keyRef = useRef(0);
 
   useEffect(() => {
+    setGameComponent(null);
+    setError(null);
     if (!gameCode) return;
     try {
-      setError(null);
       keyRef.current += 1;
       
       let code = gameCode.trim();
