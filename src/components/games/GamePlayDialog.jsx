@@ -56,7 +56,7 @@ export default function GamePlayDialog({ game, profile, onClose }) {
   const startWithAssignment = async (assignment) => {
     setLoadingQuestions(true);
     setStep('loading');
-    const existing = await base44.entities.GameQuestion.filter({ assignmentId: assignment.id });
+    const existing = await base44.entities.GameQuestion.filter({ assignmentId: assignment.id, miniGameId: game.id });
     if (existing.length > 0 && existing[0].questions?.length > 0) {
       setQuestions(existing[0].questions);
       setLoadingQuestions(false);
@@ -64,7 +64,7 @@ export default function GamePlayDialog({ game, profile, onClose }) {
       return;
     }
     const prompt = `Generate 10 multiple-choice questions for the assignment titled "${assignment.title}". Description: ${assignment.description || 'N/A'}.${assignment.pdfUrl ? ` PDF: ${assignment.pdfUrl}` : ''} Return them as a JSON array in a code block, each with fields: question, options (array of 4), correctAnswer.`;
-    const qs = await generateQuestionsViaAgent(prompt, { assignmentId: assignment.id });
+    const qs = await generateQuestionsViaAgent(prompt, { assignmentId: assignment.id, miniGameId: game.id });
     setQuestions(qs);
     setLoadingQuestions(false);
     setStep('playing');
@@ -74,7 +74,7 @@ export default function GamePlayDialog({ game, profile, onClose }) {
     if (!topic.trim()) return;
     setLoadingQuestions(true);
     setStep('loading');
-    const existing = await base44.entities.GameQuestion.filter({ topic: topic.trim() });
+    const existing = await base44.entities.GameQuestion.filter({ topic: topic.trim(), miniGameId: game.id });
     if (existing.length > 0 && existing[0].questions?.length > 0) {
       setQuestions(existing[0].questions);
       setLoadingQuestions(false);
@@ -82,7 +82,7 @@ export default function GamePlayDialog({ game, profile, onClose }) {
       return;
     }
     const prompt = `Generate 10 multiple-choice questions about "${topic.trim()}". Return them as a JSON array in a code block, each with fields: question, options (array of 4), correctAnswer.`;
-    const qs = await generateQuestionsViaAgent(prompt, { topic: topic.trim() });
+    const qs = await generateQuestionsViaAgent(prompt, { topic: topic.trim(), miniGameId: game.id });
     setQuestions(qs);
     setLoadingQuestions(false);
     setStep('playing');

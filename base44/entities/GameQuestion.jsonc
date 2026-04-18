@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Assignment ID this question set is based on"
     },
+    "miniGameId": {
+      "type": "string",
+      "description": "MiniGame ID this question set belongs to"
+    },
     "topic": {
       "type": "string",
       "description": "Topic if not based on assignment"
