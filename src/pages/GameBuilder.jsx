@@ -36,13 +36,20 @@ export default function GameBuilder() {
   const lastMsgCountRef = useRef(0);
   const convRef = useRef(null);
 
-  const agentProxy = (action, params) =>
-    base44.functions.invoke('agentProxy', { action, ...params }).then(r => r.data);
+  const agentProxy = async (action, params) => {
+    const res = await fetch(`/functions/agentProxy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...params }),
+    });
+    if (!res.ok) throw new Error(`agentProxy error: ${res.status}`);
+    return res.json();
+  };
   const profileId = localStorage.getItem('quest_profile_id');
 
   useEffect(() => {
     checkAuth();
-    return () => { unsubRef.current?.(); };
+    return () => { if (unsubRef.current) clearInterval(unsubRef.current); };
   }, []);
 
   useEffect(() => {
@@ -71,36 +78,42 @@ export default function GameBuilder() {
   };
 
   const subscribe = (convId) => {
-    unsubRef.current?.();
-    unsubRef.current = base44.agents.subscribeToConversation(convId, (data) => {
-      const msgs = data.messages || [];
-      setMessages(msgs);
+    // Clear any existing poll
+    if (unsubRef.current) clearInterval(unsubRef.current);
 
-      // Detect if agent just finished responding
-      // Only consider complete (non-streaming) assistant messages
-      const assistantMsgs = msgs.filter(m => m.role === 'assistant' && m.status !== 'streaming' && m.status !== 'pending');
-      const lastMsg = msgs[msgs.length - 1];
-      const isAgentStreaming = lastMsg && lastMsg.role === 'assistant' && (lastMsg.status === 'streaming' || lastMsg.status === 'pending');
-      const isAgentDone = lastMsg && lastMsg.role === 'assistant' && !isAgentStreaming;
+    const poll = async () => {
+      try {
+        const conv = await agentProxy('get_conversation', { conversation_id: convId });
+        const msgs = conv.messages || [];
+        setMessages(msgs);
 
-      // While streaming, show typing indicator (hide bubble) — once done, clear it
-      if (isAgentStreaming) {
-        setAgentTyping(true);
-      }
+        const assistantMsgs = msgs.filter(m => m.role === 'assistant' && m.status !== 'streaming' && m.status !== 'pending');
+        const lastMsg = msgs[msgs.length - 1];
+        const isAgentStreaming = lastMsg && lastMsg.role === 'assistant' && (lastMsg.status === 'streaming' || lastMsg.status === 'pending');
+        const isAgentDone = lastMsg && lastMsg.role === 'assistant' && !isAgentStreaming;
 
-      if (assistantMsgs.length > lastMsgCountRef.current && isAgentDone) {
-        lastMsgCountRef.current = assistantMsgs.length;
-        setAgentTyping(false);
-        // Try to extract game code from latest assistant message
-        const last = assistantMsgs[assistantMsgs.length - 1];
-        if (last?.content) {
-          const codeMatch = last.content.match(/```(?:jsx?|javascript)?\n([\s\S]*?)```/);
-          if (codeMatch) setGameCode(codeMatch[1]);
+        if (isAgentStreaming) {
+          setAgentTyping(true);
         }
-        // Poll for newly saved MiniGame
-        setTimeout(refreshGameFromDB, 2000);
+
+        if (assistantMsgs.length > lastMsgCountRef.current && isAgentDone) {
+          lastMsgCountRef.current = assistantMsgs.length;
+          setAgentTyping(false);
+          const last = assistantMsgs[assistantMsgs.length - 1];
+          if (last?.content) {
+            const codeMatch = last.content.match(/```(?:jsx?|javascript)?\n([\s\S]*?)```/);
+            if (codeMatch) setGameCode(codeMatch[1]);
+          }
+          setTimeout(refreshGameFromDB, 2000);
+        }
+      } catch (e) {
+        console.error('Poll error:', e);
       }
-    });
+    };
+
+    unsubRef.current = setInterval(poll, 2500);
+    // Return a cleanup fn
+    return () => clearInterval(unsubRef.current);
   };
 
   const initNewSession = async () => {

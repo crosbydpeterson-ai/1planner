@@ -23,12 +23,19 @@ export default function GamePlayDialog({ game, profile, onClose }) {
     setAssignments(all.slice(0, 20));
   };
 
-  const agentProxy = (action, params) =>
-    base44.functions.invoke('agentProxy', { action, ...params }).then(r => r.data);
+  const callBackend = async (functionName, payload) => {
+    const res = await fetch(`/functions/${functionName}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+    return res.json();
+  };
 
   const generateQuestionsViaAgent = async (prompt, saveData) => {
-    const conv = await agentProxy('create_conversation', { agent_name: 'question_generator', metadata: { name: 'Game Questions' } });
-    const updated = await agentProxy('add_message', { conversation_id: conv.id, message: { role: 'user', content: prompt } });
+    const conv = await callBackend('agentProxy', { action: 'create_conversation', agent_name: 'question_generator', metadata: { name: 'Game Questions' } });
+    const updated = await callBackend('agentProxy', { action: 'add_message', conversation_id: conv.id, message: { role: 'user', content: prompt } });
     const msgs = updated.messages || [];
     const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant' && m.content);
     let qs = [];
