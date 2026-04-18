@@ -23,25 +23,18 @@ export default function GamePlayDialog({ game, profile, onClose }) {
     setAssignments(all.slice(0, 20));
   };
 
-  const callBackend = async (functionName, payload) => {
-    const res = await base44.functions.invoke(functionName, payload);
-    return res.data;
-  };
-
-  const generateQuestionsViaAgent = async (prompt, saveData) => {
-    const conv = await callBackend('agentProxy', { action: 'create_conversation', agent_name: 'question_generator', metadata: { name: 'Game Questions' } });
-    const updated = await callBackend('agentProxy', { action: 'add_message', conversation_id: conv.id, message: { role: 'user', content: prompt } });
-    const msgs = updated.messages || [];
-    const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant' && m.content);
-    let qs = [];
-    if (lastAssistant?.content) {
-      const codeMatch = lastAssistant.content.match(/```(?:json)?\n?([\s\S]*?)```/);
-      const raw = codeMatch ? codeMatch[1] : lastAssistant.content;
-      try {
-        const parsed = JSON.parse(raw.trim());
-        qs = Array.isArray(parsed) ? parsed : (parsed.questions || []);
-      } catch {}
+  const generateQuestionsViaAgent = async (_prompt, saveData) => {
+    const payload = { action: 'generateQuestions', questionCount: 10 };
+    if (saveData.assignmentId) {
+      const a = assignments.find(x => x.id === saveData.assignmentId);
+      payload.assignmentTitle = a?.title || '';
+      payload.assignmentDescription = a?.description || '';
+      if (a?.pdfUrl) payload.pdfUrl = a.pdfUrl;
+    } else if (saveData.topic) {
+      payload.topic = saveData.topic;
     }
+    const res = await base44.functions.invoke('generateGameCode', payload);
+    const qs = res.data?.questions || [];
     if (qs.length > 0) {
       await base44.entities.GameQuestion.create({ ...saveData, questions: qs });
     }

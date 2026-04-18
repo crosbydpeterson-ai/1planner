@@ -6,9 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import GameRenderer from '@/components/games/GameRenderer';
 import SnapshotPanel from '@/components/games/SnapshotPanel';
-import ReactMarkdown from 'react-markdown';
-
-const AGENT_NAME = 'game_builder';
 
 const SAMPLE_QUESTIONS = [
   { question: "What is 2 + 2?", options: ["3", "4", "5", "6"], correctAnswer: "4" },
@@ -16,54 +13,51 @@ const SAMPLE_QUESTIONS = [
   { question: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correctAnswer: "Paris" },
 ];
 
+const DEFAULT_THEME = 'Electric Blue';
+const DEFAULT_FONT = 'Inter';
+
 export default function GameBuilder() {
   const navigate = useNavigate();
   const [authorized, setAuthorized] = useState(false);
   const [checking, setChecking] = useState(true);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const [conversation, setConversation] = useState(null);
+  const [working, setWorking] = useState(false);
   const [gameCode, setGameCode] = useState('');
   const [gameName, setGameName] = useState('');
   const [gameId, setGameId] = useState(null);
   const [publishing, setPublishing] = useState(false);
-  const [agentTyping, setAgentTyping] = useState(false);
   const [snapshots, setSnapshots] = useState([]);
+  const [profile, setProfile] = useState(null);
 
   const chatEndRef = useRef(null);
-  const unsubRef = useRef(null);
-  const lastMsgCountRef = useRef(0);
-  const convRef = useRef(null);
-
-  const agentProxy = async (action, params) => {
-    const res = await base44.functions.invoke('agentProxy', { action, ...params });
-    return res.data;
-  };
   const profileId = localStorage.getItem('quest_profile_id');
 
   useEffect(() => {
     checkAuth();
-    return () => { if (unsubRef.current) clearInterval(unsubRef.current); };
   }, []);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, agentTyping]);
+  }, [messages, working]);
 
   const checkAuth = async () => {
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length === 0) { setChecking(false); return; }
       const p = profiles[0];
+      setProfile(p);
       if (p.isGameCreator || p.rank === 'admin' || p.rank === 'super_admin') {
         setAuthorized(true);
         const params = new URLSearchParams(window.location.search);
         const editId = params.get('edit');
         if (editId) {
-          await initEditSession(editId, p);
+          await loadExistingGame(editId, p);
         } else {
-          await initNewSession();
+          setMessages([{
+            role: 'assistant',
+            content: "👋 Hey! Describe the mini-game you want to build and I'll create it. Try something like: \"A bubble shooter where you answer math questions to shoot\".",
+          }]);
         }
       }
     } catch (e) {
@@ -72,62 +66,7 @@ export default function GameBuilder() {
     setChecking(false);
   };
 
-  const subscribe = (convId) => {
-    // Clear any existing poll
-    if (unsubRef.current) clearInterval(unsubRef.current);
-
-    const poll = async () => {
-      try {
-        const conv = await agentProxy('get_conversation', { conversation_id: convId });
-        const msgs = conv.messages || [];
-        setMessages(msgs);
-
-        const assistantMsgs = msgs.filter(m => m.role === 'assistant' && m.status !== 'streaming' && m.status !== 'pending');
-        const lastMsg = msgs[msgs.length - 1];
-        const isAgentStreaming = lastMsg && lastMsg.role === 'assistant' && (lastMsg.status === 'streaming' || lastMsg.status === 'pending');
-        const isAgentDone = lastMsg && lastMsg.role === 'assistant' && !isAgentStreaming;
-
-        if (isAgentStreaming) {
-          setAgentTyping(true);
-        }
-
-        if (assistantMsgs.length > lastMsgCountRef.current && isAgentDone) {
-          lastMsgCountRef.current = assistantMsgs.length;
-          setAgentTyping(false);
-          const last = assistantMsgs[assistantMsgs.length - 1];
-          if (last?.content) {
-            const codeMatch = last.content.match(/```(?:jsx?|javascript)?\n([\s\S]*?)```/);
-            if (codeMatch) setGameCode(codeMatch[1]);
-          }
-          setTimeout(refreshGameFromDB, 2000);
-        }
-      } catch (e) {
-        console.error('Poll error:', e);
-      }
-    };
-
-    unsubRef.current = setInterval(poll, 2500);
-    // Return a cleanup fn
-    return () => clearInterval(unsubRef.current);
-  };
-
-  const initNewSession = async () => {
-    try {
-      const conv = await agentProxy('create_conversation', {
-        agent_name: AGENT_NAME,
-        metadata: { name: 'New Game', profileId },
-      });
-      convRef.current = conv;
-      setConversation(conv);
-      setMessages(conv.messages || []);
-      lastMsgCountRef.current = (conv.messages || []).filter(m => m.role === 'assistant').length;
-      subscribe(conv.id);
-    } catch (e) {
-      console.error('Failed to create conversation:', e);
-    }
-  };
-
-  const initEditSession = async (editId, p) => {
+  const loadExistingGame = async (editId, p) => {
     const games = await base44.entities.MiniGame.filter({ id: editId });
     if (games.length === 0) return;
     const g = games[0];
@@ -137,69 +76,99 @@ export default function GameBuilder() {
     setGameCode(g.gameCode || '');
     setGameName(g.name || '');
     setSnapshots(g.codeSnapshots || []);
-
-    const conv = await agentProxy('create_conversation', {
-      agent_name: AGENT_NAME,
-      metadata: { name: `Editing: ${g.name}`, gameId: g.id, profileId },
-    });
-    convRef.current = conv;
-    setConversation(conv);
-    subscribe(conv.id);
-
-    // Send initial context — subscription handles the response
-    setAgentTyping(true);
-    agentProxy('add_message', {
-      conversation_id: conv.id,
-      message: {
-        role: 'user',
-        content: `I want to edit my existing game "${g.name}" (MiniGame ID: ${g.id}). Here is the current code:\n\n\`\`\`\n${g.gameCode}\n\`\`\`\n\nReady for edits!`,
-      },
-    }).catch(e => { console.error('Init message failed:', e); setAgentTyping(false); });
-  };
-
-  const refreshGameFromDB = async () => {
-    try {
-      const games = await base44.entities.MiniGame.filter({ createdByProfileId: profileId });
-      if (games.length === 0) return;
-      const sorted = games.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
-      const latest = sorted[0];
-      if (!gameId || latest.id === gameId) {
-        setGameId(latest.id);
-        setGameName(prev => prev || latest.name || '');
-        if (latest.gameCode) setGameCode(latest.gameCode);
-        setSnapshots(latest.codeSnapshots || []);
-      }
-    } catch {}
+    setMessages([{
+      role: 'assistant',
+      content: `Loaded **${g.name}**. Tell me what changes you'd like to make.`,
+    }]);
   };
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || sending) return;
-
-    // If conversation not ready yet, wait up to 5s
-    if (!convRef.current) {
-      let waited = 0;
-      while (!convRef.current && waited < 5000) {
-        await new Promise(r => setTimeout(r, 200));
-        waited += 200;
-      }
-      if (!convRef.current) return;
-    }
+    if (!text || working) return;
 
     setInput('');
-    setSending(true);
-    setAgentTyping(true);
     setMessages(prev => [...prev, { role: 'user', content: text }]);
+    setWorking(true);
+
     try {
-      await agentProxy('add_message', {
-        conversation_id: convRef.current.id,
-        message: { role: 'user', content: text },
-      });
+      if (!gameId) {
+        // CREATE flow
+        setMessages(prev => [...prev, { role: 'assistant', content: '🎮 Building your game... this takes about a minute.' }]);
+        const res = await base44.functions.invoke('generateGameCode', {
+          action: 'generate',
+          gameDescription: text,
+          gameVibe: 'fun and engaging',
+          questionIntegration: 'questions appear periodically during gameplay',
+          colorTheme: DEFAULT_THEME,
+          font: DEFAULT_FONT,
+        });
+        const { code, name, description } = res.data || {};
+        if (!code) throw new Error('No code generated');
+
+        const newGame = await base44.entities.MiniGame.create({
+          name: name || 'Mini Game',
+          description: description || text.slice(0, 100),
+          gameCode: code,
+          gamePrompt: text,
+          colorTheme: DEFAULT_THEME,
+          font: DEFAULT_FONT,
+          questionIntegration: 'periodic',
+          gameVibe: 'fun and engaging',
+          createdByProfileId: profileId,
+          createdByUsername: profile?.username || 'Creator',
+          isActive: false,
+          isApproved: true,
+        });
+
+        setGameId(newGame.id);
+        setGameCode(code);
+        setGameName(name || 'Mini Game');
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `✨ **${name}** is ready! ${description || ''}\n\nPreview it on the left. Ask me to tweak anything, or click **Publish** when you're happy.`,
+        }]);
+
+        // Generate thumbnail in background
+        base44.functions.invoke('generateGameCode', {
+          action: 'generateThumbnail',
+          gameName: name,
+          gameDescriptionForThumb: description,
+          colorTheme: DEFAULT_THEME,
+        }).then(t => {
+          if (t.data?.thumbnailUrl) {
+            base44.entities.MiniGame.update(newGame.id, { thumbnailUrl: t.data.thumbnailUrl });
+          }
+        }).catch(() => {});
+
+      } else {
+        // EDIT flow
+        setMessages(prev => [...prev, { role: 'assistant', content: '🔧 Applying your changes...' }]);
+        const res = await base44.functions.invoke('generateGameCode', {
+          action: 'edit',
+          existingCode: gameCode,
+          editPrompt: text,
+          colorTheme: DEFAULT_THEME,
+          font: DEFAULT_FONT,
+        });
+        const { code } = res.data || {};
+        if (!code) throw new Error('No code returned');
+
+        await base44.entities.MiniGame.update(gameId, { gameCode: code });
+        setGameCode(code);
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: '✅ Done! Check the preview.',
+        }]);
+      }
     } catch (e) {
-      console.error('Send failed:', e);
-      setAgentTyping(false);
+      console.error('Build error:', e);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `⚠️ Something went wrong: ${e.message || 'Unknown error'}. Try again?`,
+      }]);
     }
-    setSending(false);
+
+    setWorking(false);
   };
 
   const handlePublish = async () => {
@@ -276,25 +245,18 @@ export default function GameBuilder() {
           )}
         </div>
 
-        {/* Right: Agent Chat */}
+        {/* Right: Chat */}
         <div className="w-80 md:w-96 border-l border-slate-200 bg-white flex flex-col shrink-0">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
             <span className="text-lg">🤖</span>
             <span className="font-semibold text-slate-800">AI Game Builder</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 && !sending && (
-              <div className="text-center text-sm text-slate-400 pt-8">
-                <p className="text-2xl mb-2">🕹️</p>
-                <p>Describe your game idea to get started!</p>
-                <p className="mt-1 text-xs">e.g. "A bubble shooter where you answer math questions to shoot"</p>
-              </div>
-            )}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((msg, i) => (
-              <AgentMessage key={i} message={msg} />
+              <ChatMessage key={i} message={msg} />
             ))}
-            {agentTyping && (
+            {working && (
               <div className="flex gap-2 items-center">
                 <div className="bg-slate-100 rounded-2xl rounded-bl-md px-4 py-2.5 flex gap-1 items-center">
                   <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -317,19 +279,21 @@ export default function GameBuilder() {
           <div className="p-3 border-t border-slate-100">
             <div className="flex gap-2">
               <Input
-                placeholder="Describe your game or ask for changes..."
+                placeholder={gameId ? 'Ask for a change...' : 'Describe your game...'}
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !sending && handleSend()}
+                onKeyDown={e => e.key === 'Enter' && !working && handleSend()}
+                disabled={working}
                 className="rounded-xl"
               />
               <button
-                onTouchEnd={(e) => { e.preventDefault(); if (!sending) handleSend(); }}
-                onClick={() => { if (!sending) handleSend(); }}
+                onTouchEnd={(e) => { e.preventDefault(); if (!working) handleSend(); }}
+                onClick={() => { if (!working) handleSend(); }}
+                disabled={working}
                 className="rounded-xl bg-indigo-500 text-white shrink-0 w-9 h-9 flex items-center justify-center active:opacity-70 disabled:opacity-50"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {working ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -339,24 +303,17 @@ export default function GameBuilder() {
   );
 }
 
-function AgentMessage({ message }) {
+function ChatMessage({ message }) {
   const isUser = message.role === 'user';
   if (!message.content) return null;
-
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[90%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+      <div className={`max-w-[90%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
         isUser
           ? 'bg-slate-800 text-white rounded-br-md'
           : 'bg-slate-100 text-slate-700 rounded-bl-md'
       }`}>
-        {isUser ? (
-          <p>{message.content}</p>
-        ) : (
-          <ReactMarkdown className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-            {message.content}
-          </ReactMarkdown>
-        )}
+        {message.content}
       </div>
     </div>
   );
