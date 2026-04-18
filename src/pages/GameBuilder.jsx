@@ -13,6 +13,9 @@ const SAMPLE_QUESTIONS = [
   { question: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correctAnswer: "Paris" },
 ];
 
+const DEFAULT_THEME = 'Electric Blue';
+const DEFAULT_FONT = 'Inter';
+
 export default function GameBuilder() {
   const navigate = useNavigate();
   const [authorized, setAuthorized] = useState(false);
@@ -26,12 +29,8 @@ export default function GameBuilder() {
   const [publishing, setPublishing] = useState(false);
   const [snapshots, setSnapshots] = useState([]);
   const [profile, setProfile] = useState(null);
-  const [conversation, setConversation] = useState(null);
 
   const chatEndRef = useRef(null);
-  const conversationRef = useRef(null);
-  const gameIdRef = useRef(null);
-  const pollRef = useRef(null);
   const profileId = localStorage.getItem('quest_profile_id');
 
   useEffect(() => { checkAuth(); }, []);
@@ -39,15 +38,6 @@ export default function GameBuilder() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, working]);
-
-  useEffect(() => { gameIdRef.current = gameId; }, [gameId]);
-  useEffect(() => { conversationRef.current = conversation; }, [conversation]);
-
-  // Cleanup polls on unmount
-  useEffect(() => () => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    if (convoPollRef.current) clearInterval(convoPollRef.current);
-  }, []);
 
   const checkAuth = async () => {
     try {
@@ -74,36 +64,6 @@ export default function GameBuilder() {
     setChecking(false);
   };
 
-  const initConversation = async (p, editId) => {
-    try {
-      const convo = await base44.agents.createConversation({
-        agent_name: 'game_builder',
-        metadata: {
-          name: editId ? `Edit Game ${editId}` : 'New Game',
-          description: 'Game Builder session',
-          profileId: p.id,
-          username: p.username,
-          editingGameId: editId || null,
-        },
-      });
-      setConversation(convo);
-      conversationRef.current = convo;
-
-      // Subscribe to streaming updates
-      base44.agents.subscribeToConversation(convo.id, (data) => {
-        if (data?.messages) {
-          const mapped = data.messages
-            .filter(m => m.role === 'user' || m.role === 'assistant')
-            .map(m => ({ role: m.role, content: m.content || '', tool_calls: m.tool_calls }));
-          setMessages(mapped);
-          // If agent is still streaming tool calls we keep working=true via handleSend
-        }
-      });
-    } catch (e) {
-      console.error('Failed to create conversation:', e);
-    }
-  };
-
   const loadExistingGame = async (editId, p) => {
     const games = await base44.entities.MiniGame.filter({ id: editId });
     if (games.length === 0) return;
@@ -111,7 +71,6 @@ export default function GameBuilder() {
     if (g.createdByProfileId !== profileId && p.rank !== 'admin' && p.rank !== 'super_admin') return;
 
     setGameId(g.id);
-    gameIdRef.current = g.id;
     setGameCode(g.gameCode || '');
     setGameName(g.name || '');
     setSnapshots(g.codeSnapshots || []);
@@ -121,126 +80,93 @@ export default function GameBuilder() {
     }]);
   };
 
-  // Poll MiniGame to pick up agent-created or agent-updated games for preview
-  const startPolling = (initialCreatedAt) => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    const started = Date.now();
-    pollRef.current = setInterval(async () => {
-      try {
-        if (gameIdRef.current) {
-          // Editing: watch for code changes
-          const rows = await base44.entities.MiniGame.filter({ id: gameIdRef.current });
-          if (rows.length > 0) {
-            const g = rows[0];
-            if (g.gameCode && g.gameCode !== gameCode) {
-              setGameCode(g.gameCode);
-              setGameName(g.name || gameName);
-              setSnapshots(g.codeSnapshots || []);
-            }
-          }
-        } else {
-          // Creating: find most recent game by this user created after we started
-          const mine = await base44.entities.MiniGame.filter(
-            { createdByProfileId: profileId },
-            '-created_date',
-            3
-          );
-          const fresh = mine.find(g => new Date(g.created_date).getTime() > initialCreatedAt && g.gameCode);
-          if (fresh) {
-            setGameId(fresh.id);
-            gameIdRef.current = fresh.id;
-            setGameCode(fresh.gameCode);
-            setGameName(fresh.name || 'Mini Game');
-            setSnapshots(fresh.codeSnapshots || []);
-          }
-        }
-        // Stop polling after 3 min to avoid infinite loop
-        if (Date.now() - started > 180000) {
-          clearInterval(pollRef.current);
-          pollRef.current = null;
-        }
-      } catch (e) {
-        console.error('Poll error:', e);
-      }
-    }, 3000);
-  };
-
-  const ensureConversation = async () => {
-    if (conversationRef.current) return conversationRef.current;
-    if (!profile) throw new Error('Profile not loaded yet');
-    const params = new URLSearchParams(window.location.search);
-    const editId = params.get('edit');
-    const res = await base44.functions.invoke('gameBuilderAgent', {
-      action: 'create',
-      profileId: profile.id,
-      username: profile.username,
-      editingGameId: editId || null,
-    });
-    const convo = res.data?.conversation;
-    if (!convo) throw new Error('Failed to start conversation');
-    setConversation(convo);
-    conversationRef.current = convo;
-    startConvoPolling(convo.id);
-    return convo;
-  };
-
-  // Poll the agent conversation for streamed assistant messages (since realtime subscribe needs base44 auth)
-  const convoPollRef = useRef(null);
-  const startConvoPolling = (conversationId) => {
-    if (convoPollRef.current) clearInterval(convoPollRef.current);
-    convoPollRef.current = setInterval(async () => {
-      try {
-        const res = await base44.functions.invoke('gameBuilderAgent', {
-          action: 'get',
-          conversationId,
-        });
-        const data = res.data?.conversation;
-        if (data?.messages) {
-          const mapped = data.messages
-            .filter(m => m.role === 'user' || m.role === 'assistant')
-            .map(m => ({ role: m.role, content: m.content || '', tool_calls: m.tool_calls }));
-          setMessages(mapped);
-        }
-      } catch (e) {
-        console.error('Convo poll error:', e);
-      }
-    }, 3000);
-  };
-
   const handleSend = async () => {
     const text = input.trim();
     if (!text || working) return;
 
     setInput('');
+    setMessages(prev => [...prev, { role: 'user', content: text }]);
     setWorking(true);
 
     try {
-      const convo = await ensureConversation();
+      if (!gameId) {
+        // CREATE flow
+        setMessages(prev => [...prev, { role: 'assistant', content: '🎮 Building your game... this takes about a minute.' }]);
+        const res = await base44.functions.invoke('generateGameCode', {
+          action: 'generate',
+          gameDescription: text,
+          gameVibe: 'fun and engaging',
+          questionIntegration: 'questions appear periodically during gameplay',
+          colorTheme: DEFAULT_THEME,
+          font: DEFAULT_FONT,
+        });
+        const { code, name, description } = res.data || {};
+        if (!code) throw new Error('No code generated');
 
-      const contextualMessage = gameIdRef.current
-        ? `[Editing MiniGame id: ${gameIdRef.current}]\nUser request: ${text}`
-        : `[Creating new game for profileId: ${profileId}, username: ${profile?.username || 'Creator'}]\nGame idea: ${text}`;
+        const newGame = await base44.entities.MiniGame.create({
+          name: name || 'Mini Game',
+          description: description || text.slice(0, 100),
+          gameCode: code,
+          gamePrompt: text,
+          colorTheme: DEFAULT_THEME,
+          font: DEFAULT_FONT,
+          questionIntegration: 'periodic',
+          gameVibe: 'fun and engaging',
+          createdByProfileId: profileId,
+          createdByUsername: profile?.username || 'Creator',
+          isActive: false,
+          isApproved: true,
+        });
 
-      startPolling(Date.now() - 1000);
+        setGameId(newGame.id);
+        setGameCode(code);
+        setGameName(name || 'Mini Game');
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `✨ **${name}** is ready! ${description || ''}\n\nPreview it on the left. Ask me to tweak anything, or click **Publish** when you're happy.`,
+        }]);
 
-      // Optimistically append user message so it shows immediately
-      setMessages(prev => [...prev, { role: 'user', content: text }]);
+        // Generate thumbnail in background
+        base44.functions.invoke('generateGameCode', {
+          action: 'generateThumbnail',
+          gameName: name,
+          gameDescriptionForThumb: description,
+          colorTheme: DEFAULT_THEME,
+        }).then(t => {
+          if (t.data?.thumbnailUrl) {
+            base44.entities.MiniGame.update(newGame.id, { thumbnailUrl: t.data.thumbnailUrl });
+          }
+        }).catch(() => {});
 
-      await base44.functions.invoke('gameBuilderAgent', {
-        action: 'send',
-        conversationId: convo.id,
-        content: contextualMessage,
-      });
+      } else {
+        // EDIT flow
+        setMessages(prev => [...prev, { role: 'assistant', content: '🔧 Applying your changes...' }]);
+        const res = await base44.functions.invoke('generateGameCode', {
+          action: 'edit',
+          existingCode: gameCode,
+          editPrompt: text,
+          colorTheme: DEFAULT_THEME,
+          font: DEFAULT_FONT,
+        });
+        const { code } = res.data || {};
+        if (!code) throw new Error('No code returned');
 
-      setTimeout(() => setWorking(false), 2000);
+        await base44.entities.MiniGame.update(gameId, { gameCode: code });
+        setGameCode(code);
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: '✅ Done! Check the preview.',
+        }]);
+      }
     } catch (e) {
-      console.error('Send error:', e);
+      console.error('Build error:', e);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `⚠️ ${e.message || 'Unknown error'}. Try again?`,
+        content: `⚠️ Something went wrong: ${e.message || 'Unknown error'}. Try again?`,
       }]);
-      setWorking(false);
     }
+
+    setWorking(false);
   };
 
   const handlePublish = async () => {
@@ -377,7 +303,7 @@ export default function GameBuilder() {
 
 function ChatMessage({ message }) {
   const isUser = message.role === 'user';
-  if (!message.content && !message.tool_calls?.length) return null;
+  if (!message.content) return null;
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[90%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
@@ -385,7 +311,7 @@ function ChatMessage({ message }) {
           ? 'bg-slate-800 text-white rounded-br-md'
           : 'bg-slate-100 text-slate-700 rounded-bl-md'
       }`}>
-        {message.content || (message.tool_calls?.length ? '🔧 Working...' : '')}
+        {message.content}
       </div>
     </div>
   );
