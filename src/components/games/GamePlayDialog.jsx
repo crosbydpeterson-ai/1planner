@@ -23,14 +23,16 @@ export default function GamePlayDialog({ game, profile, onClose }) {
     setAssignments(all.slice(0, 20));
   };
 
+  const agentProxy = (action, params) =>
+    base44.functions.invoke('agentProxy', { action, ...params }).then(r => r.data);
+
   const generateQuestionsViaAgent = async (prompt, saveData) => {
-    const conv = await base44.agents.createConversation({ agent_name: 'question_generator', metadata: { name: 'Game Questions' } });
-    const updated = await base44.agents.addMessage(conv, { role: 'user', content: prompt });
+    const conv = await agentProxy('create_conversation', { agent_name: 'question_generator', metadata: { name: 'Game Questions' } });
+    const updated = await agentProxy('add_message', { conversation_id: conv.id, message: { role: 'user', content: prompt } });
     const msgs = updated.messages || [];
     const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant' && m.content);
     let qs = [];
     if (lastAssistant?.content) {
-      // Try code block first, then raw JSON
       const codeMatch = lastAssistant.content.match(/```(?:json)?\n?([\s\S]*?)```/);
       const raw = codeMatch ? codeMatch[1] : lastAssistant.content;
       try {

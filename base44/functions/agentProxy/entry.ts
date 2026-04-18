@@ -16,8 +16,10 @@ Deno.serve(async (req) => {
 
     if (action === 'add_message') {
       const conv = await base44.asServiceRole.agents.getConversation(conversation_id);
-      const result = await base44.asServiceRole.agents.addMessage(conv, message);
-      return Response.json(result);
+      await base44.asServiceRole.agents.addMessage(conv, message);
+      // Return the full updated conversation so callers can read messages
+      const updated = await base44.asServiceRole.agents.getConversation(conversation_id);
+      return Response.json(updated);
     }
 
     if (action === 'get_conversation') {
