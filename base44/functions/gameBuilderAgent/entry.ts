@@ -25,10 +25,12 @@ Deno.serve(async (req) => {
     if (action === 'send') {
       const { conversationId, content } = body;
       const convo = await base44.asServiceRole.agents.getConversation(conversationId);
-      await base44.asServiceRole.agents.addMessage(convo, {
+      // Fire-and-forget: don't await the agent run (it can take minutes with tool calls).
+      // The frontend polls `get` to stream progress.
+      base44.asServiceRole.agents.addMessage(convo, {
         role: 'user',
         content,
-      });
+      }).catch(err => console.error('Agent run error:', err));
       return Response.json({ ok: true });
     }
 
