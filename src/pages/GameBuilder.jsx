@@ -64,7 +64,6 @@ export default function GameBuilder() {
             content: "👋 Hey! Describe the mini-game you want to build and I'll create it. Try something like: \"A bubble shooter where you answer math questions to shoot\".",
           }]);
         }
-        await initConversation(p, editId);
       }
     } catch (e) {
       console.error('Auth check failed:', e);
@@ -163,33 +162,62 @@ export default function GameBuilder() {
     }, 3000);
   };
 
+  const ensureConversation = async () => {
+    if (conversationRef.current) return conversationRef.current;
+    if (!profile) throw new Error('Profile not loaded yet');
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    const convo = await base44.agents.createConversation({
+      agent_name: 'game_builder',
+      metadata: {
+        name: editId ? `Edit Game ${editId}` : 'New Game',
+        description: 'Game Builder session',
+        profileId: profile.id,
+        username: profile.username,
+        editingGameId: editId || null,
+      },
+    });
+    setConversation(convo);
+    conversationRef.current = convo;
+
+    base44.agents.subscribeToConversation(convo.id, (data) => {
+      if (data?.messages) {
+        const mapped = data.messages
+          .filter(m => m.role === 'user' || m.role === 'assistant')
+          .map(m => ({ role: m.role, content: m.content || '', tool_calls: m.tool_calls }));
+        setMessages(mapped);
+      }
+    });
+    return convo;
+  };
+
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || working || !conversationRef.current) return;
+    if (!text || working) return;
 
     setInput('');
     setWorking(true);
 
     try {
-      // Build context-rich message for the agent
+      const convo = await ensureConversation();
+
       const contextualMessage = gameIdRef.current
         ? `[Editing MiniGame id: ${gameIdRef.current}]\nUser request: ${text}`
         : `[Creating new game for profileId: ${profileId}, username: ${profile?.username || 'Creator'}]\nGame idea: ${text}`;
 
       startPolling(Date.now() - 1000);
 
-      await base44.agents.addMessage(conversationRef.current, {
+      await base44.agents.addMessage(convo, {
         role: 'user',
         content: contextualMessage,
       });
 
-      // Stop working state after a reasonable window — subscription keeps UI updated
       setTimeout(() => setWorking(false), 2000);
     } catch (e) {
       console.error('Send error:', e);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `⚠️ Something went wrong: ${e.message || 'Unknown error'}. Try again?`,
+        content: `⚠️ ${e.message || 'Unknown error'}. Try again?`,
       }]);
       setWorking(false);
     }
@@ -307,13 +335,13 @@ export default function GameBuilder() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !working && handleSend()}
-                disabled={working || !conversation}
+                disabled={working}
                 className="rounded-xl"
               />
               <button
-                onTouchEnd={(e) => { e.preventDefault(); if (!working && conversation) handleSend(); }}
-                onClick={() => { if (!working && conversation) handleSend(); }}
-                disabled={working || !conversation}
+                onTouchEnd={(e) => { e.preventDefault(); if (!working) handleSend(); }}
+                onClick={() => { if (!working) handleSend(); }}
+                disabled={working}
                 className="rounded-xl bg-indigo-500 text-white shrink-0 w-9 h-9 flex items-center justify-center active:opacity-70 disabled:opacity-50"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
