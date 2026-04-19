@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import CustomizationPanel from '@/components/admin/CustomizationPanel';
 import DailyRewardsSettings from '@/components/admin/DailyRewardsSettings';
+import RewardAIGenerator from '@/components/admin/RewardAIGenerator';
 
 export default function AdminSettingsPanel({ appSettings, setAppSettings, referralSettings, setReferralSettings, adminReferralLinks, setAdminReferralLinks, newLinkMaxUses, setNewLinkMaxUses, rewardLinks, setRewardLinks, showRewardLinkForm, setShowRewardLinkForm, isSuperAdmin }) {
   return (
@@ -41,6 +42,8 @@ export default function AdminSettingsPanel({ appSettings, setAppSettings, referr
         <div className="flex items-center gap-3"><span className="text-4xl">🎁</span><div><h3 className="text-xl font-bold text-white">Daily Rewards</h3><p className="text-slate-400 text-sm">Configure streak schedule and optional spin-the-wheel</p></div></div>
         <DailyRewardsSettings />
       </div>
+
+      <RewardAIGenerator />
 
       <div className="bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-indigo-500/20 rounded-2xl p-6 border border-white/10">
         <div className="flex items-center gap-3 mb-4"><span className="text-4xl">🎁</span><div><h3 className="text-xl font-bold text-white">Reward Links</h3><p className="text-slate-400 text-sm">Create special links that give XP, coins, pets, etc.</p></div></div>
