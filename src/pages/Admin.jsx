@@ -56,6 +56,7 @@ import LoreComicPanel from '@/components/admin/LoreComicPanel';
 import AdminEventsPanel from '@/components/admin/AdminEventsPanel';
 import KitchenAIPanel from '@/components/admin/KitchenAIPanel';
 import AdminKitchenPanel from '@/components/admin/AdminKitchenPanel';
+import RewardAIGenerator from '@/components/admin/RewardAIGenerator';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -244,6 +245,7 @@ export default function Admin() {
             {can('manageThemes') && <TabsTrigger value="themes" className="data-[state=active]:bg-slate-700"><Palette className="w-4 h-4 mr-2" />Themes ({customThemes.length})</TabsTrigger>}
             {can('manageCosmetics') && <TabsTrigger value="cosmetics" className="data-[state=active]:bg-slate-700">👒 Cosmetics ({petCosmetics.length})</TabsTrigger>}
             {can('accessAI') && <TabsTrigger value="ai" className="data-[state=active]:bg-slate-700">✨ AI Tools</TabsTrigger>}
+            {can('accessAI') && <TabsTrigger value="reward_ai" className="data-[state=active]:bg-slate-700">🎰 Reward AI</TabsTrigger>}
             {can('accessAI') && <TabsTrigger value="petmojis" className="data-[state=active]:bg-slate-700">😺 Petmojis</TabsTrigger>}
             <TabsTrigger value="seasons" className="data-[state=active]:bg-slate-700"><Sparkles className="w-4 h-4 mr-2" />Seasons ({seasons.length})</TabsTrigger>
             {isSuperAdmin && <TabsTrigger value="eggs" className="data-[state=active]:bg-slate-700">🥚 Magic Eggs</TabsTrigger>}
@@ -311,6 +313,8 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="ai"><div className="space-y-6"><GeneralImageGeneratorPanel /><IdeaGeneratorPanel adminProfile={adminProfile} onCreated={() => loadData()} /><BulkPetCreatorPanel /><CosmeticGeneratorPanel /><KitchenAIPanel /></div></TabsContent>
+
+          {can('accessAI') && <TabsContent value="reward_ai"><RewardAIGenerator /></TabsContent>}
 
           <TabsContent value="petmojis"><div className="space-y-6"><BulkPetMojiCreatorPanel onCreated={() => loadData()} /><PetMojiGeneratorPanel /></div></TabsContent>
 
