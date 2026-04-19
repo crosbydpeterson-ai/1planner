@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import GamePlayDialog from '@/components/games/GamePlayDialog';
 import LockedOverlay from '@/components/common/LockedOverlay';
+import GameCreationToggle from '@/components/games/GameCreationToggle';
 
 export default function Games() {
   const navigate = useNavigate();
@@ -20,6 +21,9 @@ export default function Games() {
   const [selectedGame, setSelectedGame] = useState(null);
   const [locks, setLocks] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [creationDisabled, setCreationDisabled] = useState(false);
+  const [creationSettingId, setCreationSettingId] = useState(null);
 
   const profileId = localStorage.getItem('quest_profile_id');
 
@@ -41,10 +45,15 @@ export default function Games() {
     setGames(combined);
     const fl = settings.find(s => s.key === 'feature_locks');
     setLocks(fl ? fl.value : null);
+    const creationSetting = settings.find(s => s.key === 'games_creation_disabled');
+    setCreationDisabled(!!creationSetting?.value);
+    setCreationSettingId(creationSetting?.id || null);
     if (profiles.length > 0) {
       const p = profiles[0];
       setProfile(p);
+      const nameIsCrosby = typeof p.username === 'string' && p.username.toLowerCase() === 'crosby';
       setIsAdmin(p.rank === 'admin' || p.rank === 'super_admin');
+      setIsSuperAdmin(p.rank === 'super_admin' || nameIsCrosby);
       setIsCreator(
         p.isGameCreator ||
         p.rank === 'admin' ||
@@ -195,7 +204,14 @@ export default function Games() {
           </h1>
           <p className="text-slate-500 text-sm">Play mini-games to earn XP & coins!</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {isSuperAdmin && (
+            <GameCreationToggle
+              disabled={creationDisabled}
+              settingId={creationSettingId}
+              onChange={(val, id) => { setCreationDisabled(val); setCreationSettingId(id); }}
+            />
+          )}
           {isAdmin && (
             <>
               <input
@@ -214,10 +230,11 @@ export default function Games() {
               </Button>
             </>
           )}
-          {isCreator && (
+          {isCreator && !(creationDisabled && !isSuperAdmin) && (
             <Button
               onClick={() => navigate('/Games/Build')}
               className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl gap-2"
+              disabled={creationDisabled && !isSuperAdmin}
             >
               <Plus className="w-4 h-4" /> Create
             </Button>

@@ -57,6 +57,17 @@ export default function GameBuilder() {
       if (profiles.length === 0) { setChecking(false); return; }
       const p = profiles[0];
       setProfile(p);
+
+      // Check if creation is globally disabled (super admin bypasses)
+      const nameIsCrosby = typeof p.username === 'string' && p.username.toLowerCase() === 'crosby';
+      const isSuperAdmin = p.rank === 'super_admin' || nameIsCrosby;
+      const settings = await base44.entities.AppSetting.filter({ key: 'games_creation_disabled' });
+      const creationDisabled = !!settings[0]?.value;
+      if (creationDisabled && !isSuperAdmin) {
+        setChecking(false);
+        return;
+      }
+
       if (p.isGameCreator || p.rank === 'admin' || p.rank === 'super_admin') {
         setAuthorized(true);
         const params = new URLSearchParams(window.location.search);
