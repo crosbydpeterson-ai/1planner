@@ -262,40 +262,42 @@ export default function Layout({ children, currentPageName }) {
       {!hideNav && currentPageName !== 'CommunityWall' && currentPageName !== 'community' && <ChatbotWidget />}
       
       {!hideNav && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 safe-area-pb z-40">
-          <div className="max-w-md mx-auto flex items-center justify-around">
-            {visibleNavItems.map((item) => {
-              const isActive = currentPageName === item.name || (item.name === 'community' && currentPageName === 'CommunityWall');
-              return (
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 safe-area-pb z-40">
+          <div className="overflow-x-auto scrollbar-hide">
+            <div className="flex items-center py-2 px-2 min-w-max mx-auto">
+              {visibleNavItems.map((item) => {
+                const isActive = currentPageName === item.name || (item.name === 'community' && currentPageName === 'CommunityWall');
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.customPath || createPageUrl(item.name)}
+                    className={cn(
+                      "flex flex-col items-center py-1 px-3 rounded-xl transition-all flex-shrink-0",
+                      isActive 
+                        ? "text-indigo-600" 
+                        : "text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    <item.icon className={cn("w-5 h-5", isActive && "scale-110")} />
+                    <span className="text-xs mt-1 font-medium">{item.label}</span>
+                  </Link>
+                );
+              })}
+              {isAdmin && (
                 <Link
-                  key={item.name}
-                  to={item.customPath || createPageUrl(item.name)}
+                  to={createPageUrl('Admin')}
                   className={cn(
-                    "flex flex-col items-center py-1 px-3 rounded-xl transition-all",
-                    isActive 
-                      ? "text-indigo-600" 
+                    "flex flex-col items-center py-1 px-3 rounded-xl transition-all flex-shrink-0",
+                    currentPageName === 'Admin' 
+                      ? "text-red-600" 
                       : "text-slate-400 hover:text-slate-600"
                   )}
                 >
-                  <item.icon className={cn("w-5 h-5", isActive && "scale-110")} />
-                  <span className="text-xs mt-1 font-medium">{item.label}</span>
+                  <Shield className="w-5 h-5" />
+                  <span className="text-xs mt-1 font-medium">{roleLabel}</span>
                 </Link>
-              );
-              })}
-              {isAdmin && (
-              <Link
-                to={createPageUrl('Admin')}
-                className={cn(
-                  "flex flex-col items-center py-1 px-3 rounded-xl transition-all",
-                  currentPageName === 'Admin' 
-                    ? "text-red-600" 
-                    : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                <Shield className="w-5 h-5" />
-                <span className="text-xs mt-1 font-medium">{roleLabel}</span>
-              </Link>
               )}
+            </div>
           </div>
         </nav>
       )}
@@ -334,6 +336,13 @@ export default function Layout({ children, currentPageName }) {
       <style>{`
         .safe-area-pb {
           padding-bottom: max(env(safe-area-inset-bottom), 8px);
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
       </div>
