@@ -57,6 +57,7 @@ import AdminEventsPanel from '@/components/admin/AdminEventsPanel';
 import KitchenAIPanel from '@/components/admin/KitchenAIPanel';
 import AdminKitchenPanel from '@/components/admin/AdminKitchenPanel';
 import RewardAIGenerator from '@/components/admin/RewardAIGenerator';
+import QuestionGeneratorChat from '@/components/admin/QuestionGeneratorChat';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -246,6 +247,7 @@ export default function Admin() {
             {can('manageCosmetics') && <TabsTrigger value="cosmetics" className="data-[state=active]:bg-slate-700">👒 Cosmetics ({petCosmetics.length})</TabsTrigger>}
             {can('accessAI') && <TabsTrigger value="ai" className="data-[state=active]:bg-slate-700">✨ AI Tools</TabsTrigger>}
             {can('accessAI') && <TabsTrigger value="reward_ai" className="data-[state=active]:bg-slate-700">🎰 Reward AI</TabsTrigger>}
+            {can('accessAI') && <TabsTrigger value="question_gen" className="data-[state=active]:bg-slate-700">📝 Question AI</TabsTrigger>}
             {can('accessAI') && <TabsTrigger value="petmojis" className="data-[state=active]:bg-slate-700">😺 Petmojis</TabsTrigger>}
             <TabsTrigger value="seasons" className="data-[state=active]:bg-slate-700"><Sparkles className="w-4 h-4 mr-2" />Seasons ({seasons.length})</TabsTrigger>
             {isSuperAdmin && <TabsTrigger value="eggs" className="data-[state=active]:bg-slate-700">🥚 Magic Eggs</TabsTrigger>}
@@ -315,6 +317,7 @@ export default function Admin() {
           <TabsContent value="ai"><div className="space-y-6"><GeneralImageGeneratorPanel /><IdeaGeneratorPanel adminProfile={adminProfile} onCreated={() => loadData()} /><BulkPetCreatorPanel /><CosmeticGeneratorPanel /><KitchenAIPanel /></div></TabsContent>
 
           {can('accessAI') && <TabsContent value="reward_ai"><RewardAIGenerator /></TabsContent>}
+          {can('accessAI') && <TabsContent value="question_gen"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><QuestionGeneratorChat adminProfile={adminProfile} /></div></TabsContent>}
 
           <TabsContent value="petmojis"><div className="space-y-6"><BulkPetMojiCreatorPanel onCreated={() => loadData()} /><PetMojiGeneratorPanel /></div></TabsContent>
 
