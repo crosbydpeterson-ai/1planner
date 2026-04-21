@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import GamePlayDialog from '@/components/games/GamePlayDialog';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import GameCreationToggle from '@/components/games/GameCreationToggle';
+import RedeemCodeInput from '@/components/redeem/RedeemCodeInput';
 
 export default function Games() {
   const navigate = useNavigate();
@@ -184,7 +185,8 @@ export default function Games() {
   const globalLock = locks?.global?.games;
   const mathLock = profile ? locks?.classes?.math?.[profile.mathTeacher]?.games : false;
   const readingLock = profile ? locks?.classes?.reading?.[profile.readingTeacher]?.games : false;
-  const isLocked = !isAdmin && (
+  const hasFeatureUnlock = (profile?.unlockedFeatures || []).includes('games');
+  const isLocked = !isAdmin && !hasFeatureUnlock && (
     (typeof userLock === 'object' ? userLock.locked : !!userLock) ||
     !!globalLock || !!mathLock || !!readingLock
   );
@@ -288,6 +290,11 @@ export default function Games() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Redeem Code */}
+      <div className="mt-6">
+        <RedeemCodeInput profile={profile} onRedeemed={loadData} />
+      </div>
 
       {/* Play Dialog */}
       {selectedGame && (

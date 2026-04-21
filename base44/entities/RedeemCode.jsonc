@@ -1,0 +1,53 @@
+{
+  "name": "RedeemCode",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "The code string users enter (e.g. 'COOL_GAMES')"
+    },
+    "label": {
+      "type": "string",
+      "description": "Admin-facing description of what this code does"
+    },
+    "rewardType": {
+      "type": "string",
+      "enum": [
+        "pet",
+        "feature_unlock",
+        "food_item",
+        "xp",
+        "coins"
+      ],
+      "description": "What kind of reward this code gives"
+    },
+    "rewardData": {
+      "type": "object",
+      "description": "Reward payload. For pet: {petId}. For feature_unlock: {feature: 'games'|'shop'|'market'|'pets'|'battlePass'|'kitchen'}. For food_item: {itemId, quantity}. For xp: {amount}. For coins: {amount}."
+    },
+    "maxUses": {
+      "type": "number",
+      "description": "Max total redemptions (null = unlimited)"
+    },
+    "usedBy": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of userProfile IDs who have redeemed this code"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional expiry date"
+    }
+  },
+  "required": [
+    "code",
+    "rewardType"
+  ]
+}

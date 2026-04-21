@@ -13,31 +13,26 @@
     "contactEmail": {
       "type": "string",
       "format": "email",
-      "description": "Preferred contact email for notifications"
+      "description": "Preferred contact email"
     },
     "xp": {
       "type": "number",
-      "default": 0,
-      "description": "Experience points"
+      "default": 0
     },
     "seasonXp": {
       "type": "number",
-      "default": 0,
-      "description": "XP earned during the current active season only"
+      "default": 0
     },
     "activeSeasonId": {
-      "type": "string",
-      "description": "ID of the season this seasonXp is tracking"
+      "type": "string"
     },
     "questCoins": {
       "type": "number",
-      "default": 0,
-      "description": "Quest Coins currency for shop purchases"
+      "default": 0
     },
     "gems": {
       "type": "number",
-      "default": 0,
-      "description": "Gems currency for Loot Egg shop (Kitchen). Earned separately from Quest Coins."
+      "default": 0
     },
     "mathTeacher": {
       "type": "string",
@@ -47,8 +42,7 @@
         "Hannan",
         "Paulson",
         "Admin"
-      ],
-      "description": "Math teacher assignment"
+      ]
     },
     "readingTeacher": {
       "type": "string",
@@ -58,113 +52,100 @@
         "Hannan",
         "Paulson",
         "Admin"
-      ],
-      "description": "Reading teacher assignment"
+      ]
     },
     "isLocked": {
       "type": "boolean",
-      "default": false,
-      "description": "Whether user is locked"
+      "default": false
     },
     "hiddenFromLeaderboard": {
       "type": "boolean",
-      "default": false,
-      "description": "Hide from leaderboard"
+      "default": false
     },
     "isPetCreator": {
       "type": "boolean",
-      "default": false,
-      "description": "Can create pets (admin-gifted ability)"
+      "default": false
     },
     "isGameCreator": {
       "type": "boolean",
-      "default": false,
-      "description": "Can create mini games (admin-gifted ability)"
+      "default": false
     },
     "equippedPetId": {
-      "type": "string",
-      "description": "Currently equipped pet ID"
+      "type": "string"
     },
     "equippedThemeId": {
-      "type": "string",
-      "description": "Currently equipped theme ID"
+      "type": "string"
     },
     "equippedTitle": {
-      "type": "string",
-      "description": "Currently equipped title"
+      "type": "string"
     },
     "equippedCosmetics": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "List of equipped pet cosmetic IDs (max 3)"
+      }
     },
     "cosmeticPositions": {
-      "type": "object",
-      "description": "Cosmetic positioning data {cosmeticId: {x: number, y: number}}"
+      "type": "object"
     },
     "statusMessage": {
-      "type": "string",
-      "description": "User's custom status message"
+      "type": "string"
     },
     "unlockedPets": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "List of unlocked pet IDs"
+      }
     },
     "unlockedThemes": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "List of unlocked theme IDs"
+      }
     },
     "unlockedTitles": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "List of unlocked title strings"
+      }
     },
     "unlockedCosmetics": {
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "unlockedFeatures": {
+      "type": "array",
+      "items": {
+        "type": "string"
       },
-      "description": "List of unlocked pet cosmetic IDs"
+      "description": "Features unlocked via redeem codes: games, shop, market, pets, battlePass, kitchen"
     },
     "claimedSeasonRewards": {
       "type": "array",
       "items": {
         "type": "number"
-      },
-      "description": "Legacy: List of claimed season reward XP thresholds"
+      }
     },
     "claimedSeasonRewardsBySeason": {
-      "type": "object",
-      "description": "Season-scoped claim keys: { [seasonId]: string[] }"
+      "type": "object"
     },
     "completedAssignments": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "List of completed assignment IDs"
+      }
     },
     "widgetConfig": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "User's dashboard widget order and visibility"
+      }
     },
     "tutorialCompleted": {
       "type": "boolean",
-      "default": false,
-      "description": "Whether user has completed the tutorial"
+      "default": false
     },
     "rank": {
       "type": "string",
@@ -173,83 +154,67 @@
         "admin",
         "super_admin"
       ],
-      "default": "user",
-      "description": "Access rank"
+      "default": "user"
     },
     "adminTokens": {
       "type": "number",
-      "default": 0,
-      "description": "Tokens used by admins to gift"
+      "default": 0
     },
     "dailyGiftCount": {
       "type": "number",
-      "default": 0,
-      "description": "Number of gifts sent today by admin"
+      "default": 0
     },
     "lastGiftDate": {
       "type": "string",
-      "format": "date",
-      "description": "Date string to reset daily gift counter"
+      "format": "date"
     },
     "isBanned": {
       "type": "boolean",
-      "default": false,
-      "description": "Whether user is banned from features (no XP gain)"
+      "default": false
     },
     "banReason": {
-      "type": "string",
-      "description": "Reason for the ban (shown to user)"
+      "type": "string"
     },
     "banEndDate": {
       "type": "string",
-      "format": "date-time",
-      "description": "When the ban expires"
+      "format": "date-time"
     },
     "flagged": {
       "type": "boolean",
-      "default": false,
-      "description": "Whether the user has a warning flag"
+      "default": false
     },
     "flagMessage": {
-      "type": "string",
-      "description": "Custom warning message set by admin"
+      "type": "string"
     },
     "flagAcknowledged": {
       "type": "boolean",
-      "default": false,
-      "description": "Whether user has acknowledged the current flag"
+      "default": false
     },
     "assignedRoleIds": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "IDs of custom roles assigned to this user"
+      }
     },
     "adminPanelPassword": {
-      "type": "string",
-      "description": "Optional admin panel password for this user"
+      "type": "string"
     },
     "equippedBoothSkinId": {
-      "type": "string",
-      "description": "Currently equipped booth skin ID"
+      "type": "string"
     },
     "unlockedBoothSkins": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "List of unlocked BoothSkin IDs"
+      }
     },
     "has1PassPlus": {
       "type": "boolean",
-      "default": false,
-      "description": "Whether the user was gifted 1Pass Plus"
+      "default": false
     },
     "fakeAdClicks": {
       "type": "number",
-      "default": 0,
-      "description": "Number of times user clicked a fake ad pet event (for future badges)"
+      "default": 0
     }
   },
   "required": [
