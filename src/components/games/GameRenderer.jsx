@@ -120,7 +120,7 @@ function validateSyntax(code) {
  * Dynamically renders a game component from code string.
  * The code is compiled using new Function() and rendered as a React component.
  */
-export default function GameRenderer({ gameCode, questions, onGameEnd, onAnswerResult }) {
+export default function GameRenderer({ gameCode, questions, onGameEnd, onAnswerResult, petEmoji }) {
   const [error, setError] = useState(null);
   const [GameComponent, setGameComponent] = useState(null);
   const keyRef = useRef(0);
@@ -186,6 +186,7 @@ export default function GameRenderer({ gameCode, questions, onGameEnd, onAnswerR
       
       const Comp = createComponent(React);
       setGameComponent(() => Comp);
+      // eslint-disable-next-line
     } catch (e) {
       console.error('Game render error:', e);
       setError(e.message);
@@ -225,6 +226,7 @@ export default function GameRenderer({ gameCode, questions, onGameEnd, onAnswerR
           questions={questions || []}
           onGameEnd={onGameEnd || (() => {})}
           onAnswerResult={onAnswerResult || (() => {})}
+          petEmoji={petEmoji || '🐾'}
         />
       </ErrorBoundary>
     </div>

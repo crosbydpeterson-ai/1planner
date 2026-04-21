@@ -294,6 +294,7 @@ export default function Games() {
         <GamePlayDialog
           game={selectedGame}
           profile={profile}
+          isAdmin={isAdmin}
           onClose={() => { setSelectedGame(null); loadData(); }}
         />
       )}

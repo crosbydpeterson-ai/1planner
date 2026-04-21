@@ -37,10 +37,11 @@ CRITICAL RULES:
 1. The component MUST be named GameComponent and defined as: function GameComponent({ questions, onGameEnd, onAnswerResult }) { ... }
 2. You can ONLY use: React (with hooks), inline styles, and basic DOM events. NO external imports at all.
 3. Use React.useState, React.useEffect, React.useRef, React.useCallback etc.
-4. The component receives these props: { questions, onGameEnd, onAnswerResult }
+4. The component receives these props: { questions, onGameEnd, onAnswerResult, petEmoji }
    - questions: array of {question: string, options: string[], correctAnswer: string}
    - onGameEnd: function({score, correctAnswers, totalQuestions, survivalTime}) called when game ends
    - onAnswerResult: function({correct: boolean, question: string}) called after each answer
+   - petEmoji: string — the player's equipped pet emoji (e.g. "🐧", "🐉"). Use this as the player character/icon in the game instead of a generic shape. Render it as text in a canvas drawText call or as a DOM element. Make the player visually BE their pet.
 5. The game MUST integrate quiz questions. When a question event triggers, pause and show multiple choice.
 6. Correct answer = continue playing. Wrong answer = game over (call onGameEnd).
 7. Mobile friendly: include on-screen touch controls

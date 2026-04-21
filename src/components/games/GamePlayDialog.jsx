@@ -7,9 +7,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ClipboardList, Keyboard, Loader2, Trophy, Coins, Sparkles, X, Star } from 'lucide-react';
 import GameRenderer from './GameRenderer';
 import GameLeaderboard from './GameLeaderboard';
+import GameScorePrizesEditor from './GameScorePrizesEditor';
 import { PETS } from '@/components/quest/PetCatalog';
 
-export default function GamePlayDialog({ game, profile, onClose }) {
+export default function GamePlayDialog({ game, profile, onClose, isAdmin }) {
   const [step, setStep] = useState('pick'); // pick, loading, playing, results
   const [assignments, setAssignments] = useState([]);
   const [topic, setTopic] = useState('');
@@ -103,14 +104,26 @@ export default function GamePlayDialog({ game, profile, onClose }) {
     setStep('playing');
   };
 
-  // Chance to win a random pet prize (10% base, +5% per perfect answer above 7)
-  const rollPetPrize = async (correctAnswers, totalQuestions) => {
+  // Check score milestone prizes first, then fall back to random chance
+  const rollPetPrize = async (score, correctAnswers, totalQuestions) => {
+    const unlockedPets = profile?.unlockedPets || [];
+
+    // 1) Check score milestone prizes (defined by admin on the game)
+    if (game.scorePrizes?.length > 0) {
+      const sorted = [...game.scorePrizes].sort((a, b) => b.score - a.score);
+      for (const prize of sorted) {
+        if (score >= prize.score && prize.petId && !unlockedPets.includes(prize.petId)) {
+          const pet = PETS.find(p => p.id === prize.petId);
+          if (pet) return pet;
+        }
+      }
+    }
+
+    // 2) Random chance prize (common/uncommon only)
     const accuracy = totalQuestions > 0 ? correctAnswers / totalQuestions : 0;
     const chance = accuracy >= 1.0 ? 0.40 : accuracy >= 0.8 ? 0.20 : 0.08;
     if (Math.random() > chance) return null;
 
-    // Pick a random common/uncommon pet the user doesn't own
-    const unlockedPets = profile?.unlockedPets || [];
     const eligiblePets = PETS.filter(p =>
       (p.rarity === 'common' || p.rarity === 'uncommon') &&
       !unlockedPets.includes(p.id)
@@ -130,7 +143,7 @@ export default function GamePlayDialog({ game, profile, onClose }) {
     const isNewHighScore = myBestBefore === null || newScore > myBestBefore;
 
     // Roll for pet prize
-    const wonPet = await rollPetPrize(correctAnswers, gameResults.totalQuestions || questions.length);
+    const wonPet = await rollPetPrize(newScore, correctAnswers, gameResults.totalQuestions || questions.length);
     setPetPrize(wonPet || null);
 
     // Update profile: XP, coins, and optionally unlock pet
@@ -184,6 +197,7 @@ export default function GamePlayDialog({ game, profile, onClose }) {
           gameCode={game.gameCode}
           questions={questions}
           onGameEnd={handleGameEnd}
+          petEmoji={equippedPet?.emoji || '🐾'}
         />
       </div>
     );
@@ -218,6 +232,7 @@ export default function GamePlayDialog({ game, profile, onClose }) {
               <TabsList className="mx-5 mt-4 mb-0">
                 <TabsTrigger value="play" className="flex-1">Play</TabsTrigger>
                 <TabsTrigger value="leaderboard" className="flex-1">🏆 Leaderboard</TabsTrigger>
+                {isAdmin && <TabsTrigger value="prizes" className="flex-1">🎁 Prizes</TabsTrigger>}
               </TabsList>
 
               <TabsContent value="play" className="flex-1 overflow-y-auto p-5 pt-4 space-y-4">
@@ -271,6 +286,13 @@ export default function GamePlayDialog({ game, profile, onClose }) {
               <TabsContent value="leaderboard" className="flex-1 overflow-y-auto p-5 pt-4">
                 <GameLeaderboard gameId={game.id} currentProfileId={profile?.id} />
               </TabsContent>
+
+              {isAdmin && (
+                <TabsContent value="prizes" className="flex-1 overflow-y-auto p-5 pt-4">
+                  <p className="text-xs text-slate-500 mb-3">Set pet prizes that players earn by reaching a score threshold in this game.</p>
+                  <GameScorePrizesEditor game={game} onSave={() => {}} />
+                </TabsContent>
+              )}
             </Tabs>
           </div>
         )}

@@ -88,6 +88,23 @@
           }
         }
       }
+    },
+    "scorePrizes": {
+      "type": "array",
+      "description": "Score milestone pet prizes \u2014 reaching the score threshold awards the specified pet",
+      "items": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "description": "Score threshold to reach"
+          },
+          "petId": {
+            "type": "string",
+            "description": "ID of the pet from PetCatalog to award"
+          }
+        }
+      }
     }
   },
   "required": [
