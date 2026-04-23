@@ -9,8 +9,7 @@
       "type": "string"
     },
     "contactId": {
-      "type": "string",
-      "description": "DMContact ID"
+      "type": "string"
     },
     "contactUsername": {
       "type": "string"
@@ -22,7 +21,7 @@
         "properties": {
           "sender": {
             "type": "string",
-            "description": "student or admin or bot"
+            "description": "student | admin | bot | system"
           },
           "senderName": {
             "type": "string"
@@ -50,8 +49,20 @@
       "default": false
     },
     "byteConvId": {
+      "type": "string"
+    },
+    "isEscalated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Byte forwarded to a real admin"
+    },
+    "escalatedToAdmin": {
       "type": "string",
-      "description": "Agent conversation ID for Byte bot threads"
+      "description": "Which admin username it was forwarded to"
+    },
+    "escalationSummary": {
+      "type": "string",
+      "description": "Byte's summary of the issue before escalating"
     }
   },
   "required": [

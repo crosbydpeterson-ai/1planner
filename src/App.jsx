@@ -17,6 +17,7 @@ import Eggs from './pages/Eggs';
 import Kitchen from './pages/Kitchen';
 import Games from './pages/Games';
 import GameBuilder from './pages/GameBuilder';
+import Messages from './pages/Messages';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -96,6 +97,7 @@ const AuthenticatedApp = () => {
       <Route path="/Kitchen" element={<LayoutWrapper currentPageName="Kitchen"><Kitchen /></LayoutWrapper>} />
       <Route path="/Games" element={<LayoutWrapper currentPageName="Games"><Games /></LayoutWrapper>} />
       <Route path="/Games/Build" element={<GameBuilder />} />
+      <Route path="/messages" element={<LayoutWrapper currentPageName="Messages"><Messages /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
