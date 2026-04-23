@@ -1,0 +1,40 @@
+{
+  "name": "DMContact",
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string",
+      "description": "Display name shown to students"
+    },
+    "role": {
+      "type": "string",
+      "description": "e.g. Owner & Main Admin, Pet Helper"
+    },
+    "emoji": {
+      "type": "string",
+      "description": "Avatar emoji"
+    },
+    "color": {
+      "type": "string",
+      "description": "Tailwind gradient string e.g. from-yellow-500 to-orange-500"
+    },
+    "isBot": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, uses Byte AI agent"
+    },
+    "adminProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the real admin who handles this contact"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "username",
+    "role",
+    "emoji"
+  ]
+}

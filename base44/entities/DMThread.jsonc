@@ -1,0 +1,61 @@
+{
+  "name": "DMThread",
+  "type": "object",
+  "properties": {
+    "studentProfileId": {
+      "type": "string"
+    },
+    "studentUsername": {
+      "type": "string"
+    },
+    "contactId": {
+      "type": "string",
+      "description": "DMContact ID"
+    },
+    "contactUsername": {
+      "type": "string"
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sender": {
+            "type": "string",
+            "description": "student or admin"
+          },
+          "senderName": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "lastMessageAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "hasUnreadAdmin": {
+      "type": "boolean",
+      "default": false,
+      "description": "Admin has unread messages"
+    },
+    "hasUnreadStudent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Student has unread reply"
+    }
+  },
+  "required": [
+    "studentProfileId",
+    "studentUsername",
+    "contactId",
+    "contactUsername"
+  ]
+}
