@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import BrandLogo from '@/components/branding/BrandLogo';
+import MessageWidget from '@/components/messages/MessageWidget';
 
 export default function Layout({ children, currentPageName }) {
         const navigate = useNavigate();
@@ -260,6 +261,7 @@ export default function Layout({ children, currentPageName }) {
       </header>
       {children}
       {!hideNav && currentPageName !== 'CommunityWall' && currentPageName !== 'community' && <ChatbotWidget />}
+      {!hideNav && currentProfile && <MessageWidget currentProfile={currentProfile} />}
       
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 safe-area-pb z-40">

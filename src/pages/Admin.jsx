@@ -59,6 +59,7 @@ import AdminKitchenPanel from '@/components/admin/AdminKitchenPanel';
 import RewardAIGenerator from '@/components/admin/RewardAIGenerator';
 import QuestionGeneratorChat from '@/components/admin/QuestionGeneratorChat';
 import RedeemCodeManager from '@/components/admin/RedeemCodeManager';
+import AdminDMInbox from '@/components/admin/AdminDMInbox';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -267,6 +268,7 @@ export default function Admin() {
             {can('manageEvents') && <TabsTrigger value="moderation" className="data-[state=active]:bg-slate-700">🛡️ Moderation</TabsTrigger>}
             {can('managePets') && <TabsTrigger value="concepts" className="data-[state=active]:bg-slate-700">💡 Pet Concepts</TabsTrigger>}
             <TabsTrigger value="redeem_codes" className="data-[state=active]:bg-slate-700">🎟️ Codes</TabsTrigger>
+            <TabsTrigger value="dms" className="data-[state=active]:bg-slate-700">💬 DMs</TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">⚙️ Settings</TabsTrigger>
             {isSuperAdmin && <TabsTrigger value="lore" className="data-[state=active]:bg-slate-700">📖 Lore Comic</TabsTrigger>}
           </TabsList>
@@ -376,6 +378,7 @@ export default function Admin() {
           {can('managePets') && <TabsContent value="concepts"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><PetConceptReviewPanel customPets={customPets} setCustomPets={setCustomPets} customThemes={customThemes} setCustomThemes={setCustomThemes} /></div></TabsContent>}
           {isSuperAdmin && <TabsContent value="lore"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><LoreComicPanel /></div></TabsContent>}
           <TabsContent value="redeem_codes"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><RedeemCodeManager /></div></TabsContent>
+          <TabsContent value="dms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AdminDMInbox adminProfile={adminProfile} /></div></TabsContent>
           <TabsContent value="settings"><AdminSettingsPanel appSettings={appSettings} setAppSettings={setAppSettings} referralSettings={referralSettings} setReferralSettings={setReferralSettings} adminReferralLinks={adminReferralLinks} setAdminReferralLinks={setAdminReferralLinks} newLinkMaxUses={newLinkMaxUses} setNewLinkMaxUses={setNewLinkMaxUses} rewardLinks={rewardLinks} setRewardLinks={setRewardLinks} showRewardLinkForm={showRewardLinkForm} setShowRewardLinkForm={setShowRewardLinkForm} isSuperAdmin={isSuperAdmin} /></TabsContent>
         </Tabs>
 

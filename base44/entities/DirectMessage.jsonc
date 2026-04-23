@@ -1,0 +1,52 @@
+{
+  "name": "DirectMessage",
+  "type": "object",
+  "properties": {
+    "fromProfileId": {
+      "type": "string",
+      "description": "Sender's UserProfile ID"
+    },
+    "fromUsername": {
+      "type": "string",
+      "description": "Sender's username (for display)"
+    },
+    "toAdminUsername": {
+      "type": "string",
+      "description": "Target admin username (Crosby, Raphela, etc.)"
+    },
+    "message": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "isRead": {
+      "type": "boolean",
+      "default": false
+    },
+    "adminReply": {
+      "type": "string",
+      "description": "Admin's reply text"
+    },
+    "repliedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repliedByUsername": {
+      "type": "string"
+    },
+    "isEscalated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Escalated from Byte AI agent"
+    },
+    "escalationContext": {
+      "type": "string",
+      "description": "Summary of the Byte conversation before escalation"
+    }
+  },
+  "required": [
+    "fromProfileId",
+    "fromUsername",
+    "toAdminUsername",
+    "message"
+  ]
+}
