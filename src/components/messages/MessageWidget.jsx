@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { MessageCircle, X, ChevronLeft, Send, Loader2, Users, Edit } from 'lucide-react';
+import { MessageCircle, X, ChevronLeft, Send, Loader2, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// ─── STUDENT VIEW ──────────────────────────────────────────────────────────────
+// ─── STUDENT WIDGET ────────────────────────────────────────────────────────────
 function StudentWidget({ currentProfile, onClose }) {
   const [view, setView] = useState('contacts');
   const [contacts, setContacts] = useState([]);
@@ -12,17 +12,16 @@ function StudentWidget({ currentProfile, onClose }) {
   const [activeContact, setActiveContact] = useState(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [unread, setUnread] = useState(0);
-  const [byteConvId, setByteConvId] = useState(null);
   const [byteLoading, setByteLoading] = useState(false);
   const [byteMessages, setByteMessages] = useState([]);
+  const [byteUnsubRef] = useState({ current: null });
   const endRef = useRef(null);
 
   useEffect(() => {
     loadContacts();
     loadThreads();
     const unsub = base44.entities.DMThread.subscribe(() => loadThreads());
-    return unsub;
+    return () => { unsub(); byteUnsubRef.current?.(); };
   }, []);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [activeThread?.messages, byteMessages]);
@@ -35,48 +34,71 @@ function StudentWidget({ currentProfile, onClose }) {
   const loadThreads = async () => {
     const all = await base44.entities.DMThread.filter({ studentProfileId: currentProfile.id });
     setThreads(all);
-    setUnread(all.filter(t => t.hasUnreadStudent).length);
     setActiveThread(prev => prev ? (all.find(t => t.id === prev.id) || prev) : null);
   };
 
   const openThread = async (contact) => {
     setActiveContact(contact);
-    if (contact.isBot) {
-      setView('thread');
-      if (!byteConvId) {
-        setByteLoading(true);
-        const conv = await base44.agents.createConversation({ agent_name: 'guide_chatbot', metadata: { name: `${currentProfile.username} ↔ ${contact.username}` } });
-        setByteConvId(conv.id);
-        base44.agents.subscribeToConversation(conv.id, (data) => { setByteMessages(data.messages || []); setByteLoading(false); });
-      }
-      return;
-    }
+    setInput('');
+
+    // Find or create thread
     let thread = threads.find(t => t.contactId === contact.id);
     if (!thread) {
       thread = await base44.entities.DMThread.create({
         studentProfileId: currentProfile.id, studentUsername: currentProfile.username,
         contactId: contact.id, contactUsername: contact.username,
-        messages: [], lastMessageAt: new Date().toISOString(), hasUnreadAdmin: false, hasUnreadStudent: false,
+        messages: [], lastMessageAt: new Date().toISOString(),
+        hasUnreadAdmin: false, hasUnreadStudent: false,
       });
+      setThreads(prev => [...prev, thread]);
     }
+
+    // Mark student unread as read
     if (thread.hasUnreadStudent) {
       thread = await base44.entities.DMThread.update(thread.id, { hasUnreadStudent: false });
-      setUnread(u => Math.max(0, u - 1));
     }
     setActiveThread(thread);
     setView('thread');
+
+    // If bot, subscribe to existing or create new agent conversation
+    if (contact.isBot) {
+      setByteLoading(true);
+      setByteMessages([]);
+      byteUnsubRef.current?.();
+
+      let convId = thread.byteConvId;
+      if (!convId) {
+        const conv = await base44.agents.createConversation({
+          agent_name: 'support_bot',
+          metadata: { name: `${currentProfile.username} ↔ Byte` }
+        });
+        convId = conv.id;
+        thread = await base44.entities.DMThread.update(thread.id, { byteConvId: convId });
+        setActiveThread(thread);
+      }
+
+      const unsub = base44.agents.subscribeToConversation(convId, (data) => {
+        setByteMessages(data.messages || []);
+        setByteLoading(false);
+      });
+      byteUnsubRef.current = unsub;
+    }
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || sending) return;
+    if (!input.trim() || sending || byteLoading) return;
     const text = input.trim();
     setInput('');
+
     if (activeContact?.isBot) {
       setByteLoading(true);
-      const conv = await base44.agents.getConversation(byteConvId);
+      const convId = activeThread?.byteConvId;
+      if (!convId) return;
+      const conv = await base44.agents.getConversation(convId);
       await base44.agents.addMessage(conv, { role: 'user', content: text });
       return;
     }
+
     setSending(true);
     const newMsg = { sender: 'student', senderName: currentProfile.username, text, sentAt: new Date().toISOString() };
     const updated = await base44.entities.DMThread.update(activeThread.id, {
@@ -84,38 +106,44 @@ function StudentWidget({ currentProfile, onClose }) {
       lastMessageAt: new Date().toISOString(), hasUnreadAdmin: true, hasUnreadStudent: false,
     });
     setActiveThread(updated);
+    setThreads(prev => prev.map(t => t.id === updated.id ? updated : t));
     setSending(false);
   };
 
-  const getThreadForContact = (contact) => threads.find(t => t.contactId === contact.id);
+  const getThread = (contact) => threads.find(t => t.contactId === contact.id);
+  const unread = threads.filter(t => t.hasUnreadStudent).length;
 
   return (
     <div className="fixed top-14 right-3 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden" style={{ height: '520px' }}>
+      {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-100">
         {view === 'thread' && (
-          <button onClick={() => { setView('contacts'); setActiveThread(null); setActiveContact(null); }} className="text-slate-400 hover:text-slate-700 mr-1">
+          <button onClick={() => { setView('contacts'); setActiveThread(null); setActiveContact(null); byteUnsubRef.current?.(); }} className="text-slate-400 hover:text-slate-700 mr-1">
             <ChevronLeft className="w-5 h-5" />
           </button>
         )}
         {view === 'thread' && activeContact ? (
           <div className="flex items-center gap-2 flex-1">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-lg bg-slate-100 shrink-0">{activeContact.emoji}</div>
+            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-lg shrink-0">{activeContact.emoji}</div>
             <div>
               <p className="text-sm font-semibold text-slate-800 leading-none">{activeContact.username}</p>
               <p className="text-[10px] text-slate-400 mt-0.5">{activeContact.role}</p>
             </div>
           </div>
         ) : (
-          <span className="flex-1 text-sm font-semibold text-slate-800">Messages</span>
+          <span className="flex-1 text-sm font-semibold text-slate-800">
+            Messages {unread > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full">{unread}</span>}
+          </span>
         )}
         <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X className="w-4 h-4" /></button>
       </div>
 
+      {/* CONTACTS */}
       {view === 'contacts' && (
         <div className="flex-1 overflow-y-auto">
-          {contacts.length === 0 && <div className="text-center text-slate-400 text-sm py-10">No contacts yet</div>}
+          {contacts.length === 0 && <p className="text-center text-slate-400 text-sm py-10">No contacts yet</p>}
           {contacts.map(contact => {
-            const thread = getThreadForContact(contact);
+            const thread = getThread(contact);
             const lastMsg = thread?.messages?.at(-1);
             const hasUnread = thread?.hasUnreadStudent;
             return (
@@ -139,10 +167,11 @@ function StudentWidget({ currentProfile, onClose }) {
         </div>
       )}
 
+      {/* THREAD — real admin */}
       {view === 'thread' && !activeContact?.isBot && activeThread && (
         <>
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-slate-50">
-            {(activeThread.messages || []).length === 0 && <p className="text-center text-xs text-slate-400 py-4">Start a conversation with {activeContact?.username}</p>}
+            {(activeThread.messages || []).length === 0 && <p className="text-center text-xs text-slate-400 py-4">Say hi to {activeContact?.username}!</p>}
             {(activeThread.messages || []).map((msg, i) => {
               const isMe = msg.sender === 'student';
               return (
@@ -157,7 +186,7 @@ function StudentWidget({ currentProfile, onClose }) {
             <div ref={endRef} />
           </div>
           <div className="flex items-center gap-2 px-3 py-2 border-t border-slate-100 bg-white">
-            <input className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300" placeholder={`Message ${activeContact?.username}…`} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={sending} />
+            <input className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300" placeholder={`Message ${activeContact?.username}…`} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={sending} autoFocus />
             <button onClick={sendMessage} disabled={sending || !input.trim()} className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white disabled:opacity-40 shrink-0">
               {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             </button>
@@ -165,9 +194,11 @@ function StudentWidget({ currentProfile, onClose }) {
         </>
       )}
 
+      {/* THREAD — Byte bot */}
       {view === 'thread' && activeContact?.isBot && (
         <>
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-slate-50">
+            {byteMessages.length === 0 && !byteLoading && <p className="text-center text-xs text-slate-400 py-4">Ask Byte anything about the app!</p>}
             {byteMessages.filter(m => m.content).map((msg, i) => {
               const isMe = msg.role === 'user';
               return (
@@ -180,7 +211,7 @@ function StudentWidget({ currentProfile, onClose }) {
             <div ref={endRef} />
           </div>
           <div className="flex items-center gap-2 px-3 py-2 border-t border-slate-100 bg-white">
-            <input className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300" placeholder="Message Byte…" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={byteLoading} />
+            <input className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300" placeholder="Ask Byte…" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} disabled={byteLoading} autoFocus />
             <button onClick={sendMessage} disabled={byteLoading || !input.trim()} className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white disabled:opacity-40 shrink-0">
               {byteLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             </button>
@@ -191,9 +222,9 @@ function StudentWidget({ currentProfile, onClose }) {
   );
 }
 
-// ─── ADMIN VIEW ────────────────────────────────────────────────────────────────
+// ─── ADMIN WIDGET ──────────────────────────────────────────────────────────────
 function AdminWidget({ currentProfile, onClose }) {
-  const [view, setView] = useState('threads'); // threads | thread | new
+  const [view, setView] = useState('threads');
   const [threads, setThreads] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
   const [activeThread, setActiveThread] = useState(null);
@@ -204,6 +235,9 @@ function AdminWidget({ currentProfile, onClose }) {
   const [startingNew, setStartingNew] = useState(false);
   const endRef = useRef(null);
 
+  // Each admin only sees threads addressed to their contact name
+  const myUsername = currentProfile.username;
+
   useEffect(() => {
     loadThreads();
     const unsub = base44.entities.DMThread.subscribe(() => loadThreads());
@@ -213,9 +247,12 @@ function AdminWidget({ currentProfile, onClose }) {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [activeThread?.messages]);
 
   const loadThreads = async () => {
-    const all = await base44.entities.DMThread.list('-lastMessageAt', 100);
-    setThreads(all);
-    setActiveThread(prev => prev ? (all.find(t => t.id === prev.id) || prev) : null);
+    // Load all threads where this admin's username matches the contact
+    const all = await base44.entities.DMThread.list('-lastMessageAt', 200);
+    // Filter to only threads for this admin's contact (by contactUsername)
+    const mine = all.filter(t => t.contactUsername?.toLowerCase() === myUsername.toLowerCase());
+    setThreads(mine);
+    setActiveThread(prev => prev ? (mine.find(t => t.id === prev.id) || prev) : null);
   };
 
   const loadStudents = async () => {
@@ -231,13 +268,14 @@ function AdminWidget({ currentProfile, onClose }) {
     } else {
       setActiveThread(thread);
     }
+    setReplyText('');
     setView('thread');
   };
 
   const sendReply = async () => {
     if (!replyText.trim() || !activeThread || sending) return;
     setSending(true);
-    const newMsg = { sender: 'admin', senderName: currentProfile.username, text: replyText.trim(), sentAt: new Date().toISOString() };
+    const newMsg = { sender: 'admin', senderName: myUsername, text: replyText.trim(), sentAt: new Date().toISOString() };
     const updated = await base44.entities.DMThread.update(activeThread.id, {
       messages: [...(activeThread.messages || []), newMsg],
       lastMessageAt: new Date().toISOString(), hasUnreadStudent: true, hasUnreadAdmin: false,
@@ -249,23 +287,22 @@ function AdminWidget({ currentProfile, onClose }) {
   };
 
   const startNewConversation = async (student) => {
-    if (!newMsgText.trim()) return;
+    if (!newMsgText.trim() || !student) return;
     setStartingNew(true);
-    // Find or get admin's contact record
-    const contacts = await base44.entities.DMContact.filter({ isActive: true });
-    let contact = contacts.find(c => c.username.toLowerCase() === currentProfile.username.toLowerCase());
-    if (!contact) contact = contacts[0]; // fallback to first contact
 
-    // Check if thread already exists
-    let thread = threads.find(t => t.studentProfileId === student.id && t.contactId === contact?.id);
+    // Find the contact record matching this admin's username
+    const contacts = await base44.entities.DMContact.filter({ isActive: true });
+    const myContact = contacts.find(c => c.username.toLowerCase() === myUsername.toLowerCase());
+
+    let thread = threads.find(t => t.studentProfileId === student.id);
     if (!thread) {
       thread = await base44.entities.DMThread.create({
         studentProfileId: student.id, studentUsername: student.username,
-        contactId: contact?.id || '', contactUsername: currentProfile.username,
+        contactId: myContact?.id || '', contactUsername: myUsername,
         messages: [], lastMessageAt: new Date().toISOString(), hasUnreadAdmin: false, hasUnreadStudent: false,
       });
     }
-    const newMsg = { sender: 'admin', senderName: currentProfile.username, text: newMsgText.trim(), sentAt: new Date().toISOString() };
+    const newMsg = { sender: 'admin', senderName: myUsername, text: newMsgText.trim(), sentAt: new Date().toISOString() };
     const updated = await base44.entities.DMThread.update(thread.id, {
       messages: [...(thread.messages || []), newMsg],
       lastMessageAt: new Date().toISOString(), hasUnreadStudent: true,
@@ -280,6 +317,7 @@ function AdminWidget({ currentProfile, onClose }) {
 
   const unreadCount = threads.filter(t => t.hasUnreadAdmin).length;
   const filteredStudents = allStudents.filter(s => s.username?.toLowerCase().includes(searchStudent.toLowerCase())).slice(0, 8);
+  const selectedStudent = allStudents.find(s => s.username?.toLowerCase() === searchStudent.toLowerCase());
 
   return (
     <div className="fixed top-14 right-3 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden" style={{ height: '520px' }}>
@@ -289,8 +327,8 @@ function AdminWidget({ currentProfile, onClose }) {
           <button onClick={() => setView('threads')} className="text-slate-400 hover:text-white mr-1"><ChevronLeft className="w-5 h-5" /></button>
         )}
         <span className="flex-1 text-sm font-semibold text-white">
-          {view === 'threads' && <>📬 Admin Messages {unreadCount > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>}</>}
-          {view === 'thread' && activeThread && <span>{activeThread.studentUsername}</span>}
+          {view === 'threads' && <>{myUsername}'s Inbox {unreadCount > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>}</>}
+          {view === 'thread' && activeThread?.studentUsername}
           {view === 'new' && 'New Message'}
         </span>
         {view === 'threads' && (
@@ -352,7 +390,7 @@ function AdminWidget({ currentProfile, onClose }) {
             <div ref={endRef} />
           </div>
           <div className="flex items-center gap-2 px-3 py-2 border-t border-slate-700 bg-slate-800">
-            <input className="flex-1 bg-slate-700 text-white rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400" placeholder={`Reply as ${currentProfile.username}…`} value={replyText} onChange={e => setReplyText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendReply()} disabled={sending} />
+            <input className="flex-1 bg-slate-700 text-white rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400" placeholder={`Reply as ${myUsername}…`} value={replyText} onChange={e => setReplyText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendReply()} disabled={sending} autoFocus />
             <button onClick={sendReply} disabled={sending || !replyText.trim()} className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white disabled:opacity-40 shrink-0">
               {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             </button>
@@ -377,12 +415,12 @@ function AdminWidget({ currentProfile, onClose }) {
               </button>
             ))}
           </div>
-          {searchStudent && (
+          {selectedStudent && (
             <div className="p-3 border-t border-slate-700 space-y-2 bg-slate-800">
-              <p className="text-xs text-slate-400">To: <span className="text-white font-medium">{searchStudent}</span></p>
+              <p className="text-xs text-slate-400">To: <span className="text-white font-medium">{selectedStudent.username}</span></p>
               <div className="flex gap-2">
-                <input className="flex-1 bg-slate-700 text-white rounded-full px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400" placeholder="Type a message…" value={newMsgText} onChange={e => setNewMsgText(e.target.value)} onKeyDown={e => e.key === 'Enter' && (() => { const s = allStudents.find(s => s.username.toLowerCase() === searchStudent.toLowerCase()); if (s) startNewConversation(s); })()} />
-                <button onClick={() => { const s = allStudents.find(s => s.username.toLowerCase() === searchStudent.toLowerCase()); if (s) startNewConversation(s); }} disabled={startingNew || !newMsgText.trim()} className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white disabled:opacity-40 shrink-0">
+                <input className="flex-1 bg-slate-700 text-white rounded-full px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400" placeholder="Type a message…" value={newMsgText} onChange={e => setNewMsgText(e.target.value)} onKeyDown={e => e.key === 'Enter' && startNewConversation(selectedStudent)} />
+                <button onClick={() => startNewConversation(selectedStudent)} disabled={startingNew || !newMsgText.trim()} className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white disabled:opacity-40 shrink-0">
                   {startingNew ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 </button>
               </div>
@@ -394,7 +432,7 @@ function AdminWidget({ currentProfile, onClose }) {
   );
 }
 
-// ─── MAIN WIDGET ───────────────────────────────────────────────────────────────
+// ─── ROOT WIDGET ───────────────────────────────────────────────────────────────
 export default function MessageWidget({ currentProfile }) {
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -402,16 +440,16 @@ export default function MessageWidget({ currentProfile }) {
   const isAdmin = currentProfile?.rank === 'admin' || currentProfile?.rank === 'super_admin' ||
     currentProfile?.username?.toLowerCase() === 'crosby';
 
-  // Track unread for bubble badge
   useEffect(() => {
     if (!currentProfile?.id) return;
     const load = async () => {
       if (isAdmin) {
-        const threads = await base44.entities.DMThread.list('-lastMessageAt', 100);
-        setUnread(threads.filter(t => t.hasUnreadAdmin).length);
+        const all = await base44.entities.DMThread.list('-lastMessageAt', 200);
+        const mine = all.filter(t => t.contactUsername?.toLowerCase() === currentProfile.username?.toLowerCase());
+        setUnread(mine.filter(t => t.hasUnreadAdmin).length);
       } else {
-        const threads = await base44.entities.DMThread.filter({ studentProfileId: currentProfile.id });
-        setUnread(threads.filter(t => t.hasUnreadStudent).length);
+        const all = await base44.entities.DMThread.filter({ studentProfileId: currentProfile.id });
+        setUnread(all.filter(t => t.hasUnreadStudent).length);
       }
     };
     load();
@@ -423,16 +461,10 @@ export default function MessageWidget({ currentProfile }) {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="fixed top-3 right-3 z-50 relative bg-white/90 backdrop-blur-sm border border-slate-200 shadow-lg rounded-full w-10 h-10 flex items-center justify-center hover:bg-white transition-colors"
-      >
+      <button onClick={() => setOpen(o => !o)} className="fixed top-3 right-3 z-50 relative bg-white/90 backdrop-blur-sm border border-slate-200 shadow-lg rounded-full w-10 h-10 flex items-center justify-center hover:bg-white transition-colors">
         <MessageCircle className="w-5 h-5 text-indigo-600" />
-        {unread > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{unread}</span>
-        )}
+        {unread > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{unread}</span>}
       </button>
-
       {open && (
         isAdmin
           ? <AdminWidget currentProfile={currentProfile} onClose={() => setOpen(false)} />
