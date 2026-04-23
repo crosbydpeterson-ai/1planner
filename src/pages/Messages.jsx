@@ -74,7 +74,6 @@ function StudentMessages({ currentProfile }) {
     setView('thread');
 
     if (contact.isBot) {
-      setByteLoading(true);
       setByteMessages([]);
       byteUnsubRef.current?.();
       let convId = thread.byteConvId;
@@ -86,6 +85,10 @@ function StudentMessages({ currentProfile }) {
         convId = conv.id;
         thread = await base44.entities.DMThread.update(thread.id, { byteConvId: convId });
         setActiveThread(thread);
+      } else {
+        // Load existing conversation messages
+        const existingConv = await base44.agents.getConversation(convId);
+        setByteMessages(existingConv.messages || []);
       }
       byteUnsubRef.current = base44.agents.subscribeToConversation(convId, (data) => {
         setByteMessages(data.messages || []);
@@ -100,6 +103,8 @@ function StudentMessages({ currentProfile }) {
     setInput('');
     if (activeContact?.isBot) {
       setByteLoading(true);
+      // Optimistically add user message to UI
+      setByteMessages(prev => [...prev, { role: 'user', content: text }]);
       const conv = await base44.agents.getConversation(activeThread.byteConvId);
       await base44.agents.addMessage(conv, { role: 'user', content: text });
       return;
@@ -195,11 +200,11 @@ function StudentMessages({ currentProfile }) {
               </div>
             </div>
           ))}
-          {activeContact?.isBot && byteLoading && (
+          {activeContact?.isBot && byteLoading && byteMessages.length > 0 && (
             <div className="flex justify-start">
               <div className="bg-white rounded-2xl px-3 py-2.5 shadow-sm flex items-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
-                <span className="text-xs text-slate-400">Byte is thinking…</span>
+                <span className="text-xs text-slate-400">Byte is typing…</span>
               </div>
             </div>
           )}

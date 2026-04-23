@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, Coins, CalendarHeart, Info, MessageSquare, ChefHat, Gamepad2 } from 'lucide-react';
+import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, Coins, CalendarHeart, Info, MessageSquare, ChefHat, Gamepad2, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 import ThemedBackground from '@/components/theme/ThemedBackground';
@@ -229,6 +229,7 @@ export default function Layout({ children, currentPageName }) {
             { name: 'Events', icon: CalendarHeart, label: 'Events' },
             { name: 'Info', icon: Info, label: 'Info' },
             { name: 'community', icon: MessageSquare, label: 'Community', customPath: '/community' },
+            { name: 'Messages', icon: Mail, label: 'Messages', customPath: '/messages' },
           ];
 
   const visibleNavItems = navItems.filter((item) => {
