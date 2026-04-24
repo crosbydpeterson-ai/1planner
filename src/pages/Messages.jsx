@@ -75,6 +75,7 @@ function StudentMessages({ currentProfile }) {
 
     if (contact.isBot) {
       setByteMessages([]);
+      setByteLoading(false);
       byteUnsubRef.current?.();
       let convId = thread.byteConvId;
       if (!convId) {
@@ -90,9 +91,15 @@ function StudentMessages({ currentProfile }) {
         const existingConv = await base44.agents.getConversation(convId);
         setByteMessages(existingConv.messages || []);
       }
+      // Subscribe — only set loading false, never true here
       byteUnsubRef.current = base44.agents.subscribeToConversation(convId, (data) => {
-        setByteMessages(data.messages || []);
-        setByteLoading(false);
+        const msgs = data.messages || [];
+        setByteMessages(msgs);
+        // Stop loading indicator when last message is from assistant
+        const lastMsg = msgs[msgs.length - 1];
+        if (!lastMsg || lastMsg.role === 'assistant') {
+          setByteLoading(false);
+        }
       });
     }
   };
