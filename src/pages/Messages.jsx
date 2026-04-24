@@ -6,15 +6,22 @@ import { cn } from '@/lib/utils';
 // Shared bubble component
 function MessageBubble({ msg, isMe }) {
   const isGift = msg.giftData;
+  const isSystem = msg.sender === 'system';
+
+  const bubbleStyle = isGift
+    ? { background: 'linear-gradient(135deg, #f59e0b, #f97316)', color: '#fff', border: 'none', boxShadow: '0 4px 16px rgba(245,158,11,0.35)' }
+    : isMe
+    ? { background: 'rgba(59,130,246,0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(147,197,253,0.3)', color: '#fff', boxShadow: '0 2px 8px rgba(59,130,246,0.25)' }
+    : isSystem
+    ? { background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)', color: '#92400e', fontStyle: 'italic' }
+    : { background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.5)', color: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' };
+
   return (
     <div className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
-      <div className={cn(
-        'max-w-[82%] px-3 py-2 rounded-2xl text-sm leading-snug',
-        isGift ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-bl-sm shadow-md' :
-        isMe ? 'bg-blue-500 text-white rounded-br-sm' :
-        msg.sender === 'system' ? 'bg-amber-50 border border-amber-200 text-amber-800 rounded-bl-sm italic' :
-        'bg-white text-slate-800 shadow-sm rounded-bl-sm'
-      )}>
+      <div
+        className="max-w-[82%] px-3 py-2 text-sm leading-snug"
+        style={{ borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', ...bubbleStyle }}
+      >
         {isGift && <div className="text-lg mb-1">🎁</div>}
         {msg.text || msg.content}
         {isGift && msg.giftData && (
@@ -25,7 +32,7 @@ function MessageBubble({ msg, isMe }) {
             {msg.giftData.type === 'xp' && `⚡ ${msg.giftData.amount} XP`}
           </div>
         )}
-        <div className={cn('text-[10px] mt-0.5', isMe || isGift ? 'text-blue-100' : msg.sender === 'system' ? 'text-amber-400' : 'text-slate-400')}>
+        <div style={{ fontSize: '10px', marginTop: '2px', opacity: 0.65, color: isMe || isGift ? '#fff' : isSystem ? '#92400e' : '#64748b' }}>
           {msg.senderName || msg.sender} · {new Date(msg.sentAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
@@ -199,15 +206,26 @@ function StudentMessages({ currentProfile }) {
           ))}
           {activeContact?.isBot && byteMessages.filter(m => m.content).map((msg, i) => (
             <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-              <div className={cn('max-w-[78%] px-3 py-2 rounded-2xl text-sm leading-snug', msg.role === 'user' ? 'bg-blue-500 text-white rounded-br-sm' : 'bg-white text-slate-800 shadow-sm rounded-bl-sm')}>
+              <div
+                className="max-w-[78%] px-3 py-2 text-sm leading-snug"
+                style={{
+                  borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  background: msg.role === 'user' ? 'rgba(59,130,246,0.85)' : 'rgba(255,255,255,0.6)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: msg.role === 'user' ? '1px solid rgba(147,197,253,0.3)' : '1px solid rgba(255,255,255,0.5)',
+                  color: msg.role === 'user' ? '#fff' : '#1e293b',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                }}
+              >
                 {msg.content}
-                <div className="text-[10px] mt-0.5 text-slate-400 opacity-70">{msg.role === 'user' ? 'You' : 'Byte'}</div>
+                <div style={{ fontSize: '10px', marginTop: '2px', opacity: 0.65 }}>{msg.role === 'user' ? 'You' : 'Byte'}</div>
               </div>
             </div>
           ))}
           {activeContact?.isBot && byteLoading && byteMessages.length > 0 && (
             <div className="flex justify-start">
-              <div className="bg-white rounded-2xl px-3 py-2.5 shadow-sm flex items-center gap-2">
+              <div className="px-3 py-2.5 flex items-center gap-2" style={{ borderRadius: '18px 18px 18px 4px', background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.5)' }}>
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
                 <span className="text-xs text-slate-400">Byte is typing…</span>
               </div>
