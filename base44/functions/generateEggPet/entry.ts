@@ -11,6 +11,20 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'generate') {
+      // Validate profile exists
+      const profiles = await base44.asServiceRole.entities.UserProfile.filter({ id: profileId });
+      if (profiles.length === 0) return Response.json({ error: 'Profile not found' }, { status: 404 });
+      const profile = profiles[0];
+
+      // If eggId provided, validate ownership and unused state
+      if (eggId) {
+        const eggs = await base44.asServiceRole.entities.MagicEgg.filter({ id: eggId });
+        const egg = eggs[0];
+        if (!egg) return Response.json({ error: 'Egg not found' }, { status: 404 });
+        if (egg.isUsed) return Response.json({ error: 'This egg has already been hatched!' }, { status: 400 });
+        if (egg.userId !== profile.userId) return Response.json({ error: 'This egg does not belong to you' }, { status: 403 });
+      }
+
       // Step 1: Generate concept + image on server
       const concept = await base44.asServiceRole.integrations.Core.InvokeLLM({
         prompt: `You are a magical creature designer for a KIDS school gamification app called Quest Planner.
@@ -87,10 +101,15 @@ White or transparent background, centered, high quality illustration.`
       }
 
       const profiles = await base44.asServiceRole.entities.UserProfile.filter({ id: profileId });
-      if (profiles.length === 0) {
-        return Response.json({ error: 'Profile not found' }, { status: 404 });
-      }
+      if (profiles.length === 0) return Response.json({ error: 'Profile not found' }, { status: 404 });
       const profile = profiles[0];
+
+      // Validate egg ownership and unused state
+      const eggs = await base44.asServiceRole.entities.MagicEgg.filter({ id: eggId });
+      const egg = eggs[0];
+      if (!egg) return Response.json({ error: 'Egg not found' }, { status: 404 });
+      if (egg.isUsed) return Response.json({ error: 'This egg has already been hatched!' }, { status: 400 });
+      if (egg.userId !== profile.userId) return Response.json({ error: 'This egg does not belong to you' }, { status: 403 });
 
       // Create pet
       const newPet = await base44.asServiceRole.entities.CustomPet.create({
@@ -136,7 +155,8 @@ White or transparent background, centered, high quality illustration.`
       await base44.asServiceRole.entities.UserProfile.update(profile.id, {
         unlockedPets,
         unlockedThemes,
-        equippedPetId: newPetId
+        equippedPetId: newPetId,
+        equippedThemeId: newThemeId
       });
 
       return Response.json({
