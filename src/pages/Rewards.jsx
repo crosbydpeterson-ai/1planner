@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award, Palette } from 'lucide-react';
+import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award, Palette, Search } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,6 +32,8 @@ export default function Rewards() {
   const [dailyConfig, setDailyConfig] = useState(null);
   const [dailyProgress, setDailyProgress] = useState(null);
   const [showDailyClaim, setShowDailyClaim] = useState(false);
+  const [petSearch, setPetSearch] = useState('');
+  const [themeSearch, setThemeSearch] = useState('');
 
   useEffect(() => {
     loadData();
@@ -397,9 +399,15 @@ export default function Rewards() {
               </p>
             </motion.div>
 
+            {/* Pet Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input value={petSearch} onChange={(e) => setPetSearch(e.target.value)} placeholder="Search pets..." className="w-full pl-9 pr-4 py-2 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20 text-slate-700 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-white/40" />
+            </div>
+
             {/* Pet Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {[...allPets].sort((a, b) => {
+              {[...allPets].filter(p => !petSearch || p.name?.toLowerCase().includes(petSearch.toLowerCase())).sort((a, b) => {
                 const aUnlocked = unlockedPetIds.includes(a.id) ? 0 : 1;
                 const bUnlocked = unlockedPetIds.includes(b.id) ? 0 : 1;
                 return aUnlocked - bUnlocked;
@@ -490,8 +498,14 @@ export default function Rewards() {
               </p>
             </motion.div>
 
+            {/* Theme Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input value={themeSearch} onChange={(e) => setThemeSearch(e.target.value)} placeholder="Search themes..." className="w-full pl-9 pr-4 py-2 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20 text-slate-700 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-white/40" />
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {[...allThemes].sort((a, b) => {
+              {[...allThemes].filter(t => !themeSearch || t.name?.toLowerCase().includes(themeSearch.toLowerCase())).sort((a, b) => {
                 const aUnlocked = unlockedThemeIds.includes(a.id) ? 0 : 1;
                 const bUnlocked = unlockedThemeIds.includes(b.id) ? 0 : 1;
                 return aUnlocked - bUnlocked;
