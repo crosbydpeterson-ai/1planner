@@ -4,13 +4,11 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Verify the caller is authenticated without hitting the User entity
-    const isAuthed = await base44.auth.isAuthenticated();
-    if (!isAuthed) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { action, petIdea, eggId, petData, profileId } = await req.json();
+
+    if (!profileId) {
+      return Response.json({ error: 'Missing profileId' }, { status: 400 });
+    }
 
     if (action === 'generate') {
       // Step 1: Generate concept + image on server
