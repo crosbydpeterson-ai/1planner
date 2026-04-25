@@ -1,0 +1,53 @@
+{
+  "name": "Announcement",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Announcement title"
+    },
+    "content": {
+      "type": "string",
+      "description": "The announcement message body"
+    },
+    "emoji": {
+      "type": "string",
+      "default": "\ud83c\udd95",
+      "description": "Icon emoji for the announcement"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this announcement is currently live"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "update",
+        "fix",
+        "feature"
+      ],
+      "default": "update",
+      "description": "Type of announcement"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "info_page",
+        "popup",
+        "both"
+      ],
+      "default": "both",
+      "description": "Where this announcement is shown"
+    },
+    "scheduledAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "If set, announcement auto-activates at this time"
+    }
+  },
+  "required": [
+    "title",
+    "content"
+  ]
+}

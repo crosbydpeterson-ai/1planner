@@ -14,7 +14,10 @@
         "fusion_lab",
         "pet_food",
         "xp_boost",
-        "mystery_box"
+        "mystery_box",
+        "confetti",
+        "pinata",
+        "chaos_night"
       ],
       "description": "Event type"
     },
@@ -41,6 +44,30 @@
         "duration": {
           "type": "number",
           "description": "Event duration in minutes"
+        },
+        "totalHits": {
+          "type": "number",
+          "description": "Hits required to break the pinata"
+        },
+        "currentHits": {
+          "type": "number",
+          "default": 0,
+          "description": "Current shared hit count"
+        },
+        "prizePool": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Prizes awarded when pinata breaks (e.g. loot_egg, coins_100, magic_egg)"
+        },
+        "theme": {
+          "type": "string",
+          "description": "Visual theme for chaos events (e.g. disco)"
+        },
+        "pinataHits": {
+          "type": "number",
+          "description": "Alias for totalHits used in chaos_night config"
         }
       },
       "description": "Event-specific configuration"

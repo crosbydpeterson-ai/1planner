@@ -5,6 +5,9 @@ import BubblePopEvent from './BubblePopEvent';
 import BalloonPopEvent from './BalloonPopEvent';
 import FusionLabEvent from './FusionLabEvent';
 import FoodFeedingModal from '../student/FoodFeedingModal';
+import ConfettiEvent from './ConfettiEvent';
+import PinataEvent from './PinataEvent';
+import EventChatWidget from './EventChatWidget';
 
 export default function EventManager({ profile }) {
   const [activeEvent, setActiveEvent] = useState(null);
@@ -101,37 +104,66 @@ export default function EventManager({ profile }) {
     }
   };
 
-  if (!showEvent || !activeEvent) return null;
+  // Always show event chat during any active event
+  const showChat = activeEvent?.isActive && profile;
+
+  if (!showEvent || !activeEvent) {
+    return showChat ? (
+      <EventChatWidget event={activeEvent} profile={profile} />
+    ) : null;
+  }
 
   return (
-    <AnimatePresence>
-      {activeEvent.type === 'bubble_pop' && (
-        <BubblePopEvent 
-          event={activeEvent} 
-          profile={profile}
-          onClose={handleClose}
-        />
-      )}
-      {activeEvent.type === 'balloon_pop' && (
-        <BalloonPopEvent 
-          event={activeEvent}
-          profile={profile}
-          onClose={handleClose}
-        />
-      )}
-      {activeEvent.type === 'fusion_lab' && (
-        <FusionLabEvent
-          event={activeEvent}
-          profile={profile}
-          onClose={handleClose}
-        />
-      )}
-      {activeEvent.type === 'pet_food' && (
-        <FoodFeedingModal
-          profileId={profile?.id}
-          onClose={handleClose}
-        />
-      )}
-    </AnimatePresence>
+    <>
+      <AnimatePresence>
+        {activeEvent.type === 'bubble_pop' && (
+          <BubblePopEvent 
+            event={activeEvent} 
+            profile={profile}
+            onClose={handleClose}
+          />
+        )}
+        {activeEvent.type === 'balloon_pop' && (
+          <BalloonPopEvent 
+            event={activeEvent}
+            profile={profile}
+            onClose={handleClose}
+          />
+        )}
+        {activeEvent.type === 'fusion_lab' && (
+          <FusionLabEvent
+            event={activeEvent}
+            profile={profile}
+            onClose={handleClose}
+          />
+        )}
+        {activeEvent.type === 'pet_food' && (
+          <FoodFeedingModal
+            profileId={profile?.id}
+            onClose={handleClose}
+          />
+        )}
+        {activeEvent.type === 'confetti' && (
+          <ConfettiEvent
+            event={activeEvent}
+            onClose={handleClose}
+          />
+        )}
+        {activeEvent.type === 'pinata' && (
+          <PinataEvent
+            event={activeEvent}
+            profile={profile}
+            onClose={handleClose}
+          />
+        )}
+        {activeEvent.type === 'chaos_night' && (
+          <>
+            <ConfettiEvent event={activeEvent} onClose={() => {}} />
+            <PinataEvent event={activeEvent} profile={profile} onClose={handleClose} />
+          </>
+        )}
+      </AnimatePresence>
+      {showChat && <EventChatWidget event={activeEvent} profile={profile} />}
+    </>
   );
 }

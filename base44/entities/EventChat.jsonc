@@ -1,0 +1,39 @@
+{
+  "name": "EventChat",
+  "type": "object",
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "description": "AdminEvent ID"
+    },
+    "profileId": {
+      "type": "string",
+      "description": "UserProfile ID of the sender"
+    },
+    "username": {
+      "type": "string",
+      "description": "Display username of sender"
+    },
+    "message": {
+      "type": "string",
+      "description": "Chat message content"
+    },
+    "sentAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the message was sent"
+    },
+    "isAdmin": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the sender is an admin"
+    }
+  },
+  "required": [
+    "eventId",
+    "profileId",
+    "username",
+    "message",
+    "sentAt"
+  ]
+}
