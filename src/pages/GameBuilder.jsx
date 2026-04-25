@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Sparkles, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import GameRenderer from '@/components/games/GameRenderer';
 import SnapshotPanel from '@/components/games/SnapshotPanel';
+import QuestionImporter from '@/components/games/QuestionImporter';
+import { useGameTokens } from '@/components/games/GameTokenManager';
 
 const SAMPLE_QUESTIONS = [
   { question: "What is 2 + 2?", options: ["3", "4", "5", "6"], correctAnswer: "4" },
@@ -36,6 +38,12 @@ export default function GameBuilder() {
   const convoPollRef = useRef(null);
   const profileId = localStorage.getItem('quest_profile_id');
 
+  const isAdminUser = profile
+    ? (profile.rank === 'admin' || profile.rank === 'super_admin' || profile.username?.toLowerCase() === 'crosby')
+    : false;
+  const isCreatorUser = profile ? (profile.isGameCreator || isAdminUser) : false;
+  const tokenData = useGameTokens(profile, isAdminUser || isCreatorUser);
+
   useEffect(() => { checkAuth(); }, []);
 
   useEffect(() => {
@@ -61,6 +69,7 @@ export default function GameBuilder() {
       // Check if creation is globally disabled (super admin bypasses)
       const nameIsCrosby = typeof p.username === 'string' && p.username.toLowerCase() === 'crosby';
       const isSuperAdmin = p.rank === 'super_admin' || nameIsCrosby;
+      const isAdminUser = p.rank === 'admin' || p.rank === 'super_admin' || nameIsCrosby;
       const settings = await base44.entities.AppSetting.filter({ key: 'games_creation_disabled' });
       const creationDisabled = !!settings[0]?.value;
       if (creationDisabled && !isSuperAdmin) {
@@ -68,18 +77,19 @@ export default function GameBuilder() {
         return;
       }
 
-      if (p.isGameCreator || p.rank === 'admin' || p.rank === 'super_admin') {
-        setAuthorized(true);
-        const params = new URLSearchParams(window.location.search);
-        const editId = params.get('edit');
-        if (editId) {
-          await loadExistingGame(editId, p);
-        } else {
-          setMessages([{
-            role: 'assistant',
-            content: "👋 Hey! Describe the mini-game you want to build and I'll create it. Try something like: \"A bubble shooter where you answer math questions to shoot\".",
-          }]);
-        }
+      // Everyone is allowed in — token system handles limits for non-admins/non-creators
+      setAuthorized(true);
+      const params = new URLSearchParams(window.location.search);
+      const editId = params.get('edit');
+      if (editId) {
+        await loadExistingGame(editId, p);
+      } else {
+        setMessages([{
+          role: 'assistant',
+          content: isAdminUser || p.isGameCreator
+            ? "👋 Hey! Describe the mini-game you want to build and I'll create it. Try something like: \"A bubble shooter where you answer math questions to shoot\"."
+            : "👋 Hey! You can build games here. Each message uses 1 token from your monthly allowance. Describe the mini-game you want and I'll create it!",
+        }]);
       }
     } catch (e) {
       console.error('Auth check failed:', e);
@@ -226,6 +236,18 @@ export default function GameBuilder() {
     const text = input.trim();
     if (!text || working) return;
 
+    // Token check for non-admins/non-creators
+    if (!isAdminUser && !isCreatorUser) {
+      const ok = await tokenData.consumeToken();
+      if (!ok) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `⚠️ You've used all your game builder tokens for this month. Tokens reset on the 1st. Ask an admin to gift you more if you need them sooner!`,
+        }]);
+        return;
+      }
+    }
+
     setInput('');
     setWorking(true);
     // Optimistic user message
@@ -335,6 +357,12 @@ export default function GameBuilder() {
           <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
             <span className="text-lg">🤖</span>
             <span className="font-semibold text-slate-800">AI Game Builder</span>
+            {!isAdminUser && !isCreatorUser && !tokenData.loading && (
+              <span className="ml-auto flex items-center gap-1 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                <Coins className="w-3 h-3" />
+                {tokenData.tokensLeft() === Infinity ? '∞' : tokenData.tokensLeft()} tokens
+              </span>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -360,6 +388,18 @@ export default function GameBuilder() {
             onRevert={(code) => setGameCode(code)}
             onSnapshotSaved={(updated) => setSnapshots(updated)}
           />
+
+          {gameId && (
+            <QuestionImporter
+              gameId={gameId}
+              onImported={(qs) => {
+                setMessages(prev => [...prev, {
+                  role: 'assistant',
+                  content: `✅ Imported ${qs.length} questions into the game!`,
+                }]);
+              }}
+            />
+          )}
 
           <div className="p-3 border-t border-slate-100">
             <div className="flex gap-2">

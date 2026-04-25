@@ -60,6 +60,7 @@ import RewardAIGenerator from '@/components/admin/RewardAIGenerator';
 import QuestionGeneratorChat from '@/components/admin/QuestionGeneratorChat';
 import RedeemCodeManager from '@/components/admin/RedeemCodeManager';
 import AdminDMInbox from '@/components/admin/AdminDMInbox';
+import GameBuilderTokenPanel from '@/components/admin/GameBuilderTokenPanel';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -387,7 +388,12 @@ export default function Admin() {
           {isSuperAdmin && <TabsContent value="lore"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><LoreComicPanel /></div></TabsContent>}
           <TabsContent value="redeem_codes"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><RedeemCodeManager /></div></TabsContent>
           <TabsContent value="dms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AdminDMInbox adminProfile={adminProfile} /></div></TabsContent>
-          <TabsContent value="settings"><AdminSettingsPanel appSettings={appSettings} setAppSettings={setAppSettings} referralSettings={referralSettings} setReferralSettings={setReferralSettings} adminReferralLinks={adminReferralLinks} setAdminReferralLinks={setAdminReferralLinks} newLinkMaxUses={newLinkMaxUses} setNewLinkMaxUses={setNewLinkMaxUses} rewardLinks={rewardLinks} setRewardLinks={setRewardLinks} showRewardLinkForm={showRewardLinkForm} setShowRewardLinkForm={setShowRewardLinkForm} isSuperAdmin={isSuperAdmin} /></TabsContent>
+          <TabsContent value="settings">
+            <div className="space-y-6">
+              <AdminSettingsPanel appSettings={appSettings} setAppSettings={setAppSettings} referralSettings={referralSettings} setReferralSettings={setReferralSettings} adminReferralLinks={adminReferralLinks} setAdminReferralLinks={setAdminReferralLinks} newLinkMaxUses={newLinkMaxUses} setNewLinkMaxUses={setNewLinkMaxUses} rewardLinks={rewardLinks} setRewardLinks={setRewardLinks} showRewardLinkForm={showRewardLinkForm} setShowRewardLinkForm={setShowRewardLinkForm} isSuperAdmin={isSuperAdmin} />
+              <GameBuilderTokenPanel />
+            </div>
+          </TabsContent>
         </Tabs>
 
         {/* Dialogs */}

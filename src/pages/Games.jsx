@@ -232,7 +232,7 @@ export default function Games() {
               </Button>
             </>
           )}
-          {isCreator && !(creationDisabled && !isSuperAdmin) && (
+          {!(creationDisabled && !isSuperAdmin) && (
             <Button
               onClick={() => navigate('/Games/Build')}
               className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl gap-2"

@@ -1,0 +1,37 @@
+{
+  "name": "GameBuilderToken",
+  "type": "object",
+  "properties": {
+    "profileId": {
+      "type": "string",
+      "description": "UserProfile ID"
+    },
+    "username": {
+      "type": "string",
+      "description": "Display username"
+    },
+    "tokensUsed": {
+      "type": "number",
+      "default": 0,
+      "description": "Tokens used this month"
+    },
+    "tokensGranted": {
+      "type": "number",
+      "default": 0,
+      "description": "Extra tokens admin has granted (added on top of monthly)"
+    },
+    "monthlyLimit": {
+      "type": "number",
+      "default": 3,
+      "description": "How many tokens this user gets per month (can be overridden by admin)"
+    },
+    "periodKey": {
+      "type": "string",
+      "description": "YYYY-MM key for current billing period"
+    }
+  },
+  "required": [
+    "profileId",
+    "periodKey"
+  ]
+}
