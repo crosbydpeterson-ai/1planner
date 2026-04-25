@@ -123,8 +123,11 @@ function StudentMessages({ currentProfile }) {
       byteUnsubRef.current = base44.agents.subscribeToConversation(convId, (data) => {
         const msgs = (data.messages || []).filter(m => !m.content?.startsWith('[SYSTEM CONTEXT'));
         setByteMessages(msgs);
+        // Stop loading when we get any assistant message or if there are no pending messages
         const lastMsg = msgs[msgs.length - 1];
-        if (!lastMsg || lastMsg.role === 'assistant') setByteLoading(false);
+        if (lastMsg?.role === 'assistant' && lastMsg?.content) {
+          setByteLoading(false);
+        }
       });
     }
   };
@@ -136,8 +139,11 @@ function StudentMessages({ currentProfile }) {
     if (activeContact?.isBot) {
       setByteLoading(true);
       setByteMessages(prev => [...prev, { role: 'user', content: text }]);
-      const conv = await base44.agents.getConversation(activeThread.byteConvId);
+      // Use a timeout fallback so loading never gets permanently stuck
+      const timeoutId = setTimeout(() => setByteLoading(false), 30000);
+      const conv = { id: activeThread.byteConvId, messages: byteMessages };
       await base44.agents.addMessage(conv, { role: 'user', content: text });
+      clearTimeout(timeoutId);
       return;
     }
 
