@@ -96,20 +96,32 @@ function StudentMessages({ currentProfile }) {
       setByteLoading(false);
       byteUnsubRef.current?.();
       let convId = thread.byteConvId;
+      let byteConv = null;
       if (!convId) {
-        const conv = await base44.agents.createConversation({
+        byteConv = await base44.agents.createConversation({
           agent_name: 'support_bot',
-          metadata: { name: `${currentProfile.username} ↔ Byte`, studentProfileId: currentProfile.id, studentUsername: currentProfile.username }
+          metadata: {
+            name: `${currentProfile.username} ↔ Byte`,
+            studentProfileId: currentProfile.id,
+            studentUsername: currentProfile.username,
+            studentUserId: currentProfile.userId,
+          }
         });
-        convId = conv.id;
+        convId = byteConv.id;
+        // Send an invisible system context message so Byte knows who it's talking to
+        await base44.agents.addMessage(byteConv, {
+          role: 'user',
+          content: `[SYSTEM CONTEXT — do not reply to this, just use it] My username is "${currentProfile.username}", my profileId is "${currentProfile.id}", my userId is "${currentProfile.userId || ''}".`
+        });
         thread = await base44.entities.DMThread.update(thread.id, { byteConvId: convId });
         setActiveThread(thread);
       } else {
-        const existingConv = await base44.agents.getConversation(convId);
-        setByteMessages(existingConv.messages || []);
+        byteConv = await base44.agents.getConversation(convId);
+        // Filter out the hidden system context message from display
+        setByteMessages((byteConv.messages || []).filter(m => !m.content?.startsWith('[SYSTEM CONTEXT')));
       }
       byteUnsubRef.current = base44.agents.subscribeToConversation(convId, (data) => {
-        const msgs = data.messages || [];
+        const msgs = (data.messages || []).filter(m => !m.content?.startsWith('[SYSTEM CONTEXT'));
         setByteMessages(msgs);
         const lastMsg = msgs[msgs.length - 1];
         if (!lastMsg || lastMsg.role === 'assistant') setByteLoading(false);
@@ -128,6 +140,7 @@ function StudentMessages({ currentProfile }) {
       await base44.agents.addMessage(conv, { role: 'user', content: text });
       return;
     }
+
     setSending(true);
     const newMsg = { sender: 'student', senderName: currentProfile.username, text, sentAt: new Date().toISOString() };
     const updated = await base44.entities.DMThread.update(activeThread.id, {
@@ -204,7 +217,7 @@ function StudentMessages({ currentProfile }) {
           {!activeContact?.isBot && (activeThread?.messages || []).map((msg, i) => (
             <MessageBubble key={i} msg={msg} isMe={msg.sender === 'student'} />
           ))}
-          {activeContact?.isBot && byteMessages.filter(m => m.content).map((msg, i) => (
+          {activeContact?.isBot && byteMessages.filter(m => m.content && !m.content.startsWith('[SYSTEM CONTEXT')).map((msg, i) => (
             <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
               <div
                 className="max-w-[78%] px-3 py-2 text-sm leading-snug"
