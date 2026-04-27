@@ -8,6 +8,7 @@ import { toast } from 'sonner';
  * Handles downloading a CSV template and importing questions from CSV/Excel.
  * On import, uses InvokeLLM to parse/structure the questions.
  */
+// gameId is optional - if not provided, questions are returned via onImported but not saved
 export default function QuestionImporter({ gameId, onImported }) {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
@@ -85,17 +86,12 @@ export default function QuestionImporter({ gameId, onImported }) {
     e.target.value = '';
   };
 
-  const saveQuestions = async (questions, gameId) => {
-    if (!gameId) return;
-    // Save each question to GameQuestion entity
-    for (const q of questions) {
-      await base44.entities.GameQuestion.create({
-        gameId,
-        question: q.question,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-      });
-    }
+  const saveQuestions = async (questions, gId) => {
+    if (!gId) return;
+    await base44.entities.GameQuestion.create({
+      miniGameId: gId,
+      questions,
+    });
   };
 
   return (

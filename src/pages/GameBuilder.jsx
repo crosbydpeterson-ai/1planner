@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import GameRenderer from '@/components/games/GameRenderer';
 import SnapshotPanel from '@/components/games/SnapshotPanel';
-import QuestionImporter from '@/components/games/QuestionImporter';
 import { useGameTokens } from '@/components/games/GameTokenManager';
 
 const SAMPLE_QUESTIONS = [
@@ -388,18 +387,6 @@ export default function GameBuilder() {
             onRevert={(code) => setGameCode(code)}
             onSnapshotSaved={(updated) => setSnapshots(updated)}
           />
-
-          {gameId && (
-            <QuestionImporter
-              gameId={gameId}
-              onImported={(qs) => {
-                setMessages(prev => [...prev, {
-                  role: 'assistant',
-                  content: `✅ Imported ${qs.length} questions into the game!`,
-                }]);
-              }}
-            />
-          )}
 
           <div className="p-3 border-t border-slate-100">
             <div className="flex gap-2">

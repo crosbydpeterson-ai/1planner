@@ -4,10 +4,11 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ClipboardList, Keyboard, Loader2, Trophy, Coins, Sparkles, X, Star } from 'lucide-react';
+import { ClipboardList, Keyboard, Loader2, Trophy, Coins, Sparkles, X, Star, FileSpreadsheet } from 'lucide-react';
 import GameRenderer from './GameRenderer';
 import GameLeaderboard from './GameLeaderboard';
 import GameScorePrizesEditor from './GameScorePrizesEditor';
+import QuestionImporter from './QuestionImporter';
 import { PETS } from '@/components/quest/PetCatalog';
 
 export default function GamePlayDialog({ game, profile, onClose, isAdmin }) {
@@ -253,6 +254,20 @@ export default function GamePlayDialog({ game, profile, onClose, isAdmin }) {
                       Go
                     </Button>
                   </div>
+                </div>
+
+                {/* Spreadsheet import */}
+                <div className="border border-dashed border-indigo-200 bg-indigo-50/50 rounded-xl p-3">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-700 mb-2">
+                    <FileSpreadsheet className="w-3.5 h-3.5" /> Import from Spreadsheet
+                  </div>
+                  <QuestionImporter
+                    gameId={game.id}
+                    onImported={(qs) => {
+                      setQuestions(qs);
+                      setStep('playing');
+                    }}
+                  />
                 </div>
 
                 <div className="text-center text-xs text-slate-400">— or pick an assignment —</div>
