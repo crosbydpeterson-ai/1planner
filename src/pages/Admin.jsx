@@ -61,6 +61,7 @@ import QuestionGeneratorChat from '@/components/admin/QuestionGeneratorChat';
 import RedeemCodeManager from '@/components/admin/RedeemCodeManager';
 import AdminDMInbox from '@/components/admin/AdminDMInbox';
 import GameBuilderTokenPanel from '@/components/admin/GameBuilderTokenPanel';
+import UserTimeAnalytics from '@/components/admin/UserTimeAnalytics';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -374,7 +375,14 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="booths"><BoothSkinManager /></TabsContent>
-          <TabsContent value="analytics"><EconomyCharts /></TabsContent>
+          <TabsContent value="analytics">
+            <div className="space-y-6">
+              <EconomyCharts />
+              <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
+                <UserTimeAnalytics />
+              </div>
+            </div>
+          </TabsContent>
           <TabsContent value="email"><AdminEmailBroadcast /></TabsContent>
           {(isSuperAdmin || permissions.toggleAdminRole) && <TabsContent value="roles"><RolesManager /></TabsContent>}
           {(isSuperAdmin || can('manageSuperAssignments')) && <TabsContent value="super_assignments"><SuperAssignmentsAnalytics /></TabsContent>}

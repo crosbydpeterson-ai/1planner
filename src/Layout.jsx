@@ -14,8 +14,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import BrandLogo from '@/components/branding/BrandLogo';
 import MessageWidget from '@/components/messages/MessageWidget';
+import useSessionTracker from '@/hooks/useSessionTracker';
 
 export default function Layout({ children, currentPageName }) {
+        useSessionTracker();
         const navigate = useNavigate();
         const [themeColors, setThemeColors] = useState(null);
         const [isAdmin, setIsAdmin] = useState(false);

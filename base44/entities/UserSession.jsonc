@@ -1,0 +1,40 @@
+{
+  "name": "UserSession",
+  "type": "object",
+  "properties": {
+    "profileId": {
+      "type": "string",
+      "description": "UserProfile ID"
+    },
+    "username": {
+      "type": "string",
+      "description": "Display username"
+    },
+    "sessionStart": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the session started"
+    },
+    "sessionEnd": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the session ended"
+    },
+    "durationSeconds": {
+      "type": "number",
+      "default": 0,
+      "description": "Session duration in seconds"
+    },
+    "pagesVisited": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of pages visited during session"
+    }
+  },
+  "required": [
+    "profileId",
+    "sessionStart"
+  ]
+}
