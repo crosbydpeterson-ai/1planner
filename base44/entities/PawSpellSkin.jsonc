@@ -1,0 +1,44 @@
+{
+  "name": "PawSpellSkin",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Skin name"
+    },
+    "petType": {
+      "type": "string",
+      "description": "Which pet type this skin applies to (sprite, golem, gryphon, wisp, dragon, unicorn)"
+    },
+    "imageUrl": {
+      "type": "string",
+      "description": "AI-generated skin image URL"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Prompt used to generate this skin"
+    },
+    "createdByProfileId": {
+      "type": "string"
+    },
+    "createdByUsername": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number",
+      "default": 50
+    },
+    "isPublic": {
+      "type": "boolean",
+      "default": false
+    },
+    "color": {
+      "type": "string",
+      "description": "w or b - which side this skin is for"
+    }
+  },
+  "required": [
+    "name",
+    "petType"
+  ]
+}

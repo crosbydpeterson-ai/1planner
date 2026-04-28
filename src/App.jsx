@@ -18,6 +18,8 @@ import Kitchen from './pages/Kitchen';
 import Games from './pages/Games';
 import GameBuilder from './pages/GameBuilder';
 import Messages from './pages/Messages';
+import PawSpell from './pages/PawSpell';
+import PawSpellGame from './pages/PawSpellGame';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -98,6 +100,8 @@ const AuthenticatedApp = () => {
       <Route path="/Games" element={<LayoutWrapper currentPageName="Games"><Games /></LayoutWrapper>} />
       <Route path="/Games/Build" element={<GameBuilder />} />
       <Route path="/messages" element={<LayoutWrapper currentPageName="Messages"><Messages /></LayoutWrapper>} />
+      <Route path="/PawSpell" element={<LayoutWrapper currentPageName="PawSpell"><PawSpell /></LayoutWrapper>} />
+      <Route path="/PawSpell/Game" element={<PawSpellGame />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

@@ -244,6 +244,20 @@ export default function Games() {
         </div>
       </div>
 
+      {/* Paw & Spell Featured Banner */}
+      <div
+        onClick={() => navigate('/PawSpell')}
+        className="mb-6 cursor-pointer rounded-2xl overflow-hidden bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 border border-purple-700 p-4 flex items-center gap-4 hover:border-purple-500 transition-colors shadow-lg shadow-purple-900/30"
+      >
+        <div className="text-5xl animate-pulse">🦄</div>
+        <div className="flex-1">
+          <p className="text-xs text-purple-400 font-medium uppercase tracking-wider">Featured Game</p>
+          <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300">Paw & Spell</h2>
+          <p className="text-purple-400 text-xs mt-0.5">Dark-fantasy pet chess · AI opponent · Multiplayer · Skin Shop</p>
+        </div>
+        <div className="text-purple-400 text-2xl">→</div>
+      </div>
+
       {/* Search */}
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

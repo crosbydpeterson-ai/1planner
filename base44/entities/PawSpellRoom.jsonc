@@ -1,0 +1,69 @@
+{
+  "name": "PawSpellRoom",
+  "type": "object",
+  "properties": {
+    "roomCode": {
+      "type": "string",
+      "description": "4-digit room code"
+    },
+    "hostProfileId": {
+      "type": "string"
+    },
+    "hostUsername": {
+      "type": "string"
+    },
+    "guestProfileId": {
+      "type": "string"
+    },
+    "guestUsername": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "waiting",
+        "active",
+        "finished"
+      ],
+      "default": "waiting"
+    },
+    "board": {
+      "type": "array",
+      "description": "8x8 board state"
+    },
+    "currentTurn": {
+      "type": "string",
+      "default": "w"
+    },
+    "lastMove": {
+      "type": "object"
+    },
+    "gems": {
+      "type": "array",
+      "description": "Crystal gem positions and collection status"
+    },
+    "gemsCollected": {
+      "type": "object",
+      "description": "{ w: count, b: count }"
+    },
+    "winner": {
+      "type": "string"
+    },
+    "winReason": {
+      "type": "string"
+    },
+    "castlingRights": {
+      "type": "object"
+    },
+    "hostEquippedSkins": {
+      "type": "object"
+    },
+    "guestEquippedSkins": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "roomCode",
+    "hostProfileId"
+  ]
+}

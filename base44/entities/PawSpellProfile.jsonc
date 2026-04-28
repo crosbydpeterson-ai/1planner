@@ -1,0 +1,42 @@
+{
+  "name": "PawSpellProfile",
+  "type": "object",
+  "properties": {
+    "profileId": {
+      "type": "string",
+      "description": "UserProfile ID"
+    },
+    "username": {
+      "type": "string"
+    },
+    "tokens": {
+      "type": "number",
+      "default": 100
+    },
+    "wins": {
+      "type": "number",
+      "default": 0
+    },
+    "losses": {
+      "type": "number",
+      "default": 0
+    },
+    "ownedSkinIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "equippedSkins": {
+      "type": "object",
+      "description": "{ petType: skinId } map for white side",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "profileId",
+    "username"
+  ]
+}
