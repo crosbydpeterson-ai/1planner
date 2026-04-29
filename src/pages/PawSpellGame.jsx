@@ -4,7 +4,6 @@ import { base44 } from '@/api/base44Client';
 import PawBoard from '@/components/pawspell/PawBoard';
 import GameHeader from '@/components/pawspell/GameHeader';
 import GameOverModal from '@/components/pawspell/GameOverModal';
-import AIChat from '@/components/pawspell/AIChat';
 import {
   applyMove, hasAnyLegalMoves, isKingInCheck,
   getAIMoveSimple, generateGemPositions, parsePiece
@@ -32,7 +31,6 @@ export default function PawSpellGame() {
   const [gems, setGems] = useState([]);
   const [gemsCollected, setGemsCollected] = useState({ w: 0, b: 0 });
   const [gameOver, setGameOver] = useState(null); // { winner, reason }
-  const [chatOpen, setChatOpen] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
   const [room, setRoom] = useState(null);
   const [equippedSkins, setEquippedSkins] = useState({});
@@ -318,16 +316,6 @@ export default function PawSpellGame() {
           🪙 {pawProfile?.tokens || 0} tokens &nbsp;|&nbsp; 🏆 {pawProfile?.wins || 0} wins
         </div>
       </div>
-
-      {mode === 'ai' && (
-        <AIChat
-          board={board}
-          currentTurn={currentTurn}
-          myColor={myColor}
-          isOpen={chatOpen}
-          onToggle={() => setChatOpen(v => !v)}
-        />
-      )}
 
       {gameOver && (
         <GameOverModal
