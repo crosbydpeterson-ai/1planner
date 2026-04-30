@@ -30,6 +30,8 @@ export default function PawSpellGame() {
   const [castlingRights, setCastlingRights] = useState(INITIAL_CASTLING);
   const [gems, setGems] = useState([]);
   const [gemsCollected, setGemsCollected] = useState({ w: 0, b: 0 });
+  // gem claim progress: { [gemKey]: { color, turns } }
+  const [gemProgress, setGemProgress] = useState({});
   const [gameOver, setGameOver] = useState(null); // { winner, reason }
   const [aiThinking, setAiThinking] = useState(false);
   const [room, setRoom] = useState(null);
@@ -63,6 +65,7 @@ export default function PawSpellGame() {
       // AI mode — start fresh
       const newGems = generateGemPositions(3);
       setGems(newGems);
+      setGemProgress({});
     }
   };
 
@@ -141,17 +144,47 @@ export default function PawSpellGame() {
     const newRights = updateCastlingRights(piece, from, castlingRights);
     const move = { from, to, piece };
 
-    // Check gem collection on destination square
+    // --- Gem 3-turn claim logic ---
     let newGems = [...gems];
     let newGemsCollected = { ...gemsCollected };
-    const gemOnDest = newGems.findIndex(g => g.row === to[0] && g.col === to[1]);
-    if (gemOnDest !== -1) {
-      newGemsCollected[currentTurn] = (newGemsCollected[currentTurn] || 0) + 1;
-      newGems = newGems.filter((_, i) => i !== gemOnDest);
-      // Spawn new gem elsewhere if needed
-      if (newGems.length < 2) {
-        const extra = generateGemPositions(1);
-        newGems.push(...extra);
+    let newGemProgress = { ...gemProgress };
+
+    // Invalidate progress for any gem where the claiming piece has moved away
+    for (const key of Object.keys(newGemProgress)) {
+      const [gr, gc] = key.split(',').map(Number);
+      const prog = newGemProgress[key];
+      if (prog.color === currentTurn) {
+        // Check if the piece that was on this gem is the one that just moved away
+        if (from[0] === gr && from[1] === gc) {
+          // Piece left the gem square — reset progress
+          delete newGemProgress[key];
+        }
+      }
+    }
+
+    // Check if piece landed on a gem square
+    const gemOnDestIdx = newGems.findIndex(g => g.row === to[0] && g.col === to[1]);
+    if (gemOnDestIdx !== -1) {
+      const key = `${to[0]},${to[1]}`;
+      const existing = newGemProgress[key];
+      if (existing && existing.color === currentTurn) {
+        // Same color continues claiming — increment
+        const newTurns = existing.turns + 1;
+        if (newTurns >= 3) {
+          // Collected!
+          newGemsCollected[currentTurn] = (newGemsCollected[currentTurn] || 0) + 1;
+          newGems = newGems.filter((_, i) => i !== gemOnDestIdx);
+          delete newGemProgress[key];
+          if (newGems.length < 2) {
+            const extra = generateGemPositions(1);
+            newGems.push(...extra);
+          }
+        } else {
+          newGemProgress[key] = { color: currentTurn, turns: newTurns };
+        }
+      } else {
+        // New claim (or switching color claim) — start at 1
+        newGemProgress[key] = { color: currentTurn, turns: 1 };
       }
     }
 
@@ -193,6 +226,7 @@ export default function PawSpellGame() {
     setCastlingRights(newRights);
     setGems(newGems);
     setGemsCollected(newGemsCollected);
+    setGemProgress(newGemProgress);
 
     if (mode === 'multi' && room) {
       await base44.entities.PawSpellRoom.update(room.id, {
@@ -220,12 +254,36 @@ export default function PawSpellGame() {
 
     let newGems = [...curGems];
     let newGemsCollected = { ...curCollected };
-    const gemOnDest = newGems.findIndex(g => g.row === aiMove.to[0] && g.col === aiMove.to[1]);
-    if (gemOnDest !== -1) {
-      newGemsCollected[turn] = (newGemsCollected[turn] || 0) + 1;
-      newGems = newGems.filter((_, i) => i !== gemOnDest);
-      if (newGems.length < 2) { const extra = generateGemPositions(1); newGems.push(...extra); }
-    }
+    // AI also uses 3-turn gem logic (functional update to get latest progress)
+    setGemProgress(prevProgress => {
+      let newGemProgress = { ...prevProgress };
+      // Reset progress if AI piece moved away from a gem
+      for (const key of Object.keys(newGemProgress)) {
+        const [gr, gc] = key.split(',').map(Number);
+        if (newGemProgress[key].color === turn && aiMove.from[0] === gr && aiMove.from[1] === gc) {
+          delete newGemProgress[key];
+        }
+      }
+      const gemOnDestIdx = newGems.findIndex(g => g.row === aiMove.to[0] && g.col === aiMove.to[1]);
+      if (gemOnDestIdx !== -1) {
+        const key = `${aiMove.to[0]},${aiMove.to[1]}`;
+        const existing = newGemProgress[key];
+        if (existing && existing.color === turn) {
+          const newTurns = existing.turns + 1;
+          if (newTurns >= 3) {
+            newGemsCollected[turn] = (newGemsCollected[turn] || 0) + 1;
+            newGems = newGems.filter((_, i) => i !== gemOnDestIdx);
+            delete newGemProgress[key];
+            if (newGems.length < 2) { const extra = generateGemPositions(1); newGems.push(...extra); }
+          } else {
+            newGemProgress[key] = { color: turn, turns: newTurns };
+          }
+        } else {
+          newGemProgress[key] = { color: turn, turns: 1 };
+        }
+      }
+      return newGemProgress;
+    });
 
     if (newGemsCollected[turn] >= 3) {
       endGame(newBoard, turn, 'AI collected 3 Crystal Gems!', newGems, newGemsCollected, move, newRights);
@@ -318,6 +376,7 @@ export default function PawSpellGame() {
             currentTurn={currentTurn}
             myColor={myColor}
             gems={gems}
+            gemProgress={gemProgress}
             equippedSkins={equippedSkins}
             skinImages={skinImages}
             onMove={(from, to) => processMove(from, to)}

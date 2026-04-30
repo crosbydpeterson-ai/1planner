@@ -30,6 +30,7 @@ function PieceCard({ cell, equippedSkins, skinImages }) {
 
 export default function PawBoard({
   board, currentTurn, myColor, gems = [],
+  gemProgress = {},
   equippedSkins = {}, skinImages = {},
   onMove, lastMove = null, castlingRights = null,
   disabled = false
@@ -130,9 +131,21 @@ export default function PawBoard({
                   )}
 
                   {/* Gem */}
-                  {gem && (
-                    <div className="absolute top-0 right-0 text-sm z-20 pointer-events-none">💎</div>
-                  )}
+                  {gem && (() => {
+                    const key = `${ri},${ci}`;
+                    const prog = gemProgress[key];
+                    const turns = prog ? prog.turns : 0;
+                    return (
+                      <div className="absolute top-0 right-0 z-20 pointer-events-none flex flex-col items-end">
+                        <span className="text-sm leading-none">💎</span>
+                        {turns > 0 && (
+                          <span className={`text-[9px] font-bold leading-none px-0.5 rounded ${prog.color === 'w' ? 'text-yellow-300' : 'text-purple-300'}`}>
+                            {turns}/3
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Piece */}
                   {cell && (

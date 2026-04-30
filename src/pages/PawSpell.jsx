@@ -6,13 +6,15 @@ import { motion } from 'framer-motion';
 import MultiplayerLobby from '@/components/pawspell/MultiplayerLobby';
 import SkinShopPanel from '@/components/pawspell/SkinShopPanel';
 import { PET_EMOJIS, PET_TYPES, PET_TO_CHESS_NAME } from '@/lib/pawSpellConstants';
-import { Swords, Users, ShoppingBag, Trophy, Gem } from 'lucide-react';
+import { Swords, Users, ShoppingBag, Trophy, Gem, BookOpen } from 'lucide-react';
+import GameRulesModal from '@/components/pawspell/GameRulesModal';
 
 export default function PawSpell() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const joinCodeFromUrl = urlParams.get('join');
   const [view, setView] = useState(joinCodeFromUrl ? 'multi' : 'home'); // 'home' | 'multi' | 'shop'
+  const [showRules, setShowRules] = useState(false);
   const [pawProfile, setPawProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -117,6 +119,14 @@ export default function PawSpell() {
                 <ShoppingBag className="w-6 h-6" />
                 Skin Shop
               </Button>
+              <Button
+                onClick={() => setShowRules(true)}
+                variant="ghost"
+                className="h-10 text-sm text-purple-400 hover:text-purple-200 hover:bg-purple-900/30 rounded-2xl gap-2"
+              >
+                <BookOpen className="w-4 h-4" />
+                How to Play
+              </Button>
             </div>
 
             {/* Pet Glossary */}
@@ -148,6 +158,8 @@ export default function PawSpell() {
             />
           </div>
         )}
+
+        {showRules && <GameRulesModal onClose={() => setShowRules(false)} />}
 
         {view === 'shop' && pawProfile && (
           <div className="bg-purple-950/50 border border-purple-800 rounded-2xl p-4 min-h-96">
