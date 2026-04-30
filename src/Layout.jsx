@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, Coins, CalendarHeart, Info, MessageSquare, ChefHat, Gamepad2, Mail } from 'lucide-react';
+import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, CalendarHeart, MessageSquare, Gamepad2, Store, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 import ThemedBackground from '@/components/theme/ThemedBackground';
@@ -221,25 +221,19 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
             { name: 'Dashboard', icon: Home, label: 'Home' },
             { name: 'Assignments', icon: ClipboardList, label: 'Quests' },
-            { name: 'Shop', icon: ShoppingBag, label: 'Shop' },
-            { name: 'Marketplace', icon: Coins, label: 'Market' },
+            { name: 'Games', icon: Gamepad2, label: 'Games', customPath: '/Games' },
+            { name: 'Events', icon: CalendarHeart, label: 'Events' },
             { name: 'Leaderboard', icon: Trophy, label: 'Rank' },
             { name: 'Rewards', icon: Gem, label: 'Collection' },
             { name: 'Season', icon: Sparkles, label: '1Pass' },
-            { name: 'Kitchen', icon: ChefHat, label: 'Kitchen', customPath: '/Kitchen' },
-            { name: 'Games', icon: Gamepad2, label: 'Games', customPath: '/Games' },
-            { name: 'Events', icon: CalendarHeart, label: 'Events' },
-            { name: 'Info', icon: Info, label: 'Info' },
-            { name: 'community', icon: MessageSquare, label: 'Community', customPath: '/community' },
-            { name: 'Messages', icon: Mail, label: 'Messages', customPath: '/messages' },
+            { name: 'MarketplaceHub', icon: Store, label: 'Marketplace', customPath: '/MarketplaceHub' },
+            { name: 'UpdatesHub', icon: Bell, label: 'Updates', customPath: '/UpdatesHub' },
           ];
 
   const visibleNavItems = navItems.filter((item) => {
     if (isAdmin) return true;
-    if (item.name === 'Shop') return !isFeatureLockedForUser('shop');
     if (item.name === 'Rewards') return !isFeatureLockedForUser('pets');
     if (item.name === 'Season') return !isFeatureLockedForUser('battlePass');
-    if (item.name === 'Marketplace') return !isFeatureLockedForUser('market');
     if (item.name === 'Games') return !isFeatureLockedForUser('games');
     return true;
   });
@@ -271,7 +265,7 @@ export default function Layout({ children, currentPageName }) {
           <div className="overflow-x-auto scrollbar-hide">
             <div className="flex items-center py-2 px-2 min-w-max mx-auto">
               {visibleNavItems.map((item) => {
-                const isActive = currentPageName === item.name || (item.name === 'community' && currentPageName === 'CommunityWall');
+                const isActive = currentPageName === item.name || (item.name === 'community' && currentPageName === 'CommunityWall') || (item.name === 'MarketplaceHub' && ['Shop','Marketplace','Kitchen'].includes(currentPageName)) || (item.name === 'UpdatesHub' && ['community','CommunityWall','Messages','Info'].includes(currentPageName));
                 return (
                   <Link
                     key={item.name}

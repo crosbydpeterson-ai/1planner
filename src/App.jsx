@@ -20,6 +20,8 @@ import GameBuilder from './pages/GameBuilder';
 import Messages from './pages/Messages';
 import PawSpell from './pages/PawSpell';
 import PawSpellGame from './pages/PawSpellGame';
+import MarketplaceHub from './pages/MarketplaceHub';
+import UpdatesHub from './pages/UpdatesHub';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -102,6 +104,8 @@ const AuthenticatedApp = () => {
       <Route path="/messages" element={<LayoutWrapper currentPageName="Messages"><Messages /></LayoutWrapper>} />
       <Route path="/PawSpell" element={<LayoutWrapper currentPageName="PawSpell"><PawSpell /></LayoutWrapper>} />
       <Route path="/PawSpell/Game" element={<PawSpellGame />} />
+      <Route path="/MarketplaceHub" element={<LayoutWrapper currentPageName="MarketplaceHub"><MarketplaceHub /></LayoutWrapper>} />
+      <Route path="/UpdatesHub" element={<LayoutWrapper currentPageName="UpdatesHub"><UpdatesHub /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
