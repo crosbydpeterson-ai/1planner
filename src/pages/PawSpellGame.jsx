@@ -68,14 +68,20 @@ export default function PawSpellGame() {
 
   const loadEquippedSkins = async (pp) => {
     const equipped = pp.equippedSkins || {};
-    setEquippedSkins({ w: equipped, b: {} }); // Only load my skins for now
-    // Load skin images
+    const petSkinMap = pp.petSkinMap || {};
+    setEquippedSkins({ w: equipped, b: {} });
+    // Load skin images — handle both real skins and pet_ prefixed pseudo-skins
     const skinIds = Object.values(equipped).filter(Boolean);
     if (skinIds.length > 0) {
       const images = {};
       for (const sid of skinIds) {
-        const skins = await base44.entities.PawSpellSkin.filter({ id: sid });
-        if (skins[0]) images[sid] = skins[0].imageUrl;
+        if (sid.startsWith('pet_')) {
+          // Resolve from petSkinMap stored on the profile
+          if (petSkinMap[sid]) images[sid] = petSkinMap[sid];
+        } else {
+          const skins = await base44.entities.PawSpellSkin.filter({ id: sid });
+          if (skins[0]) images[sid] = skins[0].imageUrl;
+        }
       }
       setSkinImages(images);
     }

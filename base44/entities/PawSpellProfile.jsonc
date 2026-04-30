@@ -29,7 +29,14 @@
     },
     "equippedSkins": {
       "type": "object",
-      "description": "{ petType: skinId } map for white side",
+      "description": "{ petType: skinId } map for white side. skinId can be 'pet_<customPetId>' for pet-derived skins.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "petSkinMap": {
+      "type": "object",
+      "description": "Maps 'pet_<id>' pseudo-skin keys to their imageUrl for quick lookup in-game",
       "additionalProperties": {
         "type": "string"
       }

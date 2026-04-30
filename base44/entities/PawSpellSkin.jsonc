@@ -35,6 +35,24 @@
     "color": {
       "type": "string",
       "description": "w or b - which side this skin is for"
+    },
+    "isListed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this skin is listed for sale in the marketplace"
+    },
+    "listedPrice": {
+      "type": "number",
+      "description": "Token price when listed for sale"
+    },
+    "isPetSkin": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this skin was derived from a CustomPet"
+    },
+    "sourcePetId": {
+      "type": "string",
+      "description": "CustomPet ID if this is a pet-derived skin"
     }
   },
   "required": [
