@@ -6,7 +6,7 @@ import GameHeader from '@/components/pawspell/GameHeader';
 import GameOverModal from '@/components/pawspell/GameOverModal';
 import {
   applyMove, hasAnyLegalMoves, isKingInCheck,
-  getAIMoveSimple, generateGemPositions, parsePiece
+  generateGemPositions, parsePiece
 } from '@/lib/pawSpellLogic';
 import { INITIAL_BOARD } from '@/lib/pawSpellConstants';
 
@@ -38,12 +38,24 @@ export default function PawSpellGame() {
   const [equippedSkins, setEquippedSkins] = useState({});
   const [skinImages, setSkinImages] = useState({});
   const pollRef = useRef(null);
+  const workerRef = useRef(null);
+
+  // Lazily create the AI web worker
+  const getWorker = () => {
+    if (!workerRef.current) {
+      workerRef.current = new Worker(new URL('../lib/pawSpellAIWorker.js', import.meta.url), { type: 'module' });
+    }
+    return workerRef.current;
+  };
 
   const profileId = localStorage.getItem('quest_profile_id');
 
   useEffect(() => {
     initGame();
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (workerRef.current) { workerRef.current.terminate(); workerRef.current = null; }
+    };
   }, []);
 
   const initGame = async () => {
@@ -236,13 +248,15 @@ export default function PawSpellGame() {
         gemsCollected: newGemsCollected, castlingRights: newRights,
       });
     } else if (mode === 'ai' && nextTurn !== myColor) {
-      // AI's turn
+      // AI's turn — run in web worker to avoid blocking UI
       setAiThinking(true);
-      setTimeout(async () => {
-        const aiMove = getAIMoveSimple(newBoard, nextTurn, move, newRights);
+      const worker = getWorker();
+      worker.onmessage = async (e) => {
+        const aiMove = e.data.move;
         if (aiMove) await processAIMove(newBoard, aiMove, move, newRights, newGems, newGemsCollected, nextTurn);
         setAiThinking(false);
-      }, 700);
+      };
+      worker.postMessage({ board: newBoard, color: nextTurn, lastMove: move, castlingRights: newRights });
     }
   }, [board, currentTurn, castlingRights, gems, gemsCollected, mode, room, myColor]);
 
