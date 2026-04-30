@@ -3,22 +3,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { base44 } from '@/api/base44Client';
 import { PET_TYPES, PET_EMOJIS, PET_TO_CHESS_NAME } from '@/lib/pawSpellConstants';
-import { Wand2, ShoppingBag, Sparkles, Check } from 'lucide-react';
+import { Wand2, ShoppingBag, Sparkles, Check, Layers } from 'lucide-react';
 
 const PET_OPTIONS = Object.values(PET_TYPES);
 
 export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
   const [skins, setSkins] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('browse'); // 'browse' | 'generate'
+  const [tab, setTab] = useState('browse'); // 'browse' | 'generate' | 'fullset'
+
+  // Single skin generation
   const [genPetType, setGenPetType] = useState(PET_TYPES.SPRITE);
   const [genPrompt, setGenPrompt] = useState('');
   const [genLoading, setGenLoading] = useState(false);
   const [genResult, setGenResult] = useState(null);
 
-  useEffect(() => {
-    loadSkins();
-  }, []);
+  // Full set generation
+  const [setPrompt, setSetPrompt] = useState('');
+  const [setGenLoading, setSetGenLoading] = useState(false);
+  const [setProgress, setSetProgress] = useState([]); // [{petType, label, done, imageUrl}]
+  const [setResults, setSetResults] = useState(null); // final array of {petType, imageUrl}
+
+  useEffect(() => { loadSkins(); }, []);
 
   const loadSkins = async () => {
     setLoading(true);
@@ -27,19 +33,18 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
     setLoading(false);
   };
 
+  // --- Single skin ---
   const handleGenerate = async () => {
     if (!genPrompt.trim()) return;
-    if (pawProfile.tokens < 30) { alert('Not enough tokens! You need 30 tokens to generate a skin.'); return; }
+    if ((pawProfile.tokens || 0) < 30) { alert('Not enough tokens! You need 30 tokens to generate a skin.'); return; }
     setGenLoading(true);
     try {
       const fullPrompt = `Dark fantasy pet skin for a chess game creature called "${PET_TO_CHESS_NAME[genPetType]}". Style: ${genPrompt}. Cute creature illustration, glowing magical aura, dark background, vibrant colors, game art style.`;
       const res = await base44.integrations.Core.GenerateImage({ prompt: fullPrompt });
       setGenResult({ imageUrl: res.url, petType: genPetType, prompt: genPrompt });
-      // Deduct tokens
-      await base44.entities.PawSpellProfile.update(pawProfile.id, {
-        tokens: (pawProfile.tokens || 100) - 30
-      });
-      onProfileUpdate({ ...pawProfile, tokens: (pawProfile.tokens || 100) - 30 });
+      const newTokens = (pawProfile.tokens || 100) - 30;
+      await base44.entities.PawSpellProfile.update(pawProfile.id, { tokens: newTokens });
+      onProfileUpdate({ ...pawProfile, tokens: newTokens });
     } catch (e) {
       alert('Generation failed. Try again!');
     }
@@ -60,7 +65,6 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
       price: 50,
       isPublic: true,
     });
-    // Add to owned skins
     const newOwned = [...(pawProfile.ownedSkinIds || []), skin.id];
     await base44.entities.PawSpellProfile.update(pawProfile.id, { ownedSkinIds: newOwned });
     onProfileUpdate({ ...pawProfile, ownedSkinIds: newOwned });
@@ -70,6 +74,79 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
     alert('Skin saved to your collection!');
   };
 
+  // --- Full set generation (all 6 pieces, one style, 75 tokens) ---
+  const handleGenerateSet = async () => {
+    if (!setPrompt.trim()) return;
+    if ((pawProfile.tokens || 0) < 75) { alert('Not enough tokens! You need 75 tokens to generate a full set.'); return; }
+
+    setSetGenLoading(true);
+    setSetResults(null);
+
+    // Deduct tokens upfront
+    const newTokens = (pawProfile.tokens || 0) - 75;
+    await base44.entities.PawSpellProfile.update(pawProfile.id, { tokens: newTokens });
+    onProfileUpdate({ ...pawProfile, tokens: newTokens });
+
+    const pieces = PET_OPTIONS.map(pt => ({ petType: pt, label: PET_TO_CHESS_NAME[pt], done: false, imageUrl: null }));
+    setSetProgress(pieces.map(p => ({ ...p })));
+
+    const results = [];
+    for (let i = 0; i < pieces.length; i++) {
+      const pt = pieces[i].petType;
+      const label = pieces[i].label;
+      try {
+        const prompt = `Dark fantasy pet skin for a chess game creature called "${label}". Style: ${setPrompt}. Cute creature illustration, glowing magical aura, dark background, vibrant colors, game art style. Consistent art style with matching theme.`;
+        const res = await base44.integrations.Core.GenerateImage({ prompt });
+        results.push({ petType: pt, imageUrl: res.url });
+        setSetProgress(prev => prev.map((p, idx) => idx === i ? { ...p, done: true, imageUrl: res.url } : p));
+      } catch (e) {
+        results.push({ petType: pt, imageUrl: null });
+        setSetProgress(prev => prev.map((p, idx) => idx === i ? { ...p, done: true, imageUrl: null, error: true } : p));
+      }
+    }
+
+    setSetResults(results);
+    setSetGenLoading(false);
+  };
+
+  const handleSaveSet = async () => {
+    if (!setResults) return;
+    const setName = prompt('Name your skin set:', setPrompt);
+    if (!setName) return;
+
+    const newOwnedIds = [];
+    for (const r of setResults) {
+      if (!r.imageUrl) continue;
+      const skin = await base44.entities.PawSpellSkin.create({
+        name: `${setName} — ${PET_TO_CHESS_NAME[r.petType]}`,
+        petType: r.petType,
+        imageUrl: r.imageUrl,
+        prompt: setPrompt,
+        createdByProfileId: pawProfile.profileId,
+        createdByUsername: pawProfile.username,
+        price: 75,
+        isPublic: true,
+      });
+      newOwnedIds.push(skin.id);
+    }
+
+    // Auto-equip the full set
+    const newEquipped = { ...(pawProfile.equippedSkins || {}) };
+    setResults.forEach((r, i) => { if (r.imageUrl) newEquipped[r.petType] = newOwnedIds[i]; });
+
+    const newOwned = [...(pawProfile.ownedSkinIds || []), ...newOwnedIds];
+    await base44.entities.PawSpellProfile.update(pawProfile.id, { ownedSkinIds: newOwned, equippedSkins: newEquipped });
+    onProfileUpdate({ ...pawProfile, ownedSkinIds: newOwned, equippedSkins: newEquipped });
+
+    setSetResults(null);
+    setSetProgress([]);
+    setSetPrompt('');
+    setTab('browse');
+    await loadSkins();
+    alert('Full set saved & auto-equipped! 🎉');
+  };
+
+  // --- Buy / Equip ---
   const handleEquip = async (skin) => {
     const current = pawProfile.equippedSkins || {};
     const newEquipped = { ...current, [skin.petType]: skin.id };
@@ -99,15 +176,22 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-4">
-        {['browse', 'generate'].map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-colors ${tab === t ? 'bg-purple-700 text-white' : 'bg-purple-900/40 text-purple-400 hover:text-purple-200'}`}>
-            {t === 'browse' ? '🛒 Browse' : '✨ Generate (30 🪙)'}
-          </button>
-        ))}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <button onClick={() => setTab('browse')}
+          className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${tab === 'browse' ? 'bg-purple-700 text-white' : 'bg-purple-900/40 text-purple-400 hover:text-purple-200'}`}>
+          🛒 Browse
+        </button>
+        <button onClick={() => setTab('generate')}
+          className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${tab === 'generate' ? 'bg-purple-700 text-white' : 'bg-purple-900/40 text-purple-400 hover:text-purple-200'}`}>
+          ✨ Single (30 🪙)
+        </button>
+        <button onClick={() => setTab('fullset')}
+          className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${tab === 'fullset' ? 'bg-amber-700 text-white' : 'bg-amber-900/30 text-amber-400 hover:text-amber-200'}`}>
+          👑 Full Set (75 🪙)
+        </button>
       </div>
 
+      {/* BROWSE */}
       {tab === 'browse' && (
         <div className="flex-1 overflow-y-auto">
           {loading ? (
@@ -143,6 +227,7 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
         </div>
       )}
 
+      {/* SINGLE GENERATE */}
       {tab === 'generate' && (
         <div className="flex flex-col gap-4">
           <div>
@@ -178,6 +263,85 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
                 <Button variant="outline" onClick={() => setGenResult(null)} className="text-purple-400 border-purple-700 text-sm">Discard</Button>
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* FULL SET GENERATE */}
+      {tab === 'fullset' && (
+        <div className="flex flex-col gap-4">
+          <div className="bg-amber-950/30 border border-amber-700 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Layers className="w-5 h-5 text-amber-400" />
+              <p className="text-amber-300 font-bold text-sm">Full Set Generator</p>
+            </div>
+            <p className="text-amber-400/80 text-xs">One prompt → 6 matching skins for every piece (Sprite, Golem, Gryphon, Wisp, Dragon, Unicorn). Auto-equipped after saving.</p>
+          </div>
+
+          <div>
+            <p className="text-purple-300 text-sm mb-2">Describe the set theme:</p>
+            <Input
+              value={setPrompt}
+              onChange={e => setSetPrompt(e.target.value)}
+              placeholder="e.g. galaxy void armor, neon cyberpunk, cherry blossom spirits..."
+              className="bg-slate-900 border-amber-700 text-purple-200 placeholder:text-purple-600"
+              disabled={setLoading}
+            />
+          </div>
+
+          {!setGenLoading && !setResults && (
+            <Button
+              onClick={handleGenerateSet}
+              disabled={!setPrompt.trim() || (pawProfile.tokens || 0) < 75}
+              className="bg-amber-700 hover:bg-amber-600 gap-2 h-12 text-base"
+            >
+              <Sparkles className="w-5 h-5" />
+              Generate Full Set (75 🪙)
+            </Button>
+          )}
+
+          {/* Progress during generation */}
+          {(setGenLoading || setResults) && setProgress.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-purple-300 text-sm font-medium">
+                {setGenLoading ? 'Generating your set...' : 'Set ready! Preview below:'}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {setProgress.map((p) => (
+                  <div key={p.petType} className="bg-purple-950/50 border border-purple-800 rounded-xl overflow-hidden">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.label} className="w-full h-20 object-cover" />
+                    ) : (
+                      <div className="w-full h-20 flex items-center justify-center bg-purple-950">
+                        {p.done
+                          ? <span className="text-red-400 text-xs">Failed</span>
+                          : <div className="animate-spin w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full" />
+                        }
+                      </div>
+                    )}
+                    <div className="p-1.5 text-center">
+                      <p className="text-xs text-purple-300 font-medium truncate">{PET_EMOJIS[p.petType]} {p.label?.split(' ')[0]}</p>
+                      {p.done && !p.error && <span className="text-green-400 text-xs">✓</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {setResults && !setGenLoading && (
+            <div className="flex gap-2">
+              <Button onClick={handleSaveSet} className="flex-1 bg-green-700 hover:bg-green-600 gap-2">
+                <Check className="w-4 h-4" /> Save & Equip Set
+              </Button>
+              <Button variant="outline" onClick={() => { setSetResults(null); setSetProgress([]); }} className="text-purple-400 border-purple-700">
+                Discard
+              </Button>
+            </div>
+          )}
+
+          {(pawProfile.tokens || 0) < 75 && !setGenLoading && (
+            <p className="text-red-400 text-xs text-center">You need {75 - (pawProfile.tokens || 0)} more tokens</p>
           )}
         </div>
       )}
