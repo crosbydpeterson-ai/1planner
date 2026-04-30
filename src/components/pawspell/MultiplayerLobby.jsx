@@ -27,9 +27,9 @@ export default function MultiplayerLobby({ profile, onJoinRoom, onBack }) {
       hostProfileId: profile.profileId,
       hostUsername: profile.username,
       status: 'waiting',
-      board: INITIAL_BOARD,
+      board: INITIAL_BOARD.map(row => JSON.stringify(row)),
       currentTurn: 'w',
-      gems,
+      gems: gems.map(g => JSON.stringify(g)),
       gemsCollected: { w: 0, b: 0 },
       castlingRights: {
         white: { kingSide: true, queenSide: true },

@@ -81,10 +81,16 @@ export default function PawSpellGame() {
     }
   };
 
+  const deserializeRoom = (r) => ({
+    ...r,
+    board: r.board ? r.board.map(row => typeof row === 'string' ? JSON.parse(row) : row) : INITIAL_BOARD,
+    gems: r.gems ? r.gems.map(g => typeof g === 'string' ? JSON.parse(g) : g) : [],
+  });
+
   const loadRoom = async (rid) => {
     const rooms = await base44.entities.PawSpellRoom.filter({ id: rid });
     if (!rooms[0]) return;
-    const r = rooms[0];
+    const r = deserializeRoom(rooms[0]);
     setRoom(r);
     setBoard(r.board || INITIAL_BOARD);
     setCurrentTurn(r.currentTurn || 'w');
@@ -184,8 +190,10 @@ export default function PawSpellGame() {
 
     if (mode === 'multi' && room) {
       await base44.entities.PawSpellRoom.update(room.id, {
-        board: newBoard, currentTurn: nextTurn, lastMove: move,
-        gems: newGems, gemsCollected: newGemsCollected, castlingRights: newRights,
+        board: newBoard.map(row => JSON.stringify(row)),
+        currentTurn: nextTurn, lastMove: move,
+        gems: newGems.map(g => JSON.stringify(g)),
+        gemsCollected: newGemsCollected, castlingRights: newRights,
       });
     } else if (mode === 'ai' && nextTurn !== myColor) {
       // AI's turn
@@ -245,8 +253,10 @@ export default function PawSpellGame() {
 
     if (mode === 'multi' && room) {
       await base44.entities.PawSpellRoom.update(room.id, {
-        board: finalBoard, status: 'finished', winner, winReason: reason,
-        gems: finalGems, gemsCollected: finalCollected,
+        board: finalBoard.map(row => JSON.stringify(row)),
+        status: 'finished', winner, winReason: reason,
+        gems: finalGems.map(g => JSON.stringify(g)),
+        gemsCollected: finalCollected,
       });
     }
 
