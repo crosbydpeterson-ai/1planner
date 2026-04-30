@@ -22,6 +22,7 @@ import QuickNavWidget from '@/components/dashboard/widgets/QuickNavWidget';
 import GlobalEventWidget from '@/components/events/GlobalEventWidget';
 import Tutorial from '@/components/tutorial/Tutorial';
 import WhatsNewPopup from '@/components/announcements/WhatsNewPopup';
+import PromoBanner from '@/components/dashboard/PromoBanner';
 
 const DEFAULT_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
 const ALL_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
@@ -253,6 +254,9 @@ export default function Dashboard() {
             </Button>
           </div>
         </motion.div>
+
+        {/* Promo Banner */}
+        <PromoBanner profile={profile} />
 
         {/* Widgets */}
         <WidgetGrid
