@@ -10,7 +10,9 @@ import { Swords, Users, ShoppingBag, Trophy, Gem } from 'lucide-react';
 
 export default function PawSpell() {
   const navigate = useNavigate();
-  const [view, setView] = useState('home'); // 'home' | 'multi' | 'shop'
+  const urlParams = new URLSearchParams(window.location.search);
+  const joinCodeFromUrl = urlParams.get('join');
+  const [view, setView] = useState(joinCodeFromUrl ? 'multi' : 'home'); // 'home' | 'multi' | 'shop'
   const [pawProfile, setPawProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
