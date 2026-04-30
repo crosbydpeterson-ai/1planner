@@ -199,30 +199,183 @@ export function generateGemPositions(count = 3) {
   return gems;
 }
 
-// Simple AI: pick best move using basic heuristics
-export function getAIMoveSimple(board, color, lastMove = null, castlingRights = null) {
-  const pieceValues = { p: 1, r: 5, n: 3, b: 3, q: 9, k: 100 };
-  let bestScore = -Infinity;
-  let bestMove = null;
+// ── AI: Minimax with alpha-beta pruning ─────────────────────────────────────
 
+const PIECE_VALUES = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+
+// Piece-square tables (from white's perspective, row 0 = rank 8)
+const PST = {
+  p: [
+    [0,  0,  0,  0,  0,  0,  0,  0],
+    [50, 50, 50, 50, 50, 50, 50, 50],
+    [10, 10, 20, 30, 30, 20, 10, 10],
+    [5,  5, 10, 25, 25, 10,  5,  5],
+    [0,  0,  0, 20, 20,  0,  0,  0],
+    [5, -5,-10,  0,  0,-10, -5,  5],
+    [5, 10, 10,-20,-20, 10, 10,  5],
+    [0,  0,  0,  0,  0,  0,  0,  0],
+  ],
+  n: [
+    [-50,-40,-30,-30,-30,-30,-40,-50],
+    [-40,-20,  0,  0,  0,  0,-20,-40],
+    [-30,  0, 10, 15, 15, 10,  0,-30],
+    [-30,  5, 15, 20, 20, 15,  5,-30],
+    [-30,  0, 15, 20, 20, 15,  0,-30],
+    [-30,  5, 10, 15, 15, 10,  5,-30],
+    [-40,-20,  0,  5,  5,  0,-20,-40],
+    [-50,-40,-30,-30,-30,-30,-40,-50],
+  ],
+  b: [
+    [-20,-10,-10,-10,-10,-10,-10,-20],
+    [-10,  0,  0,  0,  0,  0,  0,-10],
+    [-10,  0,  5, 10, 10,  5,  0,-10],
+    [-10,  5,  5, 10, 10,  5,  5,-10],
+    [-10,  0, 10, 10, 10, 10,  0,-10],
+    [-10, 10, 10, 10, 10, 10, 10,-10],
+    [-10,  5,  0,  0,  0,  0,  5,-10],
+    [-20,-10,-10,-10,-10,-10,-10,-20],
+  ],
+  r: [
+    [0,  0,  0,  0,  0,  0,  0,  0],
+    [5, 10, 10, 10, 10, 10, 10,  5],
+    [-5,  0,  0,  0,  0,  0,  0, -5],
+    [-5,  0,  0,  0,  0,  0,  0, -5],
+    [-5,  0,  0,  0,  0,  0,  0, -5],
+    [-5,  0,  0,  0,  0,  0,  0, -5],
+    [-5,  0,  0,  0,  0,  0,  0, -5],
+    [0,  0,  0,  5,  5,  0,  0,  0],
+  ],
+  q: [
+    [-20,-10,-10, -5, -5,-10,-10,-20],
+    [-10,  0,  0,  0,  0,  0,  0,-10],
+    [-10,  0,  5,  5,  5,  5,  0,-10],
+    [-5,  0,  5,  5,  5,  5,  0, -5],
+    [0,  0,  5,  5,  5,  5,  0, -5],
+    [-10,  5,  5,  5,  5,  5,  0,-10],
+    [-10,  0,  5,  0,  0,  0,  0,-10],
+    [-20,-10,-10, -5, -5,-10,-10,-20],
+  ],
+  k: [
+    [-30,-40,-40,-50,-50,-40,-40,-30],
+    [-30,-40,-40,-50,-50,-40,-40,-30],
+    [-30,-40,-40,-50,-50,-40,-40,-30],
+    [-30,-40,-40,-50,-50,-40,-40,-30],
+    [-20,-30,-30,-40,-40,-30,-30,-20],
+    [-10,-20,-20,-20,-20,-20,-20,-10],
+    [20, 20,  0,  0,  0,  0, 20, 20],
+    [20, 30, 10,  0,  0, 10, 30, 20],
+  ],
+};
+
+function getPSTScore(type, row, col, color) {
+  const table = PST[type];
+  if (!table) return 0;
+  const r = color === 'w' ? row : 7 - row;
+  return table[r][col];
+}
+
+function evaluateBoard(board) {
+  let score = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const cell = board[r][c];
+      if (!cell) continue;
+      const color = cell[0];
+      const type = cell[1].toLowerCase();
+      const val = (PIECE_VALUES[type] || 0) + getPSTScore(type, r, c, color);
+      score += color === 'w' ? val : -val;
+    }
+  }
+  return score;
+}
+
+function getAllMoves(board, color, lastMove, castlingRights) {
+  const moves = [];
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       const cell = board[r][c];
       if (!cell || cell[0] !== color) continue;
-      const moves = getLegalMoves(board, r, c, lastMove, castlingRights);
-      for (const [tr, tc] of moves) {
-        const newBoard = applyMove(board, [r, c], [tr, tc]);
-        let score = 0;
-        const target = board[tr][tc];
-        if (target) score += (pieceValues[target[1].toLowerCase()] || 0) * 10;
-        // Prefer center
-        score += (3.5 - Math.abs(tc - 3.5)) + (3.5 - Math.abs(tr - 3.5));
-        // Check bonus
-        const opp = color === 'w' ? 'b' : 'w';
-        if (isKingInCheck(newBoard, opp)) score += 5;
-        if (score > bestScore) { bestScore = score; bestMove = { from: [r, c], to: [tr, tc] }; }
+      const legal = getLegalMoves(board, r, c, lastMove, castlingRights);
+      for (const [tr, tc] of legal) {
+        // MVV-LVA ordering: captures first, then by victim value
+        const victim = board[tr][tc];
+        const victimVal = victim ? (PIECE_VALUES[victim[1].toLowerCase()] || 0) : 0;
+        const attackerVal = PIECE_VALUES[cell[1].toLowerCase()] || 0;
+        const priority = victim ? (victimVal * 10 - attackerVal) : -1;
+        moves.push({ from: [r, c], to: [tr, tc], priority });
       }
     }
   }
-  return bestMove;
+  // Sort captures first for better pruning
+  moves.sort((a, b) => b.priority - a.priority);
+  return moves;
+}
+
+function minimax(board, depth, alpha, beta, maximizing, lastMove, castlingRights) {
+  if (depth === 0) return evaluateBoard(board);
+
+  const color = maximizing ? 'w' : 'b';
+  const moves = getAllMoves(board, color, lastMove, castlingRights);
+
+  if (moves.length === 0) {
+    if (isKingInCheck(board, color)) return maximizing ? -50000 : 50000;
+    return 0; // stalemate
+  }
+
+  if (maximizing) {
+    let best = -Infinity;
+    for (const mv of moves) {
+      const nb = applyMove(board, mv.from, mv.to);
+      const score = minimax(nb, depth - 1, alpha, beta, false, { from: mv.from, to: mv.to, piece: board[mv.from[0]][mv.from[1]] }, castlingRights);
+      if (score > best) best = score;
+      if (score > alpha) alpha = score;
+      if (beta <= alpha) break;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (const mv of moves) {
+      const nb = applyMove(board, mv.from, mv.to);
+      const score = minimax(nb, depth - 1, alpha, beta, true, { from: mv.from, to: mv.to, piece: board[mv.from[0]][mv.from[1]] }, castlingRights);
+      if (score < best) best = score;
+      if (score < beta) beta = score;
+      if (beta <= alpha) break;
+    }
+    return best;
+  }
+}
+
+export function getAIMoveSimple(board, color, lastMove = null, castlingRights = null) {
+  const depth = 3;
+  const maximizing = color === 'w';
+  const moves = getAllMoves(board, color, lastMove, castlingRights);
+  if (moves.length === 0) return null;
+
+  // Count pieces to detect opening (many pieces still on board = opening)
+  let pieceCount = 0;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if (board[r][c]) pieceCount++;
+  const isOpening = pieceCount >= 28;
+
+  // In the opening, add randomness to avoid always-same lines
+  const jitter = () => (Math.random() - 0.5) * (isOpening ? 30 : 8);
+
+  let bestScore = maximizing ? -Infinity : Infinity;
+  let bestMoves = [];
+
+  for (const mv of moves) {
+    const nb = applyMove(board, mv.from, mv.to);
+    const raw = minimax(nb, depth - 1, -Infinity, Infinity, !maximizing, { from: mv.from, to: mv.to, piece: board[mv.from[0]][mv.from[1]] }, castlingRights);
+    const score = raw + jitter();
+
+    if (maximizing) {
+      if (score > bestScore) { bestScore = score; bestMoves = [mv]; }
+      else if (Math.abs(score - bestScore) < 10) bestMoves.push(mv);
+    } else {
+      if (score < bestScore) { bestScore = score; bestMoves = [mv]; }
+      else if (Math.abs(score - bestScore) < 10) bestMoves.push(mv);
+    }
+  }
+
+  // Pick randomly among equally good moves to add variety
+  return bestMoves[Math.floor(Math.random() * bestMoves.length)] || moves[0];
 }
