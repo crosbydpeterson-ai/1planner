@@ -20,7 +20,7 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
 
   // Full set generation
   const [setPrompt, setSetPrompt] = useState('');
-  const [setGenLoading, setSetGenLoading] = useState(false);
+  const [fullSetLoading, setFullSetLoading] = useState(false);
   const [setProgress, setSetProgress] = useState([]); // [{petType, label, done, imageUrl}]
   const [setResults, setSetResults] = useState(null); // final array of {petType, imageUrl}
 
@@ -79,7 +79,7 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
     if (!setPrompt.trim()) return;
     if ((pawProfile.tokens || 0) < 75) { alert('Not enough tokens! You need 75 tokens to generate a full set.'); return; }
 
-    setSetGenLoading(true);
+    setFullSetLoading(true);
     setSetResults(null);
 
     // Deduct tokens upfront
@@ -106,7 +106,7 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
     }
 
     setSetResults(results);
-    setSetGenLoading(false);
+    setFullSetLoading(false);
   };
 
   const handleSaveSet = async () => {
@@ -285,11 +285,11 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
               onChange={e => setSetPrompt(e.target.value)}
               placeholder="e.g. galaxy void armor, neon cyberpunk, cherry blossom spirits..."
               className="bg-slate-900 border-amber-700 text-purple-200 placeholder:text-purple-600"
-              disabled={setLoading}
+              disabled={fullSetLoading}
             />
           </div>
 
-          {!setGenLoading && !setResults && (
+          {!fullSetLoading && !setResults && (
             <Button
               onClick={handleGenerateSet}
               disabled={!setPrompt.trim() || (pawProfile.tokens || 0) < 75}
@@ -301,10 +301,10 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
           )}
 
           {/* Progress during generation */}
-          {(setGenLoading || setResults) && setProgress.length > 0 && (
+          {(fullSetLoading || setResults) && setProgress.length > 0 && (
             <div className="flex flex-col gap-2">
               <p className="text-purple-300 text-sm font-medium">
-                {setGenLoading ? 'Generating your set...' : 'Set ready! Preview below:'}
+                {fullSetLoading ? 'Generating your set...' : 'Set ready! Preview below:'}
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {setProgress.map((p) => (
@@ -329,7 +329,7 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
             </div>
           )}
 
-          {setResults && !setGenLoading && (
+          {setResults && !fullSetLoading && (
             <div className="flex gap-2">
               <Button onClick={handleSaveSet} className="flex-1 bg-green-700 hover:bg-green-600 gap-2">
                 <Check className="w-4 h-4" /> Save & Equip Set
@@ -340,7 +340,7 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
             </div>
           )}
 
-          {(pawProfile.tokens || 0) < 75 && !setGenLoading && (
+          {(pawProfile.tokens || 0) < 75 && !fullSetLoading && (
             <p className="text-red-400 text-xs text-center">You need {75 - (pawProfile.tokens || 0)} more tokens</p>
           )}
         </div>
