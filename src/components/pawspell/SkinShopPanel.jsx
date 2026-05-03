@@ -450,6 +450,32 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
               placeholder="e.g. golden fire wings, crystal armor, shadow mist..."
               className="bg-slate-900 border-purple-700 text-purple-200 placeholder:text-purple-600" />
           </div>
+
+          {/* Ability category */}
+          <div>
+            <p className="text-purple-300 text-sm mb-2">Ability category (optional):</p>
+            <div className="flex flex-wrap gap-1.5">
+              <button onClick={() => setGenCategory('')}
+                className={`px-2.5 py-1 rounded-lg text-xs ${!genCategory ? 'bg-purple-700 text-white' : 'bg-purple-950/40 text-purple-400 border border-purple-800'}`}>
+                None
+              </button>
+              {ABILITY_CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => setGenCategory(cat)}
+                  className={`px-2.5 py-1 rounded-lg text-xs capitalize ${genCategory === cat ? 'bg-purple-700 text-white' : 'bg-purple-950/40 text-purple-400 border border-purple-800 hover:border-purple-600'}`}>
+                  {CATEGORY_EMOJIS[cat]} {cat}
+                </button>
+              ))}
+            </div>
+            {genCategory && abilitiesIndex[`${genCategory}/${genPetType}`] && (
+              <div className="mt-2 p-2 bg-purple-950/60 border border-purple-700 rounded-lg text-xs">
+                <p className="text-purple-200 font-bold">
+                  {abilitiesIndex[`${genCategory}/${genPetType}`].icon} {abilitiesIndex[`${genCategory}/${genPetType}`].name}
+                </p>
+                <p className="text-purple-400 mt-0.5">{abilitiesIndex[`${genCategory}/${genPetType}`].description}</p>
+              </div>
+            )}
+          </div>
+
           <Button onClick={handleGenerate} disabled={genLoading || !genPrompt.trim()} className="bg-purple-700 hover:bg-purple-600 gap-2">
             <Wand2 className="w-4 h-4" />
             {genLoading ? 'Generating...' : 'Generate Skin (30 🪙)'}
@@ -483,6 +509,29 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
               className="bg-slate-900 border-amber-700 text-purple-200 placeholder:text-purple-600"
               disabled={fullSetLoading} />
           </div>
+
+          {/* Ability category for full set */}
+          <div>
+            <p className="text-purple-300 text-sm mb-2">Ability category (applies to all 6 pieces):</p>
+            <div className="flex flex-wrap gap-1.5">
+              <button onClick={() => setSetCategory('')} disabled={fullSetLoading}
+                className={`px-2.5 py-1 rounded-lg text-xs ${!setCategory ? 'bg-amber-700 text-white' : 'bg-purple-950/40 text-purple-400 border border-purple-800'}`}>
+                None
+              </button>
+              {ABILITY_CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => setSetCategory(cat)} disabled={fullSetLoading}
+                  className={`px-2.5 py-1 rounded-lg text-xs capitalize ${setCategory === cat ? 'bg-amber-700 text-white' : 'bg-purple-950/40 text-purple-400 border border-purple-800 hover:border-purple-600'}`}>
+                  {CATEGORY_EMOJIS[cat]} {cat}
+                </button>
+              ))}
+            </div>
+            {setCategory && (
+              <p className="text-amber-300/80 text-xs mt-1.5">
+                Each piece in the set will get its {CATEGORY_EMOJIS[setCategory]} {setCategory} ability.
+              </p>
+            )}
+          </div>
+
           {!fullSetLoading && !setResults && (
             <Button onClick={handleGenerateSet} disabled={!setPrompt.trim() || (pawProfile.tokens || 0) < 75}
               className="bg-amber-700 hover:bg-amber-600 gap-2 h-12 text-base">
