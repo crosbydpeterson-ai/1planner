@@ -96,12 +96,16 @@ Deno.serve(async (req) => {
           currentStep: `Saving creature ${i + 1} of ${totalCount} (${concept.name})...`
         });
 
-        const pet = await base44.asServiceRole.entities.CustomPet.create({
-          name: concept.name,
-          description: concept.description,
-          emoji: concept.emoji,
+        // Sanitize rarity (CustomPet allows: common/uncommon/rare/epic/legendary)
+        const VALID_RARITIES = ['common','uncommon','rare','epic','legendary'];
+        const rarity = VALID_RARITIES.includes(concept.rarity) ? concept.rarity : 'rare';
+
+        const petPayload = {
+          name: String(concept.name || 'Unnamed').slice(0, 80),
+          description: String(concept.description || '').slice(0, 500),
+          emoji: concept.emoji || '✨',
           imageUrl,
-          rarity: concept.rarity,
+          rarity,
           xpRequired: 999999,
           isGiftOnly: true,
           theme: concept.theme,
@@ -109,7 +113,9 @@ Deno.serve(async (req) => {
           createdByProfileId: job.startedByProfileId,
           createdSourceTab: 'admin_eggs',
           imageSource: imageUrl ? 'ai_generated' : 'emoji_only'
-        });
+        };
+        if (concept.abilityCategory) petPayload.abilityCategory = concept.abilityCategory;
+        const pet = await base44.asServiceRole.entities.CustomPet.create(petPayload);
 
         const theme = await base44.asServiceRole.entities.CustomTheme.create({
           name: concept.name,

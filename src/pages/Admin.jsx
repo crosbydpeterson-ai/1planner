@@ -62,6 +62,7 @@ import RedeemCodeManager from '@/components/admin/RedeemCodeManager';
 import AdminDMInbox from '@/components/admin/AdminDMInbox';
 import GameBuilderTokenPanel from '@/components/admin/GameBuilderTokenPanel';
 import UserTimeAnalytics from '@/components/admin/UserTimeAnalytics';
+import AbilitiesPanel from '@/components/admin/AbilitiesPanel';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -249,6 +250,7 @@ export default function Admin() {
             <TabsTrigger value="users" className="data-[state=active]:bg-slate-700"><Users className="w-4 h-4 mr-2" />Users ({users.length})</TabsTrigger>
             {can('manageAssignments') && <TabsTrigger value="assignments" className="data-[state=active]:bg-slate-700"><ClipboardList className="w-4 h-4 mr-2" />Assignments ({assignments.length})</TabsTrigger>}
             {can('managePets') && <TabsTrigger value="pets" className="data-[state=active]:bg-slate-700"><Star className="w-4 h-4 mr-2" />Pets ({customPets.length})</TabsTrigger>}
+            {can('managePets') && <TabsTrigger value="abilities" className="data-[state=active]:bg-slate-700">⚡ Abilities</TabsTrigger>}
             {can('manageThemes') && <TabsTrigger value="themes" className="data-[state=active]:bg-slate-700"><Palette className="w-4 h-4 mr-2" />Themes ({customThemes.length})</TabsTrigger>}
             {can('manageCosmetics') && <TabsTrigger value="cosmetics" className="data-[state=active]:bg-slate-700">👒 Cosmetics ({petCosmetics.length})</TabsTrigger>}
             {can('accessAI') && <TabsTrigger value="ai" className="data-[state=active]:bg-slate-700">✨ AI Tools</TabsTrigger>}
@@ -336,6 +338,8 @@ export default function Admin() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{customPets.filter(p => !petSearch || p.name?.toLowerCase().includes(petSearch.toLowerCase()) || p.rarity?.toLowerCase().includes(petSearch.toLowerCase())).map((pet) => (<div key={pet.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700"><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-3">{pet.imageUrl ? <img src={pet.imageUrl} alt={pet.name} className="w-12 h-12 rounded-lg object-cover" /> : <span className="text-4xl">{pet.emoji}</span>}<div><h3 className="font-semibold text-white">{pet.name}</h3><p className="text-xs text-slate-400 capitalize">{pet.rarity} • {pet.isGiftOnly ? 'Gift Only' : `${pet.xpRequired} XP`}</p></div></div><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => setEditingPet(pet)} className="text-slate-400 hover:text-white"><Edit2 className="w-4 h-4" /></Button>{(isSuperAdmin || permissions.deleteAssets) && <Button size="sm" variant="ghost" onClick={async () => { await base44.entities.CustomPet.delete(pet.id); setCustomPets(customPets.filter(p => p.id !== pet.id)); toast.success('Pet deleted'); }} className="text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></Button>}</div></div>{pet.description && <p className="text-sm text-slate-500">{pet.description}</p>}<p className="text-xs text-slate-500 mt-1">By: {pet.createdBy || '—'} • {pet.created_date ? new Date(pet.created_date).toLocaleString() : '—'} • How: {pet.imageSource || '—'} • Tab: {pet.createdSourceTab || '—'}</p></div>))}{customPets.length === 0 && <div className="col-span-full text-center py-8 text-slate-400">No custom pets yet</div>}</div>
           </TabsContent>
+
+          {can('managePets') && <TabsContent value="abilities"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AbilitiesPanel /></div></TabsContent>}
 
           <TabsContent value="seasons">
             <SeasonPassGeneratorPanel adminProfile={adminProfile} customPets={customPets} customThemes={customThemes} onSeasonCreated={(s) => setSeasons([s, ...seasons])} />

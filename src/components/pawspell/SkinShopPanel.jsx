@@ -354,6 +354,11 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
                         <div className="p-2">
                           <p className="text-purple-200 text-xs font-bold truncate">{pet.emoji || '🐾'} {pet.name}</p>
                           <p className="text-purple-500 text-xs capitalize">{pet.rarity}</p>
+                          {pet.abilityCategory && (
+                            <p className="text-purple-300 text-[11px] mt-1 capitalize bg-purple-900/40 border border-purple-700/60 rounded px-1.5 py-0.5 inline-block">
+                              {CATEGORY_EMOJIS[pet.abilityCategory]} {pet.abilityCategory}
+                            </p>
+                          )}
                           <div className="mt-1.5">
                             <p className="text-purple-400 text-xs mb-1">Equip as:</p>
                             <div className="grid grid-cols-3 gap-1">
@@ -392,6 +397,11 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
                           <div className="p-2 space-y-1">
                             <p className="text-purple-200 text-xs font-bold truncate">{skin.name}</p>
                             <p className="text-purple-400 text-xs">{PET_EMOJIS[skin.petType]} {PET_TO_CHESS_NAME[skin.petType]}</p>
+                            {skin.abilityCategory && (
+                              <p className="text-purple-300 text-[11px] capitalize bg-purple-900/40 border border-purple-700/60 rounded px-1.5 py-0.5 inline-block">
+                                {CATEGORY_EMOJIS[skin.abilityCategory]} {skin.abilityCategory}
+                              </p>
+                            )}
                             {equipped ? (
                               <span className="text-xs text-green-400 flex items-center gap-1"><Check className="w-3 h-3" /> Equipped</span>
                             ) : (
