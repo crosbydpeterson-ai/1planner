@@ -131,15 +131,100 @@ export function isKingInCheck(board, color) {
   return false;
 }
 
-export function getLegalMoves(board, row, col, lastMove = null, castlingRights = null) {
+export function getLegalMoves(board, row, col, lastMove = null, castlingRights = null, abilityEffects = null) {
   const cell = board[row][col];
   if (!cell) return [];
-  const { color } = parsePiece(cell);
-  const candidates = getValidMoves(board, row, col, lastMove, castlingRights);
+  const { color, type } = parsePiece(cell);
+
+  // Ability effect restrictions
+  if (abilityEffects && abilityEffects.length > 0) {
+    // Frozen piece can't move
+    if (abilityEffects.some(e => e.type === 'frozen' && e.row === row && e.col === col)) return [];
+    // Bishops static-locked
+    if (type === 'b' && abilityEffects.some(e => e.type === 'staticField' && e.side === color)) return [];
+    // Rooks rooted
+    if (type === 'r' && abilityEffects.some(e => e.type === 'root' && e.targetType === 'r' && e.side === color)) return [];
+    // Time stop — side skips entire turn (block all moves)
+    if (abilityEffects.some(e => e.type === 'timeStop' && e.side === color)) return [];
+  }
+
+  let candidates = getValidMoves(board, row, col, lastMove, castlingRights);
+
+  // Apply lava walls / blocked / frostPath squares
+  if (abilityEffects && abilityEffects.length > 0) {
+    candidates = candidates.filter(([tr, tc]) => {
+      // Cannot land on or cross a lava wall file
+      for (const e of abilityEffects) {
+        if (e.type === 'lavaWall') {
+          const minC = Math.min(col, tc);
+          const maxC = Math.max(col, tc);
+          if (e.file >= minC && e.file <= maxC) return false;
+        }
+        if (e.type === 'blocked' && e.row === tr && e.col === tc) return false;
+        if (e.type === 'frostPath' && e.row === tr && e.col === tc) return false;
+      }
+      return true;
+    });
+
+    // Glacier — can move at most 1 square
+    if (abilityEffects.some(e => e.type === 'glacier' && e.side === color)) {
+      candidates = candidates.filter(([tr, tc]) => Math.max(Math.abs(tr - row), Math.abs(tc - col)) <= 1);
+    }
+    // Slow — half range (round down)
+    if (abilityEffects.some(e => e.type === 'slow' && e.side === color)) {
+      candidates = candidates.filter(([tr, tc]) => {
+        const dist = Math.max(Math.abs(tr - row), Math.abs(tc - col));
+        return dist <= Math.max(1, Math.floor(dist / 2) || 1);
+      });
+    }
+    // Sanctuary — cannot capture pieces adjacent to opposing king
+    const sanctuary = abilityEffects.find(e => e.type === 'sanctuary');
+    if (sanctuary && sanctuary.side !== color) {
+      // Find their king
+      let kr = -1, kc = -1;
+      const oppKing = sanctuary.side + 'K';
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if (board[r][c] === oppKing) { kr = r; kc = c; }
+      if (kr >= 0) {
+        candidates = candidates.filter(([tr, tc]) => {
+          const target = board[tr][tc];
+          if (!target || target[0] === color) return true;
+          const adj = Math.max(Math.abs(tr - kr), Math.abs(tc - kc)) <= 1;
+          return !adj;
+        });
+      }
+    }
+    // Blessing — protected piece cannot be captured
+    candidates = candidates.filter(([tr, tc]) => {
+      const target = board[tr][tc];
+      if (!target || target[0] === color) return true;
+      return !abilityEffects.some(e => e.type === 'blessing' && e.row === tr && e.col === tc);
+    });
+    // Vanish — vanished piece cannot be targeted
+    candidates = candidates.filter(([tr, tc]) => {
+      const target = board[tr][tc];
+      if (!target || target[0] === color) return true;
+      return !abilityEffects.some(e => e.type === 'vanish' && e.row === tr && e.col === tc);
+    });
+    // Depth — only specific piece type can capture king
+    const depth = abilityEffects.find(e => e.type === 'depth');
+    if (depth && depth.side !== color) {
+      candidates = candidates.filter(([tr, tc]) => {
+        const target = board[tr][tc];
+        if (!target || target[0] === color) return true;
+        if (target[1].toLowerCase() === 'k' && target[0] === depth.side) {
+          return type === depth.allowedCapturer;
+        }
+        return true;
+      });
+    }
+  }
+
   return candidates.filter(([tr, tc]) => {
     const newBoard = cloneBoard(board);
     newBoard[tr][tc] = newBoard[row][col];
     newBoard[row][col] = null;
+    // Storm Eye — king cannot be put in check (i.e. ignore check rule)
+    if (abilityEffects?.some(e => e.type === 'stormEye' && e.side === color)) return true;
     return !isKingInCheck(newBoard, color);
   });
 }
@@ -171,12 +256,12 @@ export function applyMove(board, from, to, promotionPiece = null) {
   return newBoard;
 }
 
-export function hasAnyLegalMoves(board, color, lastMove = null, castlingRights = null) {
+export function hasAnyLegalMoves(board, color, lastMove = null, castlingRights = null, abilityEffects = null) {
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       const cell = board[r][c];
       if (cell && cell[0] === color) {
-        if (getLegalMoves(board, r, c, lastMove, castlingRights).length > 0) return true;
+        if (getLegalMoves(board, r, c, lastMove, castlingRights, abilityEffects).length > 0) return true;
       }
     }
   }

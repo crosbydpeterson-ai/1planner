@@ -26,17 +26,31 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
   const [genPrompt, setGenPrompt] = useState('');
   const [genLoading, setGenLoading] = useState(false);
   const [genResult, setGenResult] = useState(null);
+  const [genCategory, setGenCategory] = useState('');
 
   // Full set generation
   const [setPrompt, setSetPrompt] = useState('');
   const [fullSetLoading, setFullSetLoading] = useState(false);
   const [setProgress, setSetProgress] = useState([]);
   const [setResults, setSetResults] = useState(null);
+  const [setCategory, setSetCategory] = useState('');
+
+  // Ability lookup table (loaded once)
+  const [abilitiesIndex, setAbilitiesIndex] = useState({});
 
   useEffect(() => {
     loadShop();
     loadCollection();
+    // Load ability index once
+    base44.entities.PawSpellAbility.list().then(all => {
+      const idx = {};
+      for (const a of all) idx[`${a.category}/${a.pieceType}`] = a;
+      setAbilitiesIndex(idx);
+    });
   }, []);
+
+  const ABILITY_CATEGORIES = ['fire','ice','storm','nature','shadow','light','ocean','chaos','time','crystal'];
+  const CATEGORY_EMOJIS = { fire:'🔥', ice:'❄️', storm:'⚡', nature:'🌿', shadow:'🌑', light:'☀️', ocean:'🌊', chaos:'🎲', time:'⏳', crystal:'💎' };
 
   // ── SHOP ──────────────────────────────────────────────────────────────────
   const loadShop = async () => {
@@ -158,6 +172,7 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
       name: skinName, petType: genResult.petType, imageUrl: genResult.imageUrl,
       prompt: genResult.prompt, createdByProfileId: pawProfile.profileId,
       createdByUsername: pawProfile.username, price: 50, isPublic: false,
+      abilityCategory: genCategory || undefined,
     });
     const newOwned = [...(pawProfile.ownedSkinIds || []), skin.id];
     await base44.entities.PawSpellProfile.update(pawProfile.id, { ownedSkinIds: newOwned });
@@ -208,6 +223,7 @@ export default function SkinShopPanel({ pawProfile, onBack, onProfileUpdate }) {
         name: `${setName} — ${PET_TO_CHESS_NAME[r.petType]}`, petType: r.petType,
         imageUrl: r.imageUrl, prompt: setPrompt, createdByProfileId: pawProfile.profileId,
         createdByUsername: pawProfile.username, price: 75, isPublic: false,
+        abilityCategory: setCategory || undefined,
       });
       newOwnedIds.push(skin.id);
     }

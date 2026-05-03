@@ -33,13 +33,21 @@ export default function PawBoard({
   gemProgress = {},
   equippedSkins = {}, skinImages = {},
   onMove, lastMove = null, castlingRights = null,
-  disabled = false
+  disabled = false,
+  abilityEffects = [],
+  abilityTargetMode = false,   // when true, board accepts target click instead of move
+  onAbilityTarget = null,      // (row, col) => void
+  abilityTargetSquares = null, // optional array of valid target squares to highlight
 }) {
   const [selected, setSelected] = useState(null);
   const [hoveredPiece, setHoveredPiece] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
 
   const handleSquareClick = (row, col) => {
+    if (abilityTargetMode) {
+      if (onAbilityTarget) onAbilityTarget(row, col);
+      return;
+    }
     if (disabled) return;
     const cell = board[row][col];
 
@@ -55,12 +63,20 @@ export default function PawBoard({
 
     if (cell && cell[0] === myColor && cell[0] === currentTurn) {
       setSelected([row, col]);
-      setLegalMoves(getLegalMoves(board, row, col, lastMove, castlingRights));
+      setLegalMoves(getLegalMoves(board, row, col, lastMove, castlingRights, abilityEffects));
     } else {
       setSelected(null);
       setLegalMoves([]);
     }
   };
+
+  const isAbilityTargetSquare = (row, col) =>
+    abilityTargetSquares && abilityTargetSquares.some(([r, c]) => r === row && c === col);
+
+  const getEffectsAt = (row, col) => (abilityEffects || []).filter(e =>
+    (e.row === row && e.col === col) ||
+    (e.type === 'lavaWall' && e.file === col)
+  );
 
   const handleHover = (row, col) => {
     const cell = board[row][col];
@@ -110,15 +126,37 @@ export default function PawBoard({
               if (lastMv) bg = isLight ? '#4c1d6e' : '#3b1558';
               if (selected_) bg = '#7c3aed';
 
+              const effects = getEffectsAt(ri, ci);
+              const isFrozen = effects.some(e => e.type === 'frozen');
+              const isLavaWall = effects.some(e => e.type === 'lavaWall');
+              const isBurnTrap = effects.some(e => e.type === 'burnTrap');
+              const isFrostPath = effects.some(e => e.type === 'frostPath');
+              const isBlocked = effects.some(e => e.type === 'blocked');
+              const isBlessing = effects.some(e => e.type === 'blessing');
+              const isVanish = effects.some(e => e.type === 'vanish');
+              const isGemLock = effects.some(e => e.type === 'gemLock');
+              const isAbTarget = isAbilityTargetSquare(ri, ci);
+
+              if (isLavaWall) bg = '#7c2d12';
+              if (isFrostPath) bg = '#0e7490';
+              if (isAbTarget) bg = '#facc15';
+
               return (
                 <div
                   key={ci}
-                  className="relative cursor-pointer transition-colors"
+                  className={`relative cursor-pointer transition-colors ${isAbTarget ? 'ring-2 ring-yellow-300 z-10' : ''}`}
                   style={{ width: 52, height: 52, background: bg }}
                   onClick={() => handleSquareClick(ri, ci)}
                   onMouseEnter={() => handleHover(ri, ci)}
                   onMouseLeave={() => setHoveredPiece(null)}
                 >
+                  {/* Ability effect overlays */}
+                  {isFrozen && <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-lg z-15" style={{ background: 'rgba(56,189,248,0.25)' }}>❄️</div>}
+                  {isBurnTrap && <div className="absolute bottom-0 right-0 text-xs z-15 pointer-events-none">🔥</div>}
+                  {isBlocked && <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-base z-15" style={{ background: 'rgba(34,197,94,0.25)' }}>🌿</div>}
+                  {isBlessing && <div className="absolute top-0 left-0 text-xs z-15 pointer-events-none">✨</div>}
+                  {isVanish && <div className="absolute inset-0 pointer-events-none z-15" style={{ background: 'rgba(0,0,0,0.4)' }} />}
+                  {isGemLock && <div className="absolute top-0 left-0 text-[10px] z-15 pointer-events-none">🔒</div>}
                   {/* Legal move indicator */}
                   {legal && (
                     <div className={`absolute inset-0 flex items-center justify-center z-10 pointer-events-none`}>

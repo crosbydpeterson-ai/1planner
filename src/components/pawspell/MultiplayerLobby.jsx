@@ -42,6 +42,9 @@ export default function MultiplayerLobby({ profile, onJoinRoom, onBack }) {
         white: { kingSide: true, queenSide: true },
         black: { kingSide: true, queenSide: true },
       },
+      hostEquippedSkins: profile.equippedSkins || {},
+      abilitiesUsed: { w: false, b: false },
+      abilityEffects: [],
     });
     setWaitingRoom(room);
     setLoading(false);
@@ -66,6 +69,7 @@ export default function MultiplayerLobby({ profile, onJoinRoom, onBack }) {
       guestProfileId: profile.profileId,
       guestUsername: profile.username,
       status: 'active',
+      guestEquippedSkins: profile.equippedSkins || {},
     });
     setLoading(false);
     onJoinRoom({ ...room, ...updated }, 'b');

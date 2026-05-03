@@ -99,6 +99,22 @@
         "emoji_only"
       ],
       "description": "How the image was provided"
+    },
+    "abilityCategory": {
+      "type": "string",
+      "enum": [
+        "fire",
+        "ice",
+        "storm",
+        "nature",
+        "shadow",
+        "light",
+        "ocean",
+        "chaos",
+        "time",
+        "crystal"
+      ],
+      "description": "PawSpell ability category. When this pet is equipped as a piece skin, it gives that piece an ability."
     }
   },
   "required": [
