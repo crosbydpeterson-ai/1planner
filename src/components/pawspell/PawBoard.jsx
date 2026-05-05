@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { getLegalMoves, parsePiece } from '@/lib/pawSpellLogic';
 import { PIECE_TO_PET, PET_EMOJIS, PET_TO_CHESS_NAME, PET_DESCRIPTIONS } from '@/lib/pawSpellConstants';
 
@@ -32,15 +32,17 @@ export default function PawBoard({
   board, currentTurn, myColor, gems = [],
   gemProgress = {},
   equippedSkins = {}, skinImages = {},
+  oppAbilities = {}, // abilities indexed by pieceType for opponent
   onMove, lastMove = null, castlingRights = null,
   disabled = false,
   abilityEffects = [],
-  abilityTargetMode = false,   // when true, board accepts target click instead of move
-  onAbilityTarget = null,      // (row, col) => void
-  abilityTargetSquares = null, // optional array of valid target squares to highlight
+  abilityTargetMode = false,
+  onAbilityTarget = null,
+  abilityTargetSquares = null,
 }) {
   const [selected, setSelected] = useState(null);
   const [hoveredPiece, setHoveredPiece] = useState(null);
+  const [hoveredOppMoves, setHoveredOppMoves] = useState([]); // legal moves of hovered opp piece
   const [legalMoves, setLegalMoves] = useState([]);
 
   const handleSquareClick = (row, col) => {
@@ -78,18 +80,31 @@ export default function PawBoard({
     (e.type === 'lavaWall' && e.file === col)
   );
 
+  const oppColor = myColor === 'w' ? 'b' : 'w';
+
   const handleHover = (row, col) => {
     const cell = board[row][col];
     if (cell) {
-      const { type } = parsePiece(cell);
+      const { color, type } = parsePiece(cell);
       const petType = PIECE_TO_PET[type];
-      setHoveredPiece({ petType, cell, row, col });
+      const isOpp = color === oppColor;
+      const ability = isOpp ? (oppAbilities[petType] || null) : null;
+      setHoveredPiece({ petType, cell, row, col, isOpp, ability });
+      // Show where the opponent piece can move
+      if (isOpp) {
+        const moves = getLegalMoves(board, row, col, lastMove, castlingRights, abilityEffects);
+        setHoveredOppMoves(moves);
+      } else {
+        setHoveredOppMoves([]);
+      }
     } else {
       setHoveredPiece(null);
+      setHoveredOppMoves([]);
     }
   };
 
   const isLegalTarget = (row, col) => legalMoves.some(([r, c]) => r === row && c === col);
+  const isOppMove = (row, col) => hoveredOppMoves.some(([r, c]) => r === row && c === col);
   const isSelected = (row, col) => selected && selected[0] === row && selected[1] === col;
   const isLastMove = (row, col) => lastMove && (
     (lastMove.from[0] === row && lastMove.from[1] === col) ||
@@ -100,12 +115,27 @@ export default function PawBoard({
   return (
     <div className="flex flex-col items-center gap-2">
       {/* Hover tooltip */}
-      <div className="h-10 flex items-center">
+      <div className="min-h-10 flex items-center justify-center mb-1">
         {hoveredPiece && (
-          <div className="bg-purple-900/80 backdrop-blur text-white rounded-xl px-4 py-1 text-xs text-center border border-purple-500/40">
-            <span className="font-bold text-purple-200">{PET_TO_CHESS_NAME[hoveredPiece.petType]}</span>
-            <span className="mx-2 text-purple-400">·</span>
-            <span className="text-purple-300">{PET_DESCRIPTIONS[hoveredPiece.petType]}</span>
+          <div className="bg-purple-900/90 backdrop-blur text-white rounded-xl px-4 py-2 text-xs text-center border border-purple-500/40 max-w-xs">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <span className="font-bold text-purple-200">{PET_TO_CHESS_NAME[hoveredPiece.petType]}</span>
+              <span className="text-purple-400">·</span>
+              <span className="text-purple-300">{PET_DESCRIPTIONS[hoveredPiece.petType]}</span>
+            </div>
+            {hoveredPiece.isOpp && hoveredPiece.ability && (
+              <div className="mt-1 pt-1 border-t border-purple-700/50">
+                <span className="text-red-300 font-semibold">
+                  {hoveredPiece.ability.icon || '⚡'} {hoveredPiece.ability.name}
+                </span>
+                <span className="text-purple-400 ml-1">· {hoveredPiece.ability.description}</span>
+              </div>
+            )}
+            {hoveredPiece.isOpp && hoveredOppMoves.length > 0 && (
+              <div className="mt-0.5 text-orange-300 text-[10px]">
+                {hoveredOppMoves.length} possible move{hoveredOppMoves.length !== 1 ? 's' : ''}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -136,15 +166,17 @@ export default function PawBoard({
               const isVanish = effects.some(e => e.type === 'vanish');
               const isGemLock = effects.some(e => e.type === 'gemLock');
               const isAbTarget = isAbilityTargetSquare(ri, ci);
+              const isOppThreat = isOppMove(ri, ci);
 
               if (isLavaWall) bg = '#7c2d12';
               if (isFrostPath) bg = '#0e7490';
+              if (isOppThreat) bg = isLight ? '#7c2020' : '#5c1010';
               if (isAbTarget) bg = '#facc15';
 
               return (
                 <div
                   key={ci}
-                  className={`relative cursor-pointer transition-colors ${isAbTarget ? 'ring-2 ring-yellow-300 z-10' : ''}`}
+                  className={`relative cursor-pointer transition-colors ${isAbTarget ? 'ring-2 ring-yellow-300 z-10' : ''} ${isOppThreat && !isAbTarget ? 'ring-1 ring-red-500/60' : ''}`}
                   style={{ width: 52, height: 52, background: bg }}
                   onClick={() => handleSquareClick(ri, ci)}
                   onMouseEnter={() => handleHover(ri, ci)}
@@ -177,7 +209,7 @@ export default function PawBoard({
                       <div className="absolute top-0 right-0 z-20 pointer-events-none flex flex-col items-end">
                         <span className="text-sm leading-none">💎</span>
                         {turns > 0 && (
-                          <span className={`text-[9px] font-bold leading-none px-0.5 rounded ${prog.color === 'w' ? 'text-yellow-300' : 'text-purple-300'}`}>
+                          <span className={`text-[9px] font-bold leading-none px-0.5 rounded ${prog.side === 'w' ? 'text-yellow-300' : 'text-purple-300'}`}>
                             {turns}/3
                           </span>
                         )}

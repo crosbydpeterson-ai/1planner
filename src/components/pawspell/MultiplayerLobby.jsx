@@ -43,6 +43,7 @@ export default function MultiplayerLobby({ profile, onJoinRoom, onBack }) {
         black: { kingSide: true, queenSide: true },
       },
       hostEquippedSkins: profile.equippedSkins || {},
+      hostPetSkinMap: profile.petSkinMap || {},
       abilitiesUsed: { w: false, b: false },
       abilityEffects: [],
     });
@@ -70,6 +71,7 @@ export default function MultiplayerLobby({ profile, onJoinRoom, onBack }) {
       guestUsername: profile.username,
       status: 'active',
       guestEquippedSkins: profile.equippedSkins || {},
+      guestPetSkinMap: profile.petSkinMap || {},
     });
     setLoading(false);
     onJoinRoom({ ...room, ...updated }, 'b');

@@ -33,6 +33,7 @@ export default function PawSpellGame() {
   const [castlingRights, setCastlingRights] = useState(INITIAL_CASTLING);
   const [gems, setGems] = useState([]);
   const [gemsCollected, setGemsCollected] = useState({ w: 0, b: 0 });
+  const [gemProgress, setGemProgress] = useState({}); // { "row,col": { side, turns } }
   const [gameOver, setGameOver] = useState(null); // { winner, reason }
   const [aiThinking, setAiThinking] = useState(false);
   const [room, setRoom] = useState(null);
@@ -88,24 +89,27 @@ export default function PawSpellGame() {
     }
   };
 
+  const loadSkinsForSide = async (equipped, petSkinMap) => {
+    const skinIds = Object.values(equipped).filter(Boolean);
+    const images = {};
+    for (const sid of skinIds) {
+      if (sid.startsWith('pet_')) {
+        if (petSkinMap[sid]) images[sid] = petSkinMap[sid];
+      } else {
+        const skins = await base44.entities.PawSpellSkin.filter({ id: sid });
+        if (skins[0]) images[sid] = skins[0].imageUrl;
+      }
+    }
+    return images;
+  };
+
   const loadEquippedSkins = async (pp) => {
     const equipped = pp.equippedSkins || {};
     const petSkinMap = pp.petSkinMap || {};
-    setEquippedSkins({ w: equipped, b: {} });
-    // Load skin images — handle both real skins and pet_ prefixed pseudo-skins
-    const skinIds = Object.values(equipped).filter(Boolean);
-    if (skinIds.length > 0) {
-      const images = {};
-      for (const sid of skinIds) {
-        if (sid.startsWith('pet_')) {
-          if (petSkinMap[sid]) images[sid] = petSkinMap[sid];
-        } else {
-          const skins = await base44.entities.PawSpellSkin.filter({ id: sid });
-          if (skins[0]) images[sid] = skins[0].imageUrl;
-        }
-      }
-      setSkinImages(images);
-    }
+    // My color gets my skins, opponent color starts empty (loaded when room loads in multi)
+    setEquippedSkins(prev => ({ ...prev, [myColorParam]: equipped }));
+    const images = await loadSkinsForSide(equipped, petSkinMap);
+    setSkinImages(prev => ({ ...prev, ...images }));
     // Resolve my abilities
     const myAbilities = await resolveAbilitiesForSide(equipped, petSkinMap);
     setAbilities(prev => ({ ...prev, [myColorParam]: myAbilities }));
@@ -132,12 +136,17 @@ export default function PawSpellGame() {
     setWinConditionOverride(r.winConditionOverride || null);
     if (r.winner) setGameOver({ winner: r.winner, reason: r.winReason });
 
-    // Load opponent abilities (only need to do this once)
+    // Load opponent skins + abilities (only need to do this once — check if already loaded)
     const oppColor = myColorParam === 'w' ? 'b' : 'w';
     if (Object.keys(abilities[oppColor]).length === 0) {
       const oppEquipped = oppColor === 'w' ? r.hostEquippedSkins : r.guestEquippedSkins;
+      const oppPetSkinMap = oppColor === 'w' ? (r.hostPetSkinMap || {}) : (r.guestPetSkinMap || {});
       if (oppEquipped) {
-        const oppAbils = await resolveAbilitiesForSide(oppEquipped, {});
+        // Load opponent skin images
+        const oppImages = await loadSkinsForSide(oppEquipped, oppPetSkinMap);
+        setSkinImages(prev => ({ ...prev, ...oppImages }));
+        setEquippedSkins(prev => ({ ...prev, [oppColor]: oppEquipped }));
+        const oppAbils = await resolveAbilitiesForSide(oppEquipped, oppPetSkinMap);
         setAbilities(prev => ({ ...prev, [oppColor]: oppAbils }));
       }
     }
@@ -296,12 +305,20 @@ export default function PawSpellGame() {
     // Tick effects (decrement timers) — happens at start of NEXT player's turn
     const tickedEffects = tickEffects(abilityEffects);
 
-    // --- Instant gem collection: step on gem = collect (respects gemLock & gemShield) ---
+    // --- 3-turn gem standing mechanic ---
     let newGems = [...gems];
     let newGemsCollected = { ...gemsCollected };
+    let newGemProgress = { ...gemProgress };
+
+    // Clear progress for gem squares the moving piece left
+    const fromKey = `${from[0]},${from[1]}`;
+    if (newGemProgress[fromKey]?.side === currentTurn) {
+      delete newGemProgress[fromKey];
+    }
 
     const gemOnDestIdx = newGems.findIndex(g => g.row === to[0] && g.col === to[1]);
     if (gemOnDestIdx !== -1) {
+      const destKey = `${to[0]},${to[1]}`;
       const isLocked = tickedEffects.some(e => e.type === 'gemLock' && e.row === to[0] && e.col === to[1] && e.side === currentTurn);
       const oppSide = currentTurn === 'w' ? 'b' : 'w';
       const shielded = tickedEffects.some(e => e.type === 'gemShield' && e.side === oppSide) &&
@@ -314,13 +331,30 @@ export default function PawSpellGame() {
         })();
 
       if (!isLocked && !shielded) {
-        newGemsCollected[currentTurn] = (newGemsCollected[currentTurn] || 0) + 1;
-        newGems = newGems.filter((_, i) => i !== gemOnDestIdx);
-        // Keep at least 2 gems on the board
-        if (newGems.length < 2) {
-          const extra = generateGemPositions(1);
-          newGems.push(...extra);
+        const existing = newGemProgress[destKey];
+        const turns = (existing?.side === currentTurn ? existing.turns : 0) + 1;
+        if (turns >= 3) {
+          // Collected!
+          newGemsCollected[currentTurn] = (newGemsCollected[currentTurn] || 0) + 1;
+          newGems = newGems.filter((_, i) => i !== gemOnDestIdx);
+          delete newGemProgress[destKey];
+          if (newGems.length < 2) {
+            const extra = generateGemPositions(1);
+            newGems.push(...extra);
+          }
+        } else {
+          newGemProgress[destKey] = { side: currentTurn, turns };
         }
+      }
+    }
+
+    // Also reset gem progress for any gem square where a different piece now occupies it
+    // (opponent stepped on a gem square we were working on)
+    for (const key of Object.keys(newGemProgress)) {
+      const [gr, gc] = key.split(',').map(Number);
+      const occupant = newBoard[gr]?.[gc];
+      if (occupant && occupant[0] !== newGemProgress[key].side) {
+        delete newGemProgress[key];
       }
     }
 
@@ -382,6 +416,7 @@ export default function PawSpellGame() {
     setCastlingRights(newRights);
     setGems(newGems);
     setGemsCollected(newGemsCollected);
+    setGemProgress(newGemProgress);
     setAbilityEffects(finalEffects);
 
     if (mode === 'multi' && room) {
@@ -413,7 +448,7 @@ export default function PawSpellGame() {
 
     let newGems = [...curGems];
     let newGemsCollected = { ...curCollected };
-    // AI: instant gem collection
+    // AI: instant gem collection (AI doesn't wait 3 turns — keeps it challenging)
     const aiGemIdx = newGems.findIndex(g => g.row === aiMove.to[0] && g.col === aiMove.to[1]);
     if (aiGemIdx !== -1) {
       newGemsCollected[turn] = (newGemsCollected[turn] || 0) + 1;
@@ -522,8 +557,10 @@ export default function PawSpellGame() {
             currentTurn={currentTurn}
             myColor={myColor}
             gems={gems}
+            gemProgress={gemProgress}
             equippedSkins={equippedSkins}
             skinImages={skinImages}
+            oppAbilities={abilities[myColor === 'w' ? 'b' : 'w'] || {}}
             onMove={(from, to) => processMove(from, to)}
             lastMove={lastMove}
             castlingRights={castlingRights}
