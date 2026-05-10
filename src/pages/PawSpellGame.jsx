@@ -48,6 +48,7 @@ export default function PawSpellGame() {
   const [abilityMessage, setAbilityMessage] = useState(null);
   const pollRef = useRef(null);
   const workerRef = useRef(null);
+  const processAIMoveRef = useRef(null);
 
   // Lazily create the AI web worker
   const getWorker = () => {
@@ -153,7 +154,22 @@ export default function PawSpellGame() {
   };
 
   const startPolling = (rid) => {
-    pollRef.current = setInterval(() => loadRoom(rid), 2000);
+    pollRef.current = setInterval(async () => {
+      const rooms = await base44.entities.PawSpellRoom.filter({ id: rid });
+      if (!rooms[0]) return;
+      const r = deserializeRoom(rooms[0]);
+      // Skip if it's still our turn (we just moved, don't overwrite local state)
+      if (r.currentTurn === myColorParam) return;
+      setRoom(r);
+      setBoard(r.board || INITIAL_BOARD);
+      setCurrentTurn(r.currentTurn || 'w');
+      setLastMove(r.lastMove || null);
+      setGems(r.gems || []);
+      setGemsCollected(r.gemsCollected || { w: 0, b: 0 });
+      setAbilityEffects(r.abilityEffects || []);
+      setAbilitiesUsed(r.abilitiesUsed || { w: false, b: false });
+      if (r.winner) setGameOver({ winner: r.winner, reason: r.winReason });
+    }, 2000);
   };
 
   const updateCastlingRights = (piece, from, rights) => {
@@ -433,12 +449,16 @@ export default function PawSpellGame() {
       const worker = getWorker();
       worker.onmessage = async (e) => {
         const aiMove = e.data.move;
-        if (aiMove) await processAIMove(newBoard, aiMove, move, newRights, newGems, newGemsCollected, nextTurn);
+        if (aiMove) await processAIMoveRef.current(newBoard, aiMove, move, newRights, newGems, newGemsCollected, nextTurn);
         setAiThinking(false);
       };
       worker.postMessage({ board: newBoard, color: nextTurn, lastMove: move, castlingRights: newRights });
     }
-  }, [board, currentTurn, castlingRights, gems, gemsCollected, mode, room, myColor, abilityEffects, winConditionOverride]);
+  }, [board, currentTurn, castlingRights, gems, gemsCollected, gemProgress, mode, room, myColor, abilityEffects, abilityEffects, winConditionOverride, previousBoard, pawProfile, lastMove, abilitiesUsed, pendingAbility]);
+
+  processAIMoveRef.current = async (curBoard, aiMove, lastMv, rights, curGems, curCollected, turn) => {
+    return processAIMove(curBoard, aiMove, lastMv, rights, curGems, curCollected, turn);
+  };
 
   const processAIMove = async (curBoard, aiMove, lastMv, rights, curGems, curCollected, turn) => {
     const piece = curBoard[aiMove.from[0]][aiMove.from[1]];

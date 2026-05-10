@@ -180,7 +180,7 @@ export default function PawBoard({
                   style={{ width: 52, height: 52, background: bg }}
                   onClick={() => handleSquareClick(ri, ci)}
                   onMouseEnter={() => handleHover(ri, ci)}
-                  onMouseLeave={() => setHoveredPiece(null)}
+                  onMouseLeave={() => { setHoveredPiece(null); setHoveredOppMoves([]); }}
                 >
                   {/* Ability effect overlays */}
                   {isFrozen && <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-lg z-15" style={{ background: 'rgba(56,189,248,0.25)' }}>❄️</div>}
