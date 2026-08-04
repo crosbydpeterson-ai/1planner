@@ -104,7 +104,7 @@ export default function Kitchen() {
     );
   }
 
-  if (lockState.isLocked) return <LockedOverlay featureLabel="Kitchen" message={lockState.message} lockPageConfig={lockState.lockPageConfig} />;
+  if (lockState.isLocked) return <LockedOverlay featureLabel="Kitchen" message={lockState.message} lockPageConfig={lockState.lockPageConfig} featureKey="kitchen" />;
 
   if (!profile) return null;
 

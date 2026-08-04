@@ -4,15 +4,15 @@ import { checkFeatureLock, parseLockSettings } from '@/lib/featureLocks';
 
 /**
  * Hook to check if a feature is locked for the current user.
- * Returns { loading, isLocked, lockPageConfig, message }
+ * Returns { loading, isLocked, lockPageConfig, message, profileId, featureKey }
  */
 export function useFeatureLock(featureKey) {
-  const [state, setState] = useState({ loading: true, isLocked: false, lockPageConfig: null, message: '' });
+  const [state, setState] = useState({ loading: true, isLocked: false, lockPageConfig: null, message: '', profileId: null, featureKey });
 
   useEffect(() => {
     (async () => {
       const profileId = localStorage.getItem('quest_profile_id');
-      if (!profileId) { setState({ loading: false, isLocked: false, lockPageConfig: null, message: '' }); return; }
+      if (!profileId) { setState({ loading: false, isLocked: false, lockPageConfig: null, message: '', profileId: null, featureKey }); return; }
 
       try {
         const [profiles, settings] = await Promise.all([
@@ -22,10 +22,10 @@ export function useFeatureLock(featureKey) {
         const profile = profiles[0];
         const { locks, lockPageConfig } = parseLockSettings(settings);
         const { locked, message } = checkFeatureLock(locks, profile, featureKey);
-        setState({ loading: false, isLocked: locked, lockPageConfig, message });
+        setState({ loading: false, isLocked: locked, lockPageConfig, message, profileId, featureKey });
       } catch (e) {
         console.error('Lock check error:', e);
-        setState({ loading: false, isLocked: false, lockPageConfig: null, message: '' });
+        setState({ loading: false, isLocked: false, lockPageConfig: null, message: '', profileId, featureKey });
       }
     })();
   }, [featureKey]);

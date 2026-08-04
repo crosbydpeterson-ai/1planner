@@ -57,7 +57,7 @@ export default function PawSpell() {
     );
   }
 
-  if (lockState.isLocked) return <LockedOverlay featureLabel="Paw & Spell" message={lockState.message} lockPageConfig={lockState.lockPageConfig} />;
+  if (lockState.isLocked) return <LockedOverlay featureLabel="Paw & Spell" message={lockState.message} lockPageConfig={lockState.lockPageConfig} featureKey="pawspell" />;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 p-4 pb-24">

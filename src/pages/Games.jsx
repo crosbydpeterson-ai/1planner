@@ -191,7 +191,7 @@ export default function Games() {
     );
   }
   if (lockState.isLocked) {
-    return <LockedOverlay featureLabel="Game Studio" message={lockState.message} lockPageConfig={lockState.lockPageConfig} />;
+    return <LockedOverlay featureLabel="Game Studio" message={lockState.message} lockPageConfig={lockState.lockPageConfig} featureKey="games" />;
   }
 
   return (

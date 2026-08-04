@@ -35,7 +35,7 @@ export default function Events() {
     );
   }
 
-  if (lockState.isLocked) return <LockedOverlay featureLabel="Events" message={lockState.message} lockPageConfig={lockState.lockPageConfig} />;
+  if (lockState.isLocked) return <LockedOverlay featureLabel="Events" message={lockState.message} lockPageConfig={lockState.lockPageConfig} featureKey="events" />;
 
   return (
     <div className="min-h-screen pb-20">

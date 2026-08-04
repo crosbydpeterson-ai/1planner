@@ -117,7 +117,7 @@ export default function Eggs() {
     </div>
   );
 
-  if (lockState.isLocked) return <LockedOverlay featureLabel="Eggs" message={lockState.message} lockPageConfig={lockState.lockPageConfig} />;
+  if (lockState.isLocked) return <LockedOverlay featureLabel="Eggs" message={lockState.message} lockPageConfig={lockState.lockPageConfig} featureKey="eggs" />;
 
   return (
     <div className="min-h-screen pb-24 px-4 pt-4">
