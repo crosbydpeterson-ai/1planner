@@ -57,71 +57,81 @@ export default function Marketplace() {
       setProfile(p);
 
       // Admin check (Crosby, first profile, or admin rank)
-      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
       const nameIsCrosby = (typeof p.username === 'string' && p.username.toLowerCase() === 'crosby');
-      const admin = nameIsCrosby || (allProfiles[0] && allProfiles[0].id === p.id) || p.rank === 'admin' || p.rank === 'super_admin';
+      const admin = nameIsCrosby || p.rank === 'admin' || p.rank === 'super_admin';
       setIsAdmin(!!admin);
 
-      // Load locks
-      const settings = await base44.entities.AppSetting.list();
+      // Load locks + active listings in parallel
+      const [settings, allActive] = await Promise.all([
+        base44.entities.AppSetting.list(),
+        base44.entities.MarketplaceListing.filter({ status: 'active' }, '-created_date', 100),
+      ]);
+
       const fl = settings.find(s => s.key === 'feature_locks');
       setLocks(fl ? fl.value : null);
+      setActiveListings(allActive);
 
-      // Build custom pet name map for this user's pets
+      // Collect all IDs we need to look up
       const customIds = collectCustomIds(Array.isArray(p.unlockedPets) ? p.unlockedPets : []);
-      if (customIds.length > 0) {
-        const results = await Promise.all(customIds.map(id => base44.entities.CustomPet.filter({ id })));
-        const map = {};
-        results.forEach(arr => { if (arr?.[0]) map[arr[0].id] = arr[0]; });
-        setCustomNameMap(map);
-      } else {
-        setCustomNameMap({});
-      }
-
-      const allActive = await base44.entities.MarketplaceListing.filter({ status: 'active' }, '-created_date', 100);
-
-      // Load seller profiles and their equipped booth skins
       const sellerIds = Array.from(new Set(allActive.map(l => l.sellerProfileId)));
-      const sellers = await Promise.all(sellerIds.map(id => base44.entities.UserProfile.filter({ id })));
+
+      // Batch fetch: one list() call per entity instead of N individual filter() calls
+      const [allProfiles, allBoothSkins, allCosmetics, allCustomPets] = await Promise.all([
+        base44.entities.UserProfile.list('created_date', 200),
+        base44.entities.BoothSkin.list('-created_date', 100),
+        base44.entities.PetCosmetic.list('-created_date', 200),
+        customIds.length > 0 ? base44.entities.CustomPet.list('-created_date', 200) : Promise.resolve([]),
+      ]);
+
+      // First-profile admin check (from the sorted list)
+      if (!admin && allProfiles[0] && allProfiles[0].id === p.id) setIsAdmin(true);
+
+      // Custom pet name map
+      const cMap = {};
+      if (customIds.length > 0) {
+        const idSet = new Set(customIds);
+        allCustomPets.forEach(cp => { if (idSet.has(cp.id)) cMap[cp.id] = cp; });
+      }
+      setCustomNameMap(cMap);
+
+      // Seller map + collect booth skin IDs
       const sMap = {};
       const skinIds = new Set();
-      sellers.forEach(arr => {
-        if (arr?.[0]) {
-          sMap[arr[0].id] = arr[0];
-          if (arr[0].equippedBoothSkinId) skinIds.add(arr[0].equippedBoothSkinId);
+      const sellerIdSet = new Set(sellerIds);
+      allProfiles.forEach(sp => {
+        if (sellerIdSet.has(sp.id)) {
+          sMap[sp.id] = sp;
+          if (sp.equippedBoothSkinId) skinIds.add(sp.equippedBoothSkinId);
         }
       });
       setSellersMap(sMap);
-      let kMap = {};
-      if (skinIds.size > 0) {
-        const skins = await Promise.all(Array.from(skinIds).map(id => base44.entities.BoothSkin.filter({ id })));
-        skins.forEach(arr => { if (arr?.[0]) kMap[arr[0].id] = arr[0]; });
-      }
+
+      // Booth skin map
+      const kMap = {};
+      const skinIdSet = new Set(skinIds);
+      allBoothSkins.forEach(bs => { if (skinIdSet.has(bs.id)) kMap[bs.id] = bs; });
       setSkinsMap(kMap);
 
-      // Build booth backgrounds from sellers' background cosmetics (fallback if no booth skin)
-      let bgMap = {};
-      try {
-        const sellerProfiles = Object.values(sMap);
-        const allCosmeticIds = Array.from(new Set(sellerProfiles.flatMap(sp => sp.equippedCosmetics || [])));
-        if (allCosmeticIds.length > 0) {
-          const cosmeticsArr = await Promise.all(allCosmeticIds.map(id => base44.entities.PetCosmetic.filter({ id })));
-          const cosmeticsMap = {};
-          cosmeticsArr.forEach(arr => { if (arr?.[0]) cosmeticsMap[arr[0].id] = arr[0]; });
-          sellerProfiles.forEach(sp => {
-            const bgId = (sp.equippedCosmetics || []).find(cid => cosmeticsMap[cid]?.cosmeticType === 'background' && cosmeticsMap[cid]?.imageUrl);
-            if (bgId) bgMap[sp.id] = cosmeticsMap[bgId].imageUrl;
-          });
-        }
-      } catch (e) { /* ignore */ }
+      // Booth backgrounds from sellers' background cosmetics
+      const bgMap = {};
+      const cosmeticIdSet = new Set();
+      Object.values(sMap).forEach(sp => {
+        (sp.equippedCosmetics || []).forEach(cid => cosmeticIdSet.add(cid));
+      });
+      const cosmeticsMap = {};
+      allCosmetics.forEach(c => { if (cosmeticIdSet.has(c.id)) cosmeticsMap[c.id] = c; });
+      Object.values(sMap).forEach(sp => {
+        const bgId = (sp.equippedCosmetics || []).find(cid => cosmeticsMap[cid]?.cosmeticType === 'background' && cosmeticsMap[cid]?.imageUrl);
+        if (bgId) bgMap[sp.id] = cosmeticsMap[bgId].imageUrl;
+      });
       setSellerBgMap(bgMap);
 
-      setActiveListings(allActive);
-
-      const mine = await base44.entities.MarketplaceListing.filter({ sellerProfileId: p.id, status: 'active' }, '-created_date', 100);
+      // My listings + incoming offers
+      const [mine, incoming] = await Promise.all([
+        base44.entities.MarketplaceListing.filter({ sellerProfileId: p.id, status: 'active' }, '-created_date', 100),
+        base44.entities.TradeOffer.filter({ receiverProfileId: p.id, status: 'pending' }, '-created_date', 50),
+      ]);
       setMyListings(mine);
-
-      const incoming = await base44.entities.TradeOffer.filter({ receiverProfileId: p.id, status: 'pending' }, '-created_date', 50);
       setIncomingOffers(incoming);
     } finally {
       setLoading(false);
