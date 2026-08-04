@@ -1,0 +1,46 @@
+{
+  "name": "TradeOffer",
+  "type": "object",
+  "properties": {
+    "listingId": {
+      "type": "string",
+      "description": "Optional related listing id if offer was made on a listing"
+    },
+    "offererProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the person sending the offer"
+    },
+    "receiverProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the person receiving the offer"
+    },
+    "offeredPetId": {
+      "type": "string",
+      "description": "Pet ID offered by the offerer"
+    },
+    "requestedPetId": {
+      "type": "string",
+      "description": "Pet ID requested from the receiver"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "rejected",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "message": {
+      "type": "string",
+      "description": "Optional note from the offerer"
+    }
+  },
+  "required": [
+    "offererProfileId",
+    "receiverProfileId",
+    "offeredPetId",
+    "requestedPetId"
+  ]
+}

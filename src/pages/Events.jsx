@@ -3,10 +3,13 @@ import { base44 } from '@/api/base44Client';
 import GlobalEventWidget from '@/components/events/GlobalEventWidget';
 import EventManager from '@/components/events/EventManager';
 import { Loader2 } from 'lucide-react';
+import LockedOverlay from '@/components/common/LockedOverlay';
+import { useFeatureLock } from '@/hooks/useFeatureLock';
 
 export default function Events() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const lockState = useFeatureLock('events');
 
   useEffect(() => {
     loadProfile();
@@ -24,13 +27,15 @@ export default function Events() {
     setLoading(false);
   };
 
-  if (loading) {
+  if (loading || lockState.loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
       </div>
     );
   }
+
+  if (lockState.isLocked) return <LockedOverlay featureLabel="Events" message={lockState.message} lockPageConfig={lockState.lockPageConfig} />;
 
   return (
     <div className="min-h-screen pb-20">

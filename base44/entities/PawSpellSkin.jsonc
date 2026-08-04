@@ -1,6 +1,10 @@
 {
   "name": "PawSpellSkin",
   "type": "object",
+  "required": [
+    "name",
+    "petType"
+  ],
   "properties": {
     "name": {
       "type": "string",
@@ -53,10 +57,22 @@
     "sourcePetId": {
       "type": "string",
       "description": "CustomPet ID if this is a pet-derived skin"
+    },
+    "abilityCategory": {
+      "type": "string",
+      "description": "Ability category determining which ability this skin has in game",
+      "enum": [
+        "fire",
+        "ice",
+        "storm",
+        "nature",
+        "shadow",
+        "light",
+        "ocean",
+        "chaos",
+        "time",
+        "crystal"
+      ]
     }
-  },
-  "required": [
-    "name",
-    "petType"
-  ]
+  }
 }

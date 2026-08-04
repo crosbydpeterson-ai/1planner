@@ -1,0 +1,88 @@
+{
+  "name": "GlobalEvent",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Event name (e.g. The World Tree)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short event description"
+    },
+    "theme": {
+      "type": "string",
+      "enum": [
+        "world_tree",
+        "community_chest",
+        "monster_hunter",
+        "magic_jar",
+        "crystal_cavern",
+        "volcano_forge",
+        "ocean_depths",
+        "star_constellation",
+        "ancient_ruins",
+        "sky_fortress",
+        "dragons_hoard",
+        "starlight_festival",
+        "elemental_conflux"
+      ],
+      "default": "magic_jar",
+      "description": "Visual theme identifier"
+    },
+    "totalXPGoal": {
+      "type": "number",
+      "description": "Total XP needed to complete the event"
+    },
+    "currentGlobalXP": {
+      "type": "number",
+      "default": 0,
+      "description": "Current accumulated XP from all players"
+    },
+    "tiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "xpThreshold": {
+            "type": "number"
+          },
+          "rewardType": {
+            "type": "string",
+            "enum": [
+              "xp",
+              "coins",
+              "pet",
+              "theme",
+              "title",
+              "magic_egg"
+            ]
+          },
+          "rewardValue": {
+            "type": "string"
+          },
+          "rewardName": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Reward tiers"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": false
+    },
+    "startDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "endDate": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "name",
+    "totalXPGoal"
+  ]
+}

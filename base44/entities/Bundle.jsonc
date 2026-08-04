@@ -1,0 +1,70 @@
+{
+  "name": "Bundle",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Bundle name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Bundle description"
+    },
+    "itemIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of ShopItem IDs in this bundle"
+    },
+    "originalPrice": {
+      "type": "number",
+      "description": "Sum of individual item prices"
+    },
+    "bundlePrice": {
+      "type": "number",
+      "description": "Discounted bundle price"
+    },
+    "discountPercent": {
+      "type": "number",
+      "description": "Discount percentage"
+    },
+    "isLimited": {
+      "type": "boolean",
+      "default": true,
+      "description": "Is this a limited-time bundle"
+    },
+    "stockLimit": {
+      "type": "number",
+      "description": "Total stock available (null = unlimited)"
+    },
+    "stockRemaining": {
+      "type": "number",
+      "description": "Stock remaining"
+    },
+    "startDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When bundle becomes available"
+    },
+    "endDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When bundle expires"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Is bundle currently for sale"
+    },
+    "imageUrl": {
+      "type": "string",
+      "description": "Bundle image URL"
+    }
+  },
+  "required": [
+    "name",
+    "itemIds",
+    "bundlePrice"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "name": "CustomTheme",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Theme name"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "common",
+        "uncommon",
+        "rare",
+        "epic",
+        "legendary"
+      ]
+    },
+    "xpRequired": {
+      "type": "number",
+      "description": "XP needed to unlock"
+    },
+    "description": {
+      "type": "string"
+    },
+    "primaryColor": {
+      "type": "string",
+      "description": "Primary color hex or CSS gradient string"
+    },
+    "secondaryColor": {
+      "type": "string",
+      "description": "Secondary color hex or CSS gradient string"
+    },
+    "accentColor": {
+      "type": "string",
+      "description": "Accent color hex or CSS gradient string"
+    },
+    "bgColor": {
+      "type": "string",
+      "description": "Background color hex or CSS gradient string"
+    }
+  },
+  "required": [
+    "name",
+    "rarity",
+    "xpRequired",
+    "primaryColor",
+    "secondaryColor",
+    "accentColor",
+    "bgColor"
+  ]
+}

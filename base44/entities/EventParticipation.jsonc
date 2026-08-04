@@ -1,0 +1,39 @@
+{
+  "name": "EventParticipation",
+  "type": "object",
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "description": "AdminEvent ID"
+    },
+    "userId": {
+      "type": "string",
+      "description": "User email/id from UserProfile.userId"
+    },
+    "eventStartTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Start time of the event run (from AdminEvent.startTime)"
+    },
+    "seen": {
+      "type": "boolean",
+      "default": false,
+      "description": "Has the user seen the event in this run"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Did the user complete the event UI"
+    },
+    "seenAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When user first saw the event"
+    }
+  },
+  "required": [
+    "eventId",
+    "userId",
+    "eventStartTime"
+  ]
+}

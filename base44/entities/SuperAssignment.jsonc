@@ -1,0 +1,88 @@
+{
+  "name": "SuperAssignment",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Title of the super assignment"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description/instructions"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "poll",
+        "short_answer",
+        "suggestion_box"
+      ],
+      "description": "Type of super assignment"
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Poll options (required for poll)"
+    },
+    "recipientsScope": {
+      "type": "string",
+      "enum": [
+        "everyone",
+        "class",
+        "users"
+      ],
+      "default": "everyone",
+      "description": "Targeting scope"
+    },
+    "subject": {
+      "type": "string",
+      "enum": [
+        "everyone",
+        "math",
+        "reading"
+      ],
+      "default": "everyone",
+      "description": "When recipientsScope=class, which subject"
+    },
+    "targetTeacher": {
+      "type": "string",
+      "description": "When recipientsScope=class, the teacher name"
+    },
+    "specificUserProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "When recipientsScope=users, list of UserProfile IDs"
+    },
+    "allowAnonymous": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, responses may be anonymous (mainly for suggestion_box)"
+    },
+    "enablePetGenerator": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true (suggestion_box only), admin can generate pets from responses"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "startDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "endDate": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "title",
+    "type",
+    "recipientsScope"
+  ]
+}

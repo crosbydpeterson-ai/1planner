@@ -1,0 +1,33 @@
+{
+  "name": "AgentUsage",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "description": "User email/id"
+    },
+    "agentName": {
+      "type": "string",
+      "description": "Agent identifier (e.g., guide_chatbot)"
+    },
+    "period": {
+      "type": "string",
+      "description": "Usage period key, e.g. 2026-W08 (ISO week)"
+    },
+    "messageCount": {
+      "type": "number",
+      "default": 0,
+      "description": "Messages sent in this period"
+    },
+    "lastMessageAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last message timestamp"
+    }
+  },
+  "required": [
+    "userId",
+    "agentName",
+    "period"
+  ]
+}

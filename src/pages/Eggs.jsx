@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import EggCard from '@/components/eggs/EggCard';
 import EggOpenAnimation from '@/components/eggs/EggOpenAnimation';
 import { PETS } from '@/components/quest/PetCatalog';
+import LockedOverlay from '@/components/common/LockedOverlay';
+import { useFeatureLock } from '@/hooks/useFeatureLock';
 
 export default function Eggs() {
   const navigate = useNavigate();
@@ -19,12 +21,14 @@ export default function Eggs() {
   const [openingEgg, setOpeningEgg] = useState(null); // { egg, drop }
   const [customPets, setCustomPets] = useState([]);
   const [customThemes, setCustomThemes] = useState([]);
+  const lockState = useFeatureLock('eggs');
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) { navigate(createPageUrl('Home')); return; }
+    if (lockState.loading) return;
     const [profiles, eggs, drops, pets, themes] = await Promise.all([
       base44.entities.UserProfile.filter({ id: profileId }),
       base44.entities.LootEgg.filter({ isActive: true }),
@@ -107,11 +111,13 @@ export default function Eggs() {
     eggGroups[d.lootEggId].push(d);
   });
 
-  if (loading) return (
+  if (loading || lockState.loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
     </div>
   );
+
+  if (lockState.isLocked) return <LockedOverlay featureLabel="Eggs" message={lockState.message} lockPageConfig={lockState.lockPageConfig} />;
 
   return (
     <div className="min-h-screen pb-24 px-4 pt-4">

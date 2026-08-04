@@ -1,0 +1,55 @@
+{
+  "name": "RewardLink",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Link name/description"
+    },
+    "rewardType": {
+      "type": "string",
+      "enum": [
+        "xp",
+        "coins",
+        "magic_egg",
+        "pet",
+        "theme",
+        "title"
+      ],
+      "description": "Type of reward"
+    },
+    "rewardValue": {
+      "type": "number",
+      "description": "Amount for XP/coins"
+    },
+    "rewardData": {
+      "type": "object",
+      "description": "Additional data for pet/theme/title rewards"
+    },
+    "maxUses": {
+      "type": "number",
+      "description": "Max number of uses (null = unlimited)"
+    },
+    "usedBy": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of user IDs who used this link"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expiration date/time"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether link is active"
+    }
+  },
+  "required": [
+    "name",
+    "rewardType"
+  ]
+}

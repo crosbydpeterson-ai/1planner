@@ -10,6 +10,7 @@ import GamePlayDialog from '@/components/games/GamePlayDialog';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import GameCreationToggle from '@/components/games/GameCreationToggle';
 import RedeemCodeInput from '@/components/redeem/RedeemCodeInput';
+import { useFeatureLock } from '@/hooks/useFeatureLock';
 
 export default function Games() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function Games() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [creationDisabled, setCreationDisabled] = useState(false);
   const [creationSettingId, setCreationSettingId] = useState(null);
+  const lockState = useFeatureLock('games');
 
   const profileId = localStorage.getItem('quest_profile_id');
 
@@ -181,18 +183,15 @@ export default function Games() {
     );
   }
 
-  const userLock = locks?.users?.[profileId]?.games;
-  const globalLock = locks?.global?.games;
-  const mathLock = profile ? locks?.classes?.math?.[profile.mathTeacher]?.games : false;
-  const readingLock = profile ? locks?.classes?.reading?.[profile.readingTeacher]?.games : false;
-  const hasFeatureUnlock = (profile?.unlockedFeatures || []).includes('games');
-  const isLocked = !isAdmin && !hasFeatureUnlock && (
-    (typeof userLock === 'object' ? userLock.locked : !!userLock) ||
-    !!globalLock || !!mathLock || !!readingLock
-  );
-  const lockMsg = typeof userLock === 'object' ? (userLock.message || '') : '';
-  if (isLocked) {
-    return <LockedOverlay featureLabel="Game Studio" message={lockMsg || "An Admin or Mod has locked this feature."} />;
+  if (lockState.loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+  if (lockState.isLocked) {
+    return <LockedOverlay featureLabel="Game Studio" message={lockState.message} lockPageConfig={lockState.lockPageConfig} />;
   }
 
   return (

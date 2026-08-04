@@ -1,0 +1,53 @@
+{
+  "name": "Season",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Season name"
+    },
+    "startDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "endDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "rewards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "xpRequired": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "pet",
+              "theme",
+              "title"
+            ]
+          },
+          "value": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Season rewards"
+    }
+  },
+  "required": [
+    "name",
+    "startDate",
+    "endDate"
+  ]
+}

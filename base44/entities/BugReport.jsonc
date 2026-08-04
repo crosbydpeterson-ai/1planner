@@ -1,0 +1,41 @@
+{
+  "name": "BugReport",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Short bug description"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed bug description"
+    },
+    "reporterProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of reporter"
+    },
+    "reporterUsername": {
+      "type": "string",
+      "description": "Username of reporter"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "in_progress",
+        "resolved",
+        "wont_fix"
+      ],
+      "default": "open",
+      "description": "Bug status"
+    },
+    "adminResponse": {
+      "type": "string",
+      "description": "Admin reply to this bug report"
+    }
+  },
+  "required": [
+    "title",
+    "description"
+  ]
+}

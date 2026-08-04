@@ -1,0 +1,33 @@
+{
+  "name": "SuperAssignmentResponse",
+  "type": "object",
+  "properties": {
+    "assignmentId": {
+      "type": "string",
+      "description": "SuperAssignment ID"
+    },
+    "userProfileId": {
+      "type": "string",
+      "description": "Responder UserProfile ID"
+    },
+    "userEmail": {
+      "type": "string",
+      "description": "Responder email (redundant for convenience)"
+    },
+    "isAnonymous": {
+      "type": "boolean",
+      "default": false
+    },
+    "selectedOption": {
+      "type": "string",
+      "description": "Chosen option for poll"
+    },
+    "content": {
+      "type": "string",
+      "description": "Text for short_answer or suggestion_box"
+    }
+  },
+  "required": [
+    "assignmentId"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "MarketplaceListing",
+  "type": "object",
+  "properties": {
+    "sellerProfileId": {
+      "type": "string",
+      "description": "Seller's UserProfile ID"
+    },
+    "sellerUserId": {
+      "type": "string",
+      "description": "Seller's userId (redundant convenience)"
+    },
+    "petId": {
+      "type": "string",
+      "description": "ID of the pet being sold"
+    },
+    "priceCoins": {
+      "type": "number",
+      "description": "Price in Quest Coins"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "sold",
+        "cancelled"
+      ],
+      "default": "active",
+      "description": "Listing status"
+    },
+    "purchasedByProfileId": {
+      "type": "string",
+      "description": "Buyer UserProfile ID when sold"
+    }
+  },
+  "required": [
+    "sellerProfileId",
+    "petId",
+    "priceCoins",
+    "status"
+  ]
+}

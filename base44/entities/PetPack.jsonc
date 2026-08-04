@@ -1,0 +1,69 @@
+{
+  "name": "PetPack",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Pack display name"
+    },
+    "emoji": {
+      "type": "string",
+      "description": "Pack icon emoji"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Cost in Quest Coins"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "common",
+        "uncommon",
+        "rare",
+        "epic",
+        "legendary",
+        "mythic"
+      ],
+      "description": "Highest rarity available in this pack"
+    },
+    "rarityTable": {
+      "type": "object",
+      "description": "Probability table e.g. {Common: 60, Uncommon: 30, Rare: 10}"
+    },
+    "speciesPool": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of pet species names in this pack"
+    },
+    "isAdminOnly": {
+      "type": "boolean",
+      "default": false,
+      "description": "Only admins can stock this pack in the shop"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this pack is currently available"
+    },
+    "isSeasonal": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a seasonal/event pack"
+    },
+    "eventKey": {
+      "type": "string",
+      "description": "Associated event key e.g. snowStorm, spookyFog"
+    },
+    "description": {
+      "type": "string",
+      "description": "Pack flavour description shown in shop"
+    }
+  },
+  "required": [
+    "name",
+    "cost",
+    "speciesPool"
+  ]
+}

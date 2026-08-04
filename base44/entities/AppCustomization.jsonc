@@ -1,0 +1,32 @@
+{
+  "name": "AppCustomization",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "loading_screen",
+        "background"
+      ],
+      "description": "Customization type"
+    },
+    "image": {
+      "type": "string",
+      "description": "Image URL from UploadFile"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this customization is active"
+    },
+    "uploaded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Upload timestamp"
+    }
+  },
+  "required": [
+    "type",
+    "image"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "name": "BoothSkin",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Booth banner name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description"
+    },
+    "imageUrl": {
+      "type": "string",
+      "description": "Banner image URL (1024x512 recommended)"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "common",
+        "uncommon",
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "default": "rare"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "ai",
+        "uploaded"
+      ],
+      "description": "How the image was provided"
+    },
+    "isTradable": {
+      "type": "boolean",
+      "default": true
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "imageUrl"
+  ]
+}

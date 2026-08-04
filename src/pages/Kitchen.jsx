@@ -10,6 +10,8 @@ import VendingMachine from '@/components/kitchen/VendingMachine';
 import FoodFeedingModal from '@/components/student/FoodFeedingModal';
 import GlassIcon from '@/components/ui/GlassIcon';
 import { toast } from 'sonner';
+import LockedOverlay from '@/components/common/LockedOverlay';
+import { useFeatureLock } from '@/hooks/useFeatureLock';
 
 export default function Kitchen() {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ export default function Kitchen() {
   const [foodItems, setFoodItems] = useState([]);
   const [foodInventory, setFoodInventory] = useState([]);
   const [showFeeding, setShowFeeding] = useState(false);
+  const lockState = useFeatureLock('kitchen');
 
   useEffect(() => {
     loadData();
@@ -28,6 +31,7 @@ export default function Kitchen() {
   const loadData = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) { navigate(createPageUrl('Home')); return; }
+    if (lockState.loading) return;
 
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
@@ -92,13 +96,15 @@ export default function Kitchen() {
   };
 
 
-  if (loading) {
+  if (loading || lockState.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
       </div>
     );
   }
+
+  if (lockState.isLocked) return <LockedOverlay featureLabel="Kitchen" message={lockState.message} lockPageConfig={lockState.lockPageConfig} />;
 
   if (!profile) return null;
 

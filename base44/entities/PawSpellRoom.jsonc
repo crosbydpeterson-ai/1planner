@@ -60,6 +60,22 @@
     },
     "guestEquippedSkins": {
       "type": "object"
+    },
+    "abilitiesUsed": {
+      "type": "object",
+      "description": "{ w: true/false, b: true/false } \u2014 whether each side has used their ability"
+    },
+    "abilityEffects": {
+      "type": "object",
+      "description": "Active ability effects on the board \u2014 frozen squares, blocked files, burn traps etc"
+    },
+    "pendingAbility": {
+      "type": "object",
+      "description": "Ability waiting for player to select a target { side, category, pieceType, abilityName }"
+    },
+    "winConditionOverride": {
+      "type": "string",
+      "description": "Override normal win condition e.g. crystal_fortress_5gems or entropy_random"
     }
   },
   "required": [

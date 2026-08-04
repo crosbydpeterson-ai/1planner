@@ -8,6 +8,8 @@ import SkinShopPanel from '@/components/pawspell/SkinShopPanel';
 import { PET_EMOJIS, PET_TYPES, PET_TO_CHESS_NAME } from '@/lib/pawSpellConstants';
 import { Swords, Users, ShoppingBag, Trophy, Gem, BookOpen } from 'lucide-react';
 import GameRulesModal from '@/components/pawspell/GameRulesModal';
+import LockedOverlay from '@/components/common/LockedOverlay';
+import { useFeatureLock } from '@/hooks/useFeatureLock';
 
 export default function PawSpell() {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ export default function PawSpell() {
   const [showRules, setShowRules] = useState(false);
   const [pawProfile, setPawProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const lockState = useFeatureLock('pawspell');
 
   const profileId = localStorage.getItem('quest_profile_id');
 
@@ -46,13 +49,15 @@ export default function PawSpell() {
     navigate(`/PawSpell/Game?mode=multi&room=${room.id}&color=${color}`);
   };
 
-  if (loading) {
+  if (loading || lockState.loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full" />
       </div>
     );
   }
+
+  if (lockState.isLocked) return <LockedOverlay featureLabel="Paw & Spell" message={lockState.message} lockPageConfig={lockState.lockPageConfig} />;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 p-4 pb-24">

@@ -23,64 +23,71 @@
     },
     "isActive": {
       "type": "boolean",
+      "default": false
+    },
+    "musicTrack": {
+      "type": "string",
+      "enum": [
+        "none",
+        "upbeat",
+        "spooky",
+        "epic",
+        "chill",
+        "chaos",
+        "disco",
+        "battle"
+      ],
+      "default": "none",
+      "description": "Background music theme that plays for all users during this event"
+    },
+    "musicEnabled": {
+      "type": "boolean",
       "default": false,
-      "description": "Whether event is currently active"
+      "description": "Whether music plays during this event"
     },
     "config": {
       "type": "object",
       "properties": {
         "bubbleCount": {
-          "type": "number",
-          "description": "Number of bubbles for bubble_pop"
+          "type": "number"
         },
         "eggChance": {
-          "type": "number",
-          "description": "Chance to win magic egg (0-100)"
+          "type": "number"
         },
         "xpBoostMultiplier": {
-          "type": "number",
-          "description": "XP multiplier for xp_boost events"
+          "type": "number"
         },
         "duration": {
-          "type": "number",
-          "description": "Event duration in minutes"
+          "type": "number"
         },
         "totalHits": {
-          "type": "number",
-          "description": "Hits required to break the pinata"
+          "type": "number"
         },
         "currentHits": {
           "type": "number",
-          "default": 0,
-          "description": "Current shared hit count"
+          "default": 0
         },
         "prizePool": {
           "type": "array",
           "items": {
             "type": "string"
-          },
-          "description": "Prizes awarded when pinata breaks (e.g. loot_egg, coins_100, magic_egg)"
+          }
         },
         "theme": {
-          "type": "string",
-          "description": "Visual theme for chaos events (e.g. disco)"
+          "type": "string"
         },
         "pinataHits": {
-          "type": "number",
-          "description": "Alias for totalHits used in chaos_night config"
+          "type": "number"
         }
-      },
-      "description": "Event-specific configuration"
+      }
     },
     "startTime": {
       "type": "string",
-      "format": "date-time",
-      "description": "When event started"
+      "format": "date-time"
     },
     "endTime": {
       "type": "string",
-      "format": "date-time",
-      "description": "When event ends"
+      "format": "date-time"
     }
   },
   "required": [

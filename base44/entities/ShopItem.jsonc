@@ -1,0 +1,78 @@
+{
+  "name": "ShopItem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Item name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Item description"
+    },
+    "itemType": {
+      "type": "string",
+      "enum": [
+        "pet",
+        "theme",
+        "title",
+        "xp_booster",
+        "magic_egg"
+      ],
+      "description": "Type of item"
+    },
+    "itemData": {
+      "type": "object",
+      "description": "Item-specific data (pet ID, theme colors, etc.)"
+    },
+    "price": {
+      "type": "number",
+      "description": "Price in Quest Coins"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "common",
+        "uncommon",
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "description": "Item rarity"
+    },
+    "isLimited": {
+      "type": "boolean",
+      "default": false,
+      "description": "Is this a limited-time item"
+    },
+    "stockLimit": {
+      "type": "number",
+      "description": "Total stock available (null = unlimited)"
+    },
+    "stockRemaining": {
+      "type": "number",
+      "description": "Stock remaining"
+    },
+    "startDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When item becomes available"
+    },
+    "endDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When item expires"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Is item currently for sale"
+    }
+  },
+  "required": [
+    "name",
+    "itemType",
+    "price",
+    "rarity"
+  ]
+}

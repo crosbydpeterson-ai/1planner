@@ -1,0 +1,48 @@
+{
+  "name": "DailyRewardProgress",
+  "type": "object",
+  "properties": {
+    "userProfileId": {
+      "type": "string",
+      "description": "UserProfile ID"
+    },
+    "streakCount": {
+      "type": "number",
+      "default": 0,
+      "description": "Consecutive days claimed"
+    },
+    "lastClaimDate": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO date of last claim (YYYY-MM-DD)"
+    },
+    "currentIndex": {
+      "type": "number",
+      "default": 0,
+      "description": "Index for streak schedules (0-based)"
+    },
+    "eligibleDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Date made eligible to claim via assignment completion"
+    },
+    "eligible": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user can claim today"
+    },
+    "wheelLastSpinDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Last date user spun the wheel"
+    },
+    "bonusWheelTokens": {
+      "type": "number",
+      "default": 0,
+      "description": "Admin-granted bonus wheel spins available"
+    }
+  },
+  "required": [
+    "userProfileId"
+  ]
+}

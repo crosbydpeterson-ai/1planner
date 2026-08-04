@@ -1,0 +1,23 @@
+{
+  "name": "GlobalEventClaim",
+  "type": "object",
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "description": "GlobalEvent ID"
+    },
+    "userProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the claimer"
+    },
+    "tierIndex": {
+      "type": "number",
+      "description": "Index of the tier that was claimed"
+    }
+  },
+  "required": [
+    "eventId",
+    "userProfileId",
+    "tierIndex"
+  ]
+}

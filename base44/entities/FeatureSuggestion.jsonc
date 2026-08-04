@@ -1,0 +1,42 @@
+{
+  "name": "FeatureSuggestion",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Feature idea title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed feature description"
+    },
+    "reporterProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of suggester"
+    },
+    "reporterUsername": {
+      "type": "string",
+      "description": "Username of suggester"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "considering",
+        "planned",
+        "completed",
+        "declined"
+      ],
+      "default": "submitted",
+      "description": "Feature suggestion status"
+    },
+    "adminResponse": {
+      "type": "string",
+      "description": "Admin reply to this feature suggestion"
+    }
+  },
+  "required": [
+    "title",
+    "description"
+  ]
+}

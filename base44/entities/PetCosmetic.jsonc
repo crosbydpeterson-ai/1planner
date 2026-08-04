@@ -1,0 +1,60 @@
+{
+  "name": "PetCosmetic",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Cosmetic name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Cosmetic description"
+    },
+    "cosmeticType": {
+      "type": "string",
+      "enum": [
+        "hat",
+        "glasses",
+        "accessory",
+        "background"
+      ],
+      "description": "Type of cosmetic"
+    },
+    "imageUrl": {
+      "type": "string",
+      "description": "SVG or PNG image URL (transparent background)"
+    },
+    "price": {
+      "type": "number",
+      "default": 50,
+      "description": "Price in Quest Coins"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "common",
+        "uncommon",
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "description": "Cosmetic rarity"
+    },
+    "isLimited": {
+      "type": "boolean",
+      "default": false,
+      "description": "Is this a limited-time item"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Is cosmetic available for purchase"
+    }
+  },
+  "required": [
+    "name",
+    "cosmeticType",
+    "price",
+    "rarity"
+  ]
+}

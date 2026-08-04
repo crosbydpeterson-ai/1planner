@@ -235,6 +235,9 @@ export default function Layout({ children, currentPageName }) {
     if (item.name === 'Rewards') return !isFeatureLockedForUser('pets');
     if (item.name === 'Season') return !isFeatureLockedForUser('battlePass');
     if (item.name === 'Games') return !isFeatureLockedForUser('games');
+    if (item.name === 'Events') return !isFeatureLockedForUser('events');
+    if (item.name === 'MarketplaceHub') return !isFeatureLockedForUser('market');
+    if (item.name === 'UpdatesHub') return !isFeatureLockedForUser('community');
     return true;
   });
 

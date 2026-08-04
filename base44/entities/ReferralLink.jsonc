@@ -1,0 +1,29 @@
+{
+  "name": "ReferralLink",
+  "type": "object",
+  "properties": {
+    "referrerId": {
+      "type": "string",
+      "description": "User profile ID of person who created link"
+    },
+    "usedBy": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of user IDs who used this link"
+    },
+    "maxUses": {
+      "type": "number",
+      "description": "Max number of uses (null = unlimited for admin links)"
+    },
+    "isAdminLink": {
+      "type": "boolean",
+      "default": false,
+      "description": "Admin-created links can have unlimited uses"
+    }
+  },
+  "required": [
+    "referrerId"
+  ]
+}

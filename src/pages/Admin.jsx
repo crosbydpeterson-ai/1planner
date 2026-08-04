@@ -63,6 +63,7 @@ import AdminDMInbox from '@/components/admin/AdminDMInbox';
 import GameBuilderTokenPanel from '@/components/admin/GameBuilderTokenPanel';
 import UserTimeAnalytics from '@/components/admin/UserTimeAnalytics';
 import AbilitiesPanel from '@/components/admin/AbilitiesPanel';
+import FeatureLockManager from '@/components/admin/FeatureLockManager';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -392,7 +393,7 @@ export default function Admin() {
           {(isSuperAdmin || can('manageSuperAssignments')) && <TabsContent value="super_assignments"><SuperAssignmentsAnalytics /></TabsContent>}
           {(isSuperAdmin || can('banFlagUsers')) && <TabsContent value="bans_flags"><BansAndFlagsPanel users={users} setUsers={setUsers} /></TabsContent>}
 
-          <TabsContent value="locks"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><h3 className="text-white font-semibold mb-3">Global Feature Locks</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{['shop','market','battlePass','pets','xpGain'].map((k) => (<label key={k} className="flex items-center gap-2 bg-slate-700/60 rounded-lg px-3 py-2 text-sm text-slate-200"><input type="checkbox" checked={!!featureLocks.global?.[k]} onChange={(e) => setFeatureLocks({ ...featureLocks, global: { ...(featureLocks.global || {}), [k]: e.target.checked } })} />{k}</label>))}</div><div className="flex justify-end mt-4"><Button onClick={saveFeatureLocks} className="bg-emerald-600">Save Locks</Button></div></div></TabsContent>
+          <TabsContent value="locks"><FeatureLockManager featureLocks={featureLocks} setFeatureLocks={setFeatureLocks} appSettings={appSettings} setAppSettings={setAppSettings} /></TabsContent>
 
           {can('manageEvents') && <TabsContent value="community_perms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityChannelPermsPanel /></div></TabsContent>}
           {can('manageEvents') && <TabsContent value="moderation"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityModerationPanel /></div></TabsContent>}

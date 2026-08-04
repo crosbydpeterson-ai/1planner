@@ -1,0 +1,52 @@
+{
+  "name": "PawSpellAbility",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "fire",
+        "ice",
+        "storm",
+        "nature",
+        "shadow",
+        "light",
+        "ocean",
+        "chaos",
+        "time",
+        "crystal"
+      ],
+      "description": "Ability category"
+    },
+    "pieceType": {
+      "type": "string",
+      "enum": [
+        "sprite",
+        "golem",
+        "gryphon",
+        "wisp",
+        "dragon",
+        "unicorn"
+      ],
+      "description": "Chess piece type this ability belongs to"
+    },
+    "name": {
+      "type": "string",
+      "description": "Ability name"
+    },
+    "description": {
+      "type": "string",
+      "description": "What the ability does in game"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji icon for the ability"
+    }
+  },
+  "required": [
+    "category",
+    "pieceType",
+    "name",
+    "description"
+  ]
+}
