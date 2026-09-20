@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { colorStyle } from '@/components/theme/themeUtils';
+import { generatePetConcept, generatePetImage, createPetAndTheme } from '@/lib/eggGeneration';
 
 export default function MagicEggCreator({ egg, profile, onPetCreated }) {
   const [showDialog, setShowDialog] = useState(false);
@@ -30,15 +31,13 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
     setGeneratingImage(true);
 
     try {
-      const result = await base44.functions.invoke('generateEggPet', {
-        action: 'generate',
-        petIdea: petIdea.trim()
-      });
-
-      const data = result?.data || result;
-      setGeneratedPet(data.concept);
-      setGeneratedImageUrl(data.imageUrl || null);
+      const concept = await generatePetConcept(petIdea.trim());
+      setGeneratedPet(concept);
       setStep('preview');
+
+      // Generate image after showing the concept preview
+      const imageUrl = await generatePetImage(concept);
+      setGeneratedImageUrl(imageUrl || null);
     } catch (e) {
       const msg = e?.response?.data?.error || e?.message || '';
       if (msg.includes('credits') || msg.includes('quota') || msg.includes('limit')) {
@@ -58,34 +57,56 @@ export default function MagicEggCreator({ egg, profile, onPetCreated }) {
     setStep('hatching');
 
     try {
-      const result = await base44.functions.invoke('generateEggPet', {
-        action: 'hatch',
-        eggId: egg.id,
-        profileId: profile.id,
-        petData: {
-          name: generatedPet.name,
-          description: generatedPet.description,
-          emoji: generatedPet.emoji,
-          imageUrl: generatedImageUrl || '',
-          rarity: generatedPet.rarity,
-          theme: generatedPet.theme
-        }
+      const concept = {
+        name: generatedPet.name,
+        description: generatedPet.description,
+        emoji: generatedPet.emoji,
+        imageUrl: generatedImageUrl || '',
+        rarity: generatedPet.rarity,
+        theme: generatedPet.theme
+      };
+
+      const { pet, theme, petId, themeId } = await createPetAndTheme(concept, {
+        createdBy: profile.userId,
+        createdByProfileId: profile.id,
+        sourceTab: 'pet_creator'
       });
 
-      const hatchData = result?.data || result;
+      // Mark the magic egg as used
+      if (egg?.id) {
+        await base44.entities.MagicEgg.update(egg.id, {
+          isUsed: true,
+          createdPetId: pet.id,
+          hatchedByProfileId: profile.id,
+          hatchedByUsername: profile.username
+        });
+      }
+
+      // Unlock + equip the new pet and theme on the user's profile
+      const freshProfiles = await base44.entities.UserProfile.filter({ id: profile.id });
+      const p = freshProfiles[0] || profile;
+      const unlockedPets = [...(p.unlockedPets || []), petId];
+      const unlockedThemes = [...(p.unlockedThemes || []), themeId];
+      await base44.entities.UserProfile.update(p.id, {
+        unlockedPets,
+        unlockedThemes,
+        equippedPetId: petId,
+        equippedThemeId: themeId
+      });
 
       toast.success(`🎉 ${generatedPet.name} hatched!`, {
         description: 'Your new pet is now equipped!'
       });
 
       window.dispatchEvent(new Event('themeUpdated'));
-      onPetCreated(hatchData.pet, hatchData.petId, hatchData.theme, hatchData.themeId);
+      onPetCreated(pet, petId, theme, themeId);
       setShowDialog(false);
       setStep('idea');
       setPetIdea('');
       setGeneratedPet(null);
       setGeneratedImageUrl(null);
     } catch (e) {
+      console.error('Hatch failed:', e);
       toast.error('Failed to hatch pet');
       setStep('preview');
     }

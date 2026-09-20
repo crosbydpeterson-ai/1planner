@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { colorStyle } from "@/components/theme/themeUtils";
 import ActiveEggJobs from "@/components/admin/ActiveEggJobs";
+import { generatePetImage, createPetAndTheme } from "@/lib/eggGeneration";
 
 const RARITIES = ["common", "uncommon", "rare", "epic", "legendary"];
 const XP_BY_RARITY = { common: 0, uncommon: 200, rare: 600, epic: 1200, legendary: 2000 };
@@ -108,7 +109,7 @@ RULES:
         idea: theme || "Brainstormed ideas",
         totalCount: concepts.length,
         concepts,
-        status: "pending",
+        status: "processing",
         startedBy: adminProfile?.userId || "admin",
         startedByProfileId: adminProfile?.id,
         completedCount: 0,
@@ -116,14 +117,64 @@ RULES:
         createdThemeIds: []
       });
 
-      // Fire-and-forget the backend function
-      base44.functions.invoke("generateMagicEggs", { jobId: job.id });
       toast.success("Job started! Track progress below.");
 
-      // Reset to input
+      // Reset to input immediately; generation runs in the background
       setIdeas([]);
       setTheme("");
       setStep("input");
+
+      // Run generation in the foreground (no backend function available)
+      (async () => {
+        const createdPetIds = [];
+        const createdThemeIds = [];
+        try {
+          for (let i = 0; i < concepts.length; i++) {
+            const concept = concepts[i];
+            try {
+              await base44.entities.EggGenerationJob.update(job.id, {
+                currentStep: `Generating image ${i + 1} of ${concepts.length} (${concept.name})...`
+              });
+
+              const imageUrl = await generatePetImage(concept);
+              const { pet, theme } = await createPetAndTheme(
+                { ...concept, imageUrl },
+                {
+                  createdBy: adminProfile?.userId || "admin",
+                  createdByProfileId: adminProfile?.id,
+                  sourceTab: "admin_eggs"
+                }
+              );
+              createdPetIds.push(pet.id);
+              createdThemeIds.push(theme.id);
+
+              await base44.entities.EggGenerationJob.update(job.id, {
+                completedCount: i + 1,
+                createdPetIds,
+                createdThemeIds
+              });
+            } catch (innerErr) {
+              console.error(`Error on creature ${i + 1}:`, innerErr);
+            }
+          }
+
+          await base44.entities.EggGenerationJob.update(job.id, {
+            status: "completed",
+            currentStep: `Done! Created ${createdPetIds.length} creature${createdPetIds.length !== 1 ? "s" : ""}.`,
+            completedCount: createdPetIds.length,
+            createdPetIds,
+            createdThemeIds
+          });
+          onCreated?.();
+        } catch (err) {
+          console.error("Job failed:", err);
+          await base44.entities.EggGenerationJob.update(job.id, {
+            status: "failed",
+            currentStep: "Failed: " + (err.message || "Unknown error"),
+            error: err.message || "Unknown error"
+          }).catch(() => {});
+        }
+      })();
     } catch (e) {
       toast.error("Failed to start job");
       console.error(e);
