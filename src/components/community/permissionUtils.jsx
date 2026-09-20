@@ -1,5 +1,6 @@
-// Check if a user profile has a given permission
-// For 'whitelist' mode, channel object must be passed as 4th arg
+// Check if a user profile has a given permission.
+// Class-based permissions are keyed by Teacher entity ID: math_<id>, reading_<id>.
+// For 'whitelist' mode, channel object must be passed as 4th arg.
 export function hasPermission(permission, profile, isAdmin, channel) {
   if (isAdmin) return true;
   if (permission === 'everyone') return true;
@@ -14,14 +15,14 @@ export function hasPermission(permission, profile, isAdmin, channel) {
     return (channel.whitelistedProfileIds || []).includes(profile.id);
   }
 
-  // Class-based: math_<teacher> or reading_<teacher>
+  // Class-based: math_<teacherId> or reading_<teacherId>
   if (permission.startsWith('math_')) {
-    const teacher = permission.replace('math_', '');
-    return (profile.mathTeacher || '').toLowerCase() === teacher.toLowerCase();
+    const teacherId = permission.replace('math_', '');
+    return (profile.mathTeacher || '') === teacherId;
   }
   if (permission.startsWith('reading_')) {
-    const teacher = permission.replace('reading_', '');
-    return (profile.readingTeacher || '').toLowerCase() === teacher.toLowerCase();
+    const teacherId = permission.replace('reading_', '');
+    return (profile.readingTeacher || '') === teacherId;
   }
 
   return false;
@@ -33,27 +34,32 @@ export function isProfileBannedFromChannel(channel, profileId) {
   return (channel.bannedProfileIds || []).includes(profileId);
 }
 
-// All permission options for selects
-export const PERMISSION_OPTIONS = [
+// Base (non-class) permission options
+const BASE_PERMISSION_OPTIONS = [
   { value: 'everyone', label: 'Everyone' },
   { value: 'admin_only', label: 'Admin Only' },
   { value: 'whitelist', label: '🔒 Selected Users Only' },
-  { value: 'math_best', label: 'Math — Best' },
-  { value: 'math_libbey', label: 'Math — Libbey' },
-  { value: 'math_hannan', label: 'Math — Hannan' },
-  { value: 'math_paulson', label: 'Math — Paulson' },
-  { value: 'reading_riener', label: 'Reading — Riener' },
-  { value: 'reading_libbey', label: 'Reading — Libbey' },
-  { value: 'reading_hannan', label: 'Reading — Hannan' },
-  { value: 'reading_paulson', label: 'Reading — Paulson' },
 ];
 
-export const COMMENT_PERMISSION_OPTIONS = [
-  { value: 'nobody', label: 'Nobody' },
-  ...PERMISSION_OPTIONS,
-];
+// Build permission options dynamically from the live teacher list.
+// Class options are keyed by teacher ID so renames never orphan them.
+export function buildPermissionOptions(teachers) {
+  const math = (teachers?.math || []).map((t) => ({ value: `math_${t.id}`, label: `Math — ${t.name}` }));
+  const reading = (teachers?.reading || []).map((t) => ({ value: `reading_${t.id}`, label: `Reading — ${t.name}` }));
+  return [...BASE_PERMISSION_OPTIONS, ...math, ...reading];
+}
 
-export function getPermissionLabel(value) {
-  const all = [...PERMISSION_OPTIONS, { value: 'nobody', label: 'Nobody' }];
-  return all.find(o => o.value === value)?.label || value;
+export function buildCommentPermissionOptions(teachers) {
+  return [{ value: 'nobody', label: 'Nobody' }, ...buildPermissionOptions(teachers)];
+}
+
+// Backwards-compatible static exports (base options only, no class options).
+// Use buildPermissionOptions(teachers) for the full list including classes.
+export const PERMISSION_OPTIONS = BASE_PERMISSION_OPTIONS;
+export const COMMENT_PERMISSION_OPTIONS = [{ value: 'nobody', label: 'Nobody' }, ...BASE_PERMISSION_OPTIONS];
+
+export function getPermissionLabel(value, teachers) {
+  if (value === 'nobody') return 'Nobody';
+  const all = buildPermissionOptions(teachers);
+  return all.find((o) => o.value === value)?.label || value;
 }

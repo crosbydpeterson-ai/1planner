@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Search, UserX, UserPlus, Hash, Shield, Check } from 'lucide-react';
-import { PERMISSION_OPTIONS, COMMENT_PERMISSION_OPTIONS } from '@/components/community/permissionUtils';
+import { buildPermissionOptions, buildCommentPermissionOptions } from '@/components/community/permissionUtils';
+import { useTeachers } from '@/hooks/useTeachers';
 
 function WhitelistManager({ channel, users, onUpdate }) {
   const [wlSearch, setWlSearch] = useState('');
@@ -81,6 +82,7 @@ export default function CommunityChannelPermsPanel() {
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const { teachers } = useTeachers();
 
   useEffect(() => {
     (async () => {
@@ -172,7 +174,7 @@ export default function CommunityChannelPermsPanel() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PERMISSION_OPTIONS.map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
+                  {buildPermissionOptions(teachers).map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -183,7 +185,7 @@ export default function CommunityChannelPermsPanel() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PERMISSION_OPTIONS.map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
+                  {buildPermissionOptions(teachers).map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -194,7 +196,7 @@ export default function CommunityChannelPermsPanel() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {COMMENT_PERMISSION_OPTIONS.map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
+                  {buildCommentPermissionOptions(teachers).map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

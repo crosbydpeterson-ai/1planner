@@ -1,0 +1,32 @@
+{
+  "name": "Teacher",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Teacher display name"
+    },
+    "subject": {
+      "type": "string",
+      "enum": [
+        "math",
+        "reading"
+      ],
+      "description": "Subject this teacher teaches"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this teacher appears in selection lists"
+    },
+    "sortOrder": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order"
+    }
+  },
+  "required": [
+    "name",
+    "subject"
+  ]
+}

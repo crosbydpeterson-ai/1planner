@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import BrandLogo from '@/components/branding/BrandLogo';
 import MessageWidget from '@/components/messages/MessageWidget';
 import useSessionTracker from '@/hooks/useSessionTracker';
+import { useTeachers } from '@/hooks/useTeachers';
+import TeacherReselectDialog from '@/components/teacher/TeacherReselectDialog';
 
 export default function Layout({ children, currentPageName }) {
         useSessionTracker();
@@ -28,6 +30,9 @@ export default function Layout({ children, currentPageName }) {
         const [profileIdState, setProfileIdState] = useState(null);
         const [featureLocks, setFeatureLocks] = useState(null);
         const [currentProfile, setCurrentProfile] = useState(null);
+        const [reselectRequired, setReselectRequired] = useState(false);
+        const [reselectOpen, setReselectOpen] = useState(false);
+        const { teachers } = useTeachers();
   
   useEffect(() => {
     loadUserTheme();
@@ -183,10 +188,18 @@ export default function Layout({ children, currentPageName }) {
       const settings = await base44.entities.AppSetting.list();
       const locksSetting = settings.find(s => s.key === 'feature_locks');
       setFeatureLocks(locksSetting ? locksSetting.value : null);
+      const reselectSetting = settings.find(s => s.key === 'teacher_reselect_required');
+      setReselectRequired(!!reselectSetting?.value?.required);
     } catch (e) {
       console.error('Error loading feature locks:', e);
     }
   };
+
+  useEffect(() => {
+    if (reselectRequired && currentProfile && !isAdmin && (!currentProfile.mathTeacher || !currentProfile.readingTeacher)) {
+      setReselectOpen(true);
+    }
+  }, [reselectRequired, currentProfile, isAdmin]);
 
   const isFeatureLockedForUser = (feature) => {
     if (isAdmin) return false;
@@ -334,6 +347,18 @@ export default function Layout({ children, currentPageName }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {reselectOpen && currentProfile && (
+        <TeacherReselectDialog
+          open={reselectOpen}
+          profile={currentProfile}
+          teachers={teachers}
+          onComplete={(updated) => {
+            setCurrentProfile(updated);
+            setReselectOpen(false);
+          }}
+        />
+      )}
 
       <style>{`
         .safe-area-pb {

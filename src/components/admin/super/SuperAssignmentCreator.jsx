@@ -6,7 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { MATH_TEACHERS, READING_TEACHERS } from '@/components/quest/TeacherConfig';
+import { useTeachers } from '@/hooks/useTeachers';
+import { getTeacherName } from '@/lib/teachers';
 import { toast } from 'sonner';
 
 export default function SuperAssignmentCreator() {
@@ -22,6 +23,7 @@ export default function SuperAssignmentCreator() {
   const [allowAnonymous, setAllowAnonymous] = useState(false);
   const [enablePetGenerator, setEnablePetGenerator] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { teachers } = useTeachers();
 
   useEffect(() => {
     (async () => {
@@ -130,7 +132,7 @@ export default function SuperAssignmentCreator() {
               <Select value={targetTeacher} onValueChange={setTargetTeacher}>
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white"><SelectValue placeholder="Select teacher" /></SelectTrigger>
                 <SelectContent>
-                  {(subject === 'math' ? MATH_TEACHERS : READING_TEACHERS).map(t => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+                  {(subject === 'math' ? teachers.math : teachers.reading).filter(t => t.isActive !== false).map(t => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
@@ -150,7 +152,7 @@ export default function SuperAssignmentCreator() {
                       setSpecificUserProfileIds(prev => e.target.checked ? [...prev, u.id] : prev.filter(id => id !== u.id));
                     }}
                   />
-                  <span>{u.username} <span className="text-slate-400 text-xs">({u.mathTeacher}/{u.readingTeacher})</span></span>
+                  <span>{u.username} <span className="text-slate-400 text-xs">({getTeacherName(teachers, u.mathTeacher)}/{getTeacherName(teachers, u.readingTeacher)})</span></span>
                 </label>
               ))}
             </div>

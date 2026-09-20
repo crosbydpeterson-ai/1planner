@@ -36,23 +36,11 @@
     },
     "mathTeacher": {
       "type": "string",
-      "enum": [
-        "Best",
-        "Libbey",
-        "Hannan",
-        "Paulson",
-        "Admin"
-      ]
+      "description": "Teacher entity ID for this student's math class"
     },
     "readingTeacher": {
       "type": "string",
-      "enum": [
-        "Riener",
-        "Libbey",
-        "Hannan",
-        "Paulson",
-        "Admin"
-      ]
+      "description": "Teacher entity ID for this student's reading class"
     },
     "isLocked": {
       "type": "boolean",

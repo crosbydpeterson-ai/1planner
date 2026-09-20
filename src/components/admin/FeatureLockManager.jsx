@@ -11,6 +11,7 @@ import {
 import LockPageDesigner from './lockdesigner/LockPageDesigner';
 import UserLockManager from './lockdesigner/UserLockManager';
 import SecretCodeManager from './lockdesigner/SecretCodeManager';
+import { useTeachers } from '@/hooks/useTeachers';
 
 export default function FeatureLockManager({ featureLocks, setFeatureLocks, appSettings, setAppSettings }) {
   const [lockPageConfig, setLockPageConfig] = useState(DEFAULT_LOCK_PAGE_CONFIG);
@@ -173,20 +174,23 @@ export default function FeatureLockManager({ featureLocks, setFeatureLocks, appS
 }
 
 function ClassLockEditor({ featureLocks, setFeatureLocks }) {
+  const { teachers, loading } = useTeachers();
   const subjects = [
-    { key: 'math', label: 'Math', teachers: ['Best', 'Libbey', 'Hannan', 'Paulson'] },
-    { key: 'reading', label: 'Reading', teachers: ['Riener', 'Libbey', 'Hannan', 'Paulson'] },
+    { key: 'math', label: 'Math' },
+    { key: 'reading', label: 'Reading' },
   ];
 
-  const toggle = (subject, teacher, featureKey) => {
+  const toggle = (subject, teacherId, featureKey) => {
     setFeatureLocks(prev => {
       const classes = { ...(prev.classes || {}), [subject]: { ...(prev.classes?.[subject] || {}) } };
-      const teacherLocks = { ...(classes[subject][teacher] || {}) };
+      const teacherLocks = { ...(classes[subject][teacherId] || {}) };
       teacherLocks[featureKey] = !teacherLocks[featureKey];
-      classes[subject][teacher] = teacherLocks;
+      classes[subject][teacherId] = teacherLocks;
       return { ...prev, classes };
     });
   };
+
+  if (loading) return <div className="text-slate-400 text-sm py-2">Loading classes...</div>;
 
   return (
     <div className="space-y-4">
@@ -194,14 +198,14 @@ function ClassLockEditor({ featureLocks, setFeatureLocks }) {
         <div key={subj.key}>
           <h4 className="text-slate-300 font-medium mb-2">{subj.label} Classes</h4>
           <div className="space-y-2">
-            {subj.teachers.map(teacher => (
-              <div key={teacher} className="bg-slate-700/40 rounded-xl p-3">
-                <div className="text-sm text-slate-400 mb-2">{teacher}</div>
+            {(teachers[subj.key] || []).map(teacher => (
+              <div key={teacher.id} className="bg-slate-700/40 rounded-xl p-3">
+                <div className="text-sm text-slate-400 mb-2">{teacher.name}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {LOCKABLE_FEATURES.map(f => {
-                    const isLocked = !!featureLocks.classes?.[subj.key]?.[teacher]?.[f.key];
+                    const isLocked = !!featureLocks.classes?.[subj.key]?.[teacher.id]?.[f.key];
                     return (
-                      <button key={f.key} onClick={() => toggle(subj.key, teacher, f.key)}
+                      <button key={f.key} onClick={() => toggle(subj.key, teacher.id, f.key)}
                         className={`px-2 py-1 rounded-lg text-xs font-medium border transition-all ${isLocked ? 'bg-red-500/20 border-red-500/50 text-red-300' : 'bg-slate-700 border-slate-600 text-slate-400 hover:border-slate-500'}`}>
                         {f.emoji} {f.label}
                       </button>
@@ -210,6 +214,7 @@ function ClassLockEditor({ featureLocks, setFeatureLocks }) {
                 </div>
               </div>
             ))}
+            {(teachers[subj.key] || []).length === 0 && <p className="text-xs text-slate-500">No {subj.label.toLowerCase()} teachers yet. Add them in the Classes tab.</p>}
           </div>
         </div>
       ))}

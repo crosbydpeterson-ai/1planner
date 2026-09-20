@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MATH_TEACHERS, READING_TEACHERS } from '@/components/quest/TeacherConfig';
+import { useTeachers } from '@/hooks/useTeachers';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -23,6 +23,7 @@ export default function Home() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [referralCode, setReferralCode] = useState(null);
   const [rewardCode, setRewardCode] = useState(null);
+  const { teachers } = useTeachers();
 
   useEffect(() => {
     // Check for referral code in URL and store it in localStorage to persist across redirects
@@ -431,8 +432,8 @@ export default function Home() {
                         <SelectValue placeholder="Select your Math teacher" />
                       </SelectTrigger>
                       <SelectContent>
-                        {MATH_TEACHERS.map((teacher) =>
-                      <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
+                        {teachers.math.filter((t) => t.isActive !== false).map((t) =>
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                       )}
                       </SelectContent>
                     </Select>
@@ -448,8 +449,8 @@ export default function Home() {
                         <SelectValue placeholder="Select your Reading teacher" />
                       </SelectTrigger>
                       <SelectContent>
-                        {READING_TEACHERS.map((teacher) =>
-                      <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
+                        {teachers.reading.filter((t) => t.isActive !== false).map((t) =>
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                       )}
                       </SelectContent>
                     </Select>
