@@ -1,0 +1,68 @@
+{
+  "name": "MusicTrack",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Song title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description shown on the card"
+    },
+    "sourceType": {
+      "type": "string",
+      "enum": [
+        "upload",
+        "youtube"
+      ],
+      "description": "Whether this track is an uploaded audio file or a YouTube link"
+    },
+    "audioFileUri": {
+      "type": "string",
+      "description": "Private file URI returned by UploadPrivateFile (for sourceType=upload)"
+    },
+    "youtubeUrl": {
+      "type": "string",
+      "description": "Full YouTube watch URL (for sourceType=youtube)"
+    },
+    "coverImageUri": {
+      "type": "string",
+      "description": "Private file URI for the cover art, signed on display"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Only active tracks show up for students"
+    },
+    "assignedProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "UserProfile IDs this track is assigned to. Empty = visible to everyone."
+    },
+    "lockedProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "UserProfile IDs who cannot see this track"
+    },
+    "lockedClassKeys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Class keys (e.g. 'math:<teacherId>') that cannot see this track"
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "Admin username who created the track"
+    }
+  },
+  "required": [
+    "title",
+    "sourceType"
+  ]
+}

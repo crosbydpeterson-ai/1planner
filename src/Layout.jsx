@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, CalendarHeart, MessageSquare, Gamepad2, Store, Bell } from 'lucide-react';
+import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, CalendarHeart, MessageSquare, Gamepad2, Store, Bell, Music2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 import ThemedBackground from '@/components/theme/ThemedBackground';
@@ -17,6 +17,7 @@ import MessageWidget from '@/components/messages/MessageWidget';
 import useSessionTracker from '@/hooks/useSessionTracker';
 import { useTeachers } from '@/hooks/useTeachers';
 import TeacherReselectDialog from '@/components/teacher/TeacherReselectDialog';
+import MusicPlayerBar from '@/components/music/MusicPlayerBar';
 
 export default function Layout({ children, currentPageName }) {
         useSessionTracker();
@@ -233,6 +234,7 @@ export default function Layout({ children, currentPageName }) {
   
   const navItems = [
             { name: 'Dashboard', icon: Home, label: 'Home' },
+            { name: 'Music', icon: Music2, label: 'Music', customPath: '/Music' },
             { name: 'Assignments', icon: ClipboardList, label: 'Quests' },
             { name: 'Games', icon: Gamepad2, label: 'Games', customPath: '/Games' },
             { name: 'Events', icon: CalendarHeart, label: 'Events' },
@@ -248,6 +250,7 @@ export default function Layout({ children, currentPageName }) {
     if (item.name === 'Rewards') return !isFeatureLockedForUser('pets');
     if (item.name === 'Season') return !isFeatureLockedForUser('battlePass');
     if (item.name === 'Games') return !isFeatureLockedForUser('games');
+    if (item.name === 'Music') return !isFeatureLockedForUser('music');
     if (item.name === 'Events') return !isFeatureLockedForUser('events');
     if (item.name === 'MarketplaceHub') return !isFeatureLockedForUser('market');
     if (item.name === 'UpdatesHub') return !isFeatureLockedForUser('community');
@@ -275,6 +278,7 @@ export default function Layout({ children, currentPageName }) {
       {children}
       {!hideNav && currentPageName !== 'CommunityWall' && currentPageName !== 'community' && <ChatbotWidget />}
       {!hideNav && currentProfile && <MessageWidget currentProfile={currentProfile} />}
+      {!hideNav && currentProfile && <MusicPlayerBar profile={currentProfile} />}
       
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 safe-area-pb z-40">

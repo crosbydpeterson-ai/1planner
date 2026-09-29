@@ -9,6 +9,7 @@ export const LOCKABLE_FEATURES = [
   { key: 'kitchen', label: 'Kitchen', emoji: '👨‍🍳' },
   { key: 'eggs', label: 'Eggs', emoji: '🥚' },
   { key: 'community', label: 'Community', emoji: '💬' },
+  { key: 'music', label: 'Study Music', emoji: '🎵' },
   { key: 'events', label: 'Events', emoji: '🎉' },
   { key: 'pawspell', label: 'Paw & Spell', emoji: '🦄' },
   { key: 'messages', label: 'Messages', emoji: '✉️' },

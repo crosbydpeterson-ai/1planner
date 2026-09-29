@@ -1,0 +1,42 @@
+{
+  "name": "MusicPlayLog",
+  "type": "object",
+  "properties": {
+    "profileId": {
+      "type": "string",
+      "description": "UserProfile ID of the listener"
+    },
+    "username": {
+      "type": "string",
+      "description": "Display username of the listener"
+    },
+    "trackId": {
+      "type": "string",
+      "description": "MusicTrack ID"
+    },
+    "trackTitle": {
+      "type": "string",
+      "description": "Title of the track (denormalized for log readability)"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "play",
+        "pause",
+        "complete"
+      ],
+      "description": "What the listener did"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the action happened"
+    }
+  },
+  "required": [
+    "profileId",
+    "trackId",
+    "action",
+    "timestamp"
+  ]
+}
