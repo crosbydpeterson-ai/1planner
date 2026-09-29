@@ -16,19 +16,19 @@ export default function Music() {
   useEffect(() => {
     (async () => {
       const profileId = localStorage.getItem('quest_profile_id');
-      if (!profileId) { setLoading(false); return; }
+      if (!profileId) {setLoading(false);return;}
       try {
         const [profiles, allTracks, settings] = await Promise.all([
-          base44.entities.UserProfile.filter({ id: profileId }),
-          base44.entities.MusicTrack.list('-created_date'),
-          base44.entities.AppSetting.list(),
-        ]);
+        base44.entities.UserProfile.filter({ id: profileId }),
+        base44.entities.MusicTrack.list('-created_date'),
+        base44.entities.AppSetting.list()]
+        );
         const p = profiles[0];
         setProfile(p);
         setTracks(allTracks);
-        const locksSetting = settings.find(s => s.key === 'feature_locks');
+        const locksSetting = settings.find((s) => s.key === 'feature_locks');
         setLocks(locksSetting?.value || null);
-        const pageSetting = settings.find(s => s.key === 'lock_page_config');
+        const pageSetting = settings.find((s) => s.key === 'lock_page_config');
         setLockPageConfig(pageSetting?.value || null);
       } catch (e) {
         console.error('Music load error', e);
@@ -41,8 +41,8 @@ export default function Music() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-      </div>
-    );
+      </div>);
+
   }
 
   // Feature lock check
@@ -53,12 +53,12 @@ export default function Music() {
         featureLabel="Study Music"
         message={lockCheck.message || 'This feature has been locked by an admin.'}
         lockPageConfig={lockPageConfig}
-        featureKey="music"
-      />
-    );
+        featureKey="music" />);
+
+
   }
 
-  const visible = tracks.filter(t => t.isActive !== false && isTrackVisibleForUser(t, profile));
+  const visible = tracks.filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile));
 
   return (
     <div className="min-h-screen pt-20 pb-28 px-4 max-w-5xl mx-auto">
@@ -68,20 +68,20 @@ export default function Music() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Study Music</h1>
-          <p className="text-sm text-slate-400">Focus tracks curated by your teacher</p>
+          <p className="text-sm text-slate-400">Focus tracks curated by your Admin </p>
         </div>
       </div>
 
-      {visible.length === 0 ? (
-        <div className="text-center py-20 text-slate-400">
+      {visible.length === 0 ?
+      <div className="text-center py-20 text-slate-400">
           <Music2 className="w-12 h-12 mx-auto mb-3 opacity-40" />
           <p>No music available yet. Check back soon!</p>
+        </div> :
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {visible.map((t) => <MusicTrackCard key={t.id} track={t} />)}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {visible.map(t => <MusicTrackCard key={t.id} track={t} />)}
-        </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
