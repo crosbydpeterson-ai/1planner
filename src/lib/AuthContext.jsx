@@ -1,9 +1,16 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+
+// This app uses a PIN-based profile system via localStorage (quest_profile_id),
+// NOT standard Base44 user auth. This context exposes the same API surface the
+// rest of the app expects, but it is backed entirely by the local PIN profile
+// so the app never redirects to Base44's login page or blocks on server auth.
 
 const AuthContext = createContext();
+
+const PROFILE_ID_KEY = 'quest_profile_id';
+const USERNAME_KEY = 'quest_username';
+const USER_ID_KEY = 'quest_user_id';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,134 +18,98 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+  const [appPublicSettings, setAppPublicSettings] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     checkAppState();
   }, []);
 
   const checkAppState = async () => {
-    try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      
-      // First, check app public settings (with token if available)
-      // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
-      try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
-        setAppPublicSettings(publicSettings);
-        
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-        }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
-        setIsLoadingAuth(false);
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
+    setIsLoadingPublicSettings(true);
+    setAuthError(null);
+    // No server public-settings/auth check — the app is gated by the PIN profile.
+    setAppPublicSettings({ public_settings: {} });
+    setIsLoadingPublicSettings(false);
+    await checkUserAuth();
   };
 
   const checkUserAuth = async () => {
+    setIsLoadingAuth(true);
     try {
-      // Now check if the user is authenticated
-      setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
+      const profileId = localStorage.getItem(PROFILE_ID_KEY);
+      if (profileId) {
+        // Validate the stored profile still exists.
+        try {
+          const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+          if (profiles.length > 0) {
+            const profile = profiles[0];
+            setUser({
+              id: profile.id,
+              email: profile.userId,
+              full_name: profile.username,
+              username: profile.username,
+              role: profile.rank || 'user',
+            });
+            setIsAuthenticated(true);
+          } else {
+            // Stale pin — clear it so the login screen shows.
+            localStorage.removeItem(PROFILE_ID_KEY);
+            localStorage.removeItem(USERNAME_KEY);
+            localStorage.removeItem(USER_ID_KEY);
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        } catch (e) {
+          // If the profile lookup fails (e.g. transient network), keep the pin
+          // session rather than logging the user out.
+          setUser({
+            id: profileId,
+            full_name: localStorage.getItem(USERNAME_KEY) || '',
+            username: localStorage.getItem(USERNAME_KEY) || '',
+            role: 'user',
+          });
+          setIsAuthenticated(true);
+        }
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
       }
+    } finally {
+      setIsLoadingAuth(false);
+      setAuthChecked(true);
     }
   };
 
   const logout = (shouldRedirect = true) => {
+    localStorage.removeItem(PROFILE_ID_KEY);
+    localStorage.removeItem(USERNAME_KEY);
+    localStorage.removeItem(USER_ID_KEY);
     setUser(null);
     setIsAuthenticated(false);
-    
     if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
-    } else {
-      // Just remove the token without redirect
-      base44.auth.logout();
+      window.location.href = '/';
     }
   };
 
   const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+    // PIN-based app: go to the Home login screen, not Base44's login page.
+    window.location.href = '/';
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated,
       isLoadingAuth,
       isLoadingPublicSettings,
       authError,
       appPublicSettings,
+      authChecked,
       logout,
       navigateToLogin,
-      checkAppState
+      checkAppState,
+      checkUserAuth,
     }}>
       {children}
     </AuthContext.Provider>
