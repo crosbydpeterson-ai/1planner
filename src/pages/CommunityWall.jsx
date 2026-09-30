@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Hash, Lock, Tag, Plus, ArrowLeft, Shield } from 'lucide-react';
+import { Loader2, Hash, Lock, Tag, Plus, ArrowLeft, Shield, Music2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import PostCard from '@/components/community/PostCard';
@@ -14,6 +14,8 @@ import AdminModToolsDialog from '@/components/community/AdminModToolsDialog';
 import { hasPermission } from '@/components/community/permissionUtils';
 import { loadModSettings } from '@/components/community/ContentModeration';
 import UserPetMojiCreator from '@/components/community/UserPetMojiCreator';
+import SongRequestPostCard from '@/components/community/SongRequestPostCard';
+import SongRequestDialog from '@/components/music/SongRequestDialog';
 import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
 import { Link, useParams, useNavigate } from 'react-router-dom';
@@ -37,6 +39,9 @@ export default function CommunityWall() {
   const [showPetConcept, setShowPetConcept] = useState(false);
   const [showPollCreator, setShowPollCreator] = useState(false);
   const [showModTools, setShowModTools] = useState(false);
+  const [viewMode, setViewMode] = useState('feed');
+  const [songRequests, setSongRequests] = useState([]);
+  const [showSongRequest, setShowSongRequest] = useState(false);
 
   const [tags, setTags] = useState([]);
   const [profilesCache, setProfilesCache] = useState({});
@@ -48,6 +53,7 @@ export default function CommunityWall() {
 
   useEffect(() => { init(); }, []);
   useEffect(() => { if (activeChannelId) loadPosts(); }, [activeChannelId]);
+  useEffect(() => { if (viewMode === 'requests') loadSongRequests(); }, [viewMode]);
 
   const init = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
@@ -98,6 +104,24 @@ export default function CommunityWall() {
   const loadPosts = async () => {
     if (!activeChannelId) return;
     setPosts(await base44.entities.CommunityPost.filter({ channelId: activeChannelId }, '-created_date'));
+  };
+
+  const loadSongRequests = async () => {
+    try {
+      const all = await base44.entities.SongRequest.list('-created_date');
+      setSongRequests(all.filter(r => r.status === 'pending' || r.status === 'approved'));
+    } catch (e) { console.error(e); }
+  };
+
+  const handleVoteRequest = async (req) => {
+    if (!profile) return;
+    const voters = req.voterProfileIds || [];
+    const has = voters.includes(profile.id);
+    const updated = has ? voters.filter(id => id !== profile.id) : [...voters, profile.id];
+    try {
+      await base44.entities.SongRequest.update(req.id, { voterProfileIds: updated });
+      setSongRequests(prev => prev.map(r => r.id === req.id ? { ...r, voterProfileIds: updated } : r));
+    } catch (e) { console.error(e); }
   };
 
   const activeChannel = channels.find(c => c.id === activeChannelId);
@@ -182,6 +206,9 @@ export default function CommunityWall() {
           {activeChannel && <p className="text-xs text-slate-400 truncate">{activeChannel.icon} {activeChannel.name}{activeChannel.description ? ` — ${activeChannel.description}` : ''}</p>}
         </div>
         <div className="flex items-center gap-1.5">
+          <Button variant="ghost" size="sm" className={`text-xs h-8 ${viewMode === 'requests' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-500'}`} onClick={() => setViewMode(v => v === 'requests' ? 'feed' : 'requests')}>
+            <Music2 className="w-3.5 h-3.5" /> Requests
+          </Button>
           <Button variant="ghost" size="sm" className="text-xs text-slate-500 h-8" onClick={() => setShowPetMojiCreator(true)}>🥚 Petmoji</Button>
           {isAdmin && (
             <>
@@ -208,8 +235,30 @@ export default function CommunityWall() {
         )}
       </div>
 
+      {/* Song Requests view */}
+      {viewMode === 'requests' ? (
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="mt-4 flex justify-end">
+            <Button size="sm" className="bg-indigo-600" onClick={() => setShowSongRequest(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Request a song
+            </Button>
+          </div>
+          <div className="mt-4 space-y-3">
+            {songRequests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-14 h-14 rounded-2xl bg-white/40 backdrop-blur-xl border border-white/30 flex items-center justify-center mb-3"><Music2 className="w-7 h-7 text-indigo-300" /></div>
+                <p className="text-slate-700 font-semibold">No song requests yet</p>
+                <p className="text-slate-400 text-sm mt-1">Request a song and let your class vote on it!</p>
+              </div>
+            ) : songRequests.map(r => (
+              <SongRequestPostCard key={r.id} request={r} currentProfileId={profile.id} isAdmin={isAdmin} onVote={handleVoteRequest} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {/* Feed */}
-      {activeChannel && canView ? (
+      {viewMode === 'feed' && activeChannel && canView ? (
         <div className="max-w-2xl mx-auto px-4">
           {canPost && (
             <div className="mt-4">
@@ -239,6 +288,7 @@ export default function CommunityWall() {
 
       {/* Dialogs */}
       <UserPetMojiCreator open={showPetMojiCreator} onClose={() => setShowPetMojiCreator(false)} profile={profile} />
+      <SongRequestDialog open={showSongRequest} onOpenChange={setShowSongRequest} profile={profile} />
       <PetConceptDialog open={showPetConcept} onClose={() => setShowPetConcept(false)} onSubmit={handleSubmitPetConcept} />
       <PollCreatorDialog open={showPollCreator} onClose={() => setShowPollCreator(false)} onSubmit={handleCreatePoll} />
       {isAdmin && (

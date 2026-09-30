@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Plus, Edit2, Trash2, Lock, Music2, ListMusic, Loader2, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Lock, Music2, ListMusic, Loader2, Search, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import MusicTrackFormDialog from './MusicTrackFormDialog';
 import MusicAccessDialog from './MusicAccessDialog';
+import SongRequestReviewPanel from './SongRequestReviewPanel';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 export default function MusicAdminPanel({ adminProfile, users }) {
@@ -55,6 +56,9 @@ export default function MusicAdminPanel({ adminProfile, users }) {
         </Button>
         <Button size="sm" variant={tab === 'logs' ? 'default' : 'outline'} onClick={() => setTab('logs')} className={tab === 'logs' ? 'bg-indigo-600' : ''}>
           <ListMusic className="w-4 h-4 mr-1" />Play Logs ({logs.length})
+        </Button>
+        <Button size="sm" variant={tab === 'requests' ? 'default' : 'outline'} onClick={() => setTab('requests')} className={tab === 'requests' ? 'bg-indigo-600' : ''}>
+          <Inbox className="w-4 h-4 mr-1" />Requests
         </Button>
       </div>
 
@@ -123,6 +127,8 @@ export default function MusicAdminPanel({ adminProfile, users }) {
           </div>
         </div>
       )}
+
+      {tab === 'requests' && <SongRequestReviewPanel />}
 
       <MusicTrackFormDialog
         open={showForm}

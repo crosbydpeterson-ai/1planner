@@ -2,7 +2,7 @@
 // The player bar (rendered in Layout) subscribes to this and drives the
 // actual <audio> / YouTube iframe; the Music page calls play() to start a track.
 
-let state = { track: null, isPlaying: false };
+let state = { track: null, isPlaying: false, currentTime: 0, duration: 0, pendingSeek: null };
 const listeners = new Set();
 
 function emit() {
@@ -12,7 +12,7 @@ function emit() {
 export const musicPlayer = {
   getState: () => state,
   play: (track) => {
-    state = { track, isPlaying: true };
+    state = { track, isPlaying: true, currentTime: 0, duration: 0, pendingSeek: null };
     emit();
   },
   setPlaying: (isPlaying) => {
@@ -23,7 +23,25 @@ export const musicPlayer = {
   pause: () => musicPlayer.setPlaying(false),
   resume: () => musicPlayer.setPlaying(true),
   stop: () => {
-    state = { track: null, isPlaying: false };
+    state = { track: null, isPlaying: false, currentTime: 0, duration: 0, pendingSeek: null };
+    emit();
+  },
+  setTime: (currentTime) => {
+    state = { ...state, currentTime };
+    emit();
+  },
+  setDuration: (duration) => {
+    if (state.duration === duration) return;
+    state = { ...state, duration };
+    emit();
+  },
+  seek: (t) => {
+    state = { ...state, pendingSeek: t, currentTime: t };
+    emit();
+  },
+  clearPendingSeek: () => {
+    if (state.pendingSeek === null) return;
+    state = { ...state, pendingSeek: null };
     emit();
   },
   subscribe: (l) => {
@@ -37,4 +55,11 @@ export function parseYouTubeId(url) {
   if (!url) return null;
   const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
   return m ? m[1] : null;
+}
+
+export function formatTime(sec) {
+  if (!sec || !isFinite(sec)) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }

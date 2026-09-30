@@ -1,0 +1,38 @@
+{
+  "name": "SongRequestComment",
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string",
+      "description": "SongRequest ID this comment belongs to"
+    },
+    "authorProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the commenter"
+    },
+    "authorUsername": {
+      "type": "string",
+      "description": "Display username of the commenter"
+    },
+    "content": {
+      "type": "string",
+      "description": "Comment text"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "approved",
+      "description": "Moderation status"
+    }
+  },
+  "required": [
+    "requestId",
+    "authorProfileId",
+    "authorUsername",
+    "content"
+  ]
+}

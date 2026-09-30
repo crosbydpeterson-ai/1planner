@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, X, Volume2, VolumeX } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { musicPlayer, parseYouTubeId } from '@/lib/musicPlayerStore';
+import { musicPlayer, parseYouTubeId, formatTime } from '@/lib/musicPlayerStore';
 import { useMusicPlayer } from '@/hooks/useMusicPlayer';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 // Persistent player bar rendered once in Layout so audio survives route changes.
 export default function MusicPlayerBar({ profile }) {
-  const { track, isPlaying } = useMusicPlayer();
+  const { track, isPlaying, currentTime, duration, pendingSeek } = useMusicPlayer();
   const coverSrc = useSignedUrl(track?.coverImageUri);
   const audioRef = useRef(null);
   const ytRef = useRef(null);
@@ -15,8 +15,10 @@ export default function MusicPlayerBar({ profile }) {
   const ytReadyRef = useRef(false);
   const signedUrlRef = useRef(null);
   const lastLoggedTrackId = useRef(null);
+  const ytPollRef = useRef(null);
   const [muted, setMuted] = useState(false);
   const [show, setShow] = useState(false);
+  const [seeking, setSeeking] = useState(false);
 
   // Load YouTube IFrame API once.
   useEffect(() => {
@@ -52,7 +54,6 @@ export default function MusicPlayerBar({ profile }) {
     const ytId = track.sourceType === 'youtube' ? parseYouTubeId(track.youtubeUrl) : null;
 
     if (track.sourceType === 'upload') {
-      // Pause YT if switching away from a youtube track
       try { ytPlayerRef.current?.pauseVideo(); } catch (_) {}
       (async () => {
         if (!signedUrlRef.current || signedUrlRef.current.uri !== track.audioFileUri) {
@@ -73,7 +74,6 @@ export default function MusicPlayerBar({ profile }) {
         lastLoggedTrackId.current = track.id;
       }
     } else if (ytId) {
-      // Pause upload audio if switching away
       const audio = audioRef.current;
       if (audio) { audio.pause(); }
       ensureYtPlayer(ytRef.current, ytId, isPlaying, muted, (state) => {
@@ -82,6 +82,7 @@ export default function MusicPlayerBar({ profile }) {
           musicPlayer.setPlaying(false);
         }
       });
+      startYtPoll();
       if (lastLoggedTrackId.current !== track.id) {
         writeLog('play');
         lastLoggedTrackId.current = track.id;
@@ -89,6 +90,20 @@ export default function MusicPlayerBar({ profile }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track?.id]);
+
+  // Poll YouTube player for time/duration.
+  const startYtPoll = () => {
+    if (ytPollRef.current) clearInterval(ytPollRef.current);
+    ytPollRef.current = setInterval(() => {
+      try {
+        const p = ytPlayerRef.current;
+        if (!p || !p.getCurrentTime) return;
+        musicPlayer.setTime(p.getCurrentTime());
+        const d = p.getDuration();
+        if (d) musicPlayer.setDuration(d);
+      } catch (_) {}
+    }, 500);
+  };
 
   // React to play/pause toggle.
   useEffect(() => {
@@ -104,14 +119,21 @@ export default function MusicPlayerBar({ profile }) {
         else ytPlayerRef.current?.pauseVideo();
       } catch (_) {}
     }
-    if (isPlaying) {
-      // resuming counts as a play log
-      if (lastLoggedTrackId.current === track.id) {
-        // already logged the initial play; only log resume if it was paused via UI
-      }
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying]);
+
+  // Apply pending seek.
+  useEffect(() => {
+    if (pendingSeek === null || !track) return;
+    if (track.sourceType === 'upload') {
+      const audio = audioRef.current;
+      if (audio) audio.currentTime = pendingSeek;
+    } else if (track.sourceType === 'youtube') {
+      try { ytPlayerRef.current?.seekTo(pendingSeek, true); } catch (_) {}
+    }
+    musicPlayer.clearPendingSeek();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingSeek]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -125,55 +147,84 @@ export default function MusicPlayerBar({ profile }) {
     const audio = audioRef.current;
     if (audio) { audio.pause(); audio.src = ''; }
     try { ytPlayerRef.current?.stopVideo(); } catch (_) {}
+    if (ytPollRef.current) { clearInterval(ytPollRef.current); ytPollRef.current = null; }
     musicPlayer.stop();
     lastLoggedTrackId.current = null;
   };
 
+  const dur = duration || 0;
+  const cur = seeking ? seeking : currentTime;
+  const pct = dur > 0 ? (cur / dur) * 100 : 0;
+
   return (
     <div className="fixed bottom-16 left-0 right-0 z-40 px-3 pb-1 safe-area-pb pointer-events-none">
-      <div className="max-w-md mx-auto bg-white/95 backdrop-blur rounded-2xl shadow-lg border border-slate-200 flex items-center gap-3 p-2 pointer-events-auto">
-        {coverSrc ? (
-          <img src={coverSrc} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-        ) : (
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-lg flex-shrink-0">🎵</div>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-800 truncate">{track.title}</p>
-          <p className="text-[11px] text-slate-400 truncate">{track.sourceType === 'youtube' ? 'YouTube' : 'Uploaded'}</p>
+      <div className="max-w-md mx-auto bg-white/95 backdrop-blur rounded-2xl shadow-lg border border-slate-200 pointer-events-auto">
+        <div className="flex items-center gap-3 p-2">
+          {coverSrc ? (
+            <img src={coverSrc} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-lg flex-shrink-0">🎵</div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-slate-800 truncate">{track.title}</p>
+            <p className="text-[11px] text-slate-400 truncate">{track.sourceType === 'youtube' ? 'YouTube' : 'Uploaded'}</p>
+          </div>
+          <button
+            onClick={() => musicPlayer.pause()}
+            className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200"
+            aria-label="Pause"
+          >
+            <Pause className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => musicPlayer.resume()}
+            className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white hover:bg-indigo-700"
+            aria-label="Play"
+          >
+            <Play className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setMuted(m => !m)}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100"
+            aria-label="Mute"
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={handleStop}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          onClick={() => musicPlayer.pause()}
-          className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200"
-          aria-label="Pause"
-        >
-          <Pause className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => musicPlayer.resume()}
-          className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white hover:bg-indigo-700"
-          aria-label="Play"
-        >
-          <Play className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => setMuted(m => !m)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100"
-          aria-label="Mute"
-        >
-          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-        </button>
-        <button
-          onClick={handleStop}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100"
-          aria-label="Close"
-        >
-          <X className="w-4 h-4" />
-        </button>
+
+        {/* Progress / seek bar */}
+        <div className="px-3 pb-2 pt-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-slate-400 tabular-nums w-8 text-right">{formatTime(cur)}</span>
+            <input
+              type="range"
+              min={0}
+              max={dur || 0}
+              step={0.1}
+              value={cur}
+              onChange={(e) => setSeeking(parseFloat(e.target.value))}
+              onMouseUp={(e) => { musicPlayer.seek(parseFloat(e.target.value)); setSeeking(null); }}
+              onTouchEnd={(e) => { musicPlayer.seek(parseFloat(e.target.value)); setSeeking(null); }}
+              className="flex-1 h-1.5 accent-indigo-600 cursor-pointer"
+              aria-label="Seek"
+            />
+            <span className="text-[10px] text-slate-400 tabular-nums w-8">{formatTime(dur)}</span>
+          </div>
+        </div>
       </div>
       {/* hidden media elements */}
       <audio
         ref={audioRef}
         onEnded={() => { writeLog('complete'); musicPlayer.setPlaying(false); }}
+        onTimeUpdate={(e) => { if (!seeking) musicPlayer.setTime(e.target.currentTime); }}
+        onLoadedMetadata={(e) => musicPlayer.setDuration(e.target.duration)}
         className="hidden"
       />
       <div ref={ytRef} className="hidden" />
@@ -199,7 +250,6 @@ export default function MusicPlayerBar({ profile }) {
         make();
       }
     } else {
-      // wait for API
       const wait = setInterval(() => {
         if (window.YT && window.YT.Player) {
           clearInterval(wait);

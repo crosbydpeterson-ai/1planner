@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Music2, Lock, Loader2 } from 'lucide-react';
+import { Music2, Lock, Loader2, Plus } from 'lucide-react';
 import MusicTrackCard from '@/components/music/MusicTrackCard';
 import LockedOverlay from '@/components/common/LockedOverlay';
+import SongRequestDialog from '@/components/music/SongRequestDialog';
 import { isTrackVisibleForUser } from '@/lib/musicAccess';
 import { checkFeatureLock } from '@/lib/featureLocks';
 
@@ -12,6 +13,7 @@ export default function Music() {
   const [loading, setLoading] = useState(true);
   const [locks, setLocks] = useState(null);
   const [lockPageConfig, setLockPageConfig] = useState(null);
+  const [showRequest, setShowRequest] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -72,6 +74,15 @@ export default function Music() {
         </div>
       </div>
 
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setShowRequest(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 shadow-sm"
+        >
+          <Plus className="w-4 h-4" /> Request a song
+        </button>
+      </div>
+
       {visible.length === 0 ?
       <div className="text-center py-20 text-slate-400">
           <Music2 className="w-12 h-12 mx-auto mb-3 opacity-40" />
@@ -82,6 +93,8 @@ export default function Music() {
           {visible.map((t) => <MusicTrackCard key={t.id} track={t} />)}
         </div>
       }
+
+      <SongRequestDialog open={showRequest} onOpenChange={setShowRequest} profile={profile} />
     </div>);
 
 }

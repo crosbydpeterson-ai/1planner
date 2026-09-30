@@ -1,0 +1,71 @@
+{
+  "name": "SongRequest",
+  "type": "object",
+  "properties": {
+    "requesterProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the student who requested the song"
+    },
+    "requesterUsername": {
+      "type": "string",
+      "description": "Display username of the requester"
+    },
+    "requestType": {
+      "type": "string",
+      "enum": [
+        "text",
+        "audio",
+        "youtube"
+      ],
+      "description": "How the song was submitted: text name, audio recording, or YouTube link"
+    },
+    "title": {
+      "type": "string",
+      "description": "Song title requested"
+    },
+    "artist": {
+      "type": "string",
+      "description": "Artist name (optional)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Optional note from the requester"
+    },
+    "audioFileUri": {
+      "type": "string",
+      "description": "Private file URI for an uploaded audio recording (requestType=audio). Only admins can preview."
+    },
+    "youtubeUrl": {
+      "type": "string",
+      "description": "YouTube watch URL (requestType=youtube). Only admins can preview."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Admin review status"
+    },
+    "convertedTrackId": {
+      "type": "string",
+      "description": "MusicTrack ID created when admin converts an approved request into a real track"
+    },
+    "voterProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "UserProfile IDs who upvoted this request",
+      "default": []
+    }
+  },
+  "required": [
+    "requesterProfileId",
+    "requesterUsername",
+    "requestType",
+    "title"
+  ]
+}
