@@ -81,22 +81,30 @@ export default function Season() {
       const fl = settings.find(s => s.key === 'feature_locks');
       setLocks(fl ? fl.value : null);
 
-      // Load active season — if user has an activeSeasonId, show that season; otherwise pick by date
+      // Auto-timing: find the season that's live right now, or the next upcoming
       const seasons = await base44.entities.Season.filter({ isActive: true });
       if (seasons.length > 0) {
-        // Prefer the season the user is already tracking
-        let current = me.activeSeasonId ? seasons.find(s => s.id === me.activeSeasonId) : null;
+        const now = new Date();
+        // Find currently live season (within start/end dates)
+        let current = seasons.find(s => new Date(s.startDate) <= now && new Date(s.endDate) >= now);
+        // If none live, find the next upcoming season
         if (!current) {
-          // User has no activeSeasonId or it doesn't match any active season — pick by date
-          const now = new Date();
-          current = seasons.find(s => new Date(s.startDate) <= now && new Date(s.endDate) >= now) || seasons[0];
-          // Bind user to this season (first visit)
-          await base44.entities.UserProfile.update(me.id, { activeSeasonId: current.id, seasonXp: 0 });
-          me.activeSeasonId = current.id;
-          me.seasonXp = 0;
-          setProfile({ ...me });
+          const upcoming = seasons
+            .filter(s => new Date(s.startDate) > now)
+            .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+          current = upcoming[0] || null;
         }
-        setSeason(current);
+        if (current) {
+          // Auto-equip: if the live season differs from what the user is tracking, switch and reset XP
+          const isLive = new Date(current.startDate) <= now && new Date(current.endDate) >= now;
+          if (isLive && me.activeSeasonId !== current.id) {
+            await base44.entities.UserProfile.update(me.id, { activeSeasonId: current.id, seasonXp: 0 });
+            me.activeSeasonId = current.id;
+            me.seasonXp = 0;
+            setProfile({ ...me });
+          }
+          setSeason(current);
+        }
       }
     } catch (e) {
       console.error('Error loading data:', e);
