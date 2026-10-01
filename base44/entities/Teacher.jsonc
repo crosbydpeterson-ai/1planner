@@ -8,11 +8,7 @@
     },
     "subject": {
       "type": "string",
-      "enum": [
-        "math",
-        "reading"
-      ],
-      "description": "Subject this teacher teaches"
+      "description": "Subject slug this teacher teaches \u2014 'math', 'reading', or a custom Subject entity slug"
     },
     "isActive": {
       "type": "boolean",

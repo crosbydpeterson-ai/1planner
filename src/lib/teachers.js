@@ -34,14 +34,24 @@ export async function loadAndSeedTeachers() {
 }
 
 /**
- * Group a flat teacher list into { all, math, reading }.
+ * Group a flat teacher list into { all, math, reading, <customSlug>, ... }.
+ * Built-in subjects (math, reading) are always present. Custom subjects
+ * appear as additional keys keyed by their slug.
  */
 export function groupTeachers(all) {
-  return {
-    all: all || [],
-    math: (all || []).filter((t) => t.subject === 'math'),
-    reading: (all || []).filter((t) => t.subject === 'reading'),
+  const list = all || [];
+  const grouped = {
+    all: list,
+    math: list.filter((t) => t.subject === 'math'),
+    reading: list.filter((t) => t.subject === 'reading'),
   };
+  // Add custom subject groups dynamically
+  list.forEach((t) => {
+    if (t.subject && t.subject !== 'math' && t.subject !== 'reading' && !grouped[t.subject]) {
+      grouped[t.subject] = list.filter((x) => x.subject === t.subject);
+    }
+  });
+  return grouped;
 }
 
 /**

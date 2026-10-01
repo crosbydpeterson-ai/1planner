@@ -12,16 +12,11 @@
     },
     "subject": {
       "type": "string",
-      "enum": [
-        "math",
-        "reading",
-        "everyone"
-      ],
-      "description": "Subject type or everyone"
+      "description": "Subject slug \u2014 'math', 'reading', a custom Subject slug, or 'everyone'"
     },
     "target": {
       "type": "string",
-      "description": "Target teacher name or 'everyone'"
+      "description": "Target teacher ID or 'everyone'"
     },
     "pdfUrl": {
       "type": "string",

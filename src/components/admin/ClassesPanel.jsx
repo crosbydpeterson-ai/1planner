@@ -6,18 +6,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Plus, Trash2, Edit2, Users, ArrowRight, RefreshCw, Check, X } from 'lucide-react';
 import { useTeachers } from '@/hooks/useTeachers';
+import { useSubjects } from '@/hooks/useSubjects';
 import TeacherRosterDialog from '@/components/admin/TeacherRosterDialog';
 import StartNewYearDialog from '@/components/admin/StartNewYearDialog';
+import SubjectsPanel from '@/components/admin/SubjectsPanel';
 
 export default function ClassesPanel() {
   const { teachers, loading, reload } = useTeachers();
+  const { subjects } = useSubjects();
   const [users, setUsers] = useState([]);
-  const [newName, setNewName] = useState({ math: '', reading: '' });
+  const [newName, setNewName] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [rosterTeacher, setRosterTeacher] = useState(null);
   const [showNewYear, setShowNewYear] = useState(false);
-  const [bulk, setBulk] = useState({ math: { from: '', to: '' }, reading: { from: '', to: '' } });
+  const [bulk, setBulk] = useState({});
 
   useEffect(() => {
     (async () => {
@@ -31,22 +34,25 @@ export default function ClassesPanel() {
   }, []);
 
   const countFor = (teacherId, subject) => {
-    const field = subject === 'math' ? 'mathTeacher' : 'readingTeacher';
-    return users.filter((u) => u[field] === teacherId).length;
+    if (subject === 'math') return users.filter((u) => u.mathTeacher === teacherId).length;
+    if (subject === 'reading') return users.filter((u) => u.readingTeacher === teacherId).length;
+    // Custom subject — check subjectAssignments map
+    return users.filter((u) => (u.subjectAssignments || {})[subject] === teacherId).length;
   };
 
   const addTeacher = async (subject) => {
-    const name = newName[subject].trim();
+    const name = (newName[subject] || '').trim();
     if (!name) {
       toast.error('Enter a teacher name');
       return;
     }
     try {
-      const sortOrder = (teachers[subject].length || 0);
+      const existing = teachers[subject] || [];
+      const sortOrder = existing.length || 0;
       await base44.entities.Teacher.create({ name, subject, isActive: true, sortOrder });
       setNewName({ ...newName, [subject]: '' });
       reload();
-      toast.success(`${name} added to ${subject}`);
+      toast.success(`${name} added`);
     } catch (e) {
       toast.error('Failed to add teacher');
     }
@@ -73,6 +79,24 @@ export default function ClassesPanel() {
     }
   };
 
+  const clearTeacherForStudents = async (subject, teacherId) => {
+    if (subject === 'math' || subject === 'reading') {
+      const field = subject === 'math' ? 'mathTeacher' : 'readingTeacher';
+      await base44.entities.UserProfile.updateMany(
+        { [field]: teacherId },
+        { $set: { [field]: '' } }
+      );
+    } else {
+      // Custom subject — clear from subjectAssignments map for each affected user
+      const affected = users.filter((u) => (u.subjectAssignments || {})[subject] === teacherId);
+      for (const u of affected) {
+        const updated = { ...(u.subjectAssignments || {}) };
+        delete updated[subject];
+        await base44.entities.UserProfile.update(u.id, { subjectAssignments: updated });
+      }
+    }
+  };
+
   const removeTeacher = async (t) => {
     const count = countFor(t.id, t.subject);
     const msg = count > 0
@@ -80,14 +104,7 @@ export default function ClassesPanel() {
       : `Remove ${t.name}?`;
     if (!window.confirm(msg)) return;
     try {
-      // Clear the teacher field on affected students so they re-pick
-      if (count > 0) {
-        const field = t.subject === 'math' ? 'mathTeacher' : 'readingTeacher';
-        await base44.entities.UserProfile.updateMany(
-          { [field]: t.id },
-          { $set: { [field]: '' } }
-        );
-      }
+      if (count > 0) await clearTeacherForStudents(t.subject, t.id);
       await base44.entities.Teacher.delete(t.id);
       reload();
       toast.success('Teacher removed');
@@ -97,12 +114,11 @@ export default function ClassesPanel() {
   };
 
   const bulkReassign = async (subject) => {
-    const { from, to } = bulk[subject];
+    const { from, to } = bulk[subject] || {};
     if (!from || !to || from === to) {
       toast.error('Select a source and target teacher');
       return;
     }
-    const field = subject === 'math' ? 'mathTeacher' : 'readingTeacher';
     const count = countFor(from, subject);
     if (count === 0) {
       toast.info('No students in that class');
@@ -110,11 +126,20 @@ export default function ClassesPanel() {
     }
     if (!window.confirm(`Move ${count} students to the new teacher?`)) return;
     try {
-      await base44.entities.UserProfile.updateMany(
-        { [field]: from },
-        { $set: { [field]: to } }
-      );
-      // refresh users
+      if (subject === 'math' || subject === 'reading') {
+        const field = subject === 'math' ? 'mathTeacher' : 'readingTeacher';
+        await base44.entities.UserProfile.updateMany(
+          { [field]: from },
+          { $set: { [field]: to } }
+        );
+      } else {
+        // Custom subject — update subjectAssignments for each affected user
+        const affected = users.filter((u) => (u.subjectAssignments || {})[subject] === from);
+        for (const u of affected) {
+          const updated = { ...(u.subjectAssignments || {}), [subject]: to };
+          await base44.entities.UserProfile.update(u.id, { subjectAssignments: updated });
+        }
+      }
       const all = await base44.entities.UserProfile.list();
       setUsers(all);
       setBulk({ ...bulk, [subject]: { from: '', to: '' } });
@@ -132,7 +157,7 @@ export default function ClassesPanel() {
   if (loading) return <div className="text-slate-400 text-sm py-4">Loading classes...</div>;
 
   const renderSubject = (subject, label, icon) => {
-    const list = teachers[subject];
+    const list = teachers[subject] || [];
     return (
       <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
         <div className="flex items-center gap-2 mb-4">
@@ -223,10 +248,18 @@ export default function ClassesPanel() {
         </Button>
       </div>
 
-      {/* Subject columns */}
+      {/* Subject categories manager */}
+      <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700 mb-4">
+        <SubjectsPanel />
+      </div>
+
+      {/* Subject columns — built-in + custom */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {renderSubject('math', 'Math', '🧮')}
         {renderSubject('reading', 'Reading', '📚')}
+        {subjects.filter((s) => !s.isBuiltin).map((s) =>
+          renderSubject(s.slug, s.name, s.emoji || '📘')
+        )}
       </div>
 
       <TeacherRosterDialog

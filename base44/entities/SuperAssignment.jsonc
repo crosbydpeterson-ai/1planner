@@ -38,17 +38,12 @@
     },
     "subject": {
       "type": "string",
-      "enum": [
-        "everyone",
-        "math",
-        "reading"
-      ],
       "default": "everyone",
-      "description": "When recipientsScope=class, which subject"
+      "description": "When recipientsScope=class, which subject slug (math, reading, or a custom Subject slug)"
     },
     "targetTeacher": {
       "type": "string",
-      "description": "When recipientsScope=class, the teacher name"
+      "description": "When recipientsScope=class, the teacher ID"
     },
     "specificUserProfileIds": {
       "type": "array",

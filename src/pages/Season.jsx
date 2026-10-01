@@ -200,6 +200,12 @@ export default function Season() {
       } else if (reward.type === 'coins') {
         const coinAmount = parseInt(reward.value, 10) || 0;
         updateData.questCoins = (profile.questCoins || 0) + coinAmount;
+      } else if (reward.type === 'magic_egg') {
+        // Grant a Magic Egg to the user's inventory
+        await base44.entities.MagicEgg.create({
+          userId: profile.userId,
+          source: 'reward_link',
+        });
       } else if (reward.type === 'food' && reward.value) {
         // Grant a food item to inventory
         try {

@@ -1,0 +1,38 @@
+{
+  "name": "Subject",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Subject display name (e.g. Science, History)"
+    },
+    "slug": {
+      "type": "string",
+      "description": "Unique slug used as the subject key on assignments and teacher.subject"
+    },
+    "emoji": {
+      "type": "string",
+      "default": "\ud83d\udcd8",
+      "description": "Icon emoji for the subject"
+    },
+    "color": {
+      "type": "string",
+      "default": "#6366f1",
+      "description": "Accent color for the subject badge"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Only active subjects appear in student selection and assignment targeting"
+    },
+    "sortOrder": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order"
+    }
+  },
+  "required": [
+    "name",
+    "slug"
+  ]
+}

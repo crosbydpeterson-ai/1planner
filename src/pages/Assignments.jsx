@@ -21,6 +21,7 @@ import EggOpenAnimation from '@/components/eggs/EggOpenAnimation';
  import { toast } from 'sonner';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
 import PetClearanceEventModal from '@/components/events/PetClearanceEventModal';
+import { useSubjects } from '@/hooks/useSubjects';
 
 export default function Assignments() {
   const navigate = useNavigate();
@@ -44,6 +45,8 @@ export default function Assignments() {
   const [showPetClearance, setShowPetClearance] = useState(false);
   const [autoOpenEgg, setAutoOpenEgg] = useState(null); // { egg, drop } for auto-open animation
   const [customPets, setCustomPets] = useState([]);
+  const { subjects } = useSubjects();
+  const customSubjects = subjects.filter((s) => !s.isBuiltin && s.isActive !== false);
 
 
    useEffect(() => {
@@ -105,6 +108,11 @@ export default function Assignments() {
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
         if (a.subject === 'math' && a.target === p.mathTeacher) return true;
         if (a.subject === 'reading' && a.target === p.readingTeacher) return true;
+        // Custom subject — check subjectAssignments map
+        if (a.subject && a.subject !== 'math' && a.subject !== 'reading' && a.subject !== 'everyone') {
+          const assignedTeacher = (p.subjectAssignments || {})[a.subject];
+          if (assignedTeacher && a.target === assignedTeacher) return true;
+        }
         if (a.target === 'Admin' && (p.rank === 'admin' || p.rank === 'super_admin' || p.mathTeacher === 'Admin' || p.readingTeacher === 'Admin')) return true;
         return false;
       });
@@ -149,6 +157,11 @@ export default function Assignments() {
         if (sa.recipientsScope === 'class') {
           if (sa.subject === 'math' && sa.targetTeacher === p.mathTeacher) return true;
           if (sa.subject === 'reading' && sa.targetTeacher === p.readingTeacher) return true;
+          // Custom subject — check subjectAssignments map
+          if (sa.subject && sa.subject !== 'math' && sa.subject !== 'reading' && sa.subject !== 'everyone') {
+            const assignedTeacher = (p.subjectAssignments || {})[sa.subject];
+            if (assignedTeacher && sa.targetTeacher === assignedTeacher) return true;
+          }
           return false;
         }
         if (sa.recipientsScope === 'users') {
@@ -182,6 +195,9 @@ export default function Assignments() {
         target = profile.mathTeacher;
       } else if (newAssignment.subject === 'reading') {
         target = profile.readingTeacher;
+      } else if (newAssignment.subject && newAssignment.subject !== 'everyone') {
+        // Custom subject — use subjectAssignments map
+        target = (profile.subjectAssignments || {})[newAssignment.subject] || '';
       }
 
       // Upload PDF if attached
@@ -518,6 +534,9 @@ export default function Assignments() {
                     <SelectItem value="everyone">Everyone</SelectItem>
                     <SelectItem value="math">Math</SelectItem>
                     <SelectItem value="reading">Reading</SelectItem>
+                    {customSubjects.map((s) => (
+                      <SelectItem key={s.slug} value={s.slug}>{s.emoji || '📘'} {s.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -593,6 +612,9 @@ export default function Assignments() {
               <TabsTrigger value="completed" className="rounded-lg">Completed</TabsTrigger>
               <TabsTrigger value="math" className="rounded-lg">Math</TabsTrigger>
               <TabsTrigger value="reading" className="rounded-lg">Reading</TabsTrigger>
+              {customSubjects.map((s) => (
+                <TabsTrigger key={s.slug} value={s.slug} className="rounded-lg">{s.emoji || '📘'} {s.name}</TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
         </motion.div>

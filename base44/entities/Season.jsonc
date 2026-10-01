@@ -31,7 +31,10 @@
             "enum": [
               "pet",
               "theme",
-              "title"
+              "title",
+              "coins",
+              "magic_egg",
+              "food"
             ]
           },
           "value": {

@@ -12,6 +12,7 @@ import PetAvatar from '@/components/quest/PetAvatar';
 import PetCosmeticCustomizer from '@/components/quest/PetCosmeticCustomizer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PETS } from '@/components/quest/PetCatalog';
+import SubjectAssignmentSelector from '@/components/student/SubjectAssignmentSelector';
 
 export default function UserSettings() {
   const [profile, setProfile] = useState(null);
@@ -146,6 +147,8 @@ export default function UserSettings() {
         <p className="text-sm text-slate-600 mb-3">This icon shows on the leaderboard and Admin panel.</p>
         <PetCosmeticCustomizer profile={profile} onUpdate={loadProfile} />
       </div>
+
+      <SubjectAssignmentSelector profile={profile} onUpdated={setProfile} />
 
       <div className="bg-white rounded-xl p-6 shadow-md border border-slate-200 mb-6">
         <h2 className="text-xl font-semibold mb-2 text-slate-700">🔗 Your Referral Link</h2>

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useTeachers } from '@/hooks/useTeachers';
+import { useSubjects } from '@/hooks/useSubjects';
 import { getTeacherName } from '@/lib/teachers';
 import { toast } from 'sonner';
 
@@ -24,6 +25,8 @@ export default function SuperAssignmentCreator() {
   const [enablePetGenerator, setEnablePetGenerator] = useState(false);
   const [saving, setSaving] = useState(false);
   const { teachers } = useTeachers();
+  const { subjects } = useSubjects();
+  const customSubjects = subjects.filter((s) => !s.isBuiltin && s.isActive !== false);
 
   useEffect(() => {
     (async () => {
@@ -124,6 +127,7 @@ export default function SuperAssignmentCreator() {
                 <SelectContent>
                   <SelectItem value="math">Math</SelectItem>
                   <SelectItem value="reading">Reading</SelectItem>
+                  {customSubjects.map(s => <SelectItem key={s.slug} value={s.slug}>{s.emoji || '📘'} {s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -132,7 +136,7 @@ export default function SuperAssignmentCreator() {
               <Select value={targetTeacher} onValueChange={setTargetTeacher}>
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white"><SelectValue placeholder="Select teacher" /></SelectTrigger>
                 <SelectContent>
-                  {(subject === 'math' ? teachers.math : teachers.reading).filter(t => t.isActive !== false).map(t => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
+                  {(teachers[subject] || []).filter(t => t.isActive !== false).map(t => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>

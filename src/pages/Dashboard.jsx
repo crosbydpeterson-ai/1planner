@@ -85,6 +85,11 @@ export default function Dashboard() {
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
         if (a.subject === 'math' && a.target === p.mathTeacher) return true;
         if (a.subject === 'reading' && a.target === p.readingTeacher) return true;
+        // Custom subject — check subjectAssignments map
+        if (a.subject && a.subject !== 'math' && a.subject !== 'reading' && a.subject !== 'everyone') {
+          const assignedTeacher = (p.subjectAssignments || {})[a.subject];
+          if (assignedTeacher && a.target === assignedTeacher) return true;
+        }
         if (a.target === p.userId) return true;
         return false;
       });
@@ -92,7 +97,7 @@ export default function Dashboard() {
 
       // Create tutorial assignment if user hasn't completed tutorial
       if (!p.tutorialCompleted) {
-        const tutorialExists = assignments.find((a) => a.title === '📚 Practice Assignment (Tutorial)');
+        const tutorialExists = assignments.find((a) => a.title === '📚 Practice Assignment (Tutorial)' && a.target === p.userId);
         if (!tutorialExists) {
           await base44.entities.Assignment.create({
             title: '📚 Practice Assignment (Tutorial)',

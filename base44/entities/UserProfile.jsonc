@@ -42,6 +42,11 @@
       "type": "string",
       "description": "Teacher entity ID for this student's reading class"
     },
+    "subjectAssignments": {
+      "type": "object",
+      "description": "Map of custom subject slug to Teacher entity ID (e.g. { 'science': 'teacher_abc123' }). Built-in math/reading use mathTeacher/readingTeacher fields.",
+      "default": {}
+    },
     "isLocked": {
       "type": "boolean",
       "default": false

@@ -18,7 +18,17 @@ export default function SeasonProgressWidget({ userXp, claimedRewards, seasonXp,
     try {
       const seasons = await base44.entities.Season.filter({ isActive: true });
       if (seasons.length > 0) {
-        setSeason(seasons[0]);
+        const now = new Date();
+        // Find currently live season (within start/end dates)
+        let current = seasons.find(s => new Date(s.startDate) <= now && new Date(s.endDate) >= now);
+        // If none live, find the next upcoming season
+        if (!current) {
+          const upcoming = seasons
+            .filter(s => new Date(s.startDate) > now)
+            .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+          current = upcoming[0] || null;
+        }
+        if (current) setSeason(current);
       }
     } catch (e) {
       console.error('Error loading season:', e);
