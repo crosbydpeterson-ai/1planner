@@ -59,28 +59,47 @@ export default function Season() {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) {
       navigate(createPageUrl('Home'));
+      setLoading(false);
       return;
     }
 
+    let me = null;
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length === 0) {
         navigate(createPageUrl('Home'));
+        setLoading(false);
         return;
       }
-      const me = profiles[0];
+      me = profiles[0];
       setProfile(me);
+    } catch (e) {
+      console.error('Error loading profile:', e);
+      navigate(createPageUrl('Home'));
+      setLoading(false);
+      return;
+    }
 
+    // Non-critical loads — failures here should NOT blank the page
+    try {
       // Admin check
       const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
       const adminUser = me.username?.toLowerCase?.() === 'crosby' || (allProfiles[0] && allProfiles[0].id === me.id);
       setIsAdmin(!!adminUser);
+    } catch (e) {
+      console.error('Error checking admin:', e);
+    }
 
+    try {
       // Locks
       const settings = await base44.entities.AppSetting.list();
       const fl = settings.find(s => s.key === 'feature_locks');
       setLocks(fl ? fl.value : null);
+    } catch (e) {
+      console.error('Error loading locks:', e);
+    }
 
+    try {
       // Auto-timing: find the season that's live right now, or the next upcoming
       const seasons = await base44.entities.Season.filter({ isActive: true });
       if (seasons.length > 0) {
@@ -107,10 +126,9 @@ export default function Season() {
         }
       }
     } catch (e) {
-      console.error('Error loading data:', e);
-      navigate(createPageUrl('Home'));
-      return;
+      console.error('Error loading seasons:', e);
     }
+
     setLoading(false);
   };
 
