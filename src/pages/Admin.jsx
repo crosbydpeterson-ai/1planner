@@ -68,7 +68,6 @@ import AbilitiesPanel from '@/components/admin/AbilitiesPanel';
 import FeatureLockManager from '@/components/admin/FeatureLockManager';
 import MusicAdminPanel from '@/components/admin/MusicAdminPanel';
 import { useSubjects } from '@/hooks/useSubjects';
-import { isCustomSubject } from '@/lib/subjects';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
