@@ -90,6 +90,8 @@ export default function Rewards() {
       } catch (_) {}
     } catch (e) {
       console.error('Error loading data:', e);
+      navigate(createPageUrl('Home'));
+      return;
     }
     setLoading(false);
   };

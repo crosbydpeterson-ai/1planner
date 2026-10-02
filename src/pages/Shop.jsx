@@ -105,6 +105,8 @@ export default function Shop() {
       setCustomPets(allCustomPets);
     } catch (e) {
       console.error('Error loading shop:', e);
+      navigate(createPageUrl('Home'));
+      return;
     }
     setLoading(false);
   };

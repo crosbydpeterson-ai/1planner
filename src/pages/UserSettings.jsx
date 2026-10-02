@@ -62,6 +62,8 @@ export default function UserSettings() {
       setReferralLink(`${window.location.origin}${createPageUrl('Home')}?ref=${userProfile.id}`);
     } catch (e) {
       console.error('Error loading profile:', e);
+      navigate(createPageUrl('Home'));
+      return;
     }
     setLoading(false);
   };

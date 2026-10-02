@@ -112,6 +112,8 @@ export default function Dashboard() {
       }
     } catch (e) {
       console.error('Error loading profile:', e);
+      navigate(createPageUrl('Home'));
+      return;
     }
     setLoading(false);
   };

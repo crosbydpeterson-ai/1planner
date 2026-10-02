@@ -108,6 +108,8 @@ export default function Season() {
       }
     } catch (e) {
       console.error('Error loading data:', e);
+      navigate(createPageUrl('Home'));
+      return;
     }
     setLoading(false);
   };
