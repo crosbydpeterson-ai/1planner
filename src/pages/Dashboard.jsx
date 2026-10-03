@@ -194,8 +194,6 @@ export default function Dashboard() {
           <SeasonProgressWidget
             key={widgetId}
             userXp={profile.xp}
-            seasonXp={profile.seasonXp}
-            activeSeasonId={profile.activeSeasonId}
             claimedRewards={profile.claimedSeasonRewards} />);
 
 

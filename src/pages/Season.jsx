@@ -23,16 +23,10 @@ export default function Season() {
     base44.analytics.track({ eventName: 'season_page_viewed' });
   }, []);
 
-  // Compute season XP: if profile is tracking the current season, use seasonXp; otherwise 0
-  // Also auto-migrate: if activeSeasonId is stale/missing, bind to the displayed season
-  const getSeasonXp = (userProfile, activeSeason) => {
-    if (!userProfile || !activeSeason) return 0;
-    if (userProfile.activeSeasonId === activeSeason.id) {
-      return userProfile.seasonXp || 0;
-    }
-    // activeSeasonId doesn't match — either stale or never set
-    // If user has seasonXp but wrong activeSeasonId, show 0 (they haven't earned in this season)
-    return 0;
+  // Unified XP: 1Pass progress uses profile.xp (the single authoritative XP balance)
+  const getSeasonXp = (userProfile) => {
+    if (!userProfile) return 0;
+    return userProfile.xp || 0;
   };
 
 
@@ -114,12 +108,11 @@ export default function Season() {
           current = upcoming[0] || null;
         }
         if (current) {
-          // Auto-equip: if the live season differs from what the user is tracking, switch and reset XP
+          // Track active season ID for reward claiming, but NEVER reset XP
           const isLive = new Date(current.startDate) <= now && new Date(current.endDate) >= now;
           if (isLive && me.activeSeasonId !== current.id) {
-            await base44.entities.UserProfile.update(me.id, { activeSeasonId: current.id, seasonXp: 0 });
+            await base44.entities.UserProfile.update(me.id, { activeSeasonId: current.id });
             me.activeSeasonId = current.id;
-            me.seasonXp = 0;
             setProfile({ ...me });
           }
           setSeason(current);

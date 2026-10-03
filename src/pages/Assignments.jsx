@@ -261,28 +261,6 @@ export default function Assignments() {
       const newCoins = (profile.questCoins || 0) + coinsToAdd;
       const newGems = (profile.gems || 0) + (profile.isBanned ? 0 : 1);
 
-      // Track season-specific XP
-      let seasonXpUpdate = {};
-      try {
-        const activeSeasons = await base44.entities.Season.filter({ isActive: true });
-        if (activeSeasons.length > 0) {
-          const activeSeason = activeSeasons[0];
-          const now = new Date();
-          const seasonStart = new Date(activeSeason.startDate);
-          const seasonEnd = new Date(activeSeason.endDate);
-          if (now >= seasonStart && now <= seasonEnd) {
-            // If tracking a different season, reset seasonXp
-            if (profile.activeSeasonId !== activeSeason.id) {
-              seasonXpUpdate = { seasonXp: xpToAdd, activeSeasonId: activeSeason.id };
-            } else {
-              seasonXpUpdate = { seasonXp: (profile.seasonXp || 0) + xpToAdd };
-            }
-          }
-        }
-      } catch (e) {
-        console.error('Error updating season XP:', e);
-      }
-      
       // Get a random pet as reward
       const currentPets = profile.unlockedPets || ['starter_slime'];
       const randomPet = getRandomPet(currentPets);
@@ -294,8 +272,7 @@ export default function Assignments() {
         questCoins: newCoins,
         gems: newGems,
         completedAssignments,
-        unlockedPets: newUnlockedPets,
-        ...seasonXpUpdate
+        unlockedPets: newUnlockedPets
       };
       if (shouldFlagUser && !profile.flagged) {
         userUpdate.flagged = true;

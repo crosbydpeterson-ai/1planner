@@ -53,8 +53,8 @@ export default function SeasonProgressWidget({ userXp, claimedRewards, seasonXp,
   const daysLeft = differenceInDays(new Date(season.endDate), new Date());
   const totalRewards = season.rewards?.length || 0;
   const claimedCount = claimedRewards?.length || 0;
-  // Show season-scoped XP
-  const displayXp = (activeSeasonId === season.id) ? (seasonXp || 0) : 0;
+  // Unified XP: 1Pass progress uses profile.xp
+  const displayXp = userXp || 0;
 
   return (
     <motion.div
