@@ -65,15 +65,24 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
     if (!form.title.trim()) { toast.error('Enter a title first'); return; }
     setGeneratingCover(true);
     try {
+      // If there's a YouTube URL, grab its thumbnail to use as a style reference
+      let existingImageUrls = undefined;
+      if (form.sourceType === 'youtube' && form.youtubeUrl.trim()) {
+        const m = form.youtubeUrl.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/);
+        if (m) {
+          existingImageUrls = [`https://img.youtube.com/vi/${m[1]}/maxresdefault.jpg`];
+        }
+      }
       const { url } = await base44.integrations.Core.GenerateImage({
-        prompt: `Square album cover art designed to look like a vinyl record music disc. A centered circular black vinyl record with visible grooves and a vibrant colorful center label inspired by the song title "${form.title}". Clean modern digital art, square 1:1 composition, no text.`,
+        prompt: `Square album cover art designed to look like a vinyl record music disc. A centered circular black vinyl record with visible grooves and a vibrant colorful center label inspired by the song title "${form.title}". Match the color palette, mood, and visual style of the reference image. Clean modern digital art, square 1:1 composition, no text.`,
+        ...(existingImageUrls ? { existing_image_urls: existingImageUrls } : {}),
       });
       const resp = await fetch(url);
       const blob = await resp.blob();
       const file = new File([blob], `disc-${Date.now()}.png`, { type: blob.type || 'image/png' });
       const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
       setCoverUri(file_uri);
-      toast.success('Disc art generated!');
+      toast.success(existingImageUrls ? 'Disc art generated from video thumbnail!' : 'Disc art generated!');
     } catch (e) {
       console.error(e);
       toast.error('Disc art generation failed');
