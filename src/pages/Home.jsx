@@ -90,11 +90,9 @@ export default function Home() {
     setError('');
 
     try {
-      // Find user profile by username (case-insensitive)
-      const profiles = await base44.entities.UserProfile.list();
-      const profile = profiles.find((p) =>
-      p.username.toLowerCase() === username.trim().toLowerCase()
-      );
+      // Find user profile by username (stored lowercase)
+      const profiles = await base44.entities.UserProfile.filter({ username: username.trim().toLowerCase() });
+      const profile = profiles[0];
 
       if (!profile) {
         setError('Username not found. Please sign up first.');
@@ -126,6 +124,7 @@ export default function Home() {
 
       navigate(createPageUrl('Dashboard'));
     } catch (e) {
+      console.error('Login error:', e);
       setError('Login failed. Please try again.');
     }
     setLoading(false);
