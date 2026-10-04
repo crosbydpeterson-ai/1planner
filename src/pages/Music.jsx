@@ -18,42 +18,50 @@ export default function Music() {
   const [lockPageConfig, setLockPageConfig] = useState(null);
   const [showRequest, setShowRequest] = useState(false);
   const [openPlaylist, setOpenPlaylist] = useState(null);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const profileId = localStorage.getItem('quest_profile_id');
-      if (!profileId) {setLoading(false);return;}
-      try {
-        // Retry the profile fetch specifically — if it rate-limits, songs disappear
-        let profiles = null;
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            profiles = await base44.entities.UserProfile.filter({ id: profileId });
-            break;
-          } catch (rateErr) {
-            if (attempt === 2) throw rateErr;
-            await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
-          }
+  const loadAll = async () => {
+    const profileId = localStorage.getItem('quest_profile_id');
+    if (!profileId) { setLoading(false); return; }
+    setLoading(true);
+    setLoadError(false);
+    try {
+      let profiles = null;
+      let allTracks = null;
+      let allPlaylists = null;
+      let settings = null;
+      // Retry the entire load up to 3 times — any of these calls can rate-limit
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          [profiles, allTracks, allPlaylists, settings] = await Promise.all([
+            base44.entities.UserProfile.filter({ id: profileId }),
+            base44.entities.MusicTrack.list('-created_date'),
+            base44.entities.Playlist.list('-created_date'),
+            base44.entities.AppSetting.list(),
+          ]);
+          break;
+        } catch (rateErr) {
+          if (attempt === 2) throw rateErr;
+          await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
         }
-        const [allTracks, allPlaylists, settings] = await Promise.all([
-        base44.entities.MusicTrack.list('-created_date'),
-        base44.entities.Playlist.list('-created_date'),
-        base44.entities.AppSetting.list()]
-        );
-        const p = profiles[0];
-        setProfile(p);
-        setTracks(allTracks);
-        setPlaylists(allPlaylists);
-        const locksSetting = settings.find((s) => s.key === 'feature_locks');
-        setLocks(locksSetting?.value || null);
-        const pageSetting = settings.find((s) => s.key === 'lock_page_config');
-        setLockPageConfig(pageSetting?.value || null);
-      } catch (e) {
-        console.error('Music load error', e);
       }
-      setLoading(false);
-    })();
-  }, []);
+      const p = profiles?.[0];
+      if (!p) { setLoadError(true); setLoading(false); return; }
+      setProfile(p);
+      setTracks(allTracks || []);
+      setPlaylists(allPlaylists || []);
+      const locksSetting = settings?.find((s) => s.key === 'feature_locks');
+      setLocks(locksSetting?.value || null);
+      const pageSetting = settings?.find((s) => s.key === 'lock_page_config');
+      setLockPageConfig(pageSetting?.value || null);
+    } catch (e) {
+      console.error('Music load error', e);
+      setLoadError(true);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadAll(); }, []);
 
   if (loading) {
     return (
@@ -61,6 +69,21 @@ export default function Music() {
         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
       </div>);
 
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center">
+        <Music2 className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+        <p className="text-slate-500 mb-4">Couldn't load music. This is usually a temporary connection issue.</p>
+        <button
+          onClick={loadAll}
+          className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 shadow-sm"
+        >
+          Try again
+        </button>
+      </div>
+    );
   }
 
   // Feature lock check
