@@ -3,7 +3,21 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Stamp, Calendar, BookOpen, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  ArrowLeft,
+  Sparkles,
+  Star,
+  Ghost,
+  Snowflake,
+  Home,
+  Flower2,
+  Sun,
+  Leaf,
+  Gift,
+  AlertCircle,
+  RefreshCw,
+  BookOpen,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -17,6 +31,19 @@ import {
   getSeasonBookSeasons,
   selectDefaultSeasonId,
 } from '@/lib/seasonUtils';
+
+// Pick a seasonal icon based on the season name
+function getSeasonIcon(name) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('trick') || n.includes('treat') || n.includes('halloween') || n.includes('spook')) return Ghost;
+  if (n.includes('winter') || n.includes('snow') || n.includes('frost') || n.includes('christmas')) return Snowflake;
+  if (n.includes('cozy') || n.includes('cabin') || n.includes('home')) return Home;
+  if (n.includes('spring') || n.includes('bloom') || n.includes('garden')) return Flower2;
+  if (n.includes('summer') || n.includes('beach') || n.includes('sun')) return Sun;
+  if (n.includes('fall') || n.includes('autumn') || n.includes('harvest')) return Leaf;
+  if (n.includes('gift') || n.includes('present')) return Gift;
+  return Sparkles;
+}
 
 export default function SeasonBook() {
   const navigate = useNavigate();
@@ -36,18 +63,15 @@ export default function SeasonBook() {
 
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) {
-      // No profile ID at all → genuinely need to log in
       navigate(createPageUrl('Home'));
       setLoading(false);
       return;
     }
 
-    // --- Profile (critical) ---
     let me = null;
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length === 0) {
-        // Profile genuinely does not exist → redirect
         navigate(createPageUrl('Home'));
         setLoading(false);
         return;
@@ -55,14 +79,12 @@ export default function SeasonBook() {
       me = profiles[0];
       setProfile(me);
     } catch (e) {
-      // Temporary failure → retryable error, NOT a logout redirect
       console.error('Error loading profile:', e);
       setProfileError(true);
       setLoading(false);
       return;
     }
 
-    // --- Seasons (critical for the page, but independent of artwork) ---
     let allSeasons = [];
     let seasonLoadFailed = false;
     try {
@@ -72,7 +94,6 @@ export default function SeasonBook() {
       seasonLoadFailed = true;
     }
 
-    // --- Artwork (non-critical — failures show fallback artwork) ---
     let dbCustomPets = [];
     let dbCustomThemes = [];
     try {
@@ -82,7 +103,6 @@ export default function SeasonBook() {
       ]);
     } catch (e) {
       console.error('Error loading custom artwork:', e);
-      // Continue with empty caches — stamps fall back to silhouettes/emojis
     }
 
     setCustomPets(dbCustomPets);
@@ -94,7 +114,6 @@ export default function SeasonBook() {
       return;
     }
 
-    // --- Determine which seasons to show (shared helper keeps 1Pass in sync) ---
     const now = nowInTimezone();
     const activeSeasons = (allSeasons || []).filter((s) => s.isActive !== false);
     const onePassSeason = selectOnePassSeason(activeSeasons, now);
@@ -142,31 +161,24 @@ export default function SeasonBook() {
     ).length;
   }, [profile, selectedSeason, claimedKeys]);
 
+  const bgClass =
+    'min-h-screen bg-[radial-gradient(circle_at_top,_#7c3aed_0%,_#581c87_35%,_#2e1065_100%)] px-4 py-5 md:px-6 md:py-6 pb-28';
+
   // --- Render ---
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top,_#7c3aed_0%,_#581c87_35%,_#2e1065_100%)]">
+      <div className={bgClass + ' flex items-center justify-center'}>
         <div className="animate-spin w-8 h-8 border-4 border-purple-300 border-t-transparent rounded-full" />
       </div>
     );
   }
 
-  const bgClass = 'min-h-screen bg-[radial-gradient(circle_at_top,_#7c3aed_0%,_#581c87_35%,_#2e1065_100%)] px-4 py-5 md:px-6 md:py-6 pb-28';
-
-  // Profile error → retryable
   if (profileError) {
     return (
       <div className={bgClass}>
         <div className="mx-auto max-w-lg pt-20">
-          <div className="rounded-[28px] border-[4px] border-red-300/40 bg-white/10 p-10 text-center shadow-[0_12px_0_rgba(0,0,0,0.25)]">
-            <AlertCircle className="w-12 h-12 mx-auto text-red-300 mb-3" />
-            <h3 className="text-xl font-black uppercase text-white mb-2">Couldn't load your profile</h3>
-            <p className="text-white/60 text-sm mb-5">Check your connection and try again.</p>
-            <Button onClick={loadData} className="bg-purple-600 hover:bg-purple-700 text-white">
-              <RefreshCw className="w-4 h-4 mr-2" /> Retry
-            </Button>
-          </div>
+          <ErrorCard title="Couldn't load your profile" onRetry={loadData} />
         </div>
       </div>
     );
@@ -174,20 +186,12 @@ export default function SeasonBook() {
 
   if (!profile) return null;
 
-  // Seasons error → retryable (profile loaded OK)
   if (seasonsError) {
     return (
       <div className={bgClass}>
-        <div className="mx-auto max-w-[1500px]">
-          <SeasonBookHeader collectedCount={0} totalRewards={0} />
-          <div className="rounded-[28px] border-[4px] border-red-300/40 bg-white/10 p-10 text-center shadow-[0_12px_0_rgba(0,0,0,0.25)]">
-            <AlertCircle className="w-12 h-12 mx-auto text-red-300 mb-3" />
-            <h3 className="text-xl font-black uppercase text-white mb-2">Couldn't load seasons</h3>
-            <p className="text-white/60 text-sm mb-5">Check your connection and try again.</p>
-            <Button onClick={loadData} className="bg-purple-600 hover:bg-purple-700 text-white">
-              <RefreshCw className="w-4 h-4 mr-2" /> Retry
-            </Button>
-          </div>
+        <div className="mx-auto max-w-[1500px] space-y-5">
+          <Header />
+          <ErrorCard title="Couldn't load seasons" onRetry={loadData} />
         </div>
       </div>
     );
@@ -196,10 +200,7 @@ export default function SeasonBook() {
   return (
     <div className={bgClass}>
       <div className="mx-auto max-w-[1500px] space-y-5">
-        <SeasonBookHeader
-          collectedCount={collectedCount}
-          totalRewards={selectedSeason?.rewards?.length || 0}
-        />
+        <Header />
 
         {seasons.length === 0 ? (
           <motion.div
@@ -216,10 +217,15 @@ export default function SeasonBook() {
         ) : (
           <>
             {/* Season tabs */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
               <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
                 {seasons.map((s) => {
                   const status = getSeasonStatus(s, now);
+                  const Icon = getSeasonIcon(s.name);
                   const isSelected = s.id === selectedSeasonId;
                   return (
                     <button
@@ -228,70 +234,48 @@ export default function SeasonBook() {
                       className={cn(
                         'flex items-center gap-2 rounded-2xl border-[3px] px-4 py-2.5 text-sm font-black uppercase whitespace-nowrap transition-all',
                         isSelected
-                          ? 'border-yellow-300 bg-yellow-400 text-slate-900 shadow-[0_5px_0_rgba(0,0,0,0.18)]'
-                          : 'border-violet-300/40 bg-white/10 text-white hover:bg-white/20'
+                          ? 'border-purple-200 bg-purple-500 text-white shadow-[0_5px_0_rgba(0,0,0,0.25)]'
+                          : 'border-violet-300/30 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
                       )}
                     >
-                      <Stamp className="w-4 h-4 shrink-0" />
+                      <Icon className="w-4 h-4 shrink-0" />
                       <span className="truncate max-w-[140px]">{s.name}</span>
-                      <span
-                        className={cn(
-                          'text-[9px] font-black uppercase px-1.5 py-0.5 rounded shrink-0',
-                          status === 'current' && 'bg-emerald-500 text-white',
-                          status === 'upcoming' && 'bg-blue-500 text-white',
-                          status === 'ended' && 'bg-purple-500/80 text-white'
-                        )}
-                      >
-                        {status}
-                      </span>
                     </button>
                   );
                 })}
               </div>
             </motion.div>
 
-            {/* Season banner */}
+            {/* Season card — stamps live inside this rounded purple container */}
             {selectedSeason && (
               <motion.div
-                key={selectedSeason.id + '-banner'}
+                key={selectedSeason.id + '-card'}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="rounded-[28px] border-[4px] border-amber-300 bg-gradient-to-r from-orange-400 via-yellow-300 to-amber-400 p-5 md:p-6 shadow-[0_12px_0_rgba(0,0,0,0.25)]"
+                className="rounded-[32px] border-[4px] border-purple-300/30 bg-gradient-to-br from-purple-600/40 via-purple-700/30 to-violet-800/40 p-5 md:p-7 shadow-[0_14px_0_rgba(0,0,0,0.28)] backdrop-blur-sm"
               >
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                {/* Card header: title + count */}
+                <div className="flex items-start justify-between gap-4 mb-1">
                   <div>
-                    <div className="text-xs font-black uppercase tracking-wide text-slate-900/70">
-                      {getSeasonStatusLabel(selectedSeason, now)}
-                    </div>
-                    <h2 className="text-2xl md:text-4xl font-black uppercase text-slate-900">{selectedSeason.name}</h2>
-                    <div className="mt-1 flex items-center gap-2 text-slate-900/80 text-xs md:text-sm font-bold uppercase">
-                      <Calendar className="w-4 h-4 shrink-0" />
-                      <span>
-                        {format(parseSeasonDate(selectedSeason.startDate), 'MMM d')} -{' '}
-                        {format(parseSeasonDate(selectedSeason.endDate), 'MMM d, yyyy')}
-                      </span>
-                    </div>
+                    <h2 className="text-2xl md:text-3xl font-black uppercase text-white tracking-tight">
+                      {selectedSeason.name}
+                    </h2>
+                    <p className="text-white/60 text-xs md:text-sm font-bold uppercase mt-1">
+                      {format(parseSeasonDate(selectedSeason.startDate), 'MMMM')} •{' '}
+                      {getSeasonStatusLabel(selectedSeason, now).replace(' Season', '').toLowerCase()}
+                    </p>
                   </div>
-                  <div className="rounded-2xl border-[3px] border-slate-900/20 bg-slate-900/10 px-5 py-3 text-center shrink-0">
-                    <div className="text-xs font-black uppercase text-slate-900/70">Collected</div>
-                    <div className="text-2xl font-black text-slate-900">
+                  <div className="rounded-2xl bg-purple-400/30 border-2 border-purple-200/30 px-4 py-2 text-center shrink-0">
+                    <div className="text-[10px] font-black uppercase text-white/70">Collected</div>
+                    <div className="text-lg font-black text-white">
                       {collectedCount} of {selectedSeason.rewards?.length || 0}
                     </div>
                   </div>
                 </div>
-              </motion.div>
-            )}
 
-            {/* Stamp grid */}
-            {selectedSeason && (
-              <motion.div
-                key={selectedSeason.id + '-grid'}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+                {/* Stamp grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mt-5">
                   {(selectedSeason.rewards || []).map((reward, index) => (
                     <StampCard
                       key={`${selectedSeason.id}-${index}-${reward.type}-${reward.value || reward.name}`}
@@ -304,8 +288,10 @@ export default function SeasonBook() {
                     />
                   ))}
                 </div>
-                <p className="text-center text-white/50 text-xs font-bold uppercase mt-6">
-                  Images reveal when you own the reward.
+
+                {/* Footer */}
+                <p className="text-center text-white/50 text-xs md:text-sm font-medium mt-6">
+                  Collected rewards stay yours after a season ends.
                 </p>
               </motion.div>
             )}
@@ -316,36 +302,48 @@ export default function SeasonBook() {
   );
 }
 
-function SeasonBookHeader({ collectedCount, totalRewards }) {
+function Header() {
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center justify-between gap-4"
+      className="flex flex-col items-center gap-2"
     >
-      <div className="flex items-center gap-3 md:gap-4">
-        <Link to={createPageUrl('Dashboard')}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-2xl border-2 border-white/20 bg-black/20 text-white hover:bg-white/10 hover:text-white"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        </Link>
-        <div>
-          <div className="text-white/70 text-xs md:text-sm font-black uppercase tracking-[0.2em]">1planner</div>
-          <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white">Season Book</h1>
+      <div className="flex items-center justify-between w-full">
+        {/* Spacer to balance the back button */}
+        <div className="w-32 hidden md:block" />
+        <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white flex items-center gap-3">
+          <Star className="w-6 h-6 text-yellow-300 fill-yellow-300" />
+          Season Collection
+          <Star className="w-6 h-6 text-yellow-300 fill-yellow-300" />
+        </h1>
+        <div className="w-32 flex justify-end">
+          <Link to={createPageUrl('Season')}>
+            <Button
+              variant="ghost"
+              className="rounded-2xl border-2 border-purple-200/30 bg-purple-500/20 text-white hover:bg-purple-500/40 hover:text-white text-xs font-black uppercase h-auto py-2.5 px-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to 1Pass
+            </Button>
+          </Link>
         </div>
       </div>
-      {totalRewards > 0 && (
-        <div className="rounded-2xl border-[3px] border-lime-300 bg-lime-400 px-4 py-2 text-slate-900 shadow-[0_8px_0_rgba(0,0,0,0.22)] shrink-0">
-          <div className="text-[10px] md:text-xs font-black uppercase">Collected</div>
-          <div className="text-sm md:text-base font-black">
-            {collectedCount}/{totalRewards}
-          </div>
-        </div>
-      )}
+      <p className="text-white/50 text-sm font-bold uppercase tracking-[0.15em]">
+        Your seasons. Your collection.
+      </p>
     </motion.div>
+  );
+}
+
+function ErrorCard({ title, onRetry }) {
+  return (
+    <div className="rounded-[28px] border-[4px] border-red-300/40 bg-white/10 p-10 text-center shadow-[0_12px_0_rgba(0,0,0,0.25)]">
+      <AlertCircle className="w-12 h-12 mx-auto text-red-300 mb-3" />
+      <h3 className="text-xl font-black uppercase text-white mb-2">{title}</h3>
+      <p className="text-white/60 text-sm mb-5">Check your connection and try again.</p>
+      <Button onClick={onRetry} className="bg-purple-600 hover:bg-purple-700 text-white">
+        <RefreshCw className="w-4 h-4 mr-2" /> Retry
+      </Button>
+    </div>
   );
 }

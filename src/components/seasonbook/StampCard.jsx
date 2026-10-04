@@ -43,8 +43,8 @@ export function isRewardOwned(reward, rewardIndex, seasonId, profile, claimedKey
 function useStampMask() {
   return useMemo(() => {
     const circles = [];
-    const step = 16;
-    const r = 6;
+    const step = 18;
+    const r = 7;
     const vb = 200;
     for (let x = step / 2; x < vb; x += step) {
       circles.push(`<circle cx="${x}" cy="0" r="${r}" fill="transparent"/>`);
@@ -62,20 +62,18 @@ function useStampMask() {
 function RewardArt({ reward, isOwned, petDisplay, themeDisplay, imgError, onImgError }) {
   if (reward.type === 'pet') {
     if (isOwned) {
-      // Owned: show image, fall back to emoji on error
       if (petDisplay?.image && !imgError) {
         return (
           <img
             src={petDisplay.image}
             alt={petDisplay.name || 'Pet reward'}
-            className="w-20 h-20 rounded-lg object-cover"
+            className="w-20 h-20 rounded-2xl object-cover"
             onError={onImgError}
           />
         );
       }
       return <div className="text-5xl">{petDisplay?.emoji || REWARD_TYPE_ICONS.pet}</div>;
     }
-    // Unowned: solid black silhouette (can't assume image transparency)
     return <SilhouetteIcon type="pet" />;
   }
 
@@ -157,35 +155,41 @@ export default function StampCard({ reward, rewardIndex, seasonId, isOwned, petC
 
   return (
     <div className="relative" aria-label={ariaLabel}>
+      {/* Green checkmark badge for collected stamps */}
+      {isOwned && (
+        <div className="absolute -top-2 -right-2 z-10 w-7 h-7 rounded-full bg-emerald-500 ring-2 ring-white shadow-md flex items-center justify-center">
+          <Check className="w-4 h-4 text-white" strokeWidth={3} />
+        </div>
+      )}
+
       <div
-        className="bg-white p-2"
+        className="bg-white p-2.5 rounded-3xl"
         style={{
           WebkitMaskImage: stampMask,
           maskImage: stampMask,
           WebkitMaskSize: '100% 100%',
           maskSize: '100% 100%',
-          filter: 'drop-shadow(0 5px 0 rgba(49,27,146,0.3))',
         }}
       >
         {/* Cream interior */}
-        <div className="bg-[#FFF8E1] p-3 min-h-[210px] flex flex-col overflow-hidden">
+        <div className="bg-[#FFF8E1] rounded-2xl p-3 min-h-[200px] flex flex-col overflow-hidden">
           {/* Top row: number + track label */}
           <div className="flex items-center justify-between mb-1 shrink-0">
-            <span className="text-xs font-bold text-purple-400/60">
-              {String(rewardIndex + 1).padStart(2, '0')}
+            <span className="text-[10px] font-bold text-purple-400/50">
+              #{String(rewardIndex + 1).padStart(3, '0')}
             </span>
             <span
               className={cn(
-                'text-[10px] font-black uppercase px-2 py-0.5 rounded-full shrink-0',
+                'text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0',
                 isPlus ? 'bg-pink-500 text-white' : 'bg-cyan-500 text-white'
               )}
             >
-              {isPlus ? '1Pass Plus' : 'Free'}
+              {isPlus ? 'Plus' : 'Free'}
             </span>
           </div>
 
           {/* Image / art area */}
-          <div className="flex-1 flex items-center justify-center py-2 min-h-[80px]">
+          <div className="flex-1 flex items-center justify-center py-2 min-h-[76px]">
             <RewardArt
               reward={reward}
               isOwned={isOwned}
@@ -209,13 +213,8 @@ export default function StampCard({ reward, rewardIndex, seasonId, isOwned, petC
           </div>
 
           {/* Owned / Not collected badge */}
-          <div className="mt-2 flex justify-center shrink-0">
-            {isOwned ? (
-              <div className="flex items-center gap-1 bg-lime-500 rounded-full px-2 py-0.5">
-                <Check className="w-3 h-3 text-white" />
-                <span className="text-[10px] font-black uppercase text-white">Owned</span>
-              </div>
-            ) : (
+          <div className="mt-1.5 flex justify-center shrink-0">
+            {!isOwned && (
               <div className="text-[10px] font-bold uppercase text-gray-400">Not collected</div>
             )}
           </div>
