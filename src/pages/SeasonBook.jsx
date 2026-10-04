@@ -162,7 +162,7 @@ export default function SeasonBook() {
   }, [profile, selectedSeason, claimedKeys]);
 
   const bgClass =
-    'min-h-screen bg-[radial-gradient(circle_at_top,_#7c3aed_0%,_#581c87_35%,_#2e1065_100%)] px-4 py-5 md:px-6 md:py-6 pb-28';
+    'min-h-screen bg-[radial-gradient(circle_at_top,_#4D25A8_0%,_#3A1C94_50%,_#2e1065_100%)] px-4 py-5 md:px-6 md:py-6 pb-28';
 
   // --- Render ---
 
@@ -232,10 +232,10 @@ export default function SeasonBook() {
                       key={s.id}
                       onClick={() => setSelectedSeasonId(s.id)}
                       className={cn(
-                        'flex items-center gap-2 rounded-2xl border-[3px] px-4 py-2.5 text-sm font-black uppercase whitespace-nowrap transition-all',
+                        'flex items-center gap-2 rounded-full border-[3px] px-5 py-2.5 text-sm font-black uppercase whitespace-nowrap transition-all',
                         isSelected
-                          ? 'border-purple-200 bg-purple-500 text-white shadow-[0_5px_0_rgba(0,0,0,0.25)]'
-                          : 'border-violet-300/30 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                          ? 'border-yellow-300 bg-gradient-to-r from-orange-400 to-yellow-400 text-slate-900 shadow-[0_5px_0_rgba(0,0,0,0.25)]'
+                          : 'border-white/15 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
                       )}
                     >
                       <Icon className="w-4 h-4 shrink-0" />
@@ -253,20 +253,23 @@ export default function SeasonBook() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="rounded-[32px] border-[4px] border-purple-300/30 bg-gradient-to-br from-purple-600/40 via-purple-700/30 to-violet-800/40 p-5 md:p-7 shadow-[0_14px_0_rgba(0,0,0,0.28)] backdrop-blur-sm"
+                className="rounded-[32px] border-[4px] border-purple-400/25 bg-gradient-to-br from-purple-700/50 via-purple-800/40 to-violet-900/50 p-5 md:p-7 shadow-[0_14px_0_rgba(0,0,0,0.28)] backdrop-blur-sm"
               >
-                {/* Card header: title + count */}
+                {/* Card header: icon + title + count */}
                 <div className="flex items-start justify-between gap-4 mb-1">
-                  <div>
-                    <h2 className="text-2xl md:text-3xl font-black uppercase text-white tracking-tight">
-                      {selectedSeason.name}
-                    </h2>
-                    <p className="text-white/60 text-xs md:text-sm font-bold uppercase mt-1">
-                      {format(parseSeasonDate(selectedSeason.startDate), 'MMMM')} •{' '}
-                      {getSeasonStatusLabel(selectedSeason, now).replace(' Season', '').toLowerCase()}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    {(() => { const Icon = getSeasonIcon(selectedSeason.name); return <Icon className="w-8 h-8 md:w-10 md:h-10 text-yellow-300 shrink-0" />; })()}
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-black uppercase text-white tracking-tight">
+                        {selectedSeason.name}
+                      </h2>
+                      <p className="text-white/60 text-xs md:text-sm font-bold uppercase mt-1">
+                        {format(parseSeasonDate(selectedSeason.startDate), 'MMMM')} •{' '}
+                        {getSeasonStatusLabel(selectedSeason, now).replace(' Season', '').toLowerCase()}
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-2xl bg-purple-400/30 border-2 border-purple-200/30 px-4 py-2 text-center shrink-0">
+                  <div className="rounded-2xl bg-purple-950/40 border-2 border-purple-300/20 px-4 py-2 text-center shrink-0">
                     <div className="text-[10px] font-black uppercase text-white/70">Collected</div>
                     <div className="text-lg font-black text-white">
                       {collectedCount} of {selectedSeason.rewards?.length || 0}

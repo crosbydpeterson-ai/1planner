@@ -172,7 +172,7 @@ export default function StampCard({ reward, rewardIndex, seasonId, isOwned, petC
         }}
       >
         {/* Cream interior */}
-        <div className="bg-[#FFF8E1] rounded-2xl p-3 min-h-[200px] flex flex-col overflow-hidden">
+        <div className="bg-[#F7F2E8] rounded-2xl p-3 min-h-[200px] flex flex-col overflow-hidden">
           {/* Top row: number + track label */}
           <div className="flex items-center justify-between mb-1 shrink-0">
             <span className="text-[10px] font-bold text-purple-400/50">
