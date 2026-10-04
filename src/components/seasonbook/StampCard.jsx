@@ -27,6 +27,9 @@ export function isRewardOwned(reward, rewardIndex, seasonId, profile, claimedKey
     const titleVal = (reward.value || reward.name || '').trim();
     return (profile.unlockedTitles || []).includes(titleVal);
   }
+  // Song/playlist rewards grant permanent access — check the unlock inventory.
+  if (reward.type === 'song') return (profile.unlockedTrackIds || []).includes(reward.value);
+  if (reward.type === 'playlist') return (profile.unlockedPlaylistIds || []).includes(reward.value);
   return claimedKeys.includes(getRewardClaimKey(seasonId, reward, rewardIndex));
 }
 

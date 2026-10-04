@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, Sparkles, Wand2, X, Save } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Sparkles, Wand2, X, Save, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import ActiveEggJobs from "@/components/admin/ActiveEggJobs";
@@ -29,6 +30,27 @@ export default function SeasonPassGeneratorPanel({ adminProfile, customPets, cus
 
   // Generated rewards
   const [generatedRewards, setGeneratedRewards] = useState([]);
+
+  // Manual song/playlist reward adder (AI can't know real track/playlist IDs)
+  const [tracks, setTracks] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
+  const [manualType, setManualType] = useState("song");
+  const [manualTrackId, setManualTrackId] = useState("");
+  const [manualPlaylistId, setManualPlaylistId] = useState("");
+  const [manualXp, setManualXp] = useState(100);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [trs, pls] = await Promise.all([
+          base44.entities.MusicTrack.list("-created_date"),
+          base44.entities.Playlist.list("-created_date"),
+        ]);
+        setTracks(trs);
+        setPlaylists(pls);
+      } catch (e) { console.error(e); }
+    })();
+  }, []);
 
   const waitForEggJobCompletion = async (jobId, timeoutMs = 180000, pollMs = 2000) => {
     const startedAt = Date.now();
@@ -239,6 +261,26 @@ RULES:
             name: reward.name,
             value: titleValue
           });
+        } else if (reward.type === "song") {
+          if (!reward.value) {
+            throw new Error(`Song reward "${reward.name || "Untitled"}" is missing a track`);
+          }
+          processedRewards.push({
+            xpRequired: reward.xpRequired,
+            type: "song",
+            name: reward.name,
+            value: reward.value
+          });
+        } else if (reward.type === "playlist") {
+          if (!reward.value) {
+            throw new Error(`Playlist reward "${reward.name || "Untitled"}" is missing a playlist`);
+          }
+          processedRewards.push({
+            xpRequired: reward.xpRequired,
+            type: "playlist",
+            name: reward.name,
+            value: reward.value
+          });
         }
       }
 
@@ -317,13 +359,28 @@ RULES:
     setGeneratedRewards(prev => prev.filter((_, i) => i !== index));
   };
 
+  const addManualReward = () => {
+    if (manualType === "song") {
+      if (!manualTrackId) { toast.error("Pick a song"); return; }
+      const t = tracks.find(x => x.id === manualTrackId);
+      setGeneratedRewards(prev => [...prev, { xpRequired: manualXp, type: "song", name: t?.title || "Song", value: manualTrackId }]);
+      setManualTrackId("");
+    } else {
+      if (!manualPlaylistId) { toast.error("Pick a playlist"); return; }
+      const p = playlists.find(x => x.id === manualPlaylistId);
+      setGeneratedRewards(prev => [...prev, { xpRequired: manualXp, type: "playlist", name: p?.name || "Playlist", value: manualPlaylistId }]);
+      setManualPlaylistId("");
+    }
+    toast.success("Reward added");
+  };
+
   const handleReset = () => {
     setStep("input");
     setGeneratedRewards([]);
   };
 
   const getRewardIcon = (type) => {
-    const icons = { pet: "🐾", theme: "🎨", title: "🏷️", coins: "🪙", magic_egg: "🥚" };
+    const icons = { pet: "🐾", theme: "🎨", title: "🏷️", coins: "🪙", magic_egg: "🥚", song: "🎵", playlist: "🎶" };
     return icons[type] || "🎁";
   };
 
@@ -445,6 +502,9 @@ RULES:
                         <div className="flex items-center gap-2">
                           <span className="text-white font-medium truncate">{reward.name}</span>
                           <span className="text-xs text-slate-400 capitalize">{reward.type}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${idx % 2 === 0 ? "bg-sky-500/20 text-sky-300" : "bg-pink-500/20 text-pink-300"}`}>
+                            {idx % 2 === 0 ? "Free" : "Plus"}
+                          </span>
                           {reward.petData?.rarity && (
                             <span className={`text-xs capitalize ${getRarityColor(reward.petData.rarity)}`}>
                               {reward.petData.rarity}
@@ -479,6 +539,54 @@ RULES:
                     </motion.div>
                   ))}
                 </AnimatePresence>
+              </div>
+
+              {/* Manual song/playlist reward adder */}
+              <div className="bg-slate-700/40 rounded-lg p-3 mt-3 border border-slate-600">
+                <div className="text-xs text-slate-300 font-semibold mb-2">Add a song or playlist reward (1Pass unlock)</div>
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-slate-400">Type</Label>
+                    <Select value={manualType} onValueChange={setManualType}>
+                      <SelectTrigger className="w-28 bg-slate-800 border-slate-600 text-white"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="song">🎵 Song</SelectItem>
+                        <SelectItem value="playlist">🎶 Playlist</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {manualType === "song" ? (
+                    <div className="space-y-1 flex-1 min-w-[180px]">
+                      <Label className="text-[10px] text-slate-400">Song (track)</Label>
+                      <Select value={manualTrackId} onValueChange={setManualTrackId}>
+                        <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><SelectValue placeholder="Pick a track" /></SelectTrigger>
+                        <SelectContent>
+                          {tracks.length === 0 ? <SelectItem value={null} disabled>No tracks yet</SelectItem> :
+                            tracks.map(t => <SelectItem key={t.id} value={t.id}>{t.title}{t.isSeasonExclusive ? " (1Pass)" : ""}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-1 flex-1 min-w-[180px]">
+                      <Label className="text-[10px] text-slate-400">Playlist</Label>
+                      <Select value={manualPlaylistId} onValueChange={setManualPlaylistId}>
+                        <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><SelectValue placeholder="Pick a playlist" /></SelectTrigger>
+                        <SelectContent>
+                          {playlists.length === 0 ? <SelectItem value={null} disabled>No playlists yet</SelectItem> :
+                            playlists.map(p => <SelectItem key={p.id} value={p.id}>{p.name}{p.isSeasonExclusive ? " (1Pass)" : ""}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-slate-400">XP</Label>
+                    <Input type="number" value={manualXp} onChange={(e) => setManualXp(parseInt(e.target.value) || 0)} className="w-20 bg-slate-800 border-slate-600 text-white" />
+                  </div>
+                  <Button size="sm" onClick={addManualReward} className="bg-indigo-600">
+                    <Plus className="w-4 h-4 mr-1" />Add
+                  </Button>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-2">Tip: mark tracks/playlists as "1Pass exclusive" in the Music tab so they're hidden until unlocked. The lane (Free/Plus) follows the reward's position — even index = Free, odd = Plus.</p>
               </div>
 
               {generatedRewards.filter(r => r.type === "pet").length > 0 && (

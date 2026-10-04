@@ -35,12 +35,17 @@
       "default": true,
       "description": "Only active tracks show up for students"
     },
+    "isSeasonExclusive": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, the track is only visible to users who unlocked it via a 1Pass song/playlist reward (admins always see it). Used to gate songs behind 1Pass."
+    },
     "assignedProfileIds": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "UserProfile IDs this track is assigned to. Empty = visible to everyone."
+      "description": "UserProfile IDs this track is assigned to. Empty = visible to everyone (ignored when isSeasonExclusive is true)."
     },
     "lockedProfileIds": {
       "type": "array",

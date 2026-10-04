@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import MusicTrackFormDialog from './MusicTrackFormDialog';
 import MusicAccessDialog from './MusicAccessDialog';
 import SongRequestReviewPanel from './SongRequestReviewPanel';
+import PlaylistManagerPanel from './PlaylistManagerPanel';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 export default function MusicAdminPanel({ adminProfile, users }) {
@@ -59,6 +60,9 @@ export default function MusicAdminPanel({ adminProfile, users }) {
         </Button>
         <Button size="sm" variant={tab === 'requests' ? 'default' : 'outline'} onClick={() => setTab('requests')} className={tab === 'requests' ? 'bg-indigo-600' : ''}>
           <Inbox className="w-4 h-4 mr-1" />Requests
+        </Button>
+        <Button size="sm" variant={tab === 'playlists' ? 'default' : 'outline'} onClick={() => setTab('playlists')} className={tab === 'playlists' ? 'bg-indigo-600' : ''}>
+          <ListMusic className="w-4 h-4 mr-1" />Playlists
         </Button>
       </div>
 
@@ -129,6 +133,8 @@ export default function MusicAdminPanel({ adminProfile, users }) {
       )}
 
       {tab === 'requests' && <SongRequestReviewPanel />}
+
+      {tab === 'playlists' && <PlaylistManagerPanel adminProfile={adminProfile} />}
 
       <MusicTrackFormDialog
         open={showForm}

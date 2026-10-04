@@ -2,7 +2,7 @@ import React from 'react';
 import SilhouetteIcon from '@/components/seasonbook/SilhouetteIcon';
 import { colorStyle, extractHex } from '@/components/theme/themeUtils';
 
-const TYPE_EMOJI = { pet: '🐾', theme: '🎨', title: '🏆', coins: '🪙', magic_egg: '🥚', food: '🍰' };
+const TYPE_EMOJI = { pet: '🐾', theme: '🎨', title: '🏆', coins: '🪙', magic_egg: '🥚', food: '🍰', song: '🎵', playlist: '🎶' };
 
 // Silhouette shapes we can reliably tell from built-in pet ids
 const BUILTIN_SHAPES = { math_cat: 'cat', study_owl: 'owl', starter_slime: 'slime', book_dragon: 'dragon', celestial_dragon: 'dragon' };

@@ -34,7 +34,9 @@
               "title",
               "coins",
               "magic_egg",
-              "food"
+              "food",
+              "song",
+              "playlist"
             ]
           },
           "value": {

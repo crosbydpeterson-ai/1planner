@@ -1,33 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Music2, Lock, Loader2, Plus } from 'lucide-react';
+import { Music2, Loader2, Plus, ListMusic } from 'lucide-react';
 import MusicTrackCard from '@/components/music/MusicTrackCard';
+import PlaylistCard from '@/components/music/PlaylistCard';
+import PlaylistDialog from '@/components/music/PlaylistDialog';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import SongRequestDialog from '@/components/music/SongRequestDialog';
-import { isTrackVisibleForUser } from '@/lib/musicAccess';
+import { isTrackVisibleForUser, isPlaylistVisibleForUser, getPlaylistTracks } from '@/lib/musicAccess';
 import { checkFeatureLock } from '@/lib/featureLocks';
 
 export default function Music() {
   const [profile, setProfile] = useState(null);
   const [tracks, setTracks] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [locks, setLocks] = useState(null);
   const [lockPageConfig, setLockPageConfig] = useState(null);
   const [showRequest, setShowRequest] = useState(false);
+  const [openPlaylist, setOpenPlaylist] = useState(null);
 
   useEffect(() => {
     (async () => {
       const profileId = localStorage.getItem('quest_profile_id');
       if (!profileId) {setLoading(false);return;}
       try {
-        const [profiles, allTracks, settings] = await Promise.all([
+        const [profiles, allTracks, allPlaylists, settings] = await Promise.all([
         base44.entities.UserProfile.filter({ id: profileId }),
         base44.entities.MusicTrack.list('-created_date'),
+        base44.entities.Playlist.list('-created_date'),
         base44.entities.AppSetting.list()]
         );
         const p = profiles[0];
         setProfile(p);
         setTracks(allTracks);
+        setPlaylists(allPlaylists);
         const locksSetting = settings.find((s) => s.key === 'feature_locks');
         setLocks(locksSetting?.value || null);
         const pageSetting = settings.find((s) => s.key === 'lock_page_config');
@@ -61,6 +67,10 @@ export default function Music() {
   }
 
   const visible = tracks.filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile));
+  const visiblePlaylists = playlists.filter((p) => p.isActive !== false && isPlaylistVisibleForUser(p, profile));
+  const openPlaylistTracks = openPlaylist
+    ? getPlaylistTracks(openPlaylist, tracks).filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile))
+    : [];
 
   return (
     <div className="min-h-screen pt-20 pb-28 px-4 max-w-5xl mx-auto">
@@ -70,7 +80,7 @@ export default function Music() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Study Music</h1>
-          <p className="text-sm text-slate-400">Focus tracks curated by your Admin </p>
+          <p className="text-sm text-slate-400">Focus tracks curated by your Admin</p>
         </div>
       </div>
 
@@ -83,6 +93,26 @@ export default function Music() {
         </button>
       </div>
 
+      {visiblePlaylists.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <ListMusic className="w-5 h-5 text-indigo-500" />
+            <h2 className="text-lg font-bold text-slate-800">Playlists</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {visiblePlaylists.map((pl) => (
+              <PlaylistCard
+                key={pl.id}
+                playlist={pl}
+                trackCount={getPlaylistTracks(pl, tracks).filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile)).length}
+                onClick={() => setOpenPlaylist(pl)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <h2 className="text-lg font-bold text-slate-800 mb-3">All Songs</h2>
       {visible.length === 0 ?
       <div className="text-center py-20 text-slate-400">
           <Music2 className="w-12 h-12 mx-auto mb-3 opacity-40" />
@@ -94,6 +124,12 @@ export default function Music() {
         </div>
       }
 
+      <PlaylistDialog
+        playlist={openPlaylist}
+        tracks={openPlaylistTracks}
+        open={!!openPlaylist}
+        onOpenChange={(o) => { if (!o) setOpenPlaylist(null); }}
+      />
       <SongRequestDialog open={showRequest} onOpenChange={setShowRequest} profile={profile} />
     </div>);
 

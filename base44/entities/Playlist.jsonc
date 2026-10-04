@@ -1,0 +1,43 @@
+{
+  "name": "Playlist",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Playlist display name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description shown on the playlist card"
+    },
+    "trackIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "MusicTrack IDs in this playlist, in order"
+    },
+    "coverImageUri": {
+      "type": "string",
+      "description": "Private file URI for the playlist cover art, signed on display"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Only active playlists show up for students"
+    },
+    "isSeasonExclusive": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, the playlist is only visible to users who unlocked it via a 1Pass playlist reward (admins always see it)"
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "Admin username who created the playlist"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

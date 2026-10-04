@@ -12,7 +12,9 @@ const REWARD_TYPE_ICONS = {
   title: '🏆',
   coins: '🪙',
   magic_egg: '🥚',
-  food: '🍽️'
+  food: '🍽️',
+  song: '🎵',
+  playlist: '🎶'
 };
 
 function RewardCard({ reward, index, tier, userXp, claimedRewards, onClaim, petCache, hasPlus }) {

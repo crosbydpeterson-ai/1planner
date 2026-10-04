@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner';
 
 export default function MusicTrackFormDialog({ open, onOpenChange, track, adminProfile, onSaved }) {
-  const [form, setForm] = useState({ title: '', description: '', sourceType: 'upload', youtubeUrl: '', isActive: true });
+  const [form, setForm] = useState({ title: '', description: '', sourceType: 'upload', youtubeUrl: '', isActive: true, isSeasonExclusive: false });
   const [audioUri, setAudioUri] = useState('');
   const [coverUri, setCoverUri] = useState('');
   const [uploadingAudio, setUploadingAudio] = useState(false);
@@ -25,6 +25,7 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
         sourceType: track?.sourceType || 'upload',
         youtubeUrl: track?.youtubeUrl || '',
         isActive: track?.isActive !== false,
+        isSeasonExclusive: !!track?.isSeasonExclusive,
       });
       setAudioUri(track?.audioFileUri || '');
       setCoverUri(track?.coverImageUri || '');
@@ -71,6 +72,7 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
         youtubeUrl: form.sourceType === 'youtube' ? form.youtubeUrl.trim() : null,
         coverImageUri: coverUri || null,
         isActive: form.isActive,
+        isSeasonExclusive: form.isSeasonExclusive,
         createdBy: adminProfile?.username || 'admin',
       };
       let saved;
@@ -137,6 +139,10 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
           <label className="flex items-center gap-2 cursor-pointer">
             <Switch checked={form.isActive} onCheckedChange={(v) => setForm({ ...form, isActive: v })} />
             <span className="text-sm text-slate-600">Active (visible to students)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Switch checked={form.isSeasonExclusive} onCheckedChange={(v) => setForm({ ...form, isSeasonExclusive: v })} />
+            <span className="text-sm text-slate-600">1Pass exclusive (only unlocked via a 1Pass song/playlist reward)</span>
           </label>
         </div>
         <DialogFooter>

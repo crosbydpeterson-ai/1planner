@@ -241,6 +241,34 @@ export default function Season() {
         } catch (e) {
           console.error('Error granting food reward:', e);
         }
+      } else if (reward.type === 'song' && reward.value) {
+        // Unlock a single season-exclusive track for the user.
+        const currentTrackIds = profile.unlockedTrackIds || [];
+        if (!currentTrackIds.includes(reward.value)) {
+          updateData.unlockedTrackIds = [...currentTrackIds, reward.value];
+        }
+      } else if (reward.type === 'playlist' && reward.value) {
+        // Unlock the playlist and every track inside it.
+        const currentPlaylistIds = profile.unlockedPlaylistIds || [];
+        if (!currentPlaylistIds.includes(reward.value)) {
+          updateData.unlockedPlaylistIds = [...currentPlaylistIds, reward.value];
+        }
+        try {
+          const playlists = await base44.entities.Playlist.filter({ id: reward.value });
+          const playlist = playlists[0];
+          if (playlist && Array.isArray(playlist.trackIds) && playlist.trackIds.length > 0) {
+            const currentTrackIds = profile.unlockedTrackIds || [];
+            const merged = [...currentTrackIds];
+            for (const tid of playlist.trackIds) {
+              if (!merged.includes(tid)) merged.push(tid);
+            }
+            if (merged.length !== currentTrackIds.length) {
+              updateData.unlockedTrackIds = merged;
+            }
+          }
+        } catch (e) {
+          console.error('Error unlocking playlist tracks:', e);
+        }
       }
 
       await base44.entities.UserProfile.update(profile.id, updateData);
@@ -248,8 +276,12 @@ export default function Season() {
       setProfile(updatedProfile);
 
       toast.success(`${reward.name} claimed!`, {
-        description: reward.type === 'coins' 
-          ? `You received ${reward.value} Quest Coins!` 
+        description: reward.type === 'coins'
+          ? `You received ${reward.value} Quest Coins!`
+          : reward.type === 'song'
+          ? 'You unlocked a new song — find it in Study Music!'
+          : reward.type === 'playlist'
+          ? 'You unlocked a new playlist — find it in Study Music!'
           : `You unlocked a new ${reward.type}!`
       });
     } catch (e) {

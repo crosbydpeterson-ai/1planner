@@ -108,6 +108,22 @@
         "type": "string"
       }
     },
+    "unlockedTrackIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "MusicTrack IDs unlocked via 1Pass song or playlist rewards. Season-exclusive tracks are only visible to users who have the ID here."
+    },
+    "unlockedPlaylistIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Playlist IDs unlocked via 1Pass playlist rewards. Season-exclusive playlists are only visible to users who have the ID here."
+    },
     "unlockedFeatures": {
       "type": "array",
       "items": {

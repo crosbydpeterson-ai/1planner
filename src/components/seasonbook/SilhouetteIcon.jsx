@@ -51,6 +51,17 @@ const SILHOUETTES = {
       <path d="M30 44 Q30 22 50 22 Q70 22 70 44 Z" />
     </g>
   ),
+  song: (
+    <g>
+      <path d="M40 18 L78 12 L78 70 Q78 84 64 84 Q50 84 50 72 Q50 60 64 60 Q72 60 76 64 L76 30 L40 36 Z" />
+    </g>
+  ),
+  playlist: (
+    <g>
+      <path d="M30 16 L64 10 L64 60 Q64 74 50 74 Q36 74 36 62 Q36 50 50 50 Q58 50 62 54 L62 24 L30 28 Z" />
+      <path d="M44 40 L84 34 L84 74 Q84 88 70 88 Q56 88 56 76 Q56 64 70 64 Q78 64 82 68 L82 44 L44 48 Z" />
+    </g>
+  ),
 };
 
 export default function SilhouetteIcon({ type, className }) {
