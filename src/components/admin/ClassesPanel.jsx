@@ -169,8 +169,8 @@ export default function ClassesPanel() {
         {/* Add new */}
         <div className="flex gap-2 mb-4">
           <Input
-            value={newName[subject]}
-            onChange={(e) => setNewName({ ...newName, [subject]: e.target.value })}
+          value={newName[subject] || ''}
+          onChange={(e) => setNewName({ ...newName, [subject]: e.target.value })}
             placeholder="Add teacher name..."
             className="bg-slate-700 border-slate-600 text-white"
             onKeyDown={(e) => e.key === 'Enter' && addTeacher(subject)}
@@ -219,12 +219,12 @@ export default function ClassesPanel() {
         <div className="mt-4 pt-4 border-t border-slate-700">
           <p className="text-xs text-slate-400 mb-2 flex items-center gap-1"><ArrowRight className="w-3 h-3" /> Move all students</p>
           <div className="flex items-center gap-1.5">
-            <Select value={bulk[subject].from} onValueChange={(v) => setBulk({ ...bulk, [subject]: { ...bulk[subject], from: v } })}>
+            <Select value={bulk[subject]?.from || ''} onValueChange={(v) => setBulk({ ...bulk, [subject]: { ...(bulk[subject] || {}), from: v } })}>
               <SelectTrigger className="bg-slate-700 border-slate-600 text-white text-xs h-8 flex-1"><SelectValue placeholder="From" /></SelectTrigger>
               <SelectContent>{list.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
             </Select>
             <ArrowRight className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
-            <Select value={bulk[subject].to} onValueChange={(v) => setBulk({ ...bulk, [subject]: { ...bulk[subject], to: v } })}>
+            <Select value={bulk[subject]?.to || ''} onValueChange={(v) => setBulk({ ...bulk, [subject]: { ...(bulk[subject] || {}), to: v } })}>
               <SelectTrigger className="bg-slate-700 border-slate-600 text-white text-xs h-8 flex-1"><SelectValue placeholder="To" /></SelectTrigger>
               <SelectContent>{list.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
             </Select>
