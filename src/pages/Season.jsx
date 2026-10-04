@@ -9,6 +9,12 @@ import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
 import SeasonRewards from '@/components/quest/SeasonRewards';
 import { toast } from 'sonner';
+import {
+  nowInTimezone,
+  parseSeasonDate,
+  getSeasonStatus,
+  selectOnePassSeason,
+} from '@/lib/seasonUtils';
 
 export default function Season() {
   const navigate = useNavigate();
@@ -94,23 +100,14 @@ export default function Season() {
     }
 
     try {
-      // Auto-timing: find the season that's live right now, or the next upcoming
+      // Use shared season-selection helper so 1Pass and Season Book agree
       const seasons = await base44.entities.Season.filter({ isActive: true });
       if (seasons.length > 0) {
-        const now = new Date();
-        // Find currently live season (within start/end dates)
-        let current = seasons.find(s => new Date(s.startDate) <= now && new Date(s.endDate) >= now);
-        // If none live, find the next upcoming season
-        if (!current) {
-          const upcoming = seasons
-            .filter(s => new Date(s.startDate) > now)
-            .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-          current = upcoming[0] || null;
-        }
+        const now = nowInTimezone();
+        const current = selectOnePassSeason(seasons, now);
         if (current) {
           // Track active season ID for reward claiming, but NEVER reset XP
-          const isLive = new Date(current.startDate) <= now && new Date(current.endDate) >= now;
-          if (isLive && me.activeSeasonId !== current.id) {
+          if (getSeasonStatus(current, now) === 'current' && me.activeSeasonId !== current.id) {
             await base44.entities.UserProfile.update(me.id, { activeSeasonId: current.id });
             me.activeSeasonId = current.id;
             setProfile({ ...me });
@@ -279,7 +276,7 @@ export default function Season() {
   }
 
   const userXp = getSeasonXp(profile, season);
-  const daysLeft = season ? differenceInDays(new Date(season.endDate), new Date()) : 0;
+  const daysLeft = season ? Math.max(0, differenceInDays(parseSeasonDate(season.endDate), nowInTimezone())) : 0;
   const maxXp = season?.rewards?.length > 0 ? Math.max(...season.rewards.map(r => r.xpRequired || 0)) : 200;
 
   return (
@@ -333,7 +330,7 @@ export default function Season() {
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-white/80 text-xs md:text-sm font-bold uppercase">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        <span>{format(new Date(season.startDate), 'MMM d')} - {format(new Date(season.endDate), 'MMM d, yyyy')}</span>
+                        <span>{format(parseSeasonDate(season.startDate), 'MMM d')} - {format(parseSeasonDate(season.endDate), 'MMM d, yyyy')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Star className="w-4 h-4" />
