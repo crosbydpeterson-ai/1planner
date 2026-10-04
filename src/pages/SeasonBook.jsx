@@ -1,49 +1,21 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import {
-  ArrowLeft,
-  Sparkles,
-  Star,
-  Ghost,
-  Snowflake,
-  Home,
-  Flower2,
-  Sun,
-  Leaf,
-  Gift,
-  AlertCircle,
-  RefreshCw,
-  BookOpen,
-} from 'lucide-react';
+import { AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import StampCard, { isRewardOwned } from '@/components/seasonbook/StampCard';
+import { isRewardOwned } from '@/components/seasonbook/StampCard';
+import SeasonBookDecor from '@/components/seasonbook/SeasonBookDecor';
+import SeasonBookHeader from '@/components/seasonbook/SeasonBookHeader';
+import SeasonSelector from '@/components/seasonbook/SeasonSelector';
+import SeasonPanel from '@/components/seasonbook/SeasonPanel';
 import {
   nowInTimezone,
-  parseSeasonDate,
-  getSeasonStatus,
-  getSeasonStatusLabel,
   selectOnePassSeason,
   getSeasonBookSeasons,
   selectDefaultSeasonId,
 } from '@/lib/seasonUtils';
-
-// Pick a seasonal icon based on the season name
-function getSeasonIcon(name) {
-  const n = (name || '').toLowerCase();
-  if (n.includes('trick') || n.includes('treat') || n.includes('halloween') || n.includes('spook')) return Ghost;
-  if (n.includes('winter') || n.includes('snow') || n.includes('frost') || n.includes('christmas')) return Snowflake;
-  if (n.includes('cozy') || n.includes('cabin') || n.includes('home')) return Home;
-  if (n.includes('spring') || n.includes('bloom') || n.includes('garden')) return Flower2;
-  if (n.includes('summer') || n.includes('beach') || n.includes('sun')) return Sun;
-  if (n.includes('fall') || n.includes('autumn') || n.includes('harvest')) return Leaf;
-  if (n.includes('gift') || n.includes('present')) return Gift;
-  return Sparkles;
-}
 
 export default function SeasonBook() {
   const navigate = useNavigate();
@@ -162,7 +134,7 @@ export default function SeasonBook() {
   }, [profile, selectedSeason, claimedKeys]);
 
   const bgClass =
-    'min-h-screen bg-[radial-gradient(circle_at_top,_#4D25A8_0%,_#3A1C94_50%,_#2e1065_100%)] px-4 py-5 md:px-6 md:py-6 pb-28';
+    'relative min-h-screen bg-[radial-gradient(ellipse_at_top,_#8A5CF6_0%,_#6A3FE0_30%,_#4B25B8_65%,_#2E1480_100%)] px-4 py-5 md:px-8 md:py-6 pb-36';
 
   // --- Render ---
 
@@ -189,8 +161,8 @@ export default function SeasonBook() {
   if (seasonsError) {
     return (
       <div className={bgClass}>
-        <div className="mx-auto max-w-[1500px] space-y-5">
-          <Header />
+        <div className="mx-auto max-w-[1340px] space-y-5">
+          <SeasonBookHeader />
           <ErrorCard title="Couldn't load seasons" onRetry={loadData} />
         </div>
       </div>
@@ -199,8 +171,9 @@ export default function SeasonBook() {
 
   return (
     <div className={bgClass}>
-      <div className="mx-auto max-w-[1500px] space-y-5">
-        <Header />
+      <SeasonBookDecor />
+      <div className="relative mx-auto max-w-[1340px] space-y-5">
+        <SeasonBookHeader />
 
         {seasons.length === 0 ? (
           <motion.div
@@ -216,125 +189,24 @@ export default function SeasonBook() {
           </motion.div>
         ) : (
           <>
-            {/* Season tabs */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-                {seasons.map((s) => {
-                  const status = getSeasonStatus(s, now);
-                  const Icon = getSeasonIcon(s.name);
-                  const isSelected = s.id === selectedSeasonId;
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => setSelectedSeasonId(s.id)}
-                      className={cn(
-                        'flex items-center gap-2 rounded-full border-[3px] px-5 py-2.5 text-sm font-black uppercase whitespace-nowrap transition-all',
-                        isSelected
-                          ? 'border-yellow-300 bg-gradient-to-r from-orange-400 to-yellow-400 text-slate-900 shadow-[0_5px_0_rgba(0,0,0,0.25)]'
-                          : 'border-white/15 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
-                      )}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span className="truncate max-w-[140px]">{s.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </motion.div>
-
-            {/* Season card — stamps live inside this rounded purple container */}
+            <SeasonSelector seasons={seasons} selectedId={selectedSeasonId} onSelect={setSelectedSeasonId} />
             {selectedSeason && (
-              <motion.div
-                key={selectedSeason.id + '-card'}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="rounded-[32px] border-[4px] border-purple-400/25 bg-gradient-to-br from-purple-700/50 via-purple-800/40 to-violet-900/50 p-5 md:p-7 shadow-[0_14px_0_rgba(0,0,0,0.28)] backdrop-blur-sm"
-              >
-                {/* Card header: icon + title + count */}
-                <div className="flex items-start justify-between gap-4 mb-1">
-                  <div className="flex items-center gap-3">
-                    {(() => { const Icon = getSeasonIcon(selectedSeason.name); return <Icon className="w-8 h-8 md:w-10 md:h-10 text-yellow-300 shrink-0" />; })()}
-                    <div>
-                      <h2 className="text-2xl md:text-3xl font-black uppercase text-white tracking-tight">
-                        {selectedSeason.name}
-                      </h2>
-                      <p className="text-white/60 text-xs md:text-sm font-bold uppercase mt-1">
-                        {format(parseSeasonDate(selectedSeason.startDate), 'MMMM')} •{' '}
-                        {getSeasonStatusLabel(selectedSeason, now).replace(' Season', '').toLowerCase()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-purple-950/40 border-2 border-purple-300/20 px-4 py-2 text-center shrink-0">
-                    <div className="text-[10px] font-black uppercase text-white/70">Collected</div>
-                    <div className="text-lg font-black text-white">
-                      {collectedCount} of {selectedSeason.rewards?.length || 0}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stamp grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mt-5">
-                  {(selectedSeason.rewards || []).map((reward, index) => (
-                    <StampCard
-                      key={`${selectedSeason.id}-${index}-${reward.type}-${reward.value || reward.name}`}
-                      reward={reward}
-                      rewardIndex={index}
-                      seasonId={selectedSeason.id}
-                      isOwned={isRewardOwned(reward, index, selectedSeason.id, profile, claimedKeys)}
-                      petCache={petCache}
-                      themeCache={themeCache}
-                    />
-                  ))}
-                </div>
-
-                {/* Footer */}
-                <p className="text-center text-white/50 text-xs md:text-sm font-medium mt-6">
-                  Collected rewards stay yours after a season ends.
-                </p>
+              <motion.div key={selectedSeason.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+                <SeasonPanel
+                  season={selectedSeason}
+                  now={now}
+                  profile={profile}
+                  claimedKeys={claimedKeys}
+                  collectedCount={collectedCount}
+                  petCache={petCache}
+                  themeCache={themeCache}
+                />
               </motion.div>
             )}
           </>
         )}
       </div>
     </div>
-  );
-}
-
-function Header() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center gap-2"
-    >
-      <div className="flex items-center justify-between w-full">
-        {/* Spacer to balance the back button */}
-        <div className="w-32 hidden md:block" />
-        <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white flex items-center gap-3">
-          <Star className="w-6 h-6 text-yellow-300 fill-yellow-300" />
-          Season Collection
-          <Star className="w-6 h-6 text-yellow-300 fill-yellow-300" />
-        </h1>
-        <div className="w-32 flex justify-end">
-          <Link to={createPageUrl('Season')}>
-            <Button
-              variant="ghost"
-              className="rounded-2xl border-2 border-purple-200/30 bg-purple-500/20 text-white hover:bg-purple-500/40 hover:text-white text-xs font-black uppercase h-auto py-2.5 px-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to 1Pass
-            </Button>
-          </Link>
-        </div>
-      </div>
-      <p className="text-white/50 text-sm font-bold uppercase tracking-[0.15em]">
-        Your seasons. Your collection.
-      </p>
-    </motion.div>
   );
 }
 
