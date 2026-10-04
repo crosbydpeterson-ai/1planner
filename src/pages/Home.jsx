@@ -90,8 +90,17 @@ export default function Home() {
     setError('');
 
     try {
-      // Find user profile by username (stored lowercase)
-      const profiles = await base44.entities.UserProfile.filter({ username: username.trim().toLowerCase() });
+      // Find user profile by username (stored lowercase), with retry for rate limits
+      let profiles = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          profiles = await base44.entities.UserProfile.filter({ username: username.trim().toLowerCase() });
+          break;
+        } catch (rateErr) {
+          if (attempt === 2) throw rateErr;
+          await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+        }
+      }
       const profile = profiles[0];
 
       if (!profile) {
@@ -171,11 +180,9 @@ export default function Home() {
         return;
       }
 
-      // Check if username already exists (case-insensitive)
-      const existing = await base44.entities.UserProfile.list();
-      const taken = existing.find((p) =>
-      p.username.toLowerCase() === username.trim().toLowerCase()
-      );
+      // Check if username already exists (case-insensitive) — targeted filter, not list-all
+      const existing = await base44.entities.UserProfile.filter({ username: username.trim().toLowerCase() });
+      const taken = existing.length > 0 ? existing[0] : null;
 
       if (taken) {
         setError('Username already taken. Please choose another.');
@@ -192,7 +199,8 @@ export default function Home() {
       const activeReferralCode = referralCode || localStorage.getItem('pending_referral');
       if (activeReferralCode) {
         // First check if it's a user profile ID
-        referrerProfile = existing.find((p) => p.id === activeReferralCode);
+        const referrerById = await base44.entities.UserProfile.filter({ id: activeReferralCode });
+        referrerProfile = referrerById.length > 0 ? referrerById[0] : null;
 
         // If not found, check if it's an admin referral link
         if (!referrerProfile) {
@@ -204,7 +212,8 @@ export default function Home() {
 
             if (hasUsesLeft && link.isAdminLink) {
               // Get the referrer profile from the link
-              referrerProfile = existing.find((p) => p.id === link.referrerId);
+              const refByLink = await base44.entities.UserProfile.filter({ id: link.referrerId });
+              referrerProfile = refByLink.length > 0 ? refByLink[0] : null;
               adminReferralLink = link;
             }
           }
