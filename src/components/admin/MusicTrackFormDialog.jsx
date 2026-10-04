@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Upload, Link2, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Upload, Link2, Image as ImageIcon, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,7 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
   const [coverUri, setCoverUri] = useState('');
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [generatingCover, setGeneratingCover] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -56,6 +57,26 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
     } catch (err) { toast.error('Cover upload failed'); }
     setUploadingCover(false);
     e.target.value = '';
+  };
+
+  const handleGenerateDiscArt = async () => {
+    if (!form.title.trim()) { toast.error('Enter a title first'); return; }
+    setGeneratingCover(true);
+    try {
+      const { url } = await base44.integrations.Core.GenerateImage({
+        prompt: `Square album cover art designed to look like a vinyl record music disc. A centered circular black vinyl record with visible grooves and a vibrant colorful center label inspired by the song title "${form.title}". Clean modern digital art, square 1:1 composition, no text.`,
+      });
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const file = new File([blob], `disc-${Date.now()}.png`, { type: blob.type || 'image/png' });
+      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
+      setCoverUri(file_uri);
+      toast.success('Disc art generated!');
+    } catch (e) {
+      console.error(e);
+      toast.error('Disc art generation failed');
+    }
+    setGeneratingCover(false);
   };
 
   const handleSave = async () => {
@@ -133,8 +154,13 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
           <div className="space-y-2">
             <Label>Cover image (square)</Label>
             <input type="file" accept="image/*" onChange={handleCover} className="text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-700" />
+            <Button type="button" size="sm" variant="outline" onClick={handleGenerateDiscArt} disabled={generatingCover} className="mt-1 gap-2">
+              {generatingCover ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+              {generatingCover ? 'Generating disc…' : 'Generate disc art'}
+            </Button>
             {uploadingCover && <p className="text-xs text-slate-400 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Uploading…</p>}
-            {coverUri && !uploadingCover && <p className="text-xs text-emerald-600 flex items-center gap-1"><ImageIcon className="w-3 h-3" />Cover ready</p>}
+            {generatingCover && <p className="text-xs text-slate-400 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />AI drawing your disc…</p>}
+            {coverUri && !uploadingCover && !generatingCover && <p className="text-xs text-emerald-600 flex items-center gap-1"><ImageIcon className="w-3 h-3" />Cover ready</p>}
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <Switch checked={form.isActive} onCheckedChange={(v) => setForm({ ...form, isActive: v })} />
@@ -147,7 +173,7 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving || uploadingAudio || uploadingCover}>
+          <Button onClick={handleSave} disabled={saving || uploadingAudio || uploadingCover || generatingCover}>
             {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
             {track ? 'Save changes' : 'Create track'}
           </Button>

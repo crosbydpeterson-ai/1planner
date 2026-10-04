@@ -28,6 +28,8 @@ export default function SeasonBook() {
   const [selectedSeasonId, setSelectedSeasonId] = useState(null);
   const [customPets, setCustomPets] = useState([]);
   const [customThemes, setCustomThemes] = useState([]);
+  const [tracks, setTracks] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState(false);
   const [seasonsError, setSeasonsError] = useState(false);
@@ -74,10 +76,14 @@ export default function SeasonBook() {
 
     let dbCustomPets = [];
     let dbCustomThemes = [];
+    let dbTracks = [];
+    let dbPlaylists = [];
     try {
-      [dbCustomPets, dbCustomThemes] = await Promise.all([
+      [dbCustomPets, dbCustomThemes, dbTracks, dbPlaylists] = await Promise.all([
         base44.entities.CustomPet.list(),
         base44.entities.CustomTheme.list(),
+        base44.entities.MusicTrack.list(),
+        base44.entities.Playlist.list(),
       ]);
     } catch (e) {
       console.error('Error loading custom artwork:', e);
@@ -85,6 +91,8 @@ export default function SeasonBook() {
 
     setCustomPets(dbCustomPets);
     setCustomThemes(dbCustomThemes);
+    setTracks(dbTracks);
+    setPlaylists(dbPlaylists);
 
     if (seasonLoadFailed && allSeasons.length === 0) {
       setSeasonsError(true);
@@ -118,6 +126,18 @@ export default function SeasonBook() {
     customThemes.forEach((t) => { map[t.id] = t; });
     return map;
   }, [customThemes]);
+
+  const trackCache = useMemo(() => {
+    const map = {};
+    tracks.forEach((t) => { map[t.id] = t; });
+    return map;
+  }, [tracks]);
+
+  const playlistCache = useMemo(() => {
+    const map = {};
+    playlists.forEach((p) => { map[p.id] = p; });
+    return map;
+  }, [playlists]);
 
   const now = useMemo(() => nowInTimezone(), []);
 
@@ -276,6 +296,8 @@ export default function SeasonBook() {
                   collectedCount={collectedCount}
                   petCache={petCache}
                   themeCache={themeCache}
+                  trackCache={trackCache}
+                  playlistCache={playlistCache}
                   onEquip={handleQuickEquip}
                   equipping={equipping}
                   equippingKey={equippingKey}

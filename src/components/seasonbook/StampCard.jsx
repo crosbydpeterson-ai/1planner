@@ -42,7 +42,7 @@ const PAPER_TEXTURE = {
   backgroundPosition: '0 0, 3px 5px',
 };
 
-export default function StampCard({ reward, rewardIndex, isOwned, petCache, themeCache, profile, onEquip, equipping, equippingKey }) {
+export default function StampCard({ reward, rewardIndex, isOwned, petCache, themeCache, trackCache, playlistCache, profile, onEquip, equipping, equippingKey }) {
   const [imgError, setImgError] = useState(false);
   // Track rule: original array indexes 0,2,4… = Free; 1,3,5… = Plus
   const isPlus = rewardIndex % 2 === 1;
@@ -80,7 +80,19 @@ export default function StampCard({ reward, rewardIndex, isOwned, petCache, them
     return b ? { name: b.name, ...b.colors } : null;
   }, [reward, themeCache]);
 
-  useEffect(() => { setImgError(false); }, [petDisplay?.image]);
+  const trackDisplay = useMemo(() => {
+    if (reward.type !== 'song' || !reward.value) return null;
+    const t = trackCache?.[reward.value];
+    return t ? { name: t.title, coverUri: t.coverImageUri } : null;
+  }, [reward, trackCache]);
+
+  const playlistDisplay = useMemo(() => {
+    if (reward.type !== 'playlist' || !reward.value) return null;
+    const p = playlistCache?.[reward.value];
+    return p ? { name: p.name, coverUri: p.coverImageUri } : null;
+  }, [reward, playlistCache]);
+
+  useEffect(() => { setImgError(false); }, [petDisplay?.image, trackDisplay?.coverUri, playlistDisplay?.coverUri]);
 
   // A custom pet/theme whose underlying record no longer exists can't be equipped.
   // A broken image URL alone does NOT block equipping — only a missing record.
@@ -90,7 +102,7 @@ export default function StampCard({ reward, rewardIndex, isOwned, petCache, them
   // Asset-missing / Equipped / Equip button.
   const showEquipArea = isOwned && isEquippableType(reward.type);
 
-  const displayName = isOwned ? (petDisplay?.name || themeDisplay?.name || reward.name || reward.value || 'Reward') : '???';
+  const displayName = isOwned ? (petDisplay?.name || themeDisplay?.name || trackDisplay?.name || playlistDisplay?.name || reward.name || reward.value || 'Reward') : '???';
   const ariaLabel = isOwned ? displayName : `Uncollected ${reward.type === 'magic_egg' ? 'egg' : reward.type} reward`;
   const trackPill = isPlus ? 'bg-[#FF4FA3] text-white' : 'bg-[#2ED3F0] text-[#0B3A55]';
 
@@ -109,7 +121,7 @@ export default function StampCard({ reward, rewardIndex, isOwned, petCache, them
         </div>
 
         <div className="mt-1 aspect-[16/10] w-full rounded-lg overflow-hidden ring-1 ring-black/5">
-          <StampArt reward={reward} isOwned={isOwned} petDisplay={petDisplay} themeDisplay={themeDisplay} imgError={imgError} onImgError={() => setImgError(true)} />
+          <StampArt reward={reward} isOwned={isOwned} petDisplay={petDisplay} themeDisplay={themeDisplay} trackDisplay={trackDisplay} playlistDisplay={playlistDisplay} imgError={imgError} onImgError={() => setImgError(true)} />
         </div>
 
         <div className="mt-3 text-center text-[15px] md:text-base font-extrabold leading-tight text-[#3E1F7A] line-clamp-1 min-h-[20px]" aria-hidden="true">

@@ -1,6 +1,7 @@
 import React from 'react';
 import SilhouetteIcon from '@/components/seasonbook/SilhouetteIcon';
 import { colorStyle, extractHex } from '@/components/theme/themeUtils';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 const TYPE_EMOJI = { pet: '🐾', theme: '🎨', title: '🏆', coins: '🪙', magic_egg: '🥚', food: '🍰', song: '🎵', playlist: '🎶' };
 
@@ -34,8 +35,39 @@ function TitleRibbon({ text }) {
   );
 }
 
-export default function StampArt({ reward, isOwned, petDisplay, themeDisplay, imgError, onImgError }) {
+// Vinyl-record-style disc that shows the track/playlist cover art as the center label.
+function DiscArt({ coverUri, imgError, onImgError }) {
+  const signed = useSignedUrl(coverUri);
+  return (
+    <div className="relative w-[80%] h-[80%] rounded-full bg-gradient-to-br from-slate-700 to-black shadow-[0_6px_12px_rgba(0,0,0,0.5)] flex items-center justify-center">
+      <div className="absolute inset-[5%] rounded-full border border-white/10" />
+      <div className="absolute inset-[12%] rounded-full border border-white/10" />
+      <div className="absolute inset-[20%] rounded-full border border-white/10" />
+      {signed && !imgError ? (
+        <div className="relative w-[48%] h-[48%] rounded-full overflow-hidden ring-2 ring-white/30 shadow-lg">
+          <img src={signed} alt="Disc art" className="w-full h-full object-cover" onError={onImgError} />
+        </div>
+      ) : (
+        <div className="w-[48%] h-[48%] rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-2xl">🎵</div>
+      )}
+      <div className="absolute w-[9%] h-[9%] rounded-full bg-white/85 shadow-inner" />
+    </div>
+  );
+}
+
+export default function StampArt({ reward, isOwned, petDisplay, themeDisplay, trackDisplay, playlistDisplay, imgError, onImgError }) {
   if (!isOwned) {
+    if (reward.type === 'song' || reward.type === 'playlist') {
+      return (
+        <div className="relative w-full h-full bg-[#EAE2D3] flex items-center justify-center overflow-hidden">
+          <Sparkle className="top-3 left-4 text-[#B9A9C9]" />
+          <Sparkle className="top-6 right-6 text-[#B9A9C9]" />
+          <div className="w-[72%] h-[72%] rounded-full bg-[#C9BCD6] shadow-inner flex items-center justify-center">
+            <div className="w-[44%] h-[44%] rounded-full bg-[#EAE2D3]" />
+          </div>
+        </div>
+      );
+    }
     const shape = reward.type === 'pet' ? BUILTIN_SHAPES[reward.value] || 'pet' : reward.type;
     return (
       <div className="relative w-full h-full bg-[#EAE2D3] flex items-center justify-center overflow-hidden">
@@ -45,6 +77,15 @@ export default function StampArt({ reward, isOwned, petDisplay, themeDisplay, im
         <Sparkle className="bottom-6 right-4 text-[#C9BCD6]" />
         <SilhouetteIcon type={shape} />
       </div>
+    );
+  }
+
+  if (reward.type === 'song' || reward.type === 'playlist') {
+    const coverUri = reward.type === 'song' ? trackDisplay?.coverUri : playlistDisplay?.coverUri;
+    return (
+      <OwnedWindow>
+        <DiscArt coverUri={coverUri} imgError={imgError} onImgError={onImgError} />
+      </OwnedWindow>
     );
   }
 

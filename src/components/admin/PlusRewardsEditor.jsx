@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Loader2, Wand2, Plus, X, Save, Crown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { PETS } from "@/components/quest/PetCatalog";
 
-const REWARD_TYPES = ["pet", "theme", "title", "coins", "magic_egg"];
+const REWARD_TYPES = ["pet", "theme", "title", "coins", "magic_egg", "song", "playlist"];
 
 export default function PlusRewardsEditor({ season, customPets, customThemes, adminProfile, onSeasonUpdated }) {
   const [mode, setMode] = useState(null); // null, 'ai', 'manual'
@@ -24,6 +24,23 @@ export default function PlusRewardsEditor({ season, customPets, customThemes, ad
   const plusRewards = allRewards.filter((_, i) => i % 2 === 1);
 
   const [editedPlusRewards, setEditedPlusRewards] = useState(plusRewards);
+
+  // Tracks/playlists for song & playlist reward pickers
+  const [tracks, setTracks] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [trs, pls] = await Promise.all([
+          base44.entities.MusicTrack.list("-created_date"),
+          base44.entities.Playlist.list("-created_date"),
+        ]);
+        setTracks(trs);
+        setPlaylists(pls);
+      } catch (e) { console.error(e); }
+    })();
+  }, []);
 
   const addManualReward = () => {
     const lastXp = editedPlusRewards.length > 0 ? editedPlusRewards[editedPlusRewards.length - 1].xpRequired : 0;
@@ -195,7 +212,7 @@ For titles: value should be the title text`,
   };
 
   const getRewardIcon = (type) => {
-    const icons = { pet: "🐾", theme: "🎨", title: "🏷️", coins: "🪙", magic_egg: "🥚" };
+    const icons = { pet: "🐾", theme: "🎨", title: "🏷️", coins: "🪙", magic_egg: "🥚", song: "🎵", playlist: "🎶" };
     return icons[type] || "🎁";
   };
 
@@ -275,6 +292,22 @@ For titles: value should be the title text`,
                         <SelectContent>
                           <SelectItem value="ai_generate">🤖 AI Generate</SelectItem>
                           {customThemes.map(t => <SelectItem key={t.id} value={`custom_${t.id}`}>{t.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : reward.type === "song" ? (
+                      <Select value={reward.value || ""} onValueChange={(v) => { updateReward(idx, "value", v); const t = tracks.find(x => x.id === v); if (t) updateReward(idx, "name", t.title); }}>
+                        <SelectTrigger className="bg-slate-700 border-slate-600 text-xs h-8"><SelectValue placeholder="Pick song" /></SelectTrigger>
+                        <SelectContent>
+                          {tracks.length === 0 ? <SelectItem value="none" disabled>No tracks yet</SelectItem> :
+                            tracks.map(t => <SelectItem key={t.id} value={t.id}>{t.title}{t.isSeasonExclusive ? " (1Pass)" : ""}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : reward.type === "playlist" ? (
+                      <Select value={reward.value || ""} onValueChange={(v) => { updateReward(idx, "value", v); const p = playlists.find(x => x.id === v); if (p) updateReward(idx, "name", p.name); }}>
+                        <SelectTrigger className="bg-slate-700 border-slate-600 text-xs h-8"><SelectValue placeholder="Pick playlist" /></SelectTrigger>
+                        <SelectContent>
+                          {playlists.length === 0 ? <SelectItem value="none" disabled>No playlists yet</SelectItem> :
+                            playlists.map(p => <SelectItem key={p.id} value={p.id}>{p.name}{p.isSeasonExclusive ? " (1Pass)" : ""}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     ) : reward.type === "coins" ? (

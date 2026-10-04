@@ -6,7 +6,7 @@ import { parseSeasonDate, getSeasonStatus } from '@/lib/seasonUtils';
 
 const STATUS_TEXT = { current: 'Current season', upcoming: 'Upcoming season', ended: 'Ended season' };
 
-export default function SeasonPanel({ season, now, profile, claimedKeys, collectedCount, petCache, themeCache, onEquip, equipping, equippingKey }) {
+export default function SeasonPanel({ season, now, profile, claimedKeys, collectedCount, petCache, themeCache, trackCache, playlistCache, onEquip, equipping, equippingKey }) {
   const rewards = season.rewards || [];
   const status = getSeasonStatus(season, now);
 
@@ -41,6 +41,8 @@ export default function SeasonPanel({ season, now, profile, claimedKeys, collect
               isOwned={isRewardOwned(reward, index, season.id, profile, claimedKeys)}
               petCache={petCache}
               themeCache={themeCache}
+              trackCache={trackCache}
+              playlistCache={playlistCache}
               profile={profile}
               onEquip={onEquip}
               equipping={equipping}
