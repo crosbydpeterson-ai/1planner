@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Upload, Link2, Image as ImageIcon, Wand2, Clapperboard } from 'lucide-react';
+import { Loader2, Upload, Link2, Image as ImageIcon, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,8 +16,6 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [generatingCover, setGeneratingCover] = useState(false);
-  const [generatingVideo, setGeneratingVideo] = useState(false);
-  const [videoUrl, setVideoUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -88,23 +86,6 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
       toast.error('Disc art generation failed');
     }
     setGeneratingCover(false);
-  };
-
-  const handleGenerateVideoInspo = async () => {
-    if (!form.title.trim()) { toast.error('Enter a title first'); return; }
-    setGeneratingVideo(true);
-    try {
-      const { url } = await base44.integrations.Core.GenerateVideo({
-        prompt: `A dreamy 6-second looping visual inspired by the song "${form.title}". Slow-spinning vinyl record with shimmering grooves, soft colorful light leaks, particles drifting, calm hypnotic motion. Square-ish centered composition, no text, ambient mood.`,
-        duration: 4,
-      });
-      setVideoUrl(url);
-      toast.success('Video inspo ready!');
-    } catch (e) {
-      console.error(e);
-      toast.error('Video generation failed');
-    }
-    setGeneratingVideo(false);
   };
 
   const handleSave = async () => {
@@ -183,25 +164,14 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
             <Label>Cover image (square)</Label>
             <input type="file" accept="image/*" onChange={handleCover} className="text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-700" />
             <div className="flex gap-2 mt-1">
-              <Button type="button" size="sm" variant="outline" onClick={handleGenerateDiscArt} disabled={generatingCover || generatingVideo} className="gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={handleGenerateDiscArt} disabled={generatingCover} className="gap-2">
                 {generatingCover ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
                 {generatingCover ? 'Generating disc…' : 'Generate disc art'}
-              </Button>
-              <Button type="button" size="sm" variant="outline" onClick={handleGenerateVideoInspo} disabled={generatingCover || generatingVideo} className="gap-2">
-                {generatingVideo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Clapperboard className="w-3.5 h-3.5" />}
-                {generatingVideo ? 'Generating video…' : 'Video inspo'}
               </Button>
             </div>
             {uploadingCover && <p className="text-xs text-slate-400 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Uploading…</p>}
             {generatingCover && <p className="text-xs text-slate-400 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />AI drawing your disc…</p>}
-            {generatingVideo && <p className="text-xs text-slate-400 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />AI rendering your video thumbnail (≈30s)…</p>}
             {coverUri && !uploadingCover && !generatingCover && <p className="text-xs text-emerald-600 flex items-center gap-1"><ImageIcon className="w-3 h-3" />Cover ready</p>}
-            {videoUrl && !generatingVideo && (
-              <div className="mt-2 rounded-lg overflow-hidden border border-slate-200">
-                <video src={videoUrl} controls loop muted autoPlay className="w-full h-auto bg-black" />
-                <p className="text-xs text-slate-400 px-2 py-1">Inspo video — use it to guide your disc art prompt.</p>
-              </div>
-            )}
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <Switch checked={form.isActive} onCheckedChange={(v) => setForm({ ...form, isActive: v })} />
@@ -214,7 +184,7 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving || uploadingAudio || uploadingCover || generatingCover || generatingVideo}>
+          <Button onClick={handleSave} disabled={saving || uploadingAudio || uploadingCover || generatingCover}>
             {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
             {track ? 'Save changes' : 'Create track'}
           </Button>
