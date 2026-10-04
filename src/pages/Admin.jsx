@@ -155,20 +155,56 @@ export default function Admin() {
 
   const handleAdminLogin = () => { const ok = adminPin === ADMIN_PASSWORD || (adminProfile?.adminPanelPassword && adminPin === adminProfile.adminPanelPassword); if (ok) { setIsAuthenticated(true); localStorage.setItem('quest_admin_auth', 'true'); loadData(); } else { toast.error('Invalid admin password'); } };
 
+  const fetchWithRetry = async (fn, label, retries = 2) => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try { return await fn(); }
+      catch (e) { if (attempt === retries) { console.error(`Failed to load ${label}:`, e); return null; } await new Promise(r => setTimeout(r, 400 * (attempt + 1))); }
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
-    try {
-      const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings, allShopItems, allBundles, allReferralLinks, allRewardLinks, allCosmetics, allLootEggs] = await Promise.all([
-        base44.entities.UserProfile.list('-created_date'), base44.entities.Assignment.list('-created_date'), base44.entities.CustomPet.list('-created_date'), base44.entities.CustomTheme.list('-created_date'), base44.entities.Season.list('-created_date'), base44.entities.MagicEgg.list('-created_date'), base44.entities.AdminEvent.list('-created_date'), base44.entities.AppSetting.list(), base44.entities.ShopItem.list('-created_date'), base44.entities.Bundle.list('-created_date'), base44.entities.ReferralLink.list('-created_date'), base44.entities.RewardLink.list('-created_date'), base44.entities.PetCosmetic.list('-created_date'), base44.entities.LootEgg.list('-created_date')
-      ]);
-      setUsers(allUsers); setAssignments(allAssignments); setCustomPets(allPets); setCustomThemes(allThemes); setSeasons(allSeasons); setMagicEggs(allEggs); setEvents(allEvents); setAppSettings(allSettings); setShopItems(allShopItems); setBundles(allBundles); setAdminReferralLinks(allReferralLinks.filter(l => l.isAdminLink)); setRewardLinks(allRewardLinks); setPetCosmetics(allCosmetics); setLootEggs(allLootEggs);
-      const allBoothSkins = await base44.entities.BoothSkin.list('-created_date'); setBoothSkins(allBoothSkins);
-      const allPetMojis = await base44.entities.PetMoji.list('-created_date'); setPetMojiList(allPetMojis);
+    // Fetch each entity independently so a read-limit failure on one doesn't blank out the rest
+    const [allUsers, allAssignments, allPets, allThemes, allSeasons, allEggs, allEvents, allSettings, allShopItems, allBundles, allReferralLinks, allRewardLinks, allCosmetics, allLootEggs, allBoothSkins, allPetMojis] = await Promise.all([
+      fetchWithRetry(() => base44.entities.UserProfile.list('-created_date'), 'users'),
+      fetchWithRetry(() => base44.entities.Assignment.list('-created_date'), 'assignments'),
+      fetchWithRetry(() => base44.entities.CustomPet.list('-created_date'), 'pets'),
+      fetchWithRetry(() => base44.entities.CustomTheme.list('-created_date'), 'themes'),
+      fetchWithRetry(() => base44.entities.Season.list('-created_date'), 'seasons'),
+      fetchWithRetry(() => base44.entities.MagicEgg.list('-created_date'), 'eggs'),
+      fetchWithRetry(() => base44.entities.AdminEvent.list('-created_date'), 'events'),
+      fetchWithRetry(() => base44.entities.AppSetting.list(), 'settings'),
+      fetchWithRetry(() => base44.entities.ShopItem.list('-created_date'), 'shopItems'),
+      fetchWithRetry(() => base44.entities.Bundle.list('-created_date'), 'bundles'),
+      fetchWithRetry(() => base44.entities.ReferralLink.list('-created_date'), 'referralLinks'),
+      fetchWithRetry(() => base44.entities.RewardLink.list('-created_date'), 'rewardLinks'),
+      fetchWithRetry(() => base44.entities.PetCosmetic.list('-created_date'), 'cosmetics'),
+      fetchWithRetry(() => base44.entities.LootEgg.list('-created_date'), 'lootEggs'),
+      fetchWithRetry(() => base44.entities.BoothSkin.list('-created_date'), 'boothSkins'),
+      fetchWithRetry(() => base44.entities.PetMoji.list('-created_date'), 'petMojis'),
+    ]);
+    if (allUsers) setUsers(allUsers);
+    if (allAssignments) setAssignments(allAssignments);
+    if (allPets) setCustomPets(allPets);
+    if (allThemes) setCustomThemes(allThemes);
+    if (allSeasons) setSeasons(allSeasons);
+    if (allEggs) setMagicEggs(allEggs);
+    if (allEvents) setEvents(allEvents);
+    if (allShopItems) setShopItems(allShopItems);
+    if (allBundles) setBundles(allBundles);
+    if (allReferralLinks) setAdminReferralLinks(allReferralLinks.filter(l => l.isAdminLink));
+    if (allRewardLinks) setRewardLinks(allRewardLinks);
+    if (allCosmetics) setPetCosmetics(allCosmetics);
+    if (allLootEggs) setLootEggs(allLootEggs);
+    if (allBoothSkins) setBoothSkins(allBoothSkins);
+    if (allPetMojis) setPetMojiList(allPetMojis);
+    if (allSettings) {
+      setAppSettings(allSettings);
       const refSetting = allSettings.find(s => s.key === 'referral_settings'); if (refSetting) setReferralSettings(refSetting.value);
       const locksSetting = allSettings.find(s => s.key === 'feature_locks'); if (locksSetting) setFeatureLocks(locksSetting.value || defaultFeatureLocks);
       const defaultAssignmentEggSetting = allSettings.find(s => s.key === 'default_assignment_loot_egg');
       setDefaultAssignmentLootEggId(defaultAssignmentEggSetting?.value?.lootEggId || 'none');
-    } catch (e) { console.error('Error loading data:', e); }
+    }
     setLoading(false);
   };
 
