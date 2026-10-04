@@ -36,9 +36,7 @@ export default function Layout({ children, currentPageName }) {
         const { teachers } = useTeachers();
   
   useEffect(() => {
-    loadUserTheme();
-    checkAdminStatus();
-    checkContactEmail();
+    loadProfileData();
     loadFeatureLocks();
 
     // Load active background image
@@ -84,14 +82,61 @@ export default function Layout({ children, currentPageName }) {
     };
   }, []);
 
-  const checkAdminStatus = async () => {
+  // Derive theme colors from a fetched profile (shared by initial load + refresh)
+  const deriveThemeFromProfile = async (p) => {
+    // 1) If a standalone theme is equipped, prefer it over pet theme
+    if (p.equippedThemeId) {
+      if (String(p.equippedThemeId).startsWith('custom_')) {
+        const tid = String(p.equippedThemeId).replace('custom_', '');
+        const ct = await base44.entities.CustomTheme.filter({ id: tid });
+        if (ct.length > 0) {
+          setThemeColors({
+            primary: ct[0].primaryColor,
+            secondary: ct[0].secondaryColor,
+            accent: ct[0].accentColor,
+            bg: ct[0].bgColor,
+          });
+          return;
+        }
+      } else {
+        const t = THEMES.find(t => t.id === p.equippedThemeId);
+        if (t?.colors) {
+          setThemeColors(t.colors);
+          return;
+        }
+      }
+    }
+
+    // 2) Otherwise derive theme from equipped pet
+    if (p.equippedPetId) {
+      const petId = p.equippedPetId;
+      if (String(petId).startsWith('custom_')) {
+        const customPetId = String(petId).replace('custom_', '');
+        const customPets = await base44.entities.CustomPet.filter({ id: customPetId });
+        if (customPets.length > 0 && customPets[0].theme) {
+          setThemeColors(customPets[0].theme);
+          return;
+        }
+      }
+      const petTheme = getPetTheme(petId);
+      setThemeColors(petTheme);
+      return;
+    }
+
+    // 3) Fallback: no theme
+    setThemeColors(null);
+  };
+
+  // Single fetch for the profile, then run admin check + contact email + theme.
+  // Consolidates what was 3 separate UserProfile.filter({id}) calls into 1.
+  const loadProfileData = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) return;
+    setProfileIdState(profileId);
 
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length === 0) return;
-
       const profile = profiles[0];
       setCurrentProfile(profile);
 
@@ -100,87 +145,33 @@ export default function Layout({ children, currentPageName }) {
       if (profile.rank === 'super_admin' || nameIsCrosby) {
         setIsAdmin(true);
         setRoleLabel('Super Admin');
-        return;
-      }
-      if (profile.rank === 'admin') {
+      } else if (profile.rank === 'admin') {
         setIsAdmin(true);
         setRoleLabel('Admin');
-        return;
       }
+
+      // Contact email
+      const email = profile.contactEmail || '';
+      setContactEmail(email);
+      if (!email) setShowEmailDialog(true);
+
+      // Theme
+      await deriveThemeFromProfile(profile);
     } catch (e) {
-      console.error('Error checking admin status:', e);
+      console.error('Error loading profile data:', e);
     }
   };
 
+  // Re-fetch profile + re-derive theme on themeUpdated events (profile changed)
   const loadUserTheme = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) return;
-
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length === 0) return;
-      const p = profiles[0];
-
-      // 1) If a standalone theme is equipped, prefer it over pet theme
-      if (p.equippedThemeId) {
-        if (String(p.equippedThemeId).startsWith('custom_')) {
-          const tid = String(p.equippedThemeId).replace('custom_', '');
-          const ct = await base44.entities.CustomTheme.filter({ id: tid });
-          if (ct.length > 0) {
-            // Pass raw values (may be gradient strings or hex)
-            setThemeColors({
-              primary: ct[0].primaryColor,
-              secondary: ct[0].secondaryColor,
-              accent: ct[0].accentColor,
-              bg: ct[0].bgColor,
-            });
-            return;
-          }
-        } else {
-          const t = THEMES.find(t => t.id === p.equippedThemeId);
-          if (t?.colors) {
-            setThemeColors(t.colors);
-            return;
-          }
-        }
-      }
-
-      // 2) Otherwise derive theme from equipped pet
-      if (p.equippedPetId) {
-        const petId = p.equippedPetId;
-        if (String(petId).startsWith('custom_')) {
-          const customPetId = String(petId).replace('custom_', '');
-          const customPets = await base44.entities.CustomPet.filter({ id: customPetId });
-          if (customPets.length > 0 && customPets[0].theme) {
-            setThemeColors(customPets[0].theme);
-            return;
-          }
-        }
-        const petTheme = getPetTheme(petId);
-        setThemeColors(petTheme);
-        return;
-      }
-
-      // 3) Fallback: no theme
-      setThemeColors(null);
+      await deriveThemeFromProfile(profiles[0]);
     } catch (e) {
       console.error('Error loading theme:', e);
-    }
-  };
-
-  const checkContactEmail = async () => {
-    const profileId = localStorage.getItem('quest_profile_id');
-    if (!profileId) return;
-    setProfileIdState(profileId);
-    try {
-      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
-      if (profiles.length > 0) {
-        const email = profiles[0].contactEmail || '';
-        setContactEmail(email);
-        if (!email) setShowEmailDialog(true);
-      }
-    } catch (e) {
-      console.error('Error checking contact email:', e);
     }
   };
 
