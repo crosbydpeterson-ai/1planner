@@ -22,9 +22,13 @@ export default function MessageWidget({ currentProfile }) {
         setUnread(all.filter(t => t.hasUnreadStudent).length);
       }
     };
+    let timer;
     load();
-    const unsub = base44.entities.DMThread.subscribe(() => load());
-    return unsub;
+    const unsub = base44.entities.DMThread.subscribe(() => {
+      clearTimeout(timer);
+      timer = setTimeout(() => load(), 800);
+    });
+    return () => { clearTimeout(timer); unsub?.(); };
   }, [currentProfile?.id, isAdmin]);
 
   if (!currentProfile) return null;
