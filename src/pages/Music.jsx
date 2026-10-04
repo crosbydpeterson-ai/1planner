@@ -24,8 +24,18 @@ export default function Music() {
       const profileId = localStorage.getItem('quest_profile_id');
       if (!profileId) {setLoading(false);return;}
       try {
-        const [profiles, allTracks, allPlaylists, settings] = await Promise.all([
-        base44.entities.UserProfile.filter({ id: profileId }),
+        // Retry the profile fetch specifically — if it rate-limits, songs disappear
+        let profiles = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            profiles = await base44.entities.UserProfile.filter({ id: profileId });
+            break;
+          } catch (rateErr) {
+            if (attempt === 2) throw rateErr;
+            await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+          }
+        }
+        const [allTracks, allPlaylists, settings] = await Promise.all([
         base44.entities.MusicTrack.list('-created_date'),
         base44.entities.Playlist.list('-created_date'),
         base44.entities.AppSetting.list()]

@@ -66,7 +66,9 @@ export default function MusicPlayerBar({ profile }) {
         if (audio) {
           audio.src = signedUrlRef.current.url;
           audio.muted = muted;
-          if (isPlaying) audio.play().catch(() => musicPlayer.pause());
+          // Read live play state from the store — the closure value may be stale
+          // if the isPlaying effect already ran during the async signed-URL fetch.
+          if (musicPlayer.getState().isPlaying) audio.play().catch(() => musicPlayer.pause());
         }
       })();
       if (lastLoggedTrackId.current !== track.id) {
@@ -111,6 +113,11 @@ export default function MusicPlayerBar({ profile }) {
     if (track.sourceType === 'upload') {
       const audio = audioRef.current;
       if (!audio) return;
+      // Skip if the new track's audio src hasn't been loaded yet — the track
+      // effect will handle starting playback once the signed URL is ready.
+      // Without this guard, play() runs on the old/empty src, rejects, and
+      // calls musicPlayer.pause() which prevents the new song from starting.
+      if (track.audioFileUri && signedUrlRef.current?.uri !== track.audioFileUri) return;
       if (isPlaying) audio.play().catch(() => musicPlayer.pause());
       else audio.pause();
     } else if (track.sourceType === 'youtube') {
