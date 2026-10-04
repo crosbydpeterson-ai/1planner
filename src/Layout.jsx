@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, CalendarHeart, MessageSquare, Gamepad2, Store, Bell, Music2 } from 'lucide-react';
+import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, CalendarHeart, MessageSquare, Gamepad2, Store, Bell, Music2, Stamp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 import ThemedBackground from '@/components/theme/ThemedBackground';
@@ -241,6 +241,7 @@ export default function Layout({ children, currentPageName }) {
             { name: 'Leaderboard', icon: Trophy, label: 'Rank' },
             { name: 'Rewards', icon: Gem, label: 'Collection' },
             { name: 'Season', icon: Sparkles, label: '1Pass' },
+            { name: 'SeasonBook', icon: Stamp, label: 'Season Book', customPath: '/SeasonBook' },
             { name: 'MarketplaceHub', icon: Store, label: 'Marketplace', customPath: '/MarketplaceHub' },
             { name: 'UpdatesHub', icon: Bell, label: 'Updates', customPath: '/UpdatesHub' },
           ];

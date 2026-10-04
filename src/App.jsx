@@ -23,6 +23,7 @@ import PawSpellGame from './pages/PawSpellGame';
 import MarketplaceHub from './pages/MarketplaceHub';
 import UpdatesHub from './pages/UpdatesHub';
 import Music from './pages/Music';
+import SeasonBook from './pages/SeasonBook';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -108,6 +109,7 @@ const AuthenticatedApp = () => {
       <Route path="/MarketplaceHub" element={<LayoutWrapper currentPageName="MarketplaceHub"><MarketplaceHub /></LayoutWrapper>} />
       <Route path="/UpdatesHub" element={<LayoutWrapper currentPageName="UpdatesHub"><UpdatesHub /></LayoutWrapper>} />
       <Route path="/Music" element={<LayoutWrapper currentPageName="Music"><Music /></LayoutWrapper>} />
+      <Route path="/SeasonBook" element={<LayoutWrapper currentPageName="SeasonBook"><SeasonBook /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

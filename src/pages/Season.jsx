@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowLeft, Calendar, Zap, Crown, Star } from 'lucide-react';
+import { Sparkles, ArrowLeft, Calendar, Zap, Crown, Star, BookOpen } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
@@ -301,9 +301,16 @@ export default function Season() {
               <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white">1Pass</h1>
             </div>
           </div>
-          <div className="rounded-2xl border-[3px] border-lime-300 bg-lime-400 px-4 py-2 text-slate-900 shadow-[0_8px_0_rgba(0,0,0,0.22)]">
-            <div className="text-[10px] md:text-xs font-black uppercase">Rewards</div>
-            <div className="text-sm md:text-base font-black">{getClaimedRewardsForSeason(profile, season).length}/{season?.rewards?.length || 0}</div>
+          <div className="flex items-center gap-3">
+            <Link to={createPageUrl('SeasonBook')}>
+              <Button variant="ghost" className="rounded-2xl border-2 border-white/20 bg-black/20 text-white hover:bg-white/10 hover:text-white text-xs font-black uppercase h-auto py-2 px-3">
+                <BookOpen className="w-4 h-4 mr-1" /> Past Seasons
+              </Button>
+            </Link>
+            <div className="rounded-2xl border-[3px] border-lime-300 bg-lime-400 px-4 py-2 text-slate-900 shadow-[0_8px_0_rgba(0,0,0,0.22)]">
+              <div className="text-[10px] md:text-xs font-black uppercase">Rewards</div>
+              <div className="text-sm md:text-base font-black">{getClaimedRewardsForSeason(profile, season).length}/{season?.rewards?.length || 0}</div>
+            </div>
           </div>
         </motion.div>
 
