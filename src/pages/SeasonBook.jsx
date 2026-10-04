@@ -5,7 +5,11 @@ import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { isRewardOwned } from '@/components/seasonbook/StampCard';
+import { equipPet, equipTheme, equipTitle } from '@/lib/equipHelpers';
+import { PETS } from '@/components/quest/PetCatalog';
+import { THEMES } from '@/components/quest/ThemeCatalog';
 import SeasonBookDecor from '@/components/seasonbook/SeasonBookDecor';
 import SeasonBookHeader from '@/components/seasonbook/SeasonBookHeader';
 import SeasonSelector from '@/components/seasonbook/SeasonSelector';
@@ -27,6 +31,8 @@ export default function SeasonBook() {
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState(false);
   const [seasonsError, setSeasonsError] = useState(false);
+  const [equipping, setEquipping] = useState(false);
+  const [equippingKey, setEquippingKey] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -115,6 +121,76 @@ export default function SeasonBook() {
 
   const now = useMemo(() => nowInTimezone(), []);
 
+  const resolvePetLabel = (petId) => {
+    const val = String(petId || '');
+    if (val.startsWith('custom_')) {
+      const pet = petCache[val.replace('custom_', '')];
+      return pet ? { name: pet.name, emoji: pet.emoji } : { name: 'Pet', emoji: '🎁' };
+    }
+    const builtIn = PETS.find((p) => p.id === val);
+    return builtIn ? { name: builtIn.name, emoji: builtIn.emoji } : { name: 'Pet', emoji: '🎁' };
+  };
+
+  const resolveThemeName = (themeId) => {
+    const val = String(themeId || '');
+    if (val.startsWith('custom_')) {
+      const t = themeCache[val.replace('custom_', '')];
+      return t?.name || 'Theme';
+    }
+    const b = THEMES.find((t) => t.id === val);
+    return b?.name || 'Theme';
+  };
+
+  // Quick Equip: validate against the live inventory, save only equip fields,
+  // then refresh local profile so every stamp's Equipped status updates.
+  const handleQuickEquip = async (reward, rewardIndex) => {
+    if (equipping || !profile) return;
+    const key = `${reward.type}:${rewardIndex}`;
+    setEquipping(true);
+    setEquippingKey(key);
+    try {
+      let result;
+      if (reward.type === 'pet') {
+        const label = resolvePetLabel(reward.value);
+        result = await equipPet(profile, reward.value);
+        if (result.ok) {
+          toast.success(`${label.emoji} ${label.name} equipped!`);
+          window.dispatchEvent(new Event('themeUpdated'));
+        }
+      } else if (reward.type === 'theme') {
+        const name = resolveThemeName(reward.value);
+        result = await equipTheme(profile, reward.value);
+        if (result.ok) {
+          toast.success(`${name} theme equipped!`);
+          window.dispatchEvent(new Event('themeUpdated'));
+        }
+      } else if (reward.type === 'title') {
+        const title = (reward.value || reward.name || '').trim();
+        result = await equipTitle(profile, title);
+        if (result.ok) {
+          toast.success(result.profile?.equippedTitle ? `Title "${title}" equipped!` : 'Title removed');
+        }
+      } else {
+        return;
+      }
+
+      if (result?.ok) {
+        setProfile(result.profile);
+      } else if (result?.error === 'no_longer_owned') {
+        if (result.profile) setProfile(result.profile);
+        toast.error('This item is no longer in your collection.');
+      } else {
+        toast.error('Failed to equip. Please try again.');
+      }
+    } catch (e) {
+      console.error('Quick equip failed', e);
+      toast.error('Failed to equip. Please try again.');
+    } finally {
+      setEquipping(false);
+      setEquippingKey(null);
+    }
+  };
+
   const selectedSeason = useMemo(
     () => seasons.find((s) => s.id === selectedSeasonId),
     [seasons, selectedSeasonId]
@@ -200,6 +276,9 @@ export default function SeasonBook() {
                   collectedCount={collectedCount}
                   petCache={petCache}
                   themeCache={themeCache}
+                  onEquip={handleQuickEquip}
+                  equipping={equipping}
+                  equippingKey={equippingKey}
                 />
               </motion.div>
             )}

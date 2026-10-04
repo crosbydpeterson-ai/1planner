@@ -16,6 +16,7 @@ import MagicEggCreator from '@/components/rewards/MagicEggCreator';
 import Tutorial from '@/components/tutorial/Tutorial';
 import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
 import { toast } from 'sonner';
+import { equipPet, equipTheme, equipTitle, isPetEquipped, isThemeEquipped, isTitleEquipped } from '@/lib/equipHelpers';
 
 export default function Rewards() {
   const navigate = useNavigate();
@@ -98,71 +99,46 @@ export default function Rewards() {
 
   const handleEquipPet = async (petId, petData) => {
     if (!profile) return;
-
-    const unlockedPets = profile.unlockedPets || ['starter_slime'];
-    if (!unlockedPets.includes(petId)) {
-      toast.error('You have not unlocked this pet yet!');
-      return;
-    }
-
-    try {
-      await base44.entities.UserProfile.update(profile.id, {
-        equippedPetId: petId
-      });
-      setProfile({ ...profile, equippedPetId: petId });
+    const result = await equipPet(profile, petId);
+    if (result.ok) {
+      setProfile(result.profile);
       toast.success(`${petData?.emoji || '🎁'} ${petData?.name} equipped!`, {
         description: `${petData?.name}'s exclusive theme is now active!`
       });
-      // Trigger theme update in layout
       window.dispatchEvent(new Event('themeUpdated'));
-    } catch (e) {
-      console.error('Error equipping pet:', e);
+    } else if (result.error === 'no_longer_owned') {
+      if (result.profile) setProfile(result.profile);
+      toast.error('You have not unlocked this pet yet!');
+    } else {
       toast.error('Failed to equip pet');
     }
   };
 
   const handleEquipTheme = async (themeId, themeName) => {
     if (!profile) return;
-
-    const unlockedThemes = profile.unlockedThemes || [];
-    if (!unlockedThemes.includes(themeId)) {
-      toast.error('You have not unlocked this theme yet!');
-      return;
-    }
-
-    try {
-      await base44.entities.UserProfile.update(profile.id, {
-        equippedThemeId: themeId,
-        equippedPetId: null // Clear pet to use standalone theme
-      });
-      setProfile({ ...profile, equippedThemeId: themeId, equippedPetId: null });
+    const result = await equipTheme(profile, themeId);
+    if (result.ok) {
+      setProfile(result.profile);
       toast.success(`${themeName} theme equipped!`);
       window.dispatchEvent(new Event('themeUpdated'));
-    } catch (e) {
-      console.error('Error equipping theme:', e);
+    } else if (result.error === 'no_longer_owned') {
+      if (result.profile) setProfile(result.profile);
+      toast.error('You have not unlocked this theme yet!');
+    } else {
       toast.error('Failed to equip theme');
     }
   };
 
   const handleEquipTitle = async (title) => {
     if (!profile) return;
-
-    const unlockedTitles = profile.unlockedTitles || [];
-    if (!unlockedTitles.includes(title)) {
+    const result = await equipTitle(profile, title);
+    if (result.ok) {
+      setProfile(result.profile);
+      toast.success(result.profile.equippedTitle ? `Title "${title}" equipped!` : 'Title removed');
+    } else if (result.error === 'no_longer_owned') {
+      if (result.profile) setProfile(result.profile);
       toast.error('You have not unlocked this title yet!');
-      return;
-    }
-
-    try {
-      // Toggle off if already equipped
-      const newTitle = profile.equippedTitle === title ? '' : title;
-      await base44.entities.UserProfile.update(profile.id, {
-        equippedTitle: newTitle
-      });
-      setProfile({ ...profile, equippedTitle: newTitle });
-      toast.success(newTitle ? `Title "${title}" equipped!` : 'Title removed');
-    } catch (e) {
-      console.error('Error equipping title:', e);
+    } else {
       toast.error('Failed to equip title');
     }
   };
@@ -415,7 +391,7 @@ export default function Rewards() {
                 return aUnlocked - bUnlocked;
               }).map((pet, index) => {
                 const isUnlocked = unlockedPetIds.includes(pet.id);
-                const isEquipped = profile.equippedPetId === pet.id;
+                const isEquipped = isPetEquipped(profile, pet.id);
                 const rarityStyle = RARITY_COLORS[pet.rarity] || RARITY_COLORS.common;
                 const theme = pet.theme || { primary: '#6366f1', secondary: '#a855f7', accent: '#f59e0b' };
                 
@@ -513,7 +489,7 @@ export default function Rewards() {
                 return aUnlocked - bUnlocked;
               }).map((theme, index) => {
                 const isUnlocked = unlockedThemeIds.includes(theme.id);
-                const isEquipped = profile.equippedThemeId === theme.id && !profile.equippedPetId;
+                const isEquipped = isThemeEquipped(profile, theme.id);
                 const rarityStyle = RARITY_COLORS[theme.rarity] || RARITY_COLORS.common;
                 
                 return (
@@ -616,7 +592,7 @@ export default function Rewards() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {unlockedTitles.map((title) => {
-                    const isEquipped = profile.equippedTitle === title;
+                    const isEquipped = isTitleEquipped(profile, title);
                     return (
                       <motion.button
                         key={title}
