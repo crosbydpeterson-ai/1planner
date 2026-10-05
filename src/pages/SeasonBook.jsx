@@ -50,7 +50,18 @@ export default function SeasonBook() {
 
     let me = null;
     try {
-      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      // Retry the critical profile fetch a couple times to ride out transient
+      // rate-limits instead of immediately showing the error screen.
+      let profiles = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          profiles = await base44.entities.UserProfile.filter({ id: profileId });
+          break;
+        } catch (err) {
+          if (attempt === 2) throw err;
+          await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+        }
+      }
       if (profiles.length === 0) {
         navigate(createPageUrl('Home'));
         setLoading(false);
