@@ -4,8 +4,9 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
+import OAuthConsent from './pages/OAuthConsent';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -35,6 +36,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const location = useLocation();
   const [loadingScreenUrl, setLoadingScreenUrl] = useState(null);
 
   useEffect(() => {
@@ -47,6 +49,16 @@ const AuthenticatedApp = () => {
       }
     })();
   }, []);
+
+  // OAuth consent page must render outside the auth gate — it handles the
+  // signed-out case itself and preserves the `ctx` handle in returnTo.
+  if (location.pathname === '/oauth/consent') {
+    return (
+      <Routes>
+        <Route path="/oauth/consent" element={<OAuthConsent />} />
+      </Routes>
+    );
+  }
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
