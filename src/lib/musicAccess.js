@@ -7,14 +7,30 @@ function isAdminProfile(profile) {
     (typeof profile.username === 'string' && profile.username.toLowerCase() === 'crosby');
 }
 
-export function isTrackVisibleForUser(track, profile) {
+// Build the full set of track IDs a user has unlocked: directly unlocked tracks
+// plus every track inside any season-exclusive playlist they unlocked via 1Pass.
+export function getUnlockedTrackIds(profile, playlists = []) {
+  const ids = new Set(profile?.unlockedTrackIds || []);
+  const unlockedPlaylists = profile?.unlockedPlaylistIds || [];
+  if (unlockedPlaylists.length > 0 && Array.isArray(playlists)) {
+    playlists.forEach((pl) => {
+      if (pl?.isSeasonExclusive && unlockedPlaylists.includes(pl.id) && Array.isArray(pl.trackIds)) {
+        pl.trackIds.forEach((id) => ids.add(id));
+      }
+    });
+  }
+  return ids;
+}
+
+export function isTrackVisibleForUser(track, profile, unlockedTrackIds) {
   if (!track || !profile) return false;
   if (isAdminProfile(profile)) return true;
 
   // Season-exclusive tracks are gated behind 1Pass song/playlist rewards.
-  // Only users who have unlocked the track (or a playlist containing it) can see it.
+  // Visible if the user unlocked the track directly OR via a playlist containing it.
   if (track.isSeasonExclusive) {
-    return (profile.unlockedTrackIds || []).includes(track.id);
+    const unlocked = unlockedTrackIds || profile.unlockedTrackIds || [];
+    return unlocked.includes(track.id) || (Array.isArray(unlocked) && unlocked.has?.(track.id));
   }
 
   // Locked for this specific user

@@ -6,7 +6,7 @@ import PlaylistCard from '@/components/music/PlaylistCard';
 import PlaylistDialog from '@/components/music/PlaylistDialog';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import SongRequestDialog from '@/components/music/SongRequestDialog';
-import { isTrackVisibleForUser, isPlaylistVisibleForUser, getPlaylistTracks } from '@/lib/musicAccess';
+import { isTrackVisibleForUser, isPlaylistVisibleForUser, getPlaylistTracks, getUnlockedTrackIds } from '@/lib/musicAccess';
 import { checkFeatureLock } from '@/lib/featureLocks';
 
 export default function Music() {
@@ -99,10 +99,11 @@ export default function Music() {
 
   }
 
-  const visible = tracks.filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile));
+  const unlockedTrackIds = getUnlockedTrackIds(profile, playlists);
+  const visible = tracks.filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile, unlockedTrackIds));
   const visiblePlaylists = playlists.filter((p) => p.isActive !== false && isPlaylistVisibleForUser(p, profile));
   const openPlaylistTracks = openPlaylist
-    ? getPlaylistTracks(openPlaylist, tracks).filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile))
+    ? getPlaylistTracks(openPlaylist, tracks).filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile, unlockedTrackIds))
     : [];
 
   return (
@@ -137,7 +138,7 @@ export default function Music() {
               <PlaylistCard
                 key={pl.id}
                 playlist={pl}
-                trackCount={getPlaylistTracks(pl, tracks).filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile)).length}
+                trackCount={getPlaylistTracks(pl, tracks).filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile, unlockedTrackIds)).length}
                 onClick={() => setOpenPlaylist(pl)}
               />
             ))}
