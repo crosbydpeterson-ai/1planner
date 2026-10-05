@@ -70,7 +70,18 @@ export default function Dashboard() {
 
     setLoadError(false);
     try {
-      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      // Retry the critical profile fetch a couple times to ride out transient
+      // rate-limits instead of immediately showing the error screen.
+      let profiles = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          profiles = await base44.entities.UserProfile.filter({ id: profileId });
+          break;
+        } catch (err) {
+          if (attempt === 2) throw err;
+          await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+        }
+      }
       if (profiles.length === 0) {
         // Session points to a deleted profile — clear it and show login.
         logout();
@@ -92,8 +103,14 @@ export default function Dashboard() {
       setCurrentPet(pet);
       setPetTheme(pet.theme);
 
-      // Load visible assignments
-      const assignments = await base44.entities.Assignment.filter({ isApproved: true });
+      // Load visible assignments — non-critical, so a failure here must not
+      // blank the whole dashboard. Fall back to an empty list on error.
+      let assignments = [];
+      try {
+        assignments = await base44.entities.Assignment.filter({ isApproved: true });
+      } catch (assignErr) {
+        console.error('Error loading assignments (non-fatal):', assignErr);
+      }
       let visible = assignments.filter((a) => {
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
         if (a.subject === 'math' && a.target === p.mathTeacher) return true;
