@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GlassIcon from '@/components/ui/GlassIcon';
 import Tutorial from '@/components/tutorial/Tutorial';
 import { toast } from 'sonner';
-import EggOpenAnimation from '@/components/eggs/EggOpenAnimation';
+import LootEggVendingMachine from '@/components/shop/LootEggVendingMachine';
 
 export default function Shop() {
   const navigate = useNavigate();
@@ -22,9 +22,6 @@ export default function Shop() {
   const [locks, setLocks] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [bundles, setBundles] = useState([]);
-  const [lootEggs, setLootEggs] = useState([]);
-  const [customPets, setCustomPets] = useState([]);
-  const [openingEgg, setOpeningEgg] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -95,14 +92,6 @@ export default function Shop() {
 
       setShopItems(activeItems);
       setBundles(activeBundles);
-
-      // Load loot eggs for egg shop tab
-      const [allLootEggs, allCustomPets] = await Promise.all([
-        base44.entities.LootEgg.filter({ isActive: true, inShop: true }),
-        base44.entities.CustomPet.list()
-      ]);
-      setLootEggs(allLootEggs);
-      setCustomPets(allCustomPets);
     } catch (e) {
       console.error('Error loading shop:', e);
       navigate(createPageUrl('Home'));
@@ -283,95 +272,6 @@ export default function Shop() {
     }
   };
 
-  const handleBuyEgg = async (egg) => {
-    const gemCost = egg.shopGemPrice || egg.vendingGemPrice || 2;
-    const currentGems = profile?.gems || 0;
-    if (currentGems < gemCost) {
-      toast.error(`Not enough gems! Need ${gemCost} 💎`);
-      return;
-    }
-    const newGems = currentGems - gemCost;
-    await base44.entities.UserProfile.update(profile.id, { gems: newGems });
-    const drop = await base44.entities.LootEggDrop.create({
-      lootEggId: egg.id,
-      profileId: profile.id,
-      username: profile.username,
-      source: 'shop_purchase',
-    });
-    setProfile(prev => ({ ...prev, gems: newGems }));
-    setOpeningEgg({ egg, drop });
-    toast.success('Egg purchased! Opening now...');
-  };
-
-  const handleOpenEgg = async (prize) => {
-    if (!openingEgg) return;
-    const { drop } = openingEgg;
-    await base44.entities.LootEggDrop.update(drop.id, { isOpened: true, wonPrize: prize });
-
-    // Always fetch fresh profile to avoid stale state bugs
-    const freshProfiles = await base44.entities.UserProfile.filter({ id: profile.id });
-    const p = freshProfiles[0] || profile;
-
-    if (prize.type === 'xp') {
-      await base44.entities.UserProfile.update(p.id, { xp: (p.xp || 0) + parseInt(prize.value || '0') });
-      toast.success(`+${prize.value} XP!`);
-    } else if (prize.type === 'coins') {
-      await base44.entities.UserProfile.update(p.id, { questCoins: (p.questCoins || 0) + parseInt(prize.value || '0') });
-      toast.success(`+${prize.value} Quest Coins!`);
-    } else if (prize.type === 'pet') {
-      // Normalize pet ID to always have custom_ prefix for custom pets
-      let petId = prize.value || '';
-      if (petId && !petId.startsWith('custom_') && petId.length > 10) {
-        petId = `custom_${petId}`;
-      }
-      const up = [...(p.unlockedPets || [])];
-      if (!up.includes(petId)) up.push(petId);
-
-      // Also unlock the pet's theme if it has one
-      const ut = [...(p.unlockedThemes || [])];
-      if (petId.startsWith('custom_')) {
-        try {
-          const rawId = petId.replace('custom_', '');
-          const petRecords = await base44.entities.CustomPet.filter({ id: rawId });
-          if (petRecords.length > 0 && petRecords[0].theme) {
-            const themeKey = `pet_theme_${rawId}`;
-            if (!ut.includes(themeKey)) ut.push(themeKey);
-          }
-        } catch (e) {
-          console.error('Failed to fetch pet theme for egg prize', e);
-        }
-      }
-
-      await base44.entities.UserProfile.update(p.id, { unlockedPets: up, unlockedThemes: ut });
-      toast.success('🐾 New pet unlocked!');
-    } else if (prize.type === 'theme') {
-      const ut = [...(p.unlockedThemes || [])];
-      // Normalize theme ID
-      let themeId = prize.value || '';
-      if (themeId && !themeId.startsWith('custom_') && themeId.length > 10) {
-        themeId = `custom_${themeId}`;
-      }
-      if (!ut.includes(themeId)) ut.push(themeId);
-      await base44.entities.UserProfile.update(p.id, { unlockedThemes: ut });
-      toast.success('New theme unlocked!');
-    } else if (prize.type === 'magic_egg') {
-      await base44.entities.MagicEgg.create({ userId: p.userId, source: 'global_event' });
-      toast.success('Magic Egg received!');
-    } else if (prize.type === 'title') {
-      const titles = [...(p.unlockedTitles || [])];
-      if (!titles.includes(prize.value)) titles.push(prize.value);
-      await base44.entities.UserProfile.update(p.id, { unlockedTitles: titles });
-      toast.success(`New title: ${prize.value}!`);
-    } else if (prize.type === 'cosmetic') {
-      const uc = [...(p.unlockedCosmetics || [])];
-      if (!uc.includes(prize.value)) uc.push(prize.value);
-      await base44.entities.UserProfile.update(p.id, { unlockedCosmetics: uc });
-      toast.success('Cosmetic unlocked!');
-    }
-    setOpeningEgg(null);
-    await loadData();
-  };
-
   const getTimeRemaining = (endDate) => {
     const now = new Date();
     const end = new Date(endDate);
@@ -449,109 +349,7 @@ export default function Shop() {
           </TabsList>
 
           <TabsContent value="egg_shop" className="mt-4">
-            {lootEggs.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-                <span className="text-6xl block mb-4">🥚</span>
-                <p className="text-slate-500 font-semibold">No eggs stocked yet!</p>
-              </div>
-            ) : (
-              /* Vending Machine */
-              <div className="relative mx-auto max-w-sm">
-                {/* Machine body */}
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl"
-                  style={{ background: 'linear-gradient(160deg, #1e1b4b 0%, #312e81 40%, #1e1b4b 100%)' }}>
-                  
-                  {/* Top branding strip */}
-                  <div className="bg-gradient-to-r from-purple-500 to-indigo-500 px-4 py-2 flex items-center justify-between">
-                    <span className="text-white font-black text-sm tracking-widest uppercase">✨ Loot Eggs</span>
-                    <div className="flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full">
-                      <Gem className="w-3 h-3 text-purple-200" />
-                      <span className="text-white text-xs font-bold">{profile.gems || 0} gems</span>
-                    </div>
-                  </div>
-
-                  {/* Glass panel */}
-                  <div className="mx-3 mt-3 mb-2 rounded-2xl overflow-hidden border-2 border-indigo-400/30"
-                    style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(4px)' }}>
-                    
-                    {/* Shelf rows — group eggs into rows of 3 */}
-                    {Array.from({ length: Math.ceil(lootEggs.length / 3) }, (_, rowIdx) => {
-                      const rowEggs = lootEggs.slice(rowIdx * 3, rowIdx * 3 + 3);
-                      return (
-                        <div key={rowIdx}>
-                          <div className="grid grid-cols-3 gap-1 px-2 pt-3 pb-1">
-                            {rowEggs.map((egg, colIdx) => {
-                              const gemCost = egg.shopGemPrice || 2;
-                              const canAfford = (profile?.gems || 0) >= gemCost;
-                              const slotLabel = String.fromCharCode(65 + rowIdx) + (colIdx + 1);
-                              return (
-                                <motion.button
-                                  key={egg.id}
-                                  whileHover={canAfford ? { scale: 1.05 } : {}}
-                                  whileTap={canAfford ? { scale: 0.95 } : {}}
-                                  disabled={!canAfford}
-                                  onClick={() => handleBuyEgg(egg)}
-                                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${canAfford ? 'hover:bg-white/10 cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
-                                >
-                                  {/* Slot label */}
-                                  <span className="text-[9px] font-bold text-indigo-300 tracking-wider">{slotLabel}</span>
-                                  {/* Egg image */}
-                                  <div className="w-14 h-16 flex items-center justify-center relative"
-                                    style={{ filter: canAfford ? `drop-shadow(0 0 8px ${egg.color || '#6366f1'}88)` : 'none' }}>
-                                    {egg.imageUrl
-                                      ? <img src={egg.imageUrl} alt={egg.name} className="w-full h-full object-contain" />
-                                      : <span className="text-3xl">{egg.emoji || '🥚'}</span>}
-                                  </div>
-                                  {/* Egg name */}
-                                  <span className="text-white text-[10px] font-semibold text-center leading-tight line-clamp-2">{egg.name}</span>
-                                  {/* Price tag */}
-                                  <div className="flex items-center gap-0.5 bg-purple-900/60 border border-purple-500/40 px-1.5 py-0.5 rounded-full">
-                                    <Gem className="w-2.5 h-2.5 text-purple-300" />
-                                    <span className="text-purple-200 text-[10px] font-black">{gemCost}</span>
-                                  </div>
-                                </motion.button>
-                              );
-                            })}
-                            {/* Fill empty slots in last row */}
-                            {rowEggs.length < 3 && Array.from({ length: 3 - rowEggs.length }, (_, i) => (
-                              <div key={`empty-${i}`} className="flex flex-col items-center gap-1 p-2 opacity-20">
-                                <span className="text-[9px] text-indigo-400">—</span>
-                                <div className="w-14 h-16 rounded-lg border border-dashed border-indigo-700/40" />
-                              </div>
-                            ))}
-                          </div>
-                          {/* Shelf ledge */}
-                          <div className="mx-2 h-1.5 rounded-full mb-1"
-                            style={{ background: 'linear-gradient(90deg, #4338ca, #6d28d9, #4338ca)' }} />
-                        </div>
-                      );
-                    })}
-                    <div className="h-2" />
-                  </div>
-
-                  {/* Bottom panel — coin slot / gem indicator */}
-                  <div className="mx-3 mb-3 bg-indigo-950/60 rounded-2xl px-4 py-3 flex items-center justify-between border border-indigo-500/20">
-                    <div className="text-xs text-indigo-300">
-                      <p className="font-bold text-white text-sm">💎 Gem Store</p>
-                      <p className="text-indigo-400 text-[10px]">Click an egg to purchase</p>
-                    </div>
-                    <div className="w-8 h-6 bg-indigo-900 rounded border-2 border-indigo-600 flex items-center justify-center">
-                      <div className="w-4 h-1 bg-indigo-400 rounded-full" />
-                    </div>
-                  </div>
-
-                  {/* Side accent lines */}
-                  <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b from-purple-800 via-indigo-900 to-purple-800 rounded-l-3xl" />
-                  <div className="absolute right-0 top-0 bottom-0 w-2 bg-gradient-to-b from-purple-800 via-indigo-900 to-purple-800 rounded-r-3xl" />
-                </div>
-
-                {/* Machine legs */}
-                <div className="flex justify-center gap-24 mt-1">
-                  <div className="w-4 h-3 bg-indigo-900 rounded-b-lg" />
-                  <div className="w-4 h-3 bg-indigo-900 rounded-b-lg" />
-                </div>
-              </div>
-            )}
+            <LootEggVendingMachine profile={profile} setProfile={setProfile} />
           </TabsContent>
 
           <TabsContent value="shop" className="mt-4">
@@ -711,19 +509,6 @@ export default function Shop() {
       
       {/* Tutorial */}
       <Tutorial profile={profile} currentPage="Shop" onComplete={() => {}} />
-
-      <AnimatePresence>
-        {openingEgg && (
-          <EggOpenAnimation
-            egg={openingEgg.egg}
-            prizes={openingEgg.egg.prizes || []}
-            onOpen={handleOpenEgg}
-            onClose={() => setOpeningEgg(null)}
-            customPets={customPets}
-            autoOpen={true}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }
