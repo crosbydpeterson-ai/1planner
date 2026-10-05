@@ -194,7 +194,7 @@ export default function Dashboard() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <p className="text-slate-600 mb-4">Couldn't load your dashboard. Check your connection and try again.</p>
-          <Button onClick={() => { setLoadError(false); setLoading(true); loadProfile(); }}>Retry</Button>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
       </div>
     );
