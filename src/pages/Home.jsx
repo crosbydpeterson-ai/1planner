@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTeachers } from '@/hooks/useTeachers';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -20,10 +21,10 @@ export default function Home() {
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [referralCode, setReferralCode] = useState(null);
   const [rewardCode, setRewardCode] = useState(null);
   const { teachers } = useTeachers();
+  const { authChecked, isAuthenticated, setSession } = useAuth();
 
   useEffect(() => {
     // Check for referral code in URL and store it in localStorage to persist across redirects
@@ -56,25 +57,14 @@ export default function Home() {
       }
     }
 
-    checkAuth();
   }, []);
 
-  const checkAuth = async () => {
-    const profileId = localStorage.getItem('quest_profile_id');
-    if (profileId) {
-      try {
-        const profiles = await base44.entities.UserProfile.filter({ id: profileId });
-        if (profiles.length > 0) {
-          // Don't redirect if already logged in - just in case they're sharing a link
-          navigate(createPageUrl('Dashboard'));
-          return;
-        }
-      } catch (e) {
-
-
-        // Profile not found
-      }}setCheckingAuth(false);
-  };
+  // Redirect to Dashboard when a valid remembered session is restored.
+  useEffect(() => {
+    if (authChecked && isAuthenticated) {
+      navigate(createPageUrl('Dashboard'));
+    }
+  }, [authChecked, isAuthenticated]);
 
   const handleLogin = async () => {
     if (!username.trim()) {
@@ -131,6 +121,7 @@ export default function Home() {
       localStorage.setItem('quest_profile_id', profile.id);
       localStorage.setItem('quest_username', profile.username);
 
+      setSession(profile);
       navigate(createPageUrl('Dashboard'));
     } catch (e) {
       console.error('Login error:', e);
@@ -317,6 +308,7 @@ export default function Home() {
       localStorage.removeItem('pending_referral');
       localStorage.removeItem('pending_reward');
 
+      setSession(profile);
       navigate(createPageUrl('Dashboard'));
     } catch (e) {
       setError('Signup failed. Please try again.');
@@ -324,12 +316,11 @@ export default function Home() {
     setLoading(false);
   };
 
-  if (checkingAuth) {
+  if (!authChecked) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
       </div>);
-
   }
 
   return (

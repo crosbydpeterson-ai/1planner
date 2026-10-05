@@ -23,14 +23,17 @@ import GlobalEventWidget from '@/components/events/GlobalEventWidget';
 import Tutorial from '@/components/tutorial/Tutorial';
 import WhatsNewPopup from '@/components/announcements/WhatsNewPopup';
 import PromoBanner from '@/components/dashboard/PromoBanner';
+import { useAuth } from '@/lib/AuthContext';
 
 const DEFAULT_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
 const ALL_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { authChecked, isAuthenticated, logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [recentAssignments, setRecentAssignments] = useState([]);
   const [currentPet, setCurrentPet] = useState(null);
   const [petTheme, setPetTheme] = useState(null);
@@ -41,8 +44,17 @@ export default function Dashboard() {
   const [showCustomizer, setShowCustomizer] = useState(false);
 
   useEffect(() => {
-    loadProfile();
-  }, []);
+    if (authChecked && !isAuthenticated) {
+      navigate(createPageUrl('Home'));
+    }
+  }, [authChecked, isAuthenticated]);
+
+  useEffect(() => {
+    if (authChecked && isAuthenticated) {
+      loadProfile();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authChecked, isAuthenticated]);
 
   const handleTutorialComplete = async () => {
     // Reload profile to reflect tutorial completion
@@ -52,15 +64,16 @@ export default function Dashboard() {
   const loadProfile = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) {
-      navigate(createPageUrl('Home'));
+      logout();
       return;
     }
 
+    setLoadError(false);
     try {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length === 0) {
-        localStorage.clear();
-        navigate(createPageUrl('Home'));
+        // Session points to a deleted profile — clear it and show login.
+        logout();
         return;
       }
 
@@ -111,18 +124,18 @@ export default function Dashboard() {
         }
       }
     } catch (e) {
+      // Transient network/rate-limit failure: keep the session and show Retry
+      // instead of bouncing to Home (which caused the redirect loop).
       console.error('Error loading profile:', e);
-      navigate(createPageUrl('Home'));
+      setLoadError(true);
+      setLoading(false);
       return;
     }
     setLoading(false);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('quest_user_id');
-    localStorage.removeItem('quest_profile_id');
-    localStorage.removeItem('quest_username');
-    navigate(createPageUrl('Home'));
+    logout();
   };
 
   const handleToggleWidget = (widgetId) => {
@@ -157,6 +170,17 @@ export default function Dashboard() {
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
       </div>);
 
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-slate-600 mb-4">Couldn't load your dashboard. Check your connection and try again.</p>
+          <Button onClick={() => { setLoadError(false); setLoading(true); loadProfile(); }}>Retry</Button>
+        </div>
+      </div>
+    );
   }
 
   if (!profile) return null;
