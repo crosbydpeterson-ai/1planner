@@ -28,7 +28,7 @@ import CreateShopItemDialog from '@/components/admin/CreateShopItemDialog';
 import CreatePetDialog from '@/components/admin/CreatePetDialog';
 import EconomyCharts from '@/components/admin/EconomyCharts';
 import AdminEmailBroadcast from '@/components/admin/AdminEmailBroadcast';
-import DailyRewardsSettings from '@/components/admin/DailyRewardsSettings';
+import DailyRewardsTab from '@/components/admin/dailyrewards/DailyRewardsTab';
 import BoothSkinManager from '@/components/admin/BoothSkinManager';
 import SuperAssignmentCreator from '@/components/admin/super/SuperAssignmentCreator';
 import SuperAssignmentsAnalytics from '@/components/admin/super/SuperAssignmentsAnalytics';
@@ -321,6 +321,7 @@ export default function Admin() {
             {can('managePets') && <TabsTrigger value="concepts" className="data-[state=active]:bg-slate-700">💡 Pet Concepts</TabsTrigger>}
             <TabsTrigger value="redeem_codes" className="data-[state=active]:bg-slate-700">🎟️ Codes</TabsTrigger>
             <TabsTrigger value="dms" className="data-[state=active]:bg-slate-700">💬 DMs</TabsTrigger>
+            <TabsTrigger value="daily_rewards" className="data-[state=active]:bg-slate-700">🎁 Daily Rewards</TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">⚙️ Settings</TabsTrigger>
             {isSuperAdmin && <TabsTrigger value="lore" className="data-[state=active]:bg-slate-700">📖 Lore Comic</TabsTrigger>}
           </TabsList>
@@ -449,6 +450,7 @@ export default function Admin() {
           {isSuperAdmin && <TabsContent value="lore"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><LoreComicPanel /></div></TabsContent>}
           <TabsContent value="redeem_codes"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><RedeemCodeManager /></div></TabsContent>
           <TabsContent value="dms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AdminDMInbox adminProfile={adminProfile} /></div></TabsContent>
+          <TabsContent value="daily_rewards"><DailyRewardsTab /></TabsContent>
           <TabsContent value="settings">
             <div className="space-y-6">
               <AdminSettingsPanel appSettings={appSettings} setAppSettings={setAppSettings} referralSettings={referralSettings} setReferralSettings={setReferralSettings} adminReferralLinks={adminReferralLinks} setAdminReferralLinks={setAdminReferralLinks} newLinkMaxUses={newLinkMaxUses} setNewLinkMaxUses={setNewLinkMaxUses} rewardLinks={rewardLinks} setRewardLinks={setRewardLinks} showRewardLinkForm={showRewardLinkForm} setShowRewardLinkForm={setShowRewardLinkForm} isSuperAdmin={isSuperAdmin} />
