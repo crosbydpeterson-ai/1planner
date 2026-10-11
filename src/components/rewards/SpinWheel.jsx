@@ -320,16 +320,20 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
         )}
       </div>
 
-      {/* Prize list — readable, not relying on tiny text or color alone */}
+      {/* Prize list — readable, with win chance %, not relying on tiny text or color alone */}
       <div className="w-full bg-slate-50 rounded-xl p-3 border border-slate-100">
-        <div className="text-xs font-semibold text-slate-500 mb-2">Prizes on this wheel</div>
+        <div className="text-xs font-semibold text-slate-500 mb-2">Prizes &amp; win chances</div>
         <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto">
-          {segments.map((seg, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-xs">
-              <span className="w-3 h-3 rounded-full flex-shrink-0 border border-white/50" style={{ background: seg.color }} />
-              <span className="truncate text-slate-600">{getIcon(seg.type)} {getPrizeLabel(seg)}</span>
-            </div>
-          ))}
+          {segments.map((seg, i) => {
+            const pct = totalWeight > 0 ? Math.round((Math.max(0, Number(seg.weight) || 0) / totalWeight) * 100) : 0;
+            return (
+              <div key={i} className="flex items-center gap-1.5 text-xs">
+                <span className="w-3 h-3 rounded-full flex-shrink-0 border border-white/50" style={{ background: seg.color }} />
+                <span className="truncate text-slate-600">{getIcon(seg.type)} {getPrizeLabel(seg)}</span>
+                <span className="ml-auto font-bold text-slate-700 tabular-nums">{pct}%</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -341,10 +345,28 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
         </div>
       )}
       {phase === 'success' && resultInfo && (
-        <div className="flex items-center gap-2 text-sm text-emerald-700 font-medium bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          Reward saved: {resultInfo.awarded || getPrizeLabel(landedPrize)}
-        </div>
+        <motion.div
+          initial={{ scale: 0.7, opacity: 0, y: 8 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+          className="w-full bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-2xl p-5 text-center relative overflow-hidden"
+        >
+          <motion.div
+            initial={{ rotate: -8, scale: 0.8 }}
+            animate={{ rotate: 0, scale: 1 }}
+            transition={{ delay: 0.1, type: 'spring', stiffness: 300 }}
+            className="text-5xl mb-2"
+          >
+            {getIcon(landedPrize?.type)}
+          </motion.div>
+          <div className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1">🎉 You won!</div>
+          <div className="text-lg font-extrabold text-slate-800 leading-tight">
+            {resultInfo.awarded || getPrizeLabel(landedPrize)}
+          </div>
+          <div className="text-xs text-slate-500 mt-1.5 flex items-center justify-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Saved to your account
+          </div>
+        </motion.div>
       )}
       {phase === 'error' && resultInfo && (
         <div className="flex items-start gap-2 text-sm text-red-700 font-medium bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">

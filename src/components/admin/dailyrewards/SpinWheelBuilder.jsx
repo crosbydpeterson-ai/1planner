@@ -97,10 +97,23 @@ export default function SpinWheelBuilder({ wheel, setWheel, allPets }) {
           {/* Prize editor */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-slate-300 text-sm font-medium">Prizes ({prizes.length})</span>
-              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300" onClick={addPrize}>
-                <Plus className="w-3 h-3 mr-1" /> Add Prize
-              </Button>
+              <div>
+                <span className="text-slate-300 text-sm font-medium">Prizes ({prizes.length})</span>
+                <p className="text-xs text-slate-500 mt-0.5">Weight = relative chance. Higher weight = more likely to win.</p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {prizes.length > 0 && (
+                  <Button size="sm" variant="ghost" className="text-slate-400 hover:text-slate-200 h-8" onClick={() => {
+                    const w = Math.max(1, Math.round(100 / prizes.length));
+                    setWheel({ ...wheel, prizes: prizes.map(p => ({ ...p, weight: w })) });
+                  }}>
+                    ⚖️ Equalize
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300" onClick={addPrize}>
+                  <Plus className="w-3 h-3 mr-1" /> Add Prize
+                </Button>
+              </div>
             </div>
             <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
               {prizes.map((p, i) => (
@@ -150,12 +163,16 @@ export default function SpinWheelBuilder({ wheel, setWheel, allPets }) {
                   <div className="flex items-center gap-2">
                     <Label className="text-slate-400 text-xs whitespace-nowrap">Weight</Label>
                     <Input
-                      className="bg-slate-800 border-slate-700 text-white h-8 w-24"
+                      className="bg-slate-800 border-slate-700 text-white h-8 w-20"
                       type="number"
+                      min="0"
+                      step="any"
                       value={p.weight || 0}
                       onChange={(e) => updatePrize(i, { weight: parseFloat(e.target.value) || 0 })}
                     />
-                    <span className="text-xs text-slate-400">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full tabular-nums ${
+                      totalWeight > 0 ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-500'
+                    }`}>
                       {totalWeight > 0 ? `${Math.round((Math.max(0, Number(p.weight) || 0) / totalWeight) * 100)}%` : '—'}
                     </span>
                   </div>
@@ -200,6 +217,23 @@ export default function SpinWheelBuilder({ wheel, setWheel, allPets }) {
                           {TYPE_ICONS[seg.type] || TYPE_ICONS.default}
                         </text>
                       )}
+                      {segAngle > 30 && (() => {
+                        const lbl = seg.label || (seg.type === 'xp' ? `+${seg.amount||0} XP` : seg.type === 'coins' ? `+${seg.amount||0}` : seg.type);
+                        return (
+                          <text
+                            x={cx + (r * 0.32) * Math.cos((seg.midAngle * Math.PI) / 180)}
+                            y={cy + (r * 0.32) * Math.sin((seg.midAngle * Math.PI) / 180)}
+                            textAnchor="middle" dominantBaseline="middle"
+                            fontSize="7"
+                            fill="white"
+                            fontWeight="700"
+                            transform={`rotate(${seg.midAngle + 90}, ${cx + (r * 0.32) * Math.cos((seg.midAngle * Math.PI) / 180)}, ${cy + (r * 0.32) * Math.sin((seg.midAngle * Math.PI) / 180)})`}
+                            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+                          >
+                            {lbl.length > 8 ? lbl.slice(0, 7) + '…' : lbl}
+                          </text>
+                        );
+                      })()}
                     </g>
                   );
                 })}
