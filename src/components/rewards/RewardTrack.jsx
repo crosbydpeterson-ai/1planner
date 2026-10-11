@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Star, Coins, PawPrint, Palette, Tag, Gift } from 'lucide-react';
+import { Check, Star, Coins, PawPrint, Palette, Tag, Gift, Lock, Disc3 } from 'lucide-react';
 import { getChicagoDateKey } from '@/lib/dailyRewardUtils';
 
 const REWARD_ICONS = {
@@ -8,7 +8,7 @@ const REWARD_ICONS = {
   pet: PawPrint,
   theme: Palette,
   title: Tag,
-  wheel: Gift,
+  wheel: Disc3,
 };
 
 function getRewardLabel(reward) {
@@ -22,6 +22,62 @@ function getRewardLabel(reward) {
   return '';
 }
 
+function Slot({ idx, reward, isClaimed, isReady, isToday, scheduleType }) {
+  const Icon = REWARD_ICONS[reward.type] || Gift;
+  const label = getRewardLabel(reward);
+
+  return (
+    <div
+      className={`flex-shrink-0 rounded-2xl p-2 sm:p-2.5 flex flex-col items-center gap-1 border-2 transition-all snap-start ${
+        isReady
+          ? 'border-purple-500 bg-gradient-to-b from-purple-50 to-white shadow-md'
+          : isClaimed
+            ? 'border-emerald-200 bg-emerald-50'
+            : 'border-slate-100 bg-white'
+      }`}
+      style={{ width: '4.5rem' }}
+    >
+      <div className={`text-[10px] font-semibold ${
+        isReady ? 'text-purple-600' : isClaimed ? 'text-emerald-600' : 'text-slate-400'
+      }`}>
+        {scheduleType === 'monthly' ? `Day ${idx + 1}` : `Day ${idx + 1}`}
+      </div>
+
+      <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
+        isClaimed
+          ? 'bg-emerald-100'
+          : isReady
+            ? 'bg-purple-100'
+            : 'bg-slate-50'
+      }`}>
+        {isClaimed ? (
+          <Check className="w-4 h-4 text-emerald-600" />
+        ) : (
+          <Icon className={`w-4 h-4 ${isReady ? 'text-purple-600' : 'text-slate-400'}`} />
+        )}
+      </div>
+
+      <div className={`text-[10px] sm:text-[11px] font-medium text-center leading-tight min-h-[1.5rem] ${
+        isReady ? 'text-purple-700' : isClaimed ? 'text-emerald-600' : 'text-slate-500'
+      }`}>
+        {label}
+      </div>
+
+      {isReady && (
+        <div className="text-[9px] bg-purple-500 text-white px-1.5 py-0.5 rounded-full font-semibold">
+          Ready
+        </div>
+      )}
+      {isClaimed && !isReady && (
+        <div className="text-[9px] text-emerald-500 font-semibold">Claimed</div>
+      )}
+      {!isClaimed && !isReady && (
+        <Lock className="w-3 h-3 text-slate-300" />
+      )}
+    </div>
+  );
+}
+
 export default function RewardTrack({ rewards, period, effectiveIndex, progress, scheduleType }) {
   const lastClaim = progress?.lastClaimDate;
   const claimedToday = lastClaim === getChicagoDateKey();
@@ -33,54 +89,32 @@ export default function RewardTrack({ rewards, period, effectiveIndex, progress,
     return { idx, reward, isClaimed, isReady };
   });
 
+  // 7-day on tablet/desktop: evenly distributed grid
+  if (period === 7) {
+    return (
+      <>
+        {/* Mobile: horizontal scroll with snap */}
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x scrollbar-hide sm:hidden">
+          {slots.map((s) => (
+            <Slot key={s.idx} {...s} scheduleType={scheduleType} />
+          ))}
+        </div>
+        {/* Tablet/desktop: 7-column grid */}
+        <div className="hidden sm:grid sm:grid-cols-7 sm:gap-3">
+          {slots.map((s) => (
+            <Slot key={s.idx} {...s} scheduleType={scheduleType} />
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  // 14-day / monthly: horizontal scroll with snap
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x scrollbar-hide">
-      {slots.map(({ idx, reward, isClaimed, isReady }) => {
-        const Icon = REWARD_ICONS[reward.type] || Gift;
-        return (
-          <div
-            key={idx}
-            className={`flex-shrink-0 w-16 sm:w-[4.5rem] rounded-2xl p-2 sm:p-2.5 flex flex-col items-center gap-1 border-2 transition-all snap-start ${
-              isReady
-                ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                : isClaimed
-                  ? 'border-emerald-200 bg-emerald-50'
-                  : 'border-slate-100 bg-slate-50'
-            }`}
-          >
-            <div className={`text-[10px] font-medium ${
-              isReady ? 'text-indigo-600' : isClaimed ? 'text-emerald-600' : 'text-slate-400'
-            }`}>
-              {scheduleType === 'monthly' ? `Day ${idx + 1}` : `${idx + 1}`}
-            </div>
-
-            <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center ${
-              isClaimed ? 'bg-emerald-100' : isReady ? 'bg-indigo-100' : 'bg-slate-100'
-            }`}>
-              {isClaimed ? (
-                <Check className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <Icon className={`w-4 h-4 ${isReady ? 'text-indigo-600' : 'text-slate-400'}`} />
-              )}
-            </div>
-
-            <div className={`text-[10px] sm:text-[11px] font-medium text-center leading-tight ${
-              isReady ? 'text-indigo-700' : isClaimed ? 'text-emerald-600' : 'text-slate-500'
-            }`}>
-              {getRewardLabel(reward)}
-            </div>
-
-            {isReady && (
-              <div className="text-[9px] bg-indigo-500 text-white px-1.5 py-0.5 rounded-full font-medium">
-                Ready
-              </div>
-            )}
-            {isClaimed && !isReady && (
-              <div className="text-[9px] text-emerald-500 font-medium">Claimed</div>
-            )}
-          </div>
-        );
-      })}
+      {slots.map((s) => (
+        <Slot key={s.idx} {...s} scheduleType={scheduleType} />
+      ))}
     </div>
   );
 }

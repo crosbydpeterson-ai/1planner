@@ -46,35 +46,45 @@ export function computeRewardUpdates(profile, rwd) {
 
 /**
  * Re-fetch the latest progress record for a user.
- * Used before claiming to detect concurrent claims from other tabs.
+ * Throws on failure — caller must surface a retryable error, NOT fall back to stale data.
  */
 async function fetchFreshProgress(profileId) {
-  try {
-    const rows = await base44.entities.DailyRewardProgress.filter({ userProfileId: profileId });
-    return rows.length > 0 ? rows[0] : null;
-  } catch {
-    return null;
-  }
+  const rows = await base44.entities.DailyRewardProgress.filter({ userProfileId: profileId });
+  return rows.length > 0 ? rows[0] : null;
+}
+
+/**
+ * Re-fetch the latest profile for accurate balance math.
+ * Throws on failure — caller surfaces a retryable error.
+ */
+async function fetchFreshProfile(profileId) {
+  const rows = await base44.entities.UserProfile.filter({ id: profileId });
+  return rows.length > 0 ? rows[0] : null;
 }
 
 /**
  * Claim the daily reward.
  *
- * Re-fetches progress before claiming to detect double-claims from other tabs.
- * Grants the reward to the profile, then marks the progress as claimed.
+ * Re-fetches progress AND profile before claiming to detect concurrent claims
+ * and use accurate balances. Granting the reward and recording the claim are
+ * separate writes — partial success is reported explicitly.
  *
  * @param {object} profile - Current UserProfile
  * @param {object|null} progress - Current DailyRewardProgress (may be stale)
  * @param {object} config - daily_rewards_config setting value
  * @param {object} [wheelPrize] - Prize landed on the wheel (for wheel-type rewards)
- * @returns {{ ok: boolean, error?: string, profile?: object, progress?: object, awarded?: string, reward?: object }}
+ * @returns {{ ok: boolean, error?: string, profile?: object, progress?: object, awarded?: string, reward?: object, partial?: boolean, retryable?: boolean }}
  */
 export async function claimDailyReward(profile, progress, config, wheelPrize) {
   const today = getChicagoDateKey();
 
-  // Re-fetch to detect concurrent claims
-  const fresh = await fetchFreshProgress(profile.id);
-  const currentProgress = fresh || progress;
+  // Fresh progress — failure is a retryable error, NOT a silent fallback
+  let currentProgress;
+  try {
+    currentProgress = await fetchFreshProgress(profile.id);
+  } catch {
+    return { ok: false, error: 'connection_error', retryable: true };
+  }
 
   // Check eligibility with fresh data
   const eligibility = getDailyRewardEligibility(currentProgress, config);
@@ -85,52 +95,78 @@ export async function claimDailyReward(profile, progress, config, wheelPrize) {
   const effectiveIndex = getEffectiveIndex(currentProgress, config);
   const reward = config?.rewards?.[effectiveIndex] || null;
 
-  // Wheel reward: prize must be provided by the SpinWheel
   if (reward?.type === 'wheel' && !wheelPrize) {
     return { ok: false, error: 'no_prize', progress: currentProgress };
   }
-
   if (!reward) {
     return { ok: false, error: 'no_reward', progress: currentProgress };
   }
 
   const rwd = wheelPrize || reward;
-  const { updates, awarded } = computeRewardUpdates(profile, rwd);
 
-  // Grant reward to profile
-  let updatedProfile = { ...profile };
-  if (Object.keys(updates).length > 0) {
-    await base44.entities.UserProfile.update(profile.id, updates);
-    updatedProfile = { ...profile, ...updates };
+  // Fresh profile for accurate balances
+  let freshProfile = profile;
+  try {
+    const fp = await fetchFreshProfile(profile.id);
+    if (fp) freshProfile = fp;
+  } catch {
+    return { ok: false, error: 'connection_error', retryable: true };
   }
 
-  // Mark progress as claimed
+  const { updates, awarded } = computeRewardUpdates(freshProfile, rwd);
+
+  // --- Step 1: Grant reward to profile ---
+  let updatedProfile = { ...freshProfile };
+  if (Object.keys(updates).length > 0) {
+    try {
+      await base44.entities.UserProfile.update(profile.id, updates);
+      updatedProfile = { ...freshProfile, ...updates };
+    } catch {
+      return { ok: false, error: 'profile_update_failed', retryable: true, progress: currentProgress };
+    }
+  }
+
+  // --- Step 2: Mark progress as claimed (separate write) ---
   const nextStreak = getNextStreakCount(currentProgress);
   const nextIndex = effectiveIndex;
   let updatedProgress;
 
-  if (!currentProgress?.id) {
-    const created = await base44.entities.DailyRewardProgress.create({
-      userProfileId: profile.id,
-      lastClaimDate: today,
-      currentIndex: nextIndex,
-      streakCount: nextStreak,
-      eligible: false,
-    });
-    updatedProgress = { ...created };
-  } else {
-    await base44.entities.DailyRewardProgress.update(currentProgress.id, {
-      lastClaimDate: today,
-      currentIndex: nextIndex,
-      streakCount: nextStreak,
-      eligible: false,
-    });
-    updatedProgress = {
-      ...currentProgress,
-      lastClaimDate: today,
-      currentIndex: nextIndex,
-      streakCount: nextStreak,
-      eligible: false,
+  try {
+    if (!currentProgress?.id) {
+      const created = await base44.entities.DailyRewardProgress.create({
+        userProfileId: profile.id,
+        lastClaimDate: today,
+        currentIndex: nextIndex,
+        streakCount: nextStreak,
+        eligible: false,
+      });
+      updatedProgress = { ...created };
+    } else {
+      await base44.entities.DailyRewardProgress.update(currentProgress.id, {
+        lastClaimDate: today,
+        currentIndex: nextIndex,
+        streakCount: nextStreak,
+        eligible: false,
+      });
+      updatedProgress = {
+        ...currentProgress,
+        lastClaimDate: today,
+        currentIndex: nextIndex,
+        streakCount: nextStreak,
+        eligible: false,
+      };
+    }
+  } catch {
+    // Partial success: profile has the reward, but progress was not marked.
+    // Report honestly — do NOT pretend this is atomic.
+    return {
+      ok: false,
+      error: 'progress_update_failed',
+      partial: true,
+      profile: updatedProfile,
+      progress: currentProgress,
+      awarded,
+      reward: rwd,
     };
   }
 
@@ -145,13 +181,18 @@ export async function claimDailyReward(profile, progress, config, wheelPrize) {
  * @param {object|null} progress - Current DailyRewardProgress
  * @param {object} config - daily_rewards_config setting value
  * @param {object} wheelPrize - Prize landed on the bonus wheel
- * @returns {{ ok: boolean, error?: string, profile?: object, progress?: object, awarded?: string, reward?: object }}
+ * @returns {{ ok: boolean, error?: string, profile?: object, progress?: object, awarded?: string, reward?: object, partial?: boolean, retryable?: boolean }}
  */
 export async function claimBonusSpin(profile, progress, config, wheelPrize) {
   const today = getChicagoDateKey();
 
-  const fresh = await fetchFreshProgress(profile.id);
-  const currentProgress = fresh || progress;
+  // Fresh progress
+  let currentProgress;
+  try {
+    currentProgress = await fetchFreshProgress(profile.id);
+  } catch {
+    return { ok: false, error: 'connection_error', retryable: true };
+  }
 
   if (Number(currentProgress?.bonusWheelTokens || 0) <= 0) {
     return { ok: false, error: 'no_tokens', progress: currentProgress };
@@ -161,33 +202,60 @@ export async function claimBonusSpin(profile, progress, config, wheelPrize) {
     return { ok: false, error: 'no_prize', progress: currentProgress };
   }
 
-  const { updates, awarded } = computeRewardUpdates(profile, wheelPrize);
-
-  let updatedProfile = { ...profile };
-  if (Object.keys(updates).length > 0) {
-    await base44.entities.UserProfile.update(profile.id, updates);
-    updatedProfile = { ...profile, ...updates };
+  // Fresh profile
+  let freshProfile = profile;
+  try {
+    const fp = await fetchFreshProfile(profile.id);
+    if (fp) freshProfile = fp;
+  } catch {
+    return { ok: false, error: 'connection_error', retryable: true };
   }
 
+  const { updates, awarded } = computeRewardUpdates(freshProfile, wheelPrize);
+
+  // --- Step 1: Grant reward to profile ---
+  let updatedProfile = { ...freshProfile };
+  if (Object.keys(updates).length > 0) {
+    try {
+      await base44.entities.UserProfile.update(profile.id, updates);
+      updatedProfile = { ...freshProfile, ...updates };
+    } catch {
+      return { ok: false, error: 'profile_update_failed', retryable: true, progress: currentProgress };
+    }
+  }
+
+  // --- Step 2: Decrement bonus token (separate write) ---
   const tokens = Math.max(0, Number(currentProgress.bonusWheelTokens || 0) - 1);
   let updatedProgress;
 
-  if (!currentProgress?.id) {
-    const created = await base44.entities.DailyRewardProgress.create({
-      userProfileId: profile.id,
-      bonusWheelTokens: tokens,
-      wheelLastSpinDate: today,
-    });
-    updatedProgress = { ...created };
-  } else {
-    await base44.entities.DailyRewardProgress.update(currentProgress.id, {
-      bonusWheelTokens: tokens,
-      wheelLastSpinDate: today,
-    });
-    updatedProgress = {
-      ...currentProgress,
-      bonusWheelTokens: tokens,
-      wheelLastSpinDate: today,
+  try {
+    if (!currentProgress?.id) {
+      const created = await base44.entities.DailyRewardProgress.create({
+        userProfileId: profile.id,
+        bonusWheelTokens: tokens,
+        wheelLastSpinDate: today,
+      });
+      updatedProgress = { ...created };
+    } else {
+      await base44.entities.DailyRewardProgress.update(currentProgress.id, {
+        bonusWheelTokens: tokens,
+        wheelLastSpinDate: today,
+      });
+      updatedProgress = {
+        ...currentProgress,
+        bonusWheelTokens: tokens,
+        wheelLastSpinDate: today,
+      };
+    }
+  } catch {
+    return {
+      ok: false,
+      error: 'progress_update_failed',
+      partial: true,
+      profile: updatedProfile,
+      progress: currentProgress,
+      awarded,
+      reward: wheelPrize,
     };
   }
 

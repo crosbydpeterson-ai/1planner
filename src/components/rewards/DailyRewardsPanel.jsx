@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import {
   getDailyRewardEligibility,
   getEffectiveIndex,
+  getChicagoDayOfMonth,
   getMsUntilNextChicagoMidnight,
   formatCountdown,
 } from '@/lib/dailyRewardUtils';
@@ -17,22 +17,20 @@ import TodayRewardCard from './TodayRewardCard';
 import BonusSpinsCard from './BonusSpinsCard';
 import SpinWheel from './SpinWheel';
 
-const ERROR_MESSAGES = {
-  already_claimed: 'Already claimed today',
-  need_assignment: 'Complete a quest today to unlock',
-  no_config: 'Reward configuration unavailable',
-  loading: 'Loading daily reward…',
-  no_reward: 'No reward configured for today',
-  no_prize: 'Wheel prize not available',
-  no_tokens: 'No bonus spins available',
-};
-
 export default function DailyRewardsPanel({ profile, progress, config, onProfileUpdate, onProgressUpdate }) {
   const [claiming, setClaiming] = useState(false);
   const [showWheel, setShowWheel] = useState(false);
   const [showBonusWheel, setShowBonusWheel] = useState(false);
+  const [wheelBusy, setWheelBusy] = useState(false);
+  const [bonusWheelBusy, setBonusWheelBusy] = useState(false);
   const [countdown, setCountdown] = useState('');
   const [revealed, setRevealed] = useState(null);
+  const [lastDailyAwarded, setLastDailyAwarded] = useState(null);
+
+  const prefersReducedMotion = useMemo(
+    () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches,
+    []
+  );
 
   const eligibility = useMemo(() => getDailyRewardEligibility(progress, config), [progress, config]);
   const period = useMemo(() => {
@@ -43,10 +41,14 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
   const effectiveIndex = useMemo(() => getEffectiveIndex(progress, config), [progress, config]);
   const todayReward = config?.rewards?.[effectiveIndex] || null;
   const streak = progress?.streakCount || 0;
-  const prefersReducedMotion = useMemo(
-    () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches,
-    []
-  );
+  const wheelEnabled = !!config?.wheel?.enabled;
+
+  const tomorrowIndex = useMemo(() => {
+    if (config?.scheduleType === 'monthly') return Math.min(30, getChicagoDayOfMonth());
+    const p = config?.scheduleType === 'streak14' ? 14 : 7;
+    return (effectiveIndex + 1) % p;
+  }, [config, effectiveIndex]);
+  const tomorrowReward = config?.rewards?.[tomorrowIndex] || null;
 
   useEffect(() => {
     const update = () => setCountdown(formatCountdown(getMsUntilNextChicagoMidnight()));
@@ -62,7 +64,7 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
 
   const handleClaim = async () => {
     if (claiming || !eligibility.canClaim || !todayReward) return;
-    if (todayReward.type === 'wheel' && config?.wheel?.enabled) {
+    if (todayReward.type === 'wheel' && wheelEnabled) {
       setShowWheel(true);
       return;
     }
@@ -72,60 +74,64 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
       if (result.ok) {
         onProfileUpdate(result.profile);
         onProgressUpdate(result.progress);
+        setLastDailyAwarded(result.awarded);
         setRevealed(result);
         fireConfetti();
-        toast.success(`Claimed: ${result.awarded}!`);
       } else {
         if (result.progress) onProgressUpdate(result.progress);
-        toast.error(ERROR_MESSAGES[result.error] || 'Cannot claim right now');
       }
     } catch {
-      toast.error('Failed to claim. Please try again.');
+      // network or unexpected error
     }
     setClaiming(false);
   };
 
-  const handleWheelResult = async (prize) => {
-    setClaiming(true);
+  // Structured callback for SpinWheel — returns { ok, error, awarded, ... }
+  const handleWheelResult = useCallback(async (prize) => {
     try {
       const result = await claimDailyReward(profile, progress, config, prize);
-      setShowWheel(false);
       if (result.ok) {
         onProfileUpdate(result.profile);
         onProgressUpdate(result.progress);
+        setLastDailyAwarded(result.awarded);
         setRevealed(result);
         fireConfetti();
-        toast.success(`Claimed: ${result.awarded}!`);
+        setWheelBusy(false);
+        setShowWheel(false);
       } else {
         if (result.progress) onProgressUpdate(result.progress);
-        toast.error(ERROR_MESSAGES[result.error] || 'Cannot claim right now');
+        setWheelBusy(false);
       }
+      return result;
     } catch {
-      toast.error('Failed to claim.');
-      setShowWheel(false);
+      setWheelBusy(false);
+      return { ok: false, error: 'exception' };
     }
-    setClaiming(false);
-  };
+  }, [profile, progress, config, onProfileUpdate, onProgressUpdate]);
 
-  const handleBonusSpinResult = async (prize) => {
+  const handleBonusSpinResult = useCallback(async (prize) => {
     try {
       const result = await claimBonusSpin(profile, progress, config, prize);
-      setShowBonusWheel(false);
       if (result.ok) {
         onProfileUpdate(result.profile);
         onProgressUpdate(result.progress);
         setRevealed(result);
         fireConfetti();
-        toast.success(`Bonus spin: ${result.awarded}!`);
+        setBonusWheelBusy(false);
+        setShowBonusWheel(false);
       } else {
         if (result.progress) onProgressUpdate(result.progress);
-        toast.error(ERROR_MESSAGES[result.error] || 'Cannot spin right now');
+        setBonusWheelBusy(false);
       }
+      return result;
     } catch {
-      toast.error('Failed to use bonus spin.');
-      setShowBonusWheel(false);
+      setBonusWheelBusy(false);
+      return { ok: false, error: 'exception' };
     }
-  };
+  }, [profile, progress, config, onProfileUpdate, onProgressUpdate]);
+
+  const handleWheelBusyChange = useCallback((busy) => setWheelBusy(busy), []);
+  const handleBonusBusyChange = useCallback((busy) => setBonusWheelBusy(busy), []);
 
   if (!config) {
     return (
@@ -137,7 +143,8 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-[1100px] space-y-4">
+      {/* Header */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
           <Gift className="w-5 h-5 text-purple-600" />
@@ -148,10 +155,12 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
         </div>
       </div>
 
+      {/* Reward track */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-slate-800">
-            {config.scheduleType === 'monthly' ? 'Your reward month' : 'Your reward week'}
+            {config.scheduleType === 'monthly' ? 'Your reward month' :
+             config.scheduleType === 'streak14' ? 'Your 14-day track' : 'Your reward week'}
           </h3>
           {streak > 0 && (
             <div className="flex items-center gap-1 bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full text-sm font-medium">
@@ -169,44 +178,68 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
         />
       </div>
 
+      {/* Today's reward / claimed state */}
       <TodayRewardCard
         reward={todayReward}
         eligibility={eligibility}
         claiming={claiming}
         onClaim={handleClaim}
         countdown={countdown}
+        lastAwarded={lastDailyAwarded}
+        tomorrowReward={tomorrowReward}
+        wheelEnabled={wheelEnabled}
       />
 
+      {/* Bonus spins */}
       <BonusSpinsCard
         tokens={progress?.bonusWheelTokens || 0}
         onUseSpin={() => setShowBonusWheel(true)}
+        disabled={bonusWheelBusy}
       />
 
-      <Dialog open={showWheel} onOpenChange={setShowWheel}>
-        <DialogContent>
+      {/* Daily wheel dialog */}
+      <Dialog
+        open={showWheel}
+        onOpenChange={(open) => { if (!open && wheelBusy) return; setShowWheel(open); }}
+      >
+        <DialogContent
+          className={wheelBusy ? '[&>button]:hidden' : ''}
+          onEscapeKeyDown={(e) => { if (wheelBusy) e.preventDefault(); }}
+          onInteractOutside={(e) => { if (wheelBusy) e.preventDefault(); }}
+        >
           <DialogHeader>
             <DialogTitle>Spin for your reward</DialogTitle>
           </DialogHeader>
           <SpinWheel
             prizes={config?.wheel?.prizes || []}
             onResult={handleWheelResult}
-            disabled={claiming}
+            onBusyChange={handleWheelBusyChange}
           />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showBonusWheel} onOpenChange={setShowBonusWheel}>
-        <DialogContent>
+      {/* Bonus wheel dialog */}
+      <Dialog
+        open={showBonusWheel}
+        onOpenChange={(open) => { if (!open && bonusWheelBusy) return; setShowBonusWheel(open); }}
+      >
+        <DialogContent
+          className={bonusWheelBusy ? '[&>button]:hidden' : ''}
+          onEscapeKeyDown={(e) => { if (bonusWheelBusy) e.preventDefault(); }}
+          onInteractOutside={(e) => { if (bonusWheelBusy) e.preventDefault(); }}
+        >
           <DialogHeader>
             <DialogTitle>Bonus Spin</DialogTitle>
           </DialogHeader>
           <SpinWheel
             prizes={config?.wheel?.prizes || []}
             onResult={handleBonusSpinResult}
+            onBusyChange={handleBonusBusyChange}
           />
         </DialogContent>
       </Dialog>
 
+      {/* Reward reveal overlay — one clear reveal after confirmed success */}
       <AnimatePresence>
         {revealed && (
           <motion.div
@@ -226,7 +259,7 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
               <div className="text-4xl mb-2">🎉</div>
               <h3 className="text-lg font-bold text-slate-800 mb-1">Reward Claimed!</h3>
               <p className="text-slate-600">{revealed.awarded}</p>
-              <Button onClick={() => setRevealed(null)} className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700">
+              <Button onClick={() => setRevealed(null)} className="mt-4 w-full bg-purple-600 hover:bg-purple-700">
                 Awesome!
               </Button>
             </motion.div>
