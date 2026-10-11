@@ -147,7 +147,7 @@ export async function claimDailyReward(profile, progress, config, wheelPrize) {
  * @param {object} wheelPrize - Prize landed on the bonus wheel
  * @returns {{ ok: boolean, error?: string, profile?: object, progress?: object, awarded?: string, reward?: object }}
  */
-export async function useBonusSpin(profile, progress, config, wheelPrize) {
+export async function claimBonusSpin(profile, progress, config, wheelPrize) {
   const today = getChicagoDateKey();
 
   const fresh = await fetchFreshProgress(profile.id);

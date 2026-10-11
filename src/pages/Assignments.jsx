@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ClipboardList, ArrowLeft, CheckCircle, Plus, AlertTriangle, Gift, FileText, Upload, X } from 'lucide-react';
+import { ClipboardList, ArrowLeft, CheckCircle, Plus, AlertTriangle, Gift, FileText, Upload, X, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -15,14 +15,13 @@ import AssignmentCard from '@/components/quest/AssignmentCard';
 import SuperAssignmentCard from '@/components/quest/SuperAssignmentCard';
 import GlassIcon from '@/components/ui/GlassIcon';
 import Tutorial from '@/components/tutorial/Tutorial';
-import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
 import EggOpenAnimation from '@/components/eggs/EggOpenAnimation';
 
  import { toast } from 'sonner';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
 import PetClearanceEventModal from '@/components/events/PetClearanceEventModal';
 import { useSubjects } from '@/hooks/useSubjects';
-import { getChicagoDateKey, getDailyRewardEligibility } from '@/lib/dailyRewardUtils';
+import { getChicagoDateKey, getDailyRewardStatusMessage } from '@/lib/dailyRewardUtils';
 import { useDailyRewardRefresh } from '@/hooks/useDailyRewardRefresh';
 
 export default function Assignments() {
@@ -41,7 +40,6 @@ export default function Assignments() {
   const [showFlagDialog, setShowFlagDialog] = useState(false);
   const [dailyConfig, setDailyConfig] = useState(null);
   const [dailyProgress, setDailyProgress] = useState(null);
-  const [showDailyClaim, setShowDailyClaim] = useState(false);
   const [creatorMap, setCreatorMap] = useState({});
   const [lootEggsById, setLootEggsById] = useState({});
   const [showPetClearance, setShowPetClearance] = useState(false);
@@ -98,10 +96,6 @@ export default function Assignments() {
       const progList = await base44.entities.DailyRewardProgress.filter({ userProfileId: p.id });
       if (progList.length > 0) {
         setDailyProgress(progList[0]);
-        const todayKey = getChicagoDateKey();
-        if (progList[0].eligible && progList[0].eligibleDate === todayKey && progList[0].lastClaimDate !== todayKey) {
-          setShowDailyClaim(true);
-        }
       }
 
        // Show one-time warning if flagged and not acknowledged
@@ -316,14 +310,18 @@ export default function Assignments() {
         if (progList.length === 0) {
           const created = await base44.entities.DailyRewardProgress.create({ userProfileId: profile.id, eligible: true, eligibleDate: todayKey, streakCount: 0, currentIndex: 0 });
           setDailyProgress(created);
-          setShowDailyClaim(true);
+          toast.success('Daily reward ready to claim!', {
+            description: 'Tap "Daily Rewards" in Collection to claim it.',
+          });
         } else {
           const prog = progList[0];
-          // Only show popup if not already claimed today
+          // Only show toast if not already claimed today
           if (prog.lastClaimDate !== todayKey) {
             await base44.entities.DailyRewardProgress.update(prog.id, { eligible: true, eligibleDate: todayKey });
             setDailyProgress({ ...prog, eligible: true, eligibleDate: todayKey });
-            setShowDailyClaim(true);
+            toast.success('Daily reward ready to claim!', {
+              description: 'Tap "Daily Rewards" in Collection to claim it.',
+            });
           }
         }
       } catch (e) {
@@ -693,15 +691,20 @@ export default function Assignments() {
           </div>
         )}
 
-        {/* Daily Reward Banner */}
-         {dailyConfig && dailyProgress && getDailyRewardEligibility(dailyProgress, dailyConfig).canClaim && (
-           <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between">
-             <div className="flex items-center gap-2 text-emerald-700">
-               <Gift className="w-4 h-4" />
-               <span>Daily reward ready to claim!</span>
+        {/* Daily Reward Status Card */}
+         {dailyConfig && (
+           <Link to="/Rewards?tab=daily" className="block mb-4">
+             <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 flex items-center gap-3 hover:shadow-md transition-shadow">
+               <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+                 <Gift className="w-5 h-5 text-purple-600" />
+               </div>
+               <div className="flex-1 min-w-0">
+                 <div className="font-semibold text-slate-800 text-sm">Daily Rewards</div>
+                 <div className="text-xs text-slate-500">{getDailyRewardStatusMessage(dailyProgress, dailyConfig)}</div>
+               </div>
+               <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0" />
              </div>
-             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowDailyClaim(true)}>Claim</Button>
-           </div>
+           </Link>
          )}
 
         {/* Assignment List */}
@@ -772,17 +775,7 @@ export default function Assignments() {
       {/* Tutorial */}
        <Tutorial profile={profile} currentPage="Assignments" onComplete={() => {}} />
 
-       {/* Claim Dialog */}
-       <DailyRewardClaim
-         open={showDailyClaim}
-         onOpenChange={setShowDailyClaim}
-         profile={profile}
-         progress={dailyProgress}
-         config={dailyConfig}
-         onClaimed={(p) => setDailyProgress(prev => ({ ...prev, ...p }))}
-       />
-
-      {/* Auto-open egg animation on assignment completion */}
+       {/* Auto-open egg animation on assignment completion */}
       <AnimatePresence>
         {autoOpenEgg && (
           <EggOpenAnimation

@@ -11,7 +11,7 @@ import {
   getMsUntilNextChicagoMidnight,
   formatCountdown,
 } from '@/lib/dailyRewardUtils';
-import { claimDailyReward, useBonusSpin } from '@/lib/dailyRewardClaim';
+import { claimDailyReward, claimBonusSpin } from '@/lib/dailyRewardClaim';
 import RewardTrack from './RewardTrack';
 import TodayRewardCard from './TodayRewardCard';
 import BonusSpinsCard from './BonusSpinsCard';
@@ -109,7 +109,7 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
 
   const handleBonusSpinResult = async (prize) => {
     try {
-      const result = await useBonusSpin(profile, progress, config, prize);
+      const result = await claimBonusSpin(profile, progress, config, prize);
       setShowBonusWheel(false);
       if (result.ok) {
         onProfileUpdate(result.profile);

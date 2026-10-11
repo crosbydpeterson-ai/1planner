@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award, Palette, Search } from 'lucide-react';
@@ -14,10 +14,9 @@ import PetAvatar from '@/components/quest/PetAvatar';
 import GlassIcon from '@/components/ui/GlassIcon';
 import MagicEggCreator from '@/components/rewards/MagicEggCreator';
 import Tutorial from '@/components/tutorial/Tutorial';
-import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
+import DailyRewardsPanel from '@/components/rewards/DailyRewardsPanel';
 import { toast } from 'sonner';
 import { equipPet, equipTheme, equipTitle, isPetEquipped, isThemeEquipped, isTitleEquipped } from '@/lib/equipHelpers';
-import { getDailyRewardStatusMessage } from '@/lib/dailyRewardUtils';
 import { useDailyRewardRefresh } from '@/hooks/useDailyRewardRefresh';
 
 export default function Rewards() {
@@ -28,13 +27,13 @@ export default function Rewards() {
   const [petCosmetics, setPetCosmetics] = useState([]);
   const [magicEggs, setMagicEggs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pets');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'daily' ? 'daily' : 'pets');
   const [locks, setLocks] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [boothSkins, setBoothSkins] = useState([]);
   const [dailyConfig, setDailyConfig] = useState(null);
   const [dailyProgress, setDailyProgress] = useState(null);
-  const [showDailyClaim, setShowDailyClaim] = useState(false);
   const [petSearch, setPetSearch] = useState('');
   const [themeSearch, setThemeSearch] = useState('');
 
@@ -316,37 +315,49 @@ export default function Rewards() {
           </div>
         </motion.div>
 
-        {/* Daily Rewards Card */}
-        {dailyConfig && (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow border border-white/50 mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-slate-800 font-semibold">Daily Rewards</div>
-                <div className="text-slate-500 text-sm">
-                  {getDailyRewardStatusMessage(dailyProgress, dailyConfig)}
-                </div>
-              </div>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowDailyClaim(true)}>Open</Button>
-            </div>
-          </motion.div>
-        )}
-
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white/30 backdrop-blur-xl border border-white/20 mb-6 w-full grid grid-cols-3">
+        <Tabs value={activeTab} onValueChange={(v) => {
+          setActiveTab(v);
+          const np = new URLSearchParams(searchParams);
+          if (v === 'daily') np.set('tab', 'daily'); else np.delete('tab');
+          setSearchParams(np, { replace: true });
+        }}>
+          <TabsList className="bg-white/30 backdrop-blur-xl border border-white/20 mb-6 w-full grid grid-cols-4">
+            <TabsTrigger value="daily" className="data-[state=active]:bg-white/60">
+              <Gift className="w-4 h-4 mr-1" />
+              Daily
+            </TabsTrigger>
             <TabsTrigger value="pets" className="data-[state=active]:bg-white/60">
-              <Star className="w-4 h-4 mr-2" />
-              Pets ({unlockedPetIds.length})
+              <Star className="w-4 h-4 mr-1" />
+              Pets
             </TabsTrigger>
             <TabsTrigger value="themes" className="data-[state=active]:bg-white/60">
-              <Palette className="w-4 h-4 mr-2" />
-              Themes ({unlockedThemeIds.length})
+              <Palette className="w-4 h-4 mr-1" />
+              Themes
             </TabsTrigger>
             <TabsTrigger value="cosmetics" className="data-[state=active]:bg-white/60">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Cosmetics ({unlockedCosmeticIds.length + unlockedTitles.length})
+              <Sparkles className="w-4 h-4 mr-1" />
+              Cosmetics
             </TabsTrigger>
           </TabsList>
+
+          {/* Daily Tab */}
+          <TabsContent value="daily">
+            {dailyConfig ? (
+              <DailyRewardsPanel
+                profile={profile}
+                progress={dailyProgress || { eligible: false, eligibleDate: null, currentIndex: 0, bonusWheelTokens: 0 }}
+                config={dailyConfig}
+                onProfileUpdate={setProfile}
+                onProgressUpdate={setDailyProgress}
+              />
+            ) : (
+              <div className="bg-white rounded-2xl p-6 text-center text-slate-500 border border-slate-100">
+                <Gift className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                <p>Daily rewards are not configured.</p>
+              </div>
+            )}
+          </TabsContent>
 
           {/* Pets Tab */}
           <TabsContent value="pets">
@@ -708,15 +719,6 @@ export default function Rewards() {
       {/* Tutorial */}
       <Tutorial profile={profile} currentPage="Rewards" onComplete={() => {}} />
 
-      {/* Daily Reward Claim Dialog */}
-      <DailyRewardClaim
-        open={showDailyClaim}
-        onOpenChange={setShowDailyClaim}
-        profile={profile}
-        progress={dailyProgress || { eligible: false, eligibleDate: null, currentIndex: 0, bonusWheelTokens: 0 }}
-        config={dailyConfig}
-        onClaimed={(p) => setDailyProgress(prev => ({ ...(prev || {}), ...p }))}
-      />
     </div>
   );
 }
