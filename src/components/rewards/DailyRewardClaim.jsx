@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 import SpinWheel from './SpinWheel';
 import { toast } from 'sonner';
+import { getChicagoDateKey, getDailyRewardEligibility, getEffectiveIndex, getNextStreakCount } from '@/lib/dailyRewardUtils';
 
 // config example stored in AppSetting.key = 'daily_rewards_config'
 // {
@@ -16,7 +17,9 @@ import { toast } from 'sonner';
 
 export default function DailyRewardClaim({ open, onOpenChange, profile, progress, config, onClaimed }) {
   const [claiming, setClaiming] = useState(false);
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = getChicagoDateKey();
+
+  const eligibility = useMemo(() => getDailyRewardEligibility(progress, config), [progress, config]);
 
   const period = useMemo(() => {
     if (config?.scheduleType === 'streak14') return 14;
@@ -24,26 +27,10 @@ export default function DailyRewardClaim({ open, onOpenChange, profile, progress
     return 7; // default
   }, [config]);
 
-  const effectiveIndex = useMemo(() => {
-    if (!config) return 0;
-    if (config.scheduleType === 'monthly') {
-      const d = new Date();
-      return Math.min(30, d.getDate() - 1);
-    }
-    const last = progress?.lastClaimDate;
-    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('en-CA');
-    if (last === yesterday) {
-      return ((progress?.currentIndex || 0) + 1) % period;
-    }
-    if (last === today) {
-      return progress?.currentIndex || 0; // already claimed today
-    }
-    // missed day -> reset
-    return 0;
-  }, [config, period, progress, today]);
+  const effectiveIndex = useMemo(() => getEffectiveIndex(progress, config), [progress, config]);
 
   const reward = config?.rewards?.[effectiveIndex] || null;
-  const disabled = !progress?.eligible || progress?.eligibleDate !== today || progress?.lastClaimDate === today;
+  const disabled = !eligibility.canClaim || !reward;
   const hasBonusWheel = Number(progress?.bonusWheelTokens || 0) > 0;
   const shouldShowWheel = !!(config?.wheel?.enabled && ((reward?.type === 'wheel') || hasBonusWheel));
 
@@ -102,13 +89,25 @@ export default function DailyRewardClaim({ open, onOpenChange, profile, progress
       await grantReward(reward);
       // update progress
       const nextIndex = effectiveIndex;
-      const nextStreak = (progress?.lastClaimDate === new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('en-CA')) ? (progress?.streakCount || 0) + 1 : 1;
-      await base44.entities.DailyRewardProgress.update(progress.id, {
-        lastClaimDate: today,
-        currentIndex: nextIndex,
-        streakCount: nextStreak,
-        eligible: false
-      });
+      const nextStreak = getNextStreakCount(progress);
+      let progressId = progress?.id;
+      if (!progressId) {
+        const created = await base44.entities.DailyRewardProgress.create({
+          userProfileId: profile.id,
+          lastClaimDate: today,
+          currentIndex: nextIndex,
+          streakCount: nextStreak,
+          eligible: false
+        });
+        progressId = created.id;
+      } else {
+        await base44.entities.DailyRewardProgress.update(progressId, {
+          lastClaimDate: today,
+          currentIndex: nextIndex,
+          streakCount: nextStreak,
+          eligible: false
+        });
+      }
       onClaimed && onClaimed({ lastClaimDate: today, currentIndex: nextIndex, streakCount: nextStreak, eligible: false });
       onOpenChange(false);
     } catch (e) {
@@ -121,14 +120,27 @@ export default function DailyRewardClaim({ open, onOpenChange, profile, progress
     try {
       await grantReward(prize);
       const nextIndex = effectiveIndex;
-      const nextStreak = (progress?.lastClaimDate === new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('en-CA')) ? (progress?.streakCount || 0) + 1 : 1;
-      await base44.entities.DailyRewardProgress.update(progress.id, {
-        lastClaimDate: today,
-        currentIndex: nextIndex,
-        streakCount: nextStreak,
-        eligible: false,
-        wheelLastSpinDate: today
-      });
+      const nextStreak = getNextStreakCount(progress);
+      let progressId = progress?.id;
+      if (!progressId) {
+        const created = await base44.entities.DailyRewardProgress.create({
+          userProfileId: profile.id,
+          lastClaimDate: today,
+          currentIndex: nextIndex,
+          streakCount: nextStreak,
+          eligible: false,
+          wheelLastSpinDate: today
+        });
+        progressId = created.id;
+      } else {
+        await base44.entities.DailyRewardProgress.update(progressId, {
+          lastClaimDate: today,
+          currentIndex: nextIndex,
+          streakCount: nextStreak,
+          eligible: false,
+          wheelLastSpinDate: today
+        });
+      }
       onClaimed && onClaimed({ lastClaimDate: today, currentIndex: nextIndex, streakCount: nextStreak, eligible: false, wheelLastSpinDate: today });
       onOpenChange(false);
     } catch (e) {
@@ -182,11 +194,22 @@ export default function DailyRewardClaim({ open, onOpenChange, profile, progress
         )}
 
         {(!reward || (reward.type !== 'wheel')) && (
-          <DialogFooter>
-            <Button onClick={handleClaim} disabled={disabled || claiming} className="bg-emerald-600 hover:bg-emerald-700">
-              {claiming ? 'Claiming...' : 'Claim'}
-            </Button>
-          </DialogFooter>
+          <>
+            {disabled && reward && (
+              <div className="text-sm text-slate-500 text-center">
+                {eligibility.reason === 'already_claimed' ? 'Already claimed today' :
+                 eligibility.reason === 'need_assignment' ? 'Complete a quest today to unlock' :
+                 eligibility.reason === 'no_config' ? 'Reward configuration unavailable' :
+                 eligibility.reason === 'loading' ? 'Loading daily reward…' :
+                 'Cannot claim right now'}
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={handleClaim} disabled={disabled || claiming} className="bg-emerald-600 hover:bg-emerald-700">
+                {claiming ? 'Claiming...' : 'Claim'}
+              </Button>
+            </DialogFooter>
+          </>
         )}
       </DialogContent>
     </Dialog>

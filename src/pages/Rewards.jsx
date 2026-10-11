@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -17,6 +17,8 @@ import Tutorial from '@/components/tutorial/Tutorial';
 import DailyRewardClaim from '@/components/rewards/DailyRewardClaim';
 import { toast } from 'sonner';
 import { equipPet, equipTheme, equipTitle, isPetEquipped, isThemeEquipped, isTitleEquipped } from '@/lib/equipHelpers';
+import { getDailyRewardStatusMessage } from '@/lib/dailyRewardUtils';
+import { useDailyRewardRefresh } from '@/hooks/useDailyRewardRefresh';
 
 export default function Rewards() {
   const navigate = useNavigate();
@@ -40,6 +42,20 @@ export default function Rewards() {
     loadData();
     base44.analytics.track({ eventName: 'rewards_viewed' });
   }, []);
+
+  // Refresh daily reward eligibility when returning to foreground or after midnight
+  const refreshDailyProgress = useCallback(async () => {
+    if (!profile) return;
+    try {
+      const progList = await base44.entities.DailyRewardProgress.filter({ userProfileId: profile.id });
+      if (progList.length > 0) {
+        setDailyProgress(progList[0]);
+      }
+    } catch (e) {
+      // silent
+    }
+  }, [profile]);
+  useDailyRewardRefresh(refreshDailyProgress);
 
   const loadData = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
@@ -307,11 +323,7 @@ export default function Rewards() {
               <div>
                 <div className="text-slate-800 font-semibold">Daily Rewards</div>
                 <div className="text-slate-500 text-sm">
-                  {dailyProgress?.bonusWheelTokens > 0
-                    ? `Bonus spins available: ${dailyProgress.bonusWheelTokens}`
-                    : (dailyProgress?.eligible && dailyProgress?.eligibleDate === new Date().toLocaleDateString('en-CA') && dailyProgress?.lastClaimDate !== new Date().toLocaleDateString('en-CA'))
-                      ? 'Ready to claim today'
-                      : 'Complete a quest today to unlock'}
+                  {getDailyRewardStatusMessage(dailyProgress, dailyConfig)}
                 </div>
               </div>
               <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowDailyClaim(true)}>Open</Button>

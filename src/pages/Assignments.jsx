@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -22,6 +22,8 @@ import EggOpenAnimation from '@/components/eggs/EggOpenAnimation';
 import { PETS, getRandomPet } from '@/components/quest/PetCatalog';
 import PetClearanceEventModal from '@/components/events/PetClearanceEventModal';
 import { useSubjects } from '@/hooks/useSubjects';
+import { getChicagoDateKey, getDailyRewardEligibility } from '@/lib/dailyRewardUtils';
+import { useDailyRewardRefresh } from '@/hooks/useDailyRewardRefresh';
 
 export default function Assignments() {
   const navigate = useNavigate();
@@ -54,6 +56,20 @@ export default function Assignments() {
     base44.analytics.track({ eventName: 'assignments_viewed' });
   }, []);
 
+  // Refresh daily reward eligibility when returning to foreground or after midnight
+  const refreshDailyProgress = useCallback(async () => {
+    if (!profile) return;
+    try {
+      const progList = await base44.entities.DailyRewardProgress.filter({ userProfileId: profile.id });
+      if (progList.length > 0) {
+        setDailyProgress(progList[0]);
+      }
+    } catch (e) {
+      // silent — will retry on next visibility change
+    }
+  }, [profile]);
+  useDailyRewardRefresh(refreshDailyProgress);
+
   const loadData = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) {
@@ -82,8 +98,8 @@ export default function Assignments() {
       const progList = await base44.entities.DailyRewardProgress.filter({ userProfileId: p.id });
       if (progList.length > 0) {
         setDailyProgress(progList[0]);
-        const today = new Date().toISOString().split('T')[0];
-        if (progList[0].eligible && progList[0].eligibleDate === today && progList[0].lastClaimDate !== today) {
+        const todayKey = getChicagoDateKey();
+        if (progList[0].eligible && progList[0].eligibleDate === todayKey && progList[0].lastClaimDate !== todayKey) {
           setShowDailyClaim(true);
         }
       }
@@ -295,23 +311,46 @@ export default function Assignments() {
 
       // Mark daily reward eligibility (manual claim)
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const todayKey = getChicagoDateKey();
         let progList = await base44.entities.DailyRewardProgress.filter({ userProfileId: profile.id });
         if (progList.length === 0) {
-          const created = await base44.entities.DailyRewardProgress.create({ userProfileId: profile.id, eligible: true, eligibleDate: today, streakCount: 0, currentIndex: 0 });
+          const created = await base44.entities.DailyRewardProgress.create({ userProfileId: profile.id, eligible: true, eligibleDate: todayKey, streakCount: 0, currentIndex: 0 });
           setDailyProgress(created);
           setShowDailyClaim(true);
         } else {
           const prog = progList[0];
           // Only show popup if not already claimed today
-          if (prog.lastClaimDate !== today) {
-            await base44.entities.DailyRewardProgress.update(prog.id, { eligible: true, eligibleDate: today });
-            setDailyProgress({ ...prog, eligible: true, eligibleDate: today });
+          if (prog.lastClaimDate !== todayKey) {
+            await base44.entities.DailyRewardProgress.update(prog.id, { eligible: true, eligibleDate: todayKey });
+            setDailyProgress({ ...prog, eligible: true, eligibleDate: todayKey });
             setShowDailyClaim(true);
           }
         }
       } catch (e) {
-        // ignore
+        console.error('Failed to mark daily reward eligibility:', e);
+        toast.error('Daily reward eligibility could not be saved.', {
+          description: 'Your assignment was still completed. Tap Retry to re-save eligibility.',
+          action: {
+            label: 'Retry',
+            onClick: () => {
+              const todayKey = getChicagoDateKey();
+              base44.entities.DailyRewardProgress.filter({ userProfileId: profile.id }).then(progList => {
+                if (progList.length === 0) {
+                  return base44.entities.DailyRewardProgress.create({ userProfileId: profile.id, eligible: true, eligibleDate: todayKey, streakCount: 0, currentIndex: 0 });
+                } else {
+                  const prog = progList[0];
+                  if (prog.lastClaimDate !== todayKey) {
+                    return base44.entities.DailyRewardProgress.update(prog.id, { eligible: true, eligibleDate: todayKey });
+                  }
+                }
+              }).then(() => {
+                toast.success('Daily reward eligibility saved!');
+              }).catch(() => {
+                toast.error('Still failed. Please try again later.');
+              });
+            }
+          }
+        });
       }
 
        // Contribute to global event jar
@@ -655,7 +694,7 @@ export default function Assignments() {
         )}
 
         {/* Daily Reward Banner */}
-         {dailyConfig && dailyProgress && dailyProgress.eligible && (
+         {dailyConfig && dailyProgress && getDailyRewardEligibility(dailyProgress, dailyConfig).canClaim && (
            <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between">
              <div className="flex items-center gap-2 text-emerald-700">
                <Gift className="w-4 h-4" />
