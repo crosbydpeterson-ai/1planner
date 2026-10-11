@@ -125,3 +125,47 @@ export function getNextStreakCount(progress) {
   const yesterday = getChicagoYesterdayKey();
   return progress?.lastClaimDate === yesterday ? (progress?.streakCount || 0) + 1 : 1;
 }
+
+/**
+ * Get milliseconds until next Chicago midnight.
+ * Uses Intl.DateTimeFormat with formatToParts to correctly handle the timezone
+ * offset, including daylight saving transitions.
+ */
+export function getMsUntilNextChicagoMidnight(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+  const p = {};
+  parts.forEach(pt => { if (pt.type !== 'literal') p[pt.type] = pt.value; });
+
+  const chicagoNow = new Date(
+    parseInt(p.year, 10),
+    parseInt(p.month, 10) - 1,
+    parseInt(p.day, 10),
+    parseInt(p.hour, 10) % 24,
+    parseInt(p.minute, 10),
+    parseInt(p.second, 10)
+  );
+  const nextMidnight = new Date(chicagoNow);
+  nextMidnight.setDate(nextMidnight.getDate() + 1);
+  nextMidnight.setHours(0, 0, 0, 0);
+
+  return Math.max(0, nextMidnight.getTime() - chicagoNow.getTime());
+}
+
+/**
+ * Format milliseconds as a human-readable countdown string.
+ * "8h 20m" when hours remain, "12m 5s" when only minutes remain, "5s" otherwise.
+ */
+export function formatCountdown(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
