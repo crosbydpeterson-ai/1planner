@@ -1,0 +1,140 @@
+{
+  "name": "SpinWheelPreset",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Wheel display name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description shown in admin library"
+    },
+    "seasonId": {
+      "type": "string",
+      "description": "Optional Season entity ID for association"
+    },
+    "followSeasonDates": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true and seasonId is set, the wheel uses the season's start/end dates instead of its own startDate/endDate"
+    },
+    "colors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "#7c3aed",
+        "#f59e0b",
+        "#10b981",
+        "#ef4444",
+        "#8b5cf6",
+        "#3b82f6",
+        "#ec4899",
+        "#14b8a6",
+        "#f97316",
+        "#84cc16"
+      ],
+      "description": "Hex colors for wheel segments. Individual prizes can override with their own color."
+    },
+    "prizes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "xp",
+              "coins",
+              "pet",
+              "theme",
+              "title"
+            ],
+            "description": "Reward type"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Amount for xp/coins type"
+          },
+          "value": {
+            "type": "string",
+            "description": "Asset ID for pet/theme, or title text for title type"
+          },
+          "label": {
+            "type": "string",
+            "description": "Display label shown on the wheel segment"
+          },
+          "icon": {
+            "type": "string",
+            "description": "Emoji icon for the prize"
+          },
+          "color": {
+            "type": "string",
+            "description": "Segment color (hex). If not set, auto-assigned from wheel colors array."
+          },
+          "weight": {
+            "type": "number",
+            "default": 1,
+            "description": "Relative probability weight. Higher = more likely to win."
+          }
+        },
+        "required": [
+          "type",
+          "weight"
+        ]
+      },
+      "default": []
+    },
+    "startDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When a scheduled wheel becomes active (ISO timestamp)"
+    },
+    "endDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When a scheduled wheel stops being selected (ISO timestamp)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "scheduled",
+        "stored",
+        "archived"
+      ],
+      "default": "draft",
+      "description": "draft = unpublished, active = immediately live, scheduled = live during date range, stored = inactive reusable preset, archived = deleted from use"
+    },
+    "destination": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "bonus",
+        "both"
+      ],
+      "default": "both",
+      "description": "Where this wheel is used: daily rewards, bonus spins, or both"
+    },
+    "isFallback": {
+      "type": "boolean",
+      "default": false,
+      "description": "Used when no other wheel is active for this destination"
+    },
+    "version": {
+      "type": "number",
+      "default": 1,
+      "description": "Incremented on each edit to freeze spin versions"
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "Admin username who created the wheel"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

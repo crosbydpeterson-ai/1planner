@@ -40,6 +40,14 @@
       "type": "number",
       "default": 0,
       "description": "Admin-granted bonus wheel spins available"
+    },
+    "lastWheelId": {
+      "type": "string",
+      "description": "SpinWheelPreset ID used for the last spin"
+    },
+    "lastWheelVersion": {
+      "type": "number",
+      "description": "Version of the wheel used for the last spin"
     }
   },
   "required": [

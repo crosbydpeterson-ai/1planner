@@ -45,7 +45,7 @@ function segmentPath(cx, cy, r, startAngle, endAngle) {
   return `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`;
 }
 
-export default function SpinWheel({ prizes = [], onResult, disabled = false, onBusyChange }) {
+export default function SpinWheel({ prizes = [], onResult, disabled = false, onBusyChange, colors }) {
   const controls = useAnimation();
   const [phase, setPhase] = useState('idle'); // idle | spinning | saving | success | error
   const [landedPrize, setLandedPrize] = useState(null);
@@ -88,7 +88,7 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
     let angle = 0;
     return prizes.map((p, i) => {
       const slice = (Math.max(0, Number(p.weight) || 0) / totalWeight) * 360;
-      const seg = { ...p, startAngle: angle, endAngle: angle + slice, midAngle: angle + slice / 2, color: COLORS[i % COLORS.length], index: i };
+      const seg = { ...p, startAngle: angle, endAngle: angle + slice, midAngle: angle + slice / 2, color: p.color || (colors && colors[i % colors.length]) || COLORS[i % COLORS.length], index: i };
       angle += slice;
       return seg;
     });

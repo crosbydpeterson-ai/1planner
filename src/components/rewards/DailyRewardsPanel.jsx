@@ -12,6 +12,7 @@ import {
   formatCountdown,
 } from '@/lib/dailyRewardUtils';
 import { claimDailyReward, claimBonusSpin } from '@/lib/dailyRewardClaim';
+import { resolveActiveWheel } from '@/lib/wheelLibrary';
 import RewardTrack from './RewardTrack';
 import TodayRewardCard from './TodayRewardCard';
 import BonusSpinsCard from './BonusSpinsCard';
@@ -26,6 +27,8 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
   const [countdown, setCountdown] = useState('');
   const [revealed, setRevealed] = useState(null);
   const [lastDailyAwarded, setLastDailyAwarded] = useState(null);
+  const [dailyWheel, setDailyWheel] = useState(null);
+  const [bonusWheel, setBonusWheel] = useState(null);
 
   const prefersReducedMotion = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches,
@@ -33,6 +36,22 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
   );
 
   const eligibility = useMemo(() => getDailyRewardEligibility(progress, config), [progress, config]);
+
+  // Resolve active wheels from the Wheel Library
+  useEffect(() => {
+    (async () => {
+      try {
+        const [daily, bonus] = await Promise.all([
+          resolveActiveWheel('daily'),
+          resolveActiveWheel('bonus'),
+        ]);
+        setDailyWheel(daily.wheel);
+        setBonusWheel(bonus.wheel);
+      } catch (e) {
+        console.error('Failed to resolve wheels', e);
+      }
+    })();
+  }, []);
   const period = useMemo(() => {
     if (config?.scheduleType === 'streak14') return 14;
     if (config?.scheduleType === 'monthly') return 31;
@@ -41,7 +60,17 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
   const effectiveIndex = useMemo(() => getEffectiveIndex(progress, config), [progress, config]);
   const todayReward = config?.rewards?.[effectiveIndex] || null;
   const streak = progress?.streakCount || 0;
-  const wheelEnabled = !!config?.wheel?.enabled;
+
+  // Effective wheel prizes: resolved from library, or fall back to config.wheel
+  const dailyWheelPrizes = dailyWheel?.prizes || (config?.wheel?.enabled ? config?.wheel?.prizes : []);
+  const bonusWheelPrizes = bonusWheel?.prizes || (config?.wheel?.enabled ? config?.wheel?.prizes : []);
+  const dailyWheelMeta = dailyWheel ? { id: dailyWheel.id, version: dailyWheel.version } : null;
+  const bonusWheelMeta = bonusWheel ? { id: bonusWheel.id, version: bonusWheel.version } : null;
+  const dailyWheelColors = dailyWheel?.colors;
+  const bonusWheelColors = bonusWheel?.colors;
+  const wheelAvailable = dailyWheelPrizes.length > 0;
+  const bonusWheelAvailable = bonusWheelPrizes.length > 0;
+  const wheelEnabled = wheelAvailable || !!config?.wheel?.enabled;
 
   const tomorrowIndex = useMemo(() => {
     if (config?.scheduleType === 'monthly') return Math.min(30, getChicagoDayOfMonth());
@@ -64,7 +93,10 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
 
   const handleClaim = async () => {
     if (claiming || !eligibility.canClaim || !todayReward) return;
-    if (todayReward.type === 'wheel' && wheelEnabled) {
+    if (todayReward.type === 'wheel') {
+      if (!wheelAvailable) {
+        return; // No wheel available — don't open dialog, don't consume claim
+      }
       setShowWheel(true);
       return;
     }
@@ -89,7 +121,7 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
   // Structured callback for SpinWheel — returns { ok, error, awarded, ... }
   const handleWheelResult = useCallback(async (prize) => {
     try {
-      const result = await claimDailyReward(profile, progress, config, prize);
+      const result = await claimDailyReward(profile, progress, config, prize, dailyWheelMeta);
       if (result.ok) {
         onProfileUpdate(result.profile);
         onProgressUpdate(result.progress);
@@ -107,11 +139,11 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
       setWheelBusy(false);
       return { ok: false, error: 'exception' };
     }
-  }, [profile, progress, config, onProfileUpdate, onProgressUpdate]);
+  }, [profile, progress, config, onProfileUpdate, onProgressUpdate, dailyWheelMeta]);
 
   const handleBonusSpinResult = useCallback(async (prize) => {
     try {
-      const result = await claimBonusSpin(profile, progress, config, prize);
+      const result = await claimBonusSpin(profile, progress, config, prize, bonusWheelMeta);
       if (result.ok) {
         onProfileUpdate(result.profile);
         onProgressUpdate(result.progress);
@@ -128,7 +160,7 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
       setBonusWheelBusy(false);
       return { ok: false, error: 'exception' };
     }
-  }, [profile, progress, config, onProfileUpdate, onProgressUpdate]);
+  }, [profile, progress, config, onProfileUpdate, onProgressUpdate, bonusWheelMeta]);
 
   const handleWheelBusyChange = useCallback((busy) => setWheelBusy(busy), []);
   const handleBonusBusyChange = useCallback((busy) => setBonusWheelBusy(busy), []);
@@ -193,8 +225,8 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
       {/* Bonus spins */}
       <BonusSpinsCard
         tokens={progress?.bonusWheelTokens || 0}
-        onUseSpin={() => setShowBonusWheel(true)}
-        disabled={bonusWheelBusy}
+        onUseSpin={() => { if (bonusWheelAvailable) setShowBonusWheel(true); }}
+        disabled={bonusWheelBusy || !bonusWheelAvailable}
       />
 
       {/* Daily wheel dialog */}
@@ -211,9 +243,10 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
             <DialogTitle>Spin for your reward</DialogTitle>
           </DialogHeader>
           <SpinWheel
-            prizes={config?.wheel?.prizes || []}
+            prizes={dailyWheelPrizes}
             onResult={handleWheelResult}
             onBusyChange={handleWheelBusyChange}
+            colors={dailyWheelColors}
           />
         </DialogContent>
       </Dialog>
@@ -232,9 +265,10 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
             <DialogTitle>Bonus Spin</DialogTitle>
           </DialogHeader>
           <SpinWheel
-            prizes={config?.wheel?.prizes || []}
+            prizes={bonusWheelPrizes}
             onResult={handleBonusSpinResult}
             onBusyChange={handleBonusBusyChange}
+            colors={bonusWheelColors}
           />
         </DialogContent>
       </Dialog>
