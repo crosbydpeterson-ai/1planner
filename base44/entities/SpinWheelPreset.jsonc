@@ -19,6 +19,23 @@
       "default": false,
       "description": "If true and seasonId is set, the wheel uses the season's start/end dates instead of its own startDate/endDate"
     },
+    "wheelTheme": {
+      "type": "string",
+      "enum": [
+        "classic",
+        "ocean",
+        "fire",
+        "forest",
+        "crystal",
+        "cosmic",
+        "neon",
+        "gold",
+        "ice",
+        "candy"
+      ],
+      "default": "classic",
+      "description": "Visual theme controlling wheel colors, textures, rim, pointer, and hub design"
+    },
     "colors": {
       "type": "array",
       "items": {
@@ -36,7 +53,7 @@
         "#f97316",
         "#84cc16"
       ],
-      "description": "Hex colors for wheel segments. Individual prizes can override with their own color."
+      "description": "Hex colors for wheel segments. Individual prizes can override with their own color. When a wheelTheme is set, these override the theme's default palette."
     },
     "prizes": {
       "type": "array",
@@ -50,7 +67,9 @@
               "coins",
               "pet",
               "theme",
-              "title"
+              "title",
+              "song",
+              "playlist"
             ],
             "description": "Reward type"
           },
@@ -60,7 +79,7 @@
           },
           "value": {
             "type": "string",
-            "description": "Asset ID for pet/theme, or title text for title type"
+            "description": "Asset ID for pet/theme/song/playlist, or title text for title type"
           },
           "label": {
             "type": "string",
