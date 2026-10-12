@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { getWheelTheme, ThemeDefs } from '@/components/wheellibrary/WheelThemeCatalog';
+import { getWheelTheme, ThemeDefs, renderOuterDecor } from '@/components/wheellibrary/WheelThemeCatalog';
 
 const TYPE_ICONS = { xp: '⭐', coins: '🪙', pet: '🐾', theme: '🎨', title: '🏷️', song: '🎵', playlist: '🎶', default: '🎁' };
 
@@ -28,14 +28,6 @@ function segmentPath(cx, cy, r, startAngle, endAngle) {
   return `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`;
 }
 
-/**
- * Reusable SVG wheel preview with themed rendering.
- * @param {Array} prizes - Prize objects
- * @param {Array} [colors] - Optional color palette override
- * @param {string} [wheelTheme] - Theme ID from WheelThemeCatalog
- * @param {object} [assets] - Optional asset maps for labels
- * @param {number} [size=180] - SVG size in px
- */
 export default function WheelPreview({ prizes = [], colors, wheelTheme: themeId, assets, size = 180 }) {
   const theme = useMemo(() => getWheelTheme(themeId), [themeId]);
   const palette = (colors && colors.length > 0) ? colors : theme.defaultColors;
@@ -50,13 +42,7 @@ export default function WheelPreview({ prizes = [], colors, wheelTheme: themeId,
     let angle = 0;
     return prizes.map((p, i) => {
       const slice = (Math.max(0, Number(p.weight) || 0) / totalWeight) * 360;
-      const seg = {
-        ...p,
-        startAngle: angle,
-        endAngle: angle + slice,
-        midAngle: angle + slice / 2,
-        color: p.color || palette[i % palette.length],
-      };
+      const seg = { ...p, startAngle: angle, endAngle: angle + slice, midAngle: angle + slice / 2, color: p.color || palette[i % palette.length] };
       angle += slice;
       return seg;
     });
@@ -64,8 +50,9 @@ export default function WheelPreview({ prizes = [], colors, wheelTheme: themeId,
 
   const cx = size / 2;
   const cy = size / 2;
-  const r = size / 2 - 8;
-  const rimR = size / 2 - 2;
+  const r = size / 2 - 12;
+  const rimR = size / 2 - 6;
+  const outerR = size / 2 - 2;
 
   if (segments.length === 0) {
     return (
@@ -81,9 +68,25 @@ export default function WheelPreview({ prizes = [], colors, wheelTheme: themeId,
   return (
     <svg width={size} height={size}>
       <ThemeDefs theme={theme} uid="prev" />
+      {/* Outer themed decorations */}
+      {size > 150 && renderOuterDecor(theme.decor, cx, cy, outerR)}
       {/* Themed rim */}
-      <circle cx={cx} cy={cy} r={rimR} fill="none" stroke={theme.rim.color} strokeWidth={size > 150 ? 5 : 3} />
+      <circle cx={cx} cy={cy} r={rimR} fill="none" stroke={theme.rim.color} strokeWidth={size > 150 ? 6 : 4} />
       <circle cx={cx} cy={cy} r={rimR - 1} fill="none" stroke={theme.rim.innerColor} strokeWidth="1.5" />
+      {/* Rim dots */}
+      {Array.from({ length: theme.rim.dotCount }).map((_, i) => {
+        const a = (i / theme.rim.dotCount) * 2 * Math.PI;
+        const dx = cx + (rimR - 3) * Math.cos(a);
+        const dy = cy + (rimR - 3) * Math.sin(a);
+        return <circle key={`dot${i}`} cx={dx} cy={dy} r={size > 150 ? 1.5 : 1} fill={theme.rim.dotColor} opacity="0.6" />;
+      })}
+      {/* Chase lights (static preview) */}
+      {theme.lights && Array.from({ length: theme.lights.count }).map((_, i) => {
+        const a = (i / theme.lights.count) * 2 * Math.PI;
+        const lx = cx + (rimR - 1) * Math.cos(a);
+        const ly = cy + (rimR - 1) * Math.sin(a);
+        return <circle key={`lit${i}`} cx={lx} cy={ly} r={size > 150 ? 2 : 1.5} fill={theme.lights.color} opacity={i % 2 === 0 ? 0.9 : 0.3} />;
+      })}
 
       {segments.map((seg, i) => {
         const segAngle = seg.endAngle - seg.startAngle;
@@ -150,11 +153,11 @@ export default function WheelPreview({ prizes = [], colors, wheelTheme: themeId,
           </g>
         );
       })}
-      {/* Themed center hub */}
-      <circle cx={cx} cy={cy} r={size > 150 ? 14 : 10} fill={theme.center.ringFill} stroke={theme.center.ringStroke} strokeWidth="2" />
-      <circle cx={cx} cy={cy} r={size > 150 ? 9 : 7} fill={theme.center.fill} />
+      {/* Center hub */}
+      <circle cx={cx} cy={cy} r={size > 150 ? 16 : 12} fill={theme.center.ringFill} stroke={theme.center.ringStroke} strokeWidth="2.5" />
+      <circle cx={cx} cy={cy} r={size > 150 ? 11 : 8} fill={theme.center.fill} />
       {size > 120 && (
-        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize={size > 150 ? 10 : 8} fill="white">
+        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize={size > 150 ? 11 : 8} fill="white">
           {theme.center.hubEmoji}
         </text>
       )}

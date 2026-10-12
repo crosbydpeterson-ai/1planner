@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, ChevronUp, ChevronDown, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, ChevronUp, ChevronDown, AlertCircle, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import WheelPreview from './WheelPreview';
 import { WHEEL_THEMES } from '@/components/wheellibrary/WheelThemeCatalog';
@@ -18,6 +18,7 @@ import {
   detectConflicts,
 } from '@/lib/wheelLibrary';
 
+const AUTOSAVE_KEY = 'wheel_editor_autosave';
 const TYPE_ICONS = { xp: '⭐', coins: '🪙', pet: '🐾', theme: '🎨', title: '🏷️', song: '🎵', playlist: '🎶', default: '🎁' };
 
 const DEFAULT_FORM = {
@@ -46,7 +47,9 @@ export default function WheelEditorDialog({
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState([]);
   const [conflicts, setConflicts] = useState([]);
+  const [autoSavedAt, setAutoSavedAt] = useState(null);
 
+  // On dialog open: load from preset, draft, or auto-saved draft (new wheel only)
   useEffect(() => {
     if (!open) return;
     if (preset) {
@@ -59,6 +62,7 @@ export default function WheelEditorDialog({
         colors: preset.colors?.length ? preset.colors : [...DEFAULT_COLORS],
         prizes: (preset.prizes || []).map(p => ({ ...p })),
       });
+      setAutoSavedAt(null);
     } else if (draft) {
       setForm({
         ...DEFAULT_FORM,
@@ -71,11 +75,42 @@ export default function WheelEditorDialog({
           weight: p.weight || 1,
         })),
       });
+      setAutoSavedAt(null);
     } else {
-      setForm({ ...DEFAULT_FORM, prizes: [{ type: 'xp', amount: 25, label: '25 XP', icon: '⭐', weight: 3 }] });
+      // Try to restore auto-saved form for new wheels
+      let restored = null;
+      try {
+        const raw = localStorage.getItem(AUTOSAVE_KEY);
+        if (raw) restored = JSON.parse(raw);
+      } catch { /* ignore */ }
+      if (restored?.form?.prizes?.length > 0 || (restored?.form?.name && restored.form.name.trim())) {
+        setForm(restored.form);
+        setAutoSavedAt(restored.savedAt ? new Date(restored.savedAt) : null);
+        toast.info('Restored your unsaved wheel draft');
+      } else {
+        setForm({ ...DEFAULT_FORM, prizes: [{ type: 'xp', amount: 25, label: '25 XP', icon: '⭐', weight: 3 }] });
+        setAutoSavedAt(null);
+      }
     }
     setErrors([]);
   }, [open, preset, draft]);
+
+  // Auto-save form to localStorage (debounced) — protects against Wi-Fi glitches / refreshes
+  useEffect(() => {
+    if (!open) return;
+    // Only auto-save for new wheels (no preset being edited)
+    if (preset) return;
+    const timer = setTimeout(() => {
+      // Only save if there's meaningful content
+      const hasContent = form.name?.trim() || form.prizes?.length > 0;
+      if (!hasContent) return;
+      try {
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ form, savedAt: Date.now() }));
+        setAutoSavedAt(new Date());
+      } catch { /* localStorage might be full or unavailable */ }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [form, open, preset]);
 
   const totalWeight = useMemo(
     () => form.prizes.reduce((s, p) => s + Math.max(0, Number(p.weight) || 0), 0),
@@ -205,6 +240,7 @@ export default function WheelEditorDialog({
         saved = await base44.entities.SpinWheelPreset.create(payload);
       }
       toast.success(`Wheel ${targetStatus === 'active' ? 'activated' : targetStatus === 'scheduled' ? 'scheduled' : targetStatus === 'stored' ? 'stored' : 'saved'}!`);
+      try { localStorage.removeItem(AUTOSAVE_KEY); } catch { /* ignore */ }
       onSaved?.(saved);
       onOpenChange(false);
     } catch (e) {
@@ -218,7 +254,15 @@ export default function WheelEditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{preset ? 'Edit Wheel' : draft ? 'Edit AI Draft' : 'Create New Wheel'}</DialogTitle>
+          <DialogTitle className="flex items-center justify-between pr-8">
+            <span>{preset ? 'Edit Wheel' : draft ? 'Edit AI Draft' : 'Create New Wheel'}</span>
+            {autoSavedAt && !preset && (
+              <span className="flex items-center gap-1 text-xs font-normal text-emerald-400">
+                <Save className="w-3 h-3" />
+                Auto-saved {autoSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
         {errors.length > 0 && (

@@ -11,8 +11,11 @@ const DEFAULT_COLORS = [
  */
 export async function fetchAllWheelPresets() {
   try {
-    const rows = await base44.entities.SpinWheelPreset.list('-created_date');
-    return rows.filter(p => p.status !== 'archived');
+    const page = await base44.entities.SpinWheelPreset.filter(
+      { status: { $ne: 'archived' } },
+      { sort: '-created_date', limit: 1000 }
+    );
+    return page.items || [];
   } catch (e) {
     console.error('Failed to fetch wheel presets', e);
     return [];

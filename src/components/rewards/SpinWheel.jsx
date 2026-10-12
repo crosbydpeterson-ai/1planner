@@ -2,23 +2,14 @@ import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { motion, useAnimation } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { getWheelTheme, ThemeDefs } from '@/components/wheellibrary/WheelThemeCatalog';
+import { getWheelTheme, ThemeDefs, renderOuterDecor } from '@/components/wheellibrary/WheelThemeCatalog';
 
 const TYPE_ICONS = {
-  xp: '⭐',
-  coins: '🪙',
-  pet: '🐾',
-  theme: '🎨',
-  title: '🏷️',
-  song: '🎵',
-  playlist: '🎶',
-  wheel: '🎡',
-  default: '🎁',
+  xp: '⭐', coins: '🪙', pet: '🐾', theme: '🎨', title: '🏷️',
+  song: '🎵', playlist: '🎶', wheel: '🎡', default: '🎁',
 };
 
-function getIcon(type) {
-  return TYPE_ICONS[type] || TYPE_ICONS.default;
-}
+function getIcon(type) { return TYPE_ICONS[type] || TYPE_ICONS.default; }
 
 function getPrizeLabel(prize, assets) {
   if (!prize) return '';
@@ -26,23 +17,11 @@ function getPrizeLabel(prize, assets) {
   if (prize.name) return prize.name;
   if (prize.type === 'xp') return `${prize.amount || 0} XP`;
   if (prize.type === 'coins') return `${prize.amount || 0} Coins`;
-  if (prize.type === 'pet') {
-    const pet = assets?.pets?.[prize.value];
-    return pet?.name || 'Pet';
-  }
-  if (prize.type === 'theme') {
-    const theme = assets?.themes?.[prize.value];
-    return theme?.name || 'Theme';
-  }
+  if (prize.type === 'pet') return assets?.pets?.[prize.value]?.name || 'Pet';
+  if (prize.type === 'theme') return assets?.themes?.[prize.value]?.name || 'Theme';
   if (prize.type === 'title') return prize.value || 'Title';
-  if (prize.type === 'song') {
-    const song = assets?.songs?.[prize.value];
-    return song?.title || 'Song';
-  }
-  if (prize.type === 'playlist') {
-    const playlist = assets?.playlists?.[prize.value];
-    return playlist?.name || 'Playlist';
-  }
+  if (prize.type === 'song') return assets?.songs?.[prize.value]?.title || 'Song';
+  if (prize.type === 'playlist') return assets?.playlists?.[prize.value]?.name || 'Playlist';
   return 'Reward';
 }
 
@@ -77,17 +56,11 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      onBusyChangeRef.current?.(false);
-    };
+    return () => { mountedRef.current = false; onBusyChangeRef.current?.(false); };
   }, []);
 
   useEffect(() => {
-    setPhase('idle');
-    setLandedPrize(null);
-    setResultInfo(null);
-    animLockRef.current = false;
+    setPhase('idle'); setLandedPrize(null); setResultInfo(null); animLockRef.current = false;
   }, [prizes]);
 
   const totalWeight = useMemo(
@@ -131,17 +104,14 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
 
     const prize = pickPrize();
     if (!prize) {
-      animLockRef.current = false;
-      onBusyChangeRef.current?.(false);
-      setPhase('error');
-      setResultInfo({ error: 'no_prize' });
+      animLockRef.current = false; onBusyChangeRef.current?.(false);
+      setPhase('error'); setResultInfo({ error: 'no_prize' });
       return;
     }
 
     const idx = prizes.indexOf(prize);
     const seg = segments[idx];
     const segAngle = seg.endAngle - seg.startAngle;
-
     const maxOffset = Math.min(segAngle * 0.3, 15);
     const offset = (Math.random() - 0.5) * 2 * maxOffset;
     const landAngle = seg.midAngle + offset;
@@ -185,10 +155,7 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
       setPhase('error');
       setResultInfo({ error: 'exception' });
     } finally {
-      if (mountedRef.current) {
-        animLockRef.current = false;
-        onBusyChangeRef.current?.(false);
-      }
+      if (mountedRef.current) { animLockRef.current = false; onBusyChangeRef.current?.(false); }
     }
   };
 
@@ -205,57 +172,106 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
 
   const cx = size / 2;
   const cy = size / 2;
-  const r = size / 2 - 18;
-  const rimR = size / 2 - 4;
+  const r = size / 2 - 24;
+  const rimR = size / 2 - 10;
+  const outerR = size / 2 - 4;
 
   const isLocked = phase === 'spinning' || phase === 'saving' || disabled;
   const canSpin = !isLocked && prizes.length > 0 && totalWeight > 0;
-
-  // Resolve pet image for result card
   const landedPet = landedPrize?.type === 'pet' ? assets?.pets?.[landedPrize.value] : null;
+
+  // Unique animation ID for CSS scoping
+  const animId = useMemo(() => `sw${Math.random().toString(36).slice(2, 8)}`, []);
+  const lights = theme.lights;
+  const lightCount = lights?.count || 12;
+  const lightSpeed = lights?.speed || 3;
+  const btnGrad = theme.buttonGradient || [theme.center.fill, theme.center.fill];
 
   if (prizes.length === 0 || totalWeight <= 0) {
     return (
       <div className="flex flex-col items-center gap-3 w-full py-8">
         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-3xl">{theme.center.hubEmoji}</div>
-        <p className="text-sm text-slate-500 text-center max-w-xs">
-          No wheel prizes are configured right now.
-        </p>
+        <p className="text-sm text-slate-500 text-center max-w-xs">No wheel prizes are configured right now.</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
+      <style>{`
+        @keyframes ${animId}-chase { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes ${animId}-pulse { 0%,100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.15); } }
+        @keyframes ${animId}-ptr { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-2px); } }
+        @keyframes ${animId}-glow { 0%,100% { opacity: 0.15; } 50% { opacity: 0.35; } }
+        .${animId}-chase { animation: ${animId}-chase ${lightSpeed}s linear infinite; transform-origin: ${cx}px ${cy}px; }
+        .${animId}-pulse { animation: ${animId}-pulse 2s ease-in-out infinite; transform-origin: ${cx}px ${cy}px; }
+        .${animId}-ptr { animation: ${animId}-ptr 1.2s ease-in-out infinite; }
+        .${animId}-glow { animation: ${animId}-glow 3s ease-in-out infinite; }
+      `}</style>
+
       {/* Wheel container */}
       <div className="relative" style={{ width: size, height: size }}>
-        {/* Themed glow behind wheel */}
+        {/* Animated themed glow behind wheel */}
         {theme.bgGlow && (
           <div
-            className="absolute inset-0 rounded-full blur-2xl opacity-20 pointer-events-none"
+            className={`absolute inset-0 rounded-full blur-2xl pointer-events-none ${prefersReducedMotion ? '' : animId + '-glow'}`}
             style={{ background: `radial-gradient(circle, ${theme.bgGlow}, transparent 70%)` }}
           />
         )}
 
-        {/* Fixed top pointer */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-1 z-20" style={{ filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))' }}>
-          <svg width="28" height="32" viewBox="0 0 28 32">
-            <path d="M14 30 L2 6 Q14 0 26 6 Z" fill={theme.pointer.color} stroke={theme.pointer.stroke} strokeWidth="1.5" />
-            <circle cx="14" cy="8" r="3" fill={theme.pointer.stroke} />
+        {/* Outer themed decorations (static ring) */}
+        <svg width={size} height={size} className="absolute inset-0 z-0 pointer-events-none">
+          {renderOuterDecor(theme.decor, cx, cy, outerR)}
+        </svg>
+
+        {/* Fixed top pointer with bounce + glow */}
+        <div
+          className={`absolute left-1/2 -top-1 z-20 ${prefersReducedMotion ? '' : animId + '-ptr'}`}
+          style={{ filter: `drop-shadow(0 2px 4px ${theme.pointer.glow || '#000000'}80)` }}
+        >
+          <svg width="32" height="38" viewBox="0 0 32 38">
+            <path d="M16 34 L3 8 Q16 1 29 8 Z" fill={theme.pointer.color} stroke={theme.pointer.stroke} strokeWidth="2" />
+            <circle cx="16" cy="10" r="4" fill={theme.pointer.stroke} />
+            <circle cx="16" cy="10" r="2" fill={theme.pointer.color} />
           </svg>
         </div>
 
         {/* Themed rim (static) */}
         <svg width={size} height={size} className="absolute inset-0 z-0">
-          <circle cx={cx} cy={cy} r={rimR} fill="none" stroke={theme.rim.color} strokeWidth="8" />
-          <circle cx={cx} cy={cy} r={rimR - 1} fill="none" stroke={theme.rim.innerColor} strokeWidth="2" />
+          {/* Outer rim ring */}
+          <circle cx={cx} cy={cy} r={rimR} fill="none" stroke={theme.rim.color} strokeWidth="10" />
+          <circle cx={rimR ? cx : cx} cy={cy} r={rimR - 1} fill="none" stroke={theme.rim.innerColor} strokeWidth="2.5" />
+          {/* Inner rim accent */}
+          <circle cx={cx} cy={cy} r={rimR - 5} fill="none" stroke={theme.rim.dotColor} strokeWidth="1" opacity="0.5" />
+          {/* Static decorative dots on rim */}
           {Array.from({ length: theme.rim.dotCount }).map((_, i) => {
             const a = (i / theme.rim.dotCount) * 2 * Math.PI;
-            const dx = cx + (rimR - 4) * Math.cos(a);
-            const dy = cy + (rimR - 4) * Math.sin(a);
-            return <circle key={i} cx={dx} cy={dy} r="2" fill={theme.rim.dotColor} />;
+            const dx = cx + (rimR - 5) * Math.cos(a);
+            const dy = cy + (rimR - 5) * Math.sin(a);
+            return <circle key={i} cx={dx} cy={dy} r="2.5" fill={theme.rim.dotColor} opacity="0.6" />;
           })}
         </svg>
+
+        {/* Animated chase lights (rotating) */}
+        {!prefersReducedMotion && lights && (
+          <svg width={size} height={size} className={`absolute inset-0 ${animId}-chase`} style={{ zIndex: 5 }}>
+            {Array.from({ length: lightCount }).map((_, i) => {
+              const a = (i / lightCount) * 2 * Math.PI;
+              const lx = cx + (rimR - 2) * Math.cos(a);
+              const ly = cy + (rimR - 2) * Math.sin(a);
+              const phase = (i % 2 === 0) ? 1 : 0.3;
+              return (
+                <circle
+                  key={i}
+                  cx={lx} cy={ly} r="3"
+                  fill={lights.color}
+                  opacity={phase}
+                  style={{ filter: `drop-shadow(0 0 4px ${lights.color})` }}
+                />
+              );
+            })}
+          </svg>
+        )}
 
         {/* Rotating wheel */}
         <motion.div
@@ -264,7 +280,7 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
           style={{ originX: '50%', originY: '50%', width: size, height: size, position: 'relative', zIndex: 1 }}
         >
           <svg width={size} height={size}>
-            <ThemeDefs theme={theme} uid="spin" />
+            <ThemeDefs theme={theme} uid={animId} />
             {segments.map((seg, i) => {
               const midRad = (seg.midAngle * Math.PI) / 180;
               const textR = r * 0.6;
@@ -280,40 +296,53 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
               const pathD = segmentPath(cx, cy, r, seg.startAngle, seg.endAngle);
               return (
                 <g key={i}>
+                  {/* Base segment fill */}
                   <path
                     d={pathD}
                     fill={seg.color}
                     stroke={theme.segment.stroke}
                     strokeWidth={theme.segment.strokeWidth}
-                    opacity={dim ? 0.4 : 1}
+                    opacity={dim ? 0.35 : 1}
                   />
-                  {/* Gradient overlay for depth */}
+                  {/* Gradient depth overlay */}
                   {theme.gradient && (
-                    <path d={pathD} fill={`url(#tw-spin-grad)`} opacity={theme.gradient.opacity} />
+                    <path d={pathD} fill={`url(#tw-${animId}-grad)`} opacity={theme.gradient.opacity} />
                   )}
-                  {/* Pattern overlay for texture */}
+                  {/* Texture pattern overlay */}
                   {theme.pattern && (
-                    <path d={pathD} fill={`url(#tw-spin-pat)`} opacity={theme.pattern.opacity} />
+                    <path d={pathD} fill={`url(#tw-${animId}-pat)`} opacity={theme.pattern.opacity} />
                   )}
+                  {/* Inner shadow for 3D depth */}
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke="#000000"
+                    strokeWidth="3"
+                    opacity={dim ? 0.1 : 0.2}
+                    style={{ filter: 'blur(2px)' }}
+                  />
+                  {/* Prize icon */}
                   {segAngle > 12 && (
                     <text
                       x={ix} y={iy}
                       textAnchor="middle" dominantBaseline="middle"
-                      fontSize={segAngle > 50 ? 18 : segAngle > 25 ? 14 : 11}
+                      fontSize={segAngle > 50 ? 20 : segAngle > 25 ? 15 : 11}
                       transform={`rotate(${seg.midAngle + 90}, ${ix}, ${iy})`}
+                      style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }}
                     >
                       {getIcon(seg.type)}
                     </text>
                   )}
+                  {/* Prize label */}
                   {showLabel && (
                     <text
                       x={tx} y={ty}
                       textAnchor="middle" dominantBaseline="middle"
-                      fontSize={segAngle > 60 ? 11 : 9}
+                      fontSize={segAngle > 60 ? 12 : 10}
                       fill="white"
-                      fontWeight="700"
+                      fontWeight="800"
                       transform={`rotate(${seg.midAngle + 90}, ${tx}, ${ty})`}
-                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
                     >
                       {(() => {
                         const lbl = getPrizeLabel(seg, assets);
@@ -324,10 +353,18 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
                 </g>
               );
             })}
-            {/* Themed center hub */}
-            <circle cx={cx} cy={cy} r="26" fill={theme.center.ringFill} stroke={theme.center.ringStroke} strokeWidth="4" />
-            <circle cx={cx} cy={cy} r="18" fill={theme.center.fill} />
-            <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize="16" fill="white">{theme.center.hubEmoji}</text>
+            {/* Center hub with pulsing glow */}
+            {theme.centerPulse && !prefersReducedMotion && (
+              <circle
+                cx={cx} cy={cy} r="34"
+                fill={theme.center.fill}
+                opacity="0.3"
+                className={animId + '-pulse'}
+              />
+            )}
+            <circle cx={cx} cy={cy} r="28" fill={theme.center.ringFill} stroke={theme.center.ringStroke} strokeWidth="4" />
+            <circle cx={cx} cy={cy} r="20" fill={theme.center.fill} />
+            <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize="18" fill="white" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>{theme.center.hubEmoji}</text>
           </svg>
         </motion.div>
 
@@ -366,8 +403,7 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
       {/* Status feedback */}
       {phase === 'saving' && (
         <div className="flex items-center gap-2 text-sm text-purple-600 font-medium">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Saving reward…
+          <Loader2 className="w-4 h-4 animate-spin" /> Saving reward…
         </div>
       )}
       {phase === 'success' && resultInfo && (
@@ -377,7 +413,6 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
           transition={{ type: 'spring', stiffness: 260, damping: 18 }}
           className="w-full bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-2xl p-5 text-center relative overflow-hidden"
         >
-          {/* Pet image or emoji */}
           {landedPet?.imageUrl ? (
             <motion.div
               initial={{ rotate: -8, scale: 0.8 }}
@@ -420,11 +455,15 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
         </div>
       )}
 
+      {/* Themed spin button */}
       <Button
         onClick={handleSpin}
         disabled={!canSpin}
-        className="w-full text-white font-bold text-base py-5"
-        style={{ backgroundColor: theme.center.fill }}
+        className="w-full text-white font-bold text-base py-5 border-0 relative overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, ${btnGrad[0]}, ${btnGrad[1]})`,
+          boxShadow: `0 4px 14px ${btnGrad[1]}40`,
+        }}
       >
         {phase === 'spinning' ? 'Spinning…' :
          phase === 'saving' ? 'Saving…' :
