@@ -146,7 +146,7 @@ export function detectConflicts(presets, destination, excludeId) {
  * Validate a wheel preset before saving.
  * @returns {{ valid: boolean, errors: string[] }}
  */
-export function validateWheel(form, allPetIds, allThemeIds) {
+export function validateWheel(form, allPetIds, allThemeIds, allSongIds, allPlaylistIds) {
   const errors = [];
 
   if (!form.name || !form.name.trim()) {
@@ -171,6 +171,12 @@ export function validateWheel(form, allPetIds, allThemeIds) {
       }
       if (p.type === 'theme' && p.value && allThemeIds && !allThemeIds.includes(p.value)) {
         errors.push(`Prize ${i + 1}: theme "${p.value}" does not exist`);
+      }
+      if (p.type === 'song' && p.value && allSongIds && !allSongIds.includes(p.value)) {
+        errors.push(`Prize ${i + 1}: song "${p.value}" does not exist`);
+      }
+      if (p.type === 'playlist' && p.value && allPlaylistIds && !allPlaylistIds.includes(p.value)) {
+        errors.push(`Prize ${i + 1}: playlist "${p.value}" does not exist`);
       }
     });
   }

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Plus, Trash2, ChevronUp, ChevronDown, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import WheelPreview from './WheelPreview';
+import { WHEEL_THEMES } from '@/components/wheellibrary/WheelThemeCatalog';
 import {
   DEFAULT_COLORS,
   chicagoLocalToISO,
@@ -17,13 +18,14 @@ import {
   detectConflicts,
 } from '@/lib/wheelLibrary';
 
-const TYPE_ICONS = { xp: '⭐', coins: '🪙', pet: '🐾', theme: '🎨', title: '🏷️', default: '🎁' };
+const TYPE_ICONS = { xp: '⭐', coins: '🪙', pet: '🐾', theme: '🎨', title: '🏷️', song: '🎵', playlist: '🎶', default: '🎁' };
 
 const DEFAULT_FORM = {
   name: '',
   description: '',
   seasonId: '',
   followSeasonDates: false,
+  wheelTheme: 'classic',
   colors: [...DEFAULT_COLORS],
   prizes: [],
   startDate: '',
@@ -38,7 +40,7 @@ const DEFAULT_FORM = {
  * Wheel Editor Dialog — create, edit, duplicate, or load an AI draft.
  */
 export default function WheelEditorDialog({
-  open, onOpenChange, preset, draft, allPets, allThemes, allSeasons, allPresets, adminUsername, onSaved,
+  open, onOpenChange, preset, draft, allPets, allThemes, allSeasons, allSongs, allPlaylists, allPresets, adminUsername, onSaved,
 }) {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
@@ -51,6 +53,7 @@ export default function WheelEditorDialog({
       setForm({
         ...DEFAULT_FORM,
         ...preset,
+        wheelTheme: preset.wheelTheme || 'classic',
         startDate: preset.startDate ? isoToChicagoLocal(preset.startDate) : '',
         endDate: preset.endDate ? isoToChicagoLocal(preset.endDate) : '',
         colors: preset.colors?.length ? preset.colors : [...DEFAULT_COLORS],
@@ -60,6 +63,7 @@ export default function WheelEditorDialog({
       setForm({
         ...DEFAULT_FORM,
         ...draft,
+        wheelTheme: draft.wheelTheme || 'classic',
         status: 'draft',
         prizes: (draft.prizes || []).map(p => ({
           ...p,
@@ -80,6 +84,8 @@ export default function WheelEditorDialog({
 
   const allPetIds = useMemo(() => allPets.map(p => p.id), [allPets]);
   const allThemeIds = useMemo(() => allThemes.map(t => t.id), [allThemes]);
+  const allSongIds = useMemo(() => (allSongs || []).map(s => s.id), [allSongs]);
+  const allPlaylistIds = useMemo(() => (allPlaylists || []).map(p => p.id), [allPlaylists]);
 
   useEffect(() => {
     if (form.status === 'stored' || form.status === 'draft' || form.status === 'archived') {
@@ -99,7 +105,7 @@ export default function WheelEditorDialog({
       if (patch.type === 'xp') next[i].label = `+${next[i].amount || 25} XP`;
       else if (patch.type === 'coins') next[i].label = `+${next[i].amount || 50} Coins`;
     }
-    if (patch.type === 'xp' || patch.type === 'coins') {
+    if (patch.type === 'xp' || patch.type === 'coins' || patch.type === 'song' || patch.type === 'playlist') {
       next[i].icon = TYPE_ICONS[patch.type] || next[i].icon;
     }
     update({ prizes: next });
@@ -136,6 +142,7 @@ export default function WheelEditorDialog({
 
   const buildSavePayload = (status) => {
     const payload = {
+      wheelTheme: form.wheelTheme || 'classic',
       name: form.name.trim(),
       description: form.description?.trim() || '',
       seasonId: form.seasonId || '',
@@ -169,7 +176,7 @@ export default function WheelEditorDialog({
 
   const save = async (targetStatus) => {
     const testForm = { ...form, status: targetStatus };
-    const { valid, errors: validationErrors } = validateWheel(testForm, allPetIds, allThemeIds);
+    const { valid, errors: validationErrors } = validateWheel(testForm, allPetIds, allThemeIds, allSongIds, allPlaylistIds);
     if (!valid) {
       setErrors(validationErrors);
       toast.error('Please fix the errors before saving');
@@ -238,6 +245,27 @@ export default function WheelEditorDialog({
             <div className="space-y-2">
               <Label className="text-slate-300">Description</Label>
               <Textarea value={form.description} onChange={(e) => update({ description: e.target.value })} placeholder="Optional description" className="bg-slate-700 border-slate-600 min-h-[50px]" />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-slate-300 text-sm">Wheel Theme</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {WHEEL_THEMES.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => update({ wheelTheme: t.id })}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm border transition-all ${
+                      form.wheelTheme === t.id
+                        ? 'bg-indigo-600 border-indigo-500 text-white'
+                        : 'bg-slate-700 border-slate-600 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    <span>{t.emoji}</span>
+                    <span className="text-xs">{t.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -346,6 +374,8 @@ export default function WheelEditorDialog({
                             <SelectItem value="pet">🐾 Pet</SelectItem>
                             <SelectItem value="theme">🎨 Theme</SelectItem>
                             <SelectItem value="title">🏷️ Title</SelectItem>
+                            <SelectItem value="song">🎵 Song</SelectItem>
+                            <SelectItem value="playlist">🎶 Playlist</SelectItem>
                           </SelectContent>
                         </Select>
                         {p.type === 'pet' ? (
@@ -364,6 +394,20 @@ export default function WheelEditorDialog({
                           </Select>
                         ) : p.type === 'title' ? (
                           <Input className="bg-slate-700 border-slate-600 h-8 text-sm col-span-2" value={p.value || ''} onChange={(e) => updatePrize(i, { value: e.target.value })} placeholder="Title text" />
+                        ) : p.type === 'song' ? (
+                          <Select value={p.value || ''} onValueChange={(v) => updatePrize(i, { value: v })}>
+                            <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue placeholder="Pick song…" /></SelectTrigger>
+                            <SelectContent>
+                              {allSongs?.map(s => <SelectItem key={s.id} value={s.id}>🎵 {s.title}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        ) : p.type === 'playlist' ? (
+                          <Select value={p.value || ''} onValueChange={(v) => updatePrize(i, { value: v })}>
+                            <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue placeholder="Pick playlist…" /></SelectTrigger>
+                            <SelectContent>
+                              {allPlaylists?.map(pl => <SelectItem key={pl.id} value={pl.id}>🎶 {pl.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         ) : (
                           <Input className="bg-slate-700 border-slate-600 h-8 text-sm" type="number" value={p.amount || ''} onChange={(e) => updatePrize(i, { amount: parseInt(e.target.value) || 0 })} placeholder="Amount" />
                         )}
@@ -384,7 +428,7 @@ export default function WheelEditorDialog({
 
           <div className="flex flex-col items-center justify-start pt-4">
             <Label className="text-slate-300 text-sm mb-3">Live Preview</Label>
-            <WheelPreview prizes={form.prizes} colors={form.colors} size={220} />
+            <WheelPreview prizes={form.prizes} colors={form.colors} wheelTheme={form.wheelTheme} size={220} />
             {totalWeight > 0 && (
               <p className="text-xs text-slate-400 mt-3">Total weight: {totalWeight} • {form.prizes.length} prizes</p>
             )}

@@ -17,6 +17,9 @@ import RewardTrack from './RewardTrack';
 import TodayRewardCard from './TodayRewardCard';
 import BonusSpinsCard from './BonusSpinsCard';
 import SpinWheel from './SpinWheel';
+import { PETS } from '@/components/quest/PetCatalog';
+import { THEMES } from '@/components/quest/ThemeCatalog';
+import { base44 } from '@/api/base44Client';
 
 export default function DailyRewardsPanel({ profile, progress, config, onProfileUpdate, onProgressUpdate }) {
   const [claiming, setClaiming] = useState(false);
@@ -29,6 +32,7 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
   const [lastDailyAwarded, setLastDailyAwarded] = useState(null);
   const [dailyWheel, setDailyWheel] = useState(null);
   const [bonusWheel, setBonusWheel] = useState(null);
+  const [assets, setAssets] = useState(null);
 
   const prefersReducedMotion = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches,
@@ -52,6 +56,39 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
       }
     })();
   }, []);
+
+  // Load pet/song/playlist/theme data for wheel display and result cards
+  useEffect(() => {
+    (async () => {
+      try {
+        const [customPets, musicTracks, playlists, customThemes] = await Promise.all([
+          base44.entities.CustomPet.list('-created_date'),
+          base44.entities.MusicTrack.list('-created_date'),
+          base44.entities.Playlist.list('-created_date'),
+          base44.entities.CustomTheme.list('-created_date'),
+        ]);
+
+        const petsMap = {};
+        PETS.forEach(p => { petsMap[p.id] = { name: p.name, emoji: p.emoji }; });
+        customPets.forEach(p => { petsMap[`custom_${p.id}`] = { name: p.name, emoji: p.emoji, imageUrl: p.imageUrl }; });
+
+        const songsMap = {};
+        musicTracks.forEach(s => { songsMap[s.id] = { title: s.title }; });
+
+        const playlistsMap = {};
+        playlists.forEach(p => { playlistsMap[p.id] = { name: p.name }; });
+
+        const themesMap = {};
+        THEMES.forEach(t => { themesMap[t.id] = { name: t.name }; });
+        customThemes.forEach(t => { themesMap[`custom_${t.id}`] = { name: t.name }; });
+
+        setAssets({ pets: petsMap, songs: songsMap, playlists: playlistsMap, themes: themesMap });
+      } catch (e) {
+        console.error('Failed to load wheel assets', e);
+      }
+    })();
+  }, []);
+
   const period = useMemo(() => {
     if (config?.scheduleType === 'streak14') return 14;
     if (config?.scheduleType === 'monthly') return 31;
@@ -247,6 +284,8 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
             onResult={handleWheelResult}
             onBusyChange={handleWheelBusyChange}
             colors={dailyWheelColors}
+            wheelTheme={dailyWheel?.wheelTheme}
+            assets={assets}
           />
         </DialogContent>
       </Dialog>
@@ -269,6 +308,8 @@ export default function DailyRewardsPanel({ profile, progress, config, onProfile
             onResult={handleBonusSpinResult}
             onBusyChange={handleBonusBusyChange}
             colors={bonusWheelColors}
+            wheelTheme={bonusWheel?.wheelTheme}
+            assets={assets}
           />
         </DialogContent>
       </Dialog>

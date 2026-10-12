@@ -10,6 +10,7 @@ import { THEMES } from '@/components/quest/ThemeCatalog';
 import WheelPreview from './WheelPreview';
 import WheelEditorDialog from './WheelEditorDialog';
 import WheelAIDialog from './WheelAIDialog';
+import { getWheelTheme } from '@/components/wheellibrary/WheelThemeCatalog';
 import {
   fetchAllWheelPresets,
   migrateExistingWheelConfig,
@@ -28,6 +29,8 @@ export default function WheelLibraryTab({ adminUsername }) {
   const [presets, setPresets] = useState([]);
   const [allPets, setAllPets] = useState([]);
   const [allThemes, setAllThemes] = useState([]);
+  const [allSongs, setAllSongs] = useState([]);
+  const [allPlaylists, setAllPlaylists] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -50,11 +53,13 @@ export default function WheelLibraryTab({ adminUsername }) {
   useEffect(() => {
     (async () => {
       try {
-        const [customPets, customThemes, allSeasons, settings] = await Promise.all([
+        const [customPets, customThemes, allSeasons, settings, musicTracks, playlists] = await Promise.all([
           base44.entities.CustomPet.list('-created_date'),
           base44.entities.CustomTheme.list('-created_date'),
           base44.entities.Season.list('-created_date'),
           base44.entities.AppSetting.list(),
+          base44.entities.MusicTrack.list('-created_date'),
+          base44.entities.Playlist.list('-created_date'),
         ]);
 
         const builtInPets = PETS.map(p => ({ id: p.id, name: p.name, emoji: p.emoji }));
@@ -66,6 +71,9 @@ export default function WheelLibraryTab({ adminUsername }) {
         setAllThemes([...builtInThemes, ...customThemeList]);
 
         setSeasons(allSeasons);
+
+        setAllSongs(musicTracks.map(t => ({ id: t.id, title: t.title })));
+        setAllPlaylists(playlists.map(p => ({ id: p.id, name: p.name })));
 
         // Migration: if no presets exist, migrate from existing wheel config
         const existingPresets = await fetchAllWheelPresets();
@@ -306,6 +314,8 @@ export default function WheelLibraryTab({ adminUsername }) {
         allPets={allPets}
         allThemes={allThemes}
         allSeasons={seasons}
+        allSongs={allSongs}
+        allPlaylists={allPlaylists}
         allPresets={presets}
         adminUsername={adminUsername}
         onSaved={handleSaved}
@@ -317,6 +327,8 @@ export default function WheelLibraryTab({ adminUsername }) {
         onOpenChange={setAiOpen}
         allPets={allPets}
         allThemes={allThemes}
+        allSongs={allSongs}
+        allPlaylists={allPlaylists}
         onDraftReady={openAIDraft}
       />
 
@@ -328,7 +340,7 @@ export default function WheelLibraryTab({ adminUsername }) {
           </DialogHeader>
           {previewPreset && (
             <div className="flex flex-col items-center py-4">
-              <WheelPreview prizes={previewPreset.prizes || []} colors={previewPreset.colors} size={240} />
+              <WheelPreview prizes={previewPreset.prizes || []} colors={previewPreset.colors} wheelTheme={previewPreset.wheelTheme} size={240} />
               <div className="mt-4 w-full space-y-1">
                 <p className="text-sm text-slate-300"><strong>Destination:</strong> {DEST_LABELS[previewPreset.destination]}</p>
                 {previewPreset.startDate && (
@@ -433,6 +445,7 @@ function WheelCard({ wheel, seasons, onEdit, onDuplicate, onPreview, onStore, on
       <div className="flex items-center gap-3 text-xs text-slate-400">
         <span>📍 {DEST_LABELS[wheel.destination]}</span>
         <span>🎁 {wheel.prizes?.length || 0} prizes</span>
+        {(() => { const t = getWheelTheme(wheel.wheelTheme); return <span>{t.emoji} {t.name}</span>; })()}
         {wheel.isFallback && <span className="text-amber-400">⭐ Fallback</span>}
       </div>
 
@@ -446,7 +459,7 @@ function WheelCard({ wheel, seasons, onEdit, onDuplicate, onPreview, onStore, on
 
       {/* Mini preview */}
       <div className="flex justify-center">
-        <WheelPreview prizes={wheel.prizes || []} colors={wheel.colors} size={100} />
+        <WheelPreview prizes={wheel.prizes || []} colors={wheel.colors} wheelTheme={wheel.wheelTheme} size={100} />
       </div>
 
       {/* Actions */}

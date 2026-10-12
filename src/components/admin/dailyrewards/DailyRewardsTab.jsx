@@ -7,6 +7,7 @@ import { PETS } from '@/components/quest/PetCatalog';
 import DailyRewardsBuilder from './DailyRewardsBuilder';
 import SpinWheelBuilder from './SpinWheelBuilder';
 import SpinGiftingPanel from './SpinGiftingPanel';
+import StreakRestorePanel from './StreakRestorePanel';
 
 const DEFAULT_CONFIG = {
   scheduleType: 'streak7',
@@ -108,6 +109,13 @@ export default function DailyRewardsTab() {
         <h3 className="text-white font-semibold mb-1">🎁 Spin Gifting</h3>
         <p className="text-sm text-slate-400 mb-4">Grant bonus wheel spins to individual users or everyone at once.</p>
         <SpinGiftingPanel />
+      </div>
+
+      {/* Streak Restore — admin tool to restore lost streaks */}
+      <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
+        <h3 className="text-white font-semibold mb-1">🔥 Streak Restore</h3>
+        <p className="text-sm text-slate-400 mb-4">Search for a user and restore their daily reward streak if they lost it.</p>
+        <StreakRestorePanel />
       </div>
     </div>
   );

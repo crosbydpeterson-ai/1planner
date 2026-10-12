@@ -4,12 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { getWheelTheme, ThemeDefs } from '@/components/wheellibrary/WheelThemeCatalog';
 
-const FALLBACK_COLORS = [
-  '#7c3aed', '#f59e0b', '#10b981', '#ef4444',
-  '#8b5cf6', '#3b82f6', '#ec4899', '#14b8a6',
-  '#f97316', '#84cc16',
-];
-
 const TYPE_ICONS = {
   xp: '⭐',
   coins: '🪙',
@@ -219,7 +213,6 @@ export default function SpinWheel({ prizes = [], onResult, disabled = false, onB
 
   // Resolve pet image for result card
   const landedPet = landedPrize?.type === 'pet' ? assets?.pets?.[landedPrize.value] : null;
-  const resultEmoji = landedPet?.emoji || landedPet?.imageUrl ? null : getIcon(landedPrize?.type);
 
   if (prizes.length === 0 || totalWeight <= 0) {
     return (

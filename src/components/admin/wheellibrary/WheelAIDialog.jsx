@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Wand2, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
-const TYPE_ICONS = { xp: '⭐', coins: '🪙', pet: '🐾', theme: '🎨', title: '🏷️' };
+const TYPE_ICONS = { xp: '⭐', coins: '🪙', pet: '🐾', theme: '🎨', title: '🏷️', song: '🎵', playlist: '🎶' };
 
 /**
  * AI Wheel Draft Generator — creates a DRAFT wheel from natural language.
@@ -19,13 +19,15 @@ const TYPE_ICONS = { xp: '⭐', coins: '🪙', pet: '🐾', theme: '🎨', title
  * - allPets, allThemes: real assets for the AI to reference
  * - onDraftReady: callback when AI draft is generated
  */
-export default function WheelAIDialog({ open, onOpenChange, allPets, allThemes, onDraftReady }) {
+export default function WheelAIDialog({ open, onOpenChange, allPets, allThemes, allSongs, allPlaylists, onDraftReady }) {
   const [instructions, setInstructions] = useState('');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
 
   const petList = useMemo(() => allPets.map(p => `- ${p.id} (${p.name}${p.emoji ? ', ' + p.emoji : ''})`).join('\n'), [allPets]);
   const themeList = useMemo(() => allThemes.map(t => `- ${t.id} (${t.name})`).join('\n'), [allThemes]);
+  const songList = useMemo(() => (allSongs || []).map(s => `- ${s.id} (${s.title})`).join('\n'), [allSongs]);
+  const playlistList = useMemo(() => (allPlaylists || []).map(p => `- ${p.id} (${p.name})`).join('\n'), [allPlaylists]);
 
   const examples = [
     'Make a Halloween wheel with mostly small XP/coin rewards and a few existing pets',
@@ -51,6 +53,12 @@ ${petList}
 Available themes (use these EXACT IDs — never invent new ones):
 ${themeList}
 
+Available songs (use these EXACT IDs for song prizes):
+${songList}
+
+Available playlists (use these EXACT IDs for playlist prizes):
+${playlistList}
+
 Admin's request: "${instructions.trim()}"
 
 Create a wheel configuration. Rules:
@@ -59,6 +67,8 @@ Create a wheel configuration. Rules:
 - For theme prizes: set "value" to the theme ID, and "label" to the theme name.
 - For xp/coins: set "amount" to the quantity, "label" to something like "+50 XP".
 - For title prizes: set "value" to the title text.
+- For song prizes: set "value" to the song ID, and "label" to the song title.
+- For playlist prizes: set "value" to the playlist ID, and "label" to the playlist name.
 - Each prize needs: type, label, icon (emoji), and weight (positive number, higher = more likely to win).
 - Include a good mix: mostly common rewards (high weight) and a few rare ones (low weight).
 - If a requested asset doesn't exist, substitute with XP/coins instead of using a fake ID.
@@ -80,7 +90,7 @@ Return a JSON object with: name, description, destination, prizes array.`;
               items: {
                 type: 'object',
                 properties: {
-                  type: { type: 'string', enum: ['xp', 'coins', 'pet', 'theme', 'title'] },
+                  type: { type: 'string', enum: ['xp', 'coins', 'pet', 'theme', 'title', 'song', 'playlist'] },
                   amount: { type: 'number' },
                   value: { type: 'string' },
                   label: { type: 'string' },
@@ -99,6 +109,8 @@ Return a JSON object with: name, description, destination, prizes array.`;
       const draft = result;
       const petIds = new Set(allPets.map(p => p.id));
       const themeIds = new Set(allThemes.map(t => t.id));
+      const songIds = new Set((allSongs || []).map(s => s.id));
+      const playlistIds = new Set((allPlaylists || []).map(p => p.id));
       const warnings = [];
 
       if (draft.prizes) {
@@ -107,6 +119,14 @@ Return a JSON object with: name, description, destination, prizes array.`;
           if (p.type === 'pet' && p.value && !petIds.has(p.value)) {
             warnings.push(`Prize ${i + 1}: pet "${p.value}" not found — flagged for selection`);
             return { ...p, value: '', _flagged: 'Missing pet — select one in editor' };
+          }
+          if (p.type === 'song' && p.value && !songIds.has(p.value)) {
+            warnings.push(`Prize ${i + 1}: song "${p.value}" not found — flagged for selection`);
+            return { ...p, value: '', _flagged: 'Missing song — select one in editor' };
+          }
+          if (p.type === 'playlist' && p.value && !playlistIds.has(p.value)) {
+            warnings.push(`Prize ${i + 1}: playlist "${p.value}" not found — flagged for selection`);
+            return { ...p, value: '', _flagged: 'Missing playlist — select one in editor' };
           }
           if (p.type === 'theme' && p.value && !themeIds.has(p.value)) {
             warnings.push(`Prize ${i + 1}: theme "${p.value}" not found — flagged for selection`);

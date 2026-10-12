@@ -39,6 +39,16 @@ export function computeRewardUpdates(profile, rwd) {
     const current = profile.unlockedTitles || [];
     if (t && !current.includes(t)) updates.unlockedTitles = [...current, t];
     awarded = `Title: ${t || 'New title'}`;
+  } else if (rwd.type === 'song') {
+    const id = String(rwd.value || '');
+    const current = profile.unlockedTrackIds || [];
+    if (id && !current.includes(id)) updates.unlockedTrackIds = [...current, id];
+    awarded = `Song: ${rwd.name || rwd.label || 'New song'}`;
+  } else if (rwd.type === 'playlist') {
+    const id = String(rwd.value || '');
+    const current = profile.unlockedPlaylistIds || [];
+    if (id && !current.includes(id)) updates.unlockedPlaylistIds = [...current, id];
+    awarded = `Playlist: ${rwd.name || rwd.label || 'New playlist'}`;
   }
 
   return { updates, awarded };

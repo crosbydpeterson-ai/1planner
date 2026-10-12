@@ -1,12 +1,6 @@
 import React, { useMemo } from 'react';
 import { getWheelTheme, ThemeDefs } from '@/components/wheellibrary/WheelThemeCatalog';
 
-const FALLBACK_COLORS = [
-  '#7c3aed', '#f59e0b', '#10b981', '#ef4444',
-  '#8b5cf6', '#3b82f6', '#ec4899', '#14b8a6',
-  '#f97316', '#84cc16',
-];
-
 const TYPE_ICONS = { xp: '⭐', coins: '🪙', pet: '🐾', theme: '🎨', title: '🏷️', song: '🎵', playlist: '🎶', default: '🎁' };
 
 function getIcon(type) { return TYPE_ICONS[type] || TYPE_ICONS.default; }
