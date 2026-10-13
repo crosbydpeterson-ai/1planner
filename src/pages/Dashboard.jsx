@@ -125,19 +125,23 @@ export default function Dashboard() {
       });
       setRecentAssignments(visible.slice(0, 3));
 
-      // Create tutorial assignment if user hasn't completed tutorial
+      // Create tutorial assignment if user hasn't completed tutorial — non-critical
       if (!p.tutorialCompleted) {
-        const tutorialExists = assignments.find((a) => a.title === '📚 Practice Assignment (Tutorial)' && a.target === p.userId);
-        if (!tutorialExists) {
-          await base44.entities.Assignment.create({
-            title: '📚 Practice Assignment (Tutorial)',
-            description: 'This is a practice assignment to help you learn! Complete it to earn 50 XP.',
-            subject: 'everyone',
-            target: p.userId,
-            xpReward: 50,
-            isApproved: true,
-            isFlagged: false
-          });
+        try {
+          const tutorialExists = assignments.find((a) => a.title === '📚 Practice Assignment (Tutorial)' && a.target === p.userId);
+          if (!tutorialExists) {
+            await base44.entities.Assignment.create({
+              title: '📚 Practice Assignment (Tutorial)',
+              description: 'This is a practice assignment to help you learn! Complete it to earn 50 XP.',
+              subject: 'everyone',
+              target: p.userId,
+              xpReward: 50,
+              isApproved: true,
+              isFlagged: false
+            });
+          }
+        } catch (tutorialErr) {
+          console.error('Error creating tutorial assignment (non-fatal):', tutorialErr);
         }
       }
     } catch (e) {
@@ -194,7 +198,7 @@ export default function Dashboard() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <p className="text-slate-600 mb-4">Couldn't load your dashboard. Check your connection and try again.</p>
-          <Button onClick={() => window.location.reload()}>Retry</Button>
+          <Button onClick={() => { setLoading(true); loadProfile(); }}>Retry</Button>
         </div>
       </div>
     );
