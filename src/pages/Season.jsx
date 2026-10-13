@@ -3,6 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
+import { fetchProfileWithRetry } from '@/lib/profileLoader';
+import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { Sparkles, ArrowLeft, Calendar, Zap, Crown, Star, BookOpen } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
@@ -21,6 +23,7 @@ export default function Season() {
   const [profile, setProfile] = useState(null);
   const [season, setSeason] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [locks, setLocks] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -65,7 +68,7 @@ export default function Season() {
 
     let me = null;
     try {
-      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      const profiles = await fetchProfileWithRetry(profileId);
       if (profiles.length === 0) {
         navigate(createPageUrl('Home'));
         setLoading(false);
@@ -75,7 +78,7 @@ export default function Season() {
       setProfile(me);
     } catch (e) {
       console.error('Error loading profile:', e);
-      navigate(createPageUrl('Home'));
+      setLoadError(true);
       setLoading(false);
       return;
     }
@@ -289,6 +292,10 @@ export default function Season() {
       toast.error('Failed to claim reward');
     }
   };
+
+  if (loadError) {
+    return <LoadErrorCard onRetry={() => { setLoadError(false); setLoading(true); loadData(); }} />;
+  }
 
   if (loading) {
     return (

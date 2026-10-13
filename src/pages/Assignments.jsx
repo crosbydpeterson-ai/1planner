@@ -3,6 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fetchProfileWithRetry } from '@/lib/profileLoader';
+import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { ClipboardList, ArrowLeft, CheckCircle, Plus, AlertTriangle, Gift, FileText, Upload, X, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,6 +33,7 @@ export default function Assignments() {
   const [superAssignments, setSuperAssignments] = useState([]);
   const [superResponses, setSuperResponses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [filter, setFilter] = useState('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAssignment, setNewAssignment] = useState({ title: '', description: '', dueDate: '', subject: 'everyone' });
@@ -77,7 +80,7 @@ export default function Assignments() {
     }
 
     try {
-      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      const profiles = await fetchProfileWithRetry(profileId);
       if (profiles.length === 0) {
         navigate(createPageUrl('Home'));
         setLoading(false);
@@ -183,7 +186,7 @@ export default function Assignments() {
       setSuperResponses(userResponses);
     } catch (e) {
       console.error('Error loading data:', e);
-      navigate(createPageUrl('Home'));
+      setLoadError(true);
       return;
     }
     setLoading(false);
@@ -463,6 +466,10 @@ export default function Assignments() {
     }
     setAutoOpenEgg(null);
   };
+
+  if (loadError) {
+    return <LoadErrorCard onRetry={() => { setLoadError(false); setLoading(true); loadData(); }} />;
+  }
 
   if (loading) {
     return (

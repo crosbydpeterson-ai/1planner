@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
+import { fetchProfileWithRetry } from '@/lib/profileLoader';
+import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -17,6 +19,7 @@ import SubjectAssignmentSelector from '@/components/student/SubjectAssignmentSel
 export default function UserSettings() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [referralLink, setReferralLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -37,7 +40,7 @@ export default function UserSettings() {
     }
 
     try {
-      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      const profiles = await fetchProfileWithRetry(profileId);
       if (profiles.length === 0) {
         localStorage.clear();
         navigate(createPageUrl('Home'));
@@ -62,7 +65,7 @@ export default function UserSettings() {
       setReferralLink(`${window.location.origin}${createPageUrl('Home')}?ref=${userProfile.id}`);
     } catch (e) {
       console.error('Error loading profile:', e);
-      navigate(createPageUrl('Home'));
+      setLoadError(true);
       return;
     }
     setLoading(false);
@@ -97,6 +100,10 @@ export default function UserSettings() {
     toast.success('Referral link copied to clipboard!');
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (loadError) {
+    return <LoadErrorCard onRetry={() => { setLoadError(false); setLoading(true); loadProfile(); }} />;
+  }
 
   if (loading) {
     return (

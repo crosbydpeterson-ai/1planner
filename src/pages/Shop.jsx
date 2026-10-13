@@ -3,6 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fetchProfileWithRetry } from '@/lib/profileLoader';
+import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { ShoppingBag, Coins, Sparkles, Clock, Package, Shield, Gem } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
@@ -16,6 +18,7 @@ export default function Shop() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [mainTab, setMainTab] = useState('shop');
   const [filter, setFilter] = useState('all');
   const [shopItems, setShopItems] = useState([]);
@@ -36,7 +39,7 @@ export default function Shop() {
     }
 
     try {
-      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      const profiles = await fetchProfileWithRetry(profileId);
       if (profiles.length === 0) {
         navigate(createPageUrl('Home'));
         return;
@@ -94,7 +97,7 @@ export default function Shop() {
       setBundles(activeBundles);
     } catch (e) {
       console.error('Error loading shop:', e);
-      navigate(createPageUrl('Home'));
+      setLoadError(true);
       return;
     }
     setLoading(false);
@@ -285,6 +288,10 @@ export default function Shop() {
     if (days > 0) return `${days}d ${hours}h left`;
     return `${hours}h left`;
   };
+
+  if (loadError) {
+    return <LoadErrorCard onRetry={() => { setLoadError(false); setLoading(true); loadData(); }} />;
+  }
 
   if (loading) {
     return (

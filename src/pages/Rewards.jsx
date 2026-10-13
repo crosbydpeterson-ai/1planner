@@ -3,6 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
+import { fetchProfileWithRetry } from '@/lib/profileLoader';
+import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award, Palette, Search } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,7 @@ export default function Rewards() {
   const [petCosmetics, setPetCosmetics] = useState([]);
   const [magicEggs, setMagicEggs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'daily' ? 'daily' : 'pets');
   const [locks, setLocks] = useState(null);
@@ -64,18 +67,18 @@ export default function Rewards() {
     }
 
     try {
-      const [profiles, dbCustomPets, dbCustomThemes, dbCosmetics, dbMagicEggs, dbBoothSkins] = await Promise.all([
-        base44.entities.UserProfile.filter({ id: profileId }),
+      const profiles = await fetchProfileWithRetry(profileId);
+      if (profiles.length === 0) {
+        navigate(createPageUrl('Home'));
+        return;
+      }
+      const [dbCustomPets, dbCustomThemes, dbCosmetics, dbMagicEggs, dbBoothSkins] = await Promise.all([
         base44.entities.CustomPet.list(),
         base44.entities.CustomTheme.list(),
         base44.entities.PetCosmetic.list(),
         base44.entities.MagicEgg.list(),
         base44.entities.BoothSkin.list()
       ]);
-      if (profiles.length === 0) {
-        navigate(createPageUrl('Home'));
-        return;
-      }
       const me = profiles[0];
       setProfile(me);
 
@@ -106,7 +109,7 @@ export default function Rewards() {
       } catch (_) {}
     } catch (e) {
       console.error('Error loading data:', e);
-      navigate(createPageUrl('Home'));
+      setLoadError(true);
       return;
     }
     setLoading(false);
@@ -194,6 +197,10 @@ export default function Rewards() {
     setProfile({ ...profile, equippedBoothSkinId: newId });
     toast.success(newId ? 'Booth skin equipped!' : 'Booth skin removed');
   };
+
+  if (loadError) {
+    return <LoadErrorCard onRetry={() => { setLoadError(false); setLoading(true); loadData(); }} />;
+  }
 
   if (loading) {
     return (

@@ -3,6 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
+import { fetchProfileWithRetry } from '@/lib/profileLoader';
+import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { Wand2, Loader2, Sparkles, ArrowLeft, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +17,7 @@ export default function PetCreator() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   
   // Form state
@@ -67,7 +70,7 @@ export default function PetCreator() {
     }
 
     try {
-      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      const profiles = await fetchProfileWithRetry(profileId);
       if (profiles.length === 0 || !profiles[0].isPetCreator) {
         toast.error('You do not have Pet Creator access');
         navigate(createPageUrl('Dashboard'));
@@ -75,7 +78,8 @@ export default function PetCreator() {
       }
       setProfile(profiles[0]);
     } catch (e) {
-      navigate(createPageUrl('Dashboard'));
+      console.error('Error checking pet creator access:', e);
+      setLoadError(true);
     }
     setLoading(false);
   };
@@ -160,6 +164,10 @@ export default function PetCreator() {
     }
     setSaving(false);
   };
+
+  if (loadError) {
+    return <LoadErrorCard onRetry={() => { setLoadError(false); setLoading(true); checkAccess(); }} />;
+  }
 
   if (loading) {
     return (
