@@ -78,6 +78,7 @@ export default function Admin() {
   const [adminPin, setAdminPin] = useState('');
   const [tab, setTab] = useState('users');
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
   const [isAdminRole, setIsAdminRole] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -133,8 +134,20 @@ export default function Admin() {
   const checkAdminAccess = async () => {
     const profileId = localStorage.getItem('quest_profile_id');
     if (!profileId) { setLoading(false); return; }
+    setLoadError(false);
     try {
-      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      // Retry the profile fetch to ride out transient rate-limits instead of
+      // silently bouncing back to the Dashboard.
+      let profiles = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          profiles = await base44.entities.UserProfile.filter({ id: profileId });
+          break;
+        } catch (err) {
+          if (attempt === 2) throw err;
+          await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+        }
+      }
       if (profiles.length === 0) { navigate(createPageUrl('Dashboard')); return; }
       const currentProfile = profiles[0];
       const username = (currentProfile.username || '').toLowerCase();
@@ -151,7 +164,11 @@ export default function Admin() {
       if (superByName || role === 'super_admin') { setIsAuthenticated(true); localStorage.setItem('quest_admin_auth', 'true'); loadData(); }
       else if (adminAuth === 'true') { setIsAuthenticated(true); loadData(); }
       else { setLoading(false); }
-    } catch (e) { navigate(createPageUrl('Dashboard')); }
+    } catch (e) {
+      console.error('Error checking admin access:', e);
+      setLoadError(true);
+      setLoading(false);
+    }
   };
 
   const handleAdminLogin = () => { const ok = adminPin === ADMIN_PASSWORD || (adminProfile?.adminPanelPassword && adminPin === adminProfile.adminPanelPassword); if (ok) { setIsAuthenticated(true); localStorage.setItem('quest_admin_auth', 'true'); loadData(); } else { toast.error('Invalid admin password'); } };
@@ -255,6 +272,18 @@ export default function Admin() {
   };
 
   const filteredUsers = users.filter(u => u.username.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-xl"><Shield className="w-8 h-8 text-white" /></div>
+          <p className="text-slate-300 mb-4">Couldn't load the admin panel. Check your connection and try again.</p>
+          <Button onClick={() => { setLoading(true); checkAdminAccess(); }}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
