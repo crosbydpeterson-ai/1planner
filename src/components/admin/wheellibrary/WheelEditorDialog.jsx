@@ -421,9 +421,9 @@ export default function WheelEditorDialog({
                         <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-400" onClick={() => movePrize(i, 1)} disabled={i === form.prizes.length - 1}><ChevronDown className="w-3 h-3" /></Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7 text-red-400" onClick={() => removePrize(i)}><Trash2 className="w-3 h-3" /></Button>
                       </div>
-                      <div className="grid grid-cols-3 gap-1.5">
+                      <div className="flex gap-1.5 items-center">
                         <Select value={p.type} onValueChange={(v) => updatePrize(i, { type: v })}>
-                          <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm w-24 flex-shrink-0"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="xp">⭐ XP</SelectItem>
                             <SelectItem value="coins">🪙 Coins</SelectItem>
@@ -439,7 +439,7 @@ export default function WheelEditorDialog({
                             const pet = allPets?.find(pt => pt.id === v);
                             updatePrize(i, { value: v, label: pet?.name || '', icon: pet?.emoji || '🐾' });
                           }}>
-                            <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue placeholder="Pick pet…" /></SelectTrigger>
+                            <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm flex-1 min-w-0"><SelectValue placeholder="Pick pet…" /></SelectTrigger>
                             <SelectContent>
                               {allPets?.map(pet => <SelectItem key={pet.id} value={pet.id}>{pet.emoji || '🐾'} {pet.name}</SelectItem>)}
                             </SelectContent>
@@ -449,19 +449,19 @@ export default function WheelEditorDialog({
                             const theme = allThemes?.find(t => t.id === v);
                             updatePrize(i, { value: v, label: theme?.name || '', icon: '🎨' });
                           }}>
-                            <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue placeholder="Pick theme…" /></SelectTrigger>
+                            <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm flex-1 min-w-0"><SelectValue placeholder="Pick theme…" /></SelectTrigger>
                             <SelectContent>
                               {allThemes?.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         ) : p.type === 'title' ? (
-                          <Input className="bg-slate-700 border-slate-600 h-8 text-sm col-span-2" value={p.value || ''} onChange={(e) => updatePrize(i, { value: e.target.value, label: e.target.value })} placeholder="Title text" />
+                          <Input className="bg-slate-700 border-slate-600 h-8 text-sm flex-1 min-w-0" value={p.value || ''} onChange={(e) => updatePrize(i, { value: e.target.value, label: e.target.value })} placeholder="Title text" />
                         ) : p.type === 'song' ? (
                           <Select value={p.value || ''} onValueChange={(v) => {
                             const song = allSongs?.find(s => s.id === v);
                             updatePrize(i, { value: v, label: song?.title || '', icon: '🎵' });
                           }}>
-                            <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue placeholder="Pick song…" /></SelectTrigger>
+                            <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm flex-1 min-w-0"><SelectValue placeholder="Pick song…" /></SelectTrigger>
                             <SelectContent>
                               {allSongs?.map(s => <SelectItem key={s.id} value={s.id}>🎵 {s.title}</SelectItem>)}
                             </SelectContent>
@@ -471,15 +471,15 @@ export default function WheelEditorDialog({
                             const pl = allPlaylists?.find(p => p.id === v);
                             updatePrize(i, { value: v, label: pl?.name || '', icon: '🎶' });
                           }}>
-                            <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue placeholder="Pick playlist…" /></SelectTrigger>
+                            <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm flex-1 min-w-0"><SelectValue placeholder="Pick playlist…" /></SelectTrigger>
                             <SelectContent>
                               {allPlaylists?.map(pl => <SelectItem key={pl.id} value={pl.id}>🎶 {pl.name}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Input className="bg-slate-700 border-slate-600 h-8 text-sm" type="number" value={p.amount || ''} onChange={(e) => updatePrize(i, { amount: parseInt(e.target.value) || 0 })} placeholder="Amount" />
+                          <Input className="bg-slate-700 border-slate-600 h-8 text-sm w-20 flex-shrink-0" type="number" value={p.amount || ''} onChange={(e) => updatePrize(i, { amount: parseInt(e.target.value) || 0 })} placeholder="Amount" />
                         )}
-                        <Input className="bg-slate-700 border-slate-600 h-8 text-sm" value={p.icon || ''} onChange={(e) => updatePrize(i, { icon: e.target.value })} placeholder="Emoji" maxLength={2} />
+                        <Input className="bg-slate-700 border-slate-600 h-8 text-sm w-10 flex-shrink-0 text-center px-1" value={p.icon || ''} onChange={(e) => updatePrize(i, { icon: e.target.value })} placeholder="😀" maxLength={2} />
                       </div>
                       <div className="flex items-center gap-2">
                         <Label className="text-xs text-slate-400 whitespace-nowrap">Weight</Label>
