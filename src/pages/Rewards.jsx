@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { fetchProfileWithRetry } from '@/lib/profileLoader';
+import { fetchProfileWithRetry, withRetry } from '@/lib/profileLoader';
 import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award, Palette, Search } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
@@ -72,23 +72,26 @@ export default function Rewards() {
         navigate(createPageUrl('Home'));
         return;
       }
-      const [dbCustomPets, dbCustomThemes, dbCosmetics, dbMagicEggs, dbBoothSkins] = await Promise.all([
-        base44.entities.CustomPet.list(),
-        base44.entities.CustomTheme.list(),
-        base44.entities.PetCosmetic.list(),
-        base44.entities.MagicEgg.list(),
-        base44.entities.BoothSkin.list()
-      ]);
       const me = profiles[0];
       setProfile(me);
 
-      // Admin check
-      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
-      const adminUser = me.username?.toLowerCase?.() === 'crosby' || (allProfiles[0] && allProfiles[0].id === me.id);
-      setIsAdmin(!!adminUser);
+      // Admin check from profile rank — no extra API call needed
+      const nameIsCrosby = me.username?.toLowerCase?.() === 'crosby';
+      setIsAdmin(me.rank === 'super_admin' || me.rank === 'admin' || nameIsCrosby);
 
-      // Settings
-      const settings = await base44.entities.AppSetting.list();
+      // Load collections + settings in one parallel batch with retry.
+      // MagicEgg is filtered server-side so we don't pull every user's eggs.
+      const [dbCustomPets, dbCustomThemes, dbCosmetics, userEggs, dbBoothSkins, settings] = await withRetry(() =>
+        Promise.all([
+          base44.entities.CustomPet.list(),
+          base44.entities.CustomTheme.list(),
+          base44.entities.PetCosmetic.list(),
+          base44.entities.MagicEgg.filter({ userId: me.userId, isUsed: { $ne: true } }),
+          base44.entities.BoothSkin.list(),
+          base44.entities.AppSetting.list()
+        ])
+      );
+
       const fl = settings.find(s => s.key === 'feature_locks');
       setLocks(fl ? fl.value : null);
       const dr = settings.find(s => s.key === 'daily_rewards_config');
@@ -98,8 +101,6 @@ export default function Rewards() {
       setCustomThemes(dbCustomThemes);
       setPetCosmetics(dbCosmetics);
       setBoothSkins(dbBoothSkins);
-      // Filter eggs for this user that haven't been used
-      const userEggs = dbMagicEggs.filter(e => e.userId === profiles[0].userId && !e.isUsed);
       setMagicEggs(userEggs);
 
       // Load daily reward progress

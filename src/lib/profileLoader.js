@@ -15,3 +15,18 @@ export async function fetchProfileWithRetry(profileId, retries = 3) {
     }
   }
 }
+
+/**
+ * Retry wrapper for any async operation. Useful for batched API calls
+ * that may hit transient rate-limits.
+ */
+export async function withRetry(fn, retries = 3) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === retries - 1) throw err;
+      await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+    }
+  }
+}
