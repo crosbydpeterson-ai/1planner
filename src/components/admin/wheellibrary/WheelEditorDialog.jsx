@@ -136,12 +136,24 @@ export default function WheelEditorDialog({
   const updatePrize = (i, patch) => {
     const next = [...form.prizes];
     next[i] = { ...next[i], ...patch };
-    if (patch.type && !next[i].label) {
-      if (patch.type === 'xp') next[i].label = `+${next[i].amount || 25} XP`;
-      else if (patch.type === 'coins') next[i].label = `+${next[i].amount || 50} Coins`;
+    // When type changes, reset asset-specific fields and set sensible defaults
+    if (patch.type) {
+      const t = patch.type;
+      // Clear value when switching away from asset types
+      const assetTypes = ['pet', 'theme', 'song', 'playlist'];
+      if (!assetTypes.includes(t)) {
+        next[i].value = '';
+      }
+      // Set default icon for the type
+      next[i].icon = TYPE_ICONS[t] || next[i].icon;
+      // Auto-label xp/coins; asset types get labeled when the asset is picked
+      if (t === 'xp' && (!next[i].label || next[i].label.startsWith('+'))) next[i].label = `+${next[i].amount || 25} XP`;
+      else if (t === 'coins' && (!next[i].label || next[i].label.startsWith('+'))) next[i].label = `+${next[i].amount || 50} Coins`;
+      else if (assetTypes.includes(t) && !next[i].value) next[i].label = '';
     }
-    if (patch.type === 'xp' || patch.type === 'coins' || patch.type === 'song' || patch.type === 'playlist') {
-      next[i].icon = TYPE_ICONS[patch.type] || next[i].icon;
+    if (patch.amount !== undefined) {
+      if (next[i].type === 'xp' && (!next[i].label || next[i].label.startsWith('+'))) next[i].label = `+${patch.amount} XP`;
+      else if (next[i].type === 'coins' && (!next[i].label || next[i].label.startsWith('+'))) next[i].label = `+${patch.amount} Coins`;
     }
     update({ prizes: next });
   };
@@ -423,30 +435,42 @@ export default function WheelEditorDialog({
                           </SelectContent>
                         </Select>
                         {p.type === 'pet' ? (
-                          <Select value={p.value || ''} onValueChange={(v) => updatePrize(i, { value: v })}>
+                          <Select value={p.value || ''} onValueChange={(v) => {
+                            const pet = allPets?.find(pt => pt.id === v);
+                            updatePrize(i, { value: v, label: pet?.name || '', icon: pet?.emoji || '🐾' });
+                          }}>
                             <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue placeholder="Pick pet…" /></SelectTrigger>
                             <SelectContent>
                               {allPets?.map(pet => <SelectItem key={pet.id} value={pet.id}>{pet.emoji || '🐾'} {pet.name}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         ) : p.type === 'theme' ? (
-                          <Select value={p.value || ''} onValueChange={(v) => updatePrize(i, { value: v })}>
+                          <Select value={p.value || ''} onValueChange={(v) => {
+                            const theme = allThemes?.find(t => t.id === v);
+                            updatePrize(i, { value: v, label: theme?.name || '', icon: '🎨' });
+                          }}>
                             <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue placeholder="Pick theme…" /></SelectTrigger>
                             <SelectContent>
                               {allThemes?.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         ) : p.type === 'title' ? (
-                          <Input className="bg-slate-700 border-slate-600 h-8 text-sm col-span-2" value={p.value || ''} onChange={(e) => updatePrize(i, { value: e.target.value })} placeholder="Title text" />
+                          <Input className="bg-slate-700 border-slate-600 h-8 text-sm col-span-2" value={p.value || ''} onChange={(e) => updatePrize(i, { value: e.target.value, label: e.target.value })} placeholder="Title text" />
                         ) : p.type === 'song' ? (
-                          <Select value={p.value || ''} onValueChange={(v) => updatePrize(i, { value: v })}>
+                          <Select value={p.value || ''} onValueChange={(v) => {
+                            const song = allSongs?.find(s => s.id === v);
+                            updatePrize(i, { value: v, label: song?.title || '', icon: '🎵' });
+                          }}>
                             <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue placeholder="Pick song…" /></SelectTrigger>
                             <SelectContent>
                               {allSongs?.map(s => <SelectItem key={s.id} value={s.id}>🎵 {s.title}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         ) : p.type === 'playlist' ? (
-                          <Select value={p.value || ''} onValueChange={(v) => updatePrize(i, { value: v })}>
+                          <Select value={p.value || ''} onValueChange={(v) => {
+                            const pl = allPlaylists?.find(p => p.id === v);
+                            updatePrize(i, { value: v, label: pl?.name || '', icon: '🎶' });
+                          }}>
                             <SelectTrigger className="bg-slate-700 border-slate-600 h-8 text-sm"><SelectValue placeholder="Pick playlist…" /></SelectTrigger>
                             <SelectContent>
                               {allPlaylists?.map(pl => <SelectItem key={pl.id} value={pl.id}>🎶 {pl.name}</SelectItem>)}
