@@ -24,6 +24,8 @@ import Tutorial from '@/components/tutorial/Tutorial';
 import WhatsNewPopup from '@/components/announcements/WhatsNewPopup';
 import PromoBanner from '@/components/dashboard/PromoBanner';
 import { useAuth } from '@/lib/AuthContext';
+import { isLogoutRestricted } from '@/lib/logoutRestriction';
+import LogoutCodeDialog from '@/components/auth/LogoutCodeDialog';
 
 const DEFAULT_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
 const ALL_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
@@ -42,6 +44,7 @@ export default function Dashboard() {
   const [activeWidgets, setActiveWidgets] = useState(DEFAULT_WIDGETS);
   const [editMode, setEditMode] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
+  const [showLogoutCodeDialog, setShowLogoutCodeDialog] = useState(false);
 
   useEffect(() => {
     if (authChecked && !isAuthenticated) {
@@ -155,7 +158,25 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (profile) {
+      try {
+        const result = await isLogoutRestricted(profile);
+        if (result.restricted) {
+          setShowLogoutCodeDialog(true);
+          return;
+        }
+      } catch (e) {
+        // Fail open: don't block logout if the check itself errors.
+      }
+    }
+    logout();
+  };
+
+  const handleLogoutCodeAccepted = () => {
+    // Clear admin-session flags so they cannot carry into another login,
+    // then perform the existing logout (which clears only session keys).
+    localStorage.removeItem('quest_admin_auth');
     logout();
   };
 
@@ -341,6 +362,14 @@ export default function Dashboard() {
 
       {/* What's New Popup */}
       <WhatsNewPopup />
+
+      {/* Temporary logout-code restriction dialog */}
+      <LogoutCodeDialog
+        open={showLogoutCodeDialog}
+        onOpenChange={setShowLogoutCodeDialog}
+        profile={profile}
+        onAllowed={handleLogoutCodeAccepted}
+      />
       </div>);
 
 }

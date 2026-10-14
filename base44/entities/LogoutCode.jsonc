@@ -1,0 +1,99 @@
+{
+  "name": "LogoutCode",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Internal note describing this code"
+    },
+    "code": {
+      "type": "string",
+      "description": "The logout code value shared with students"
+    },
+    "validFrom": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional ISO timestamp when the code becomes usable"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional ISO timestamp when the code stops being usable"
+    },
+    "maxUses": {
+      "type": "number",
+      "default": 1,
+      "description": "Maximum total uses across all students"
+    },
+    "maxUsesPerProfile": {
+      "type": "number",
+      "description": "Optional maximum uses per individual profile"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "everyone",
+        "profiles",
+        "classes"
+      ],
+      "default": "everyone",
+      "description": "Which students this code authorizes"
+    },
+    "allowedProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "When scope=profiles, the profile IDs that may use this code"
+    },
+    "allowedClassKeys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "When scope=classes, class keys (e.g. 'math:<teacherId>') that may use this code"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "False once revoked by an admin"
+    },
+    "revokedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the code was revoked, if applicable"
+    },
+    "useCount": {
+      "type": "number",
+      "default": 0,
+      "description": "Total times this code has been used"
+    },
+    "usageHistory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "default": [],
+      "description": "Minimal usage log. Never stores the code value."
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "Admin username who created the code"
+    }
+  },
+  "required": [
+    "name",
+    "code"
+  ]
+}

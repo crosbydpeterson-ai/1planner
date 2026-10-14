@@ -45,6 +45,7 @@ import BundleFormDialog from '@/components/admin/BundleFormDialog';
 import EditBundleDialog from '@/components/admin/EditBundleDialog';
 import EditShopItemDialog from '@/components/admin/EditShopItemDialog';
 import AdminSettingsPanel from '@/components/admin/AdminSettingsPanel';
+import LogoutRestrictionPanel from '@/components/admin/LogoutRestrictionPanel';
 import ActiveEggJobs from '@/components/admin/ActiveEggJobs';
 import SeasonPassGeneratorPanel from '@/components/admin/SeasonPassGeneratorPanel';
 import PlusRewardsEditor from '@/components/admin/PlusRewardsEditor';
@@ -487,6 +488,7 @@ export default function Admin() {
           <TabsContent value="settings">
             <div className="space-y-6">
               <AdminSettingsPanel appSettings={appSettings} setAppSettings={setAppSettings} referralSettings={referralSettings} setReferralSettings={setReferralSettings} adminReferralLinks={adminReferralLinks} setAdminReferralLinks={setAdminReferralLinks} newLinkMaxUses={newLinkMaxUses} setNewLinkMaxUses={setNewLinkMaxUses} rewardLinks={rewardLinks} setRewardLinks={setRewardLinks} showRewardLinkForm={showRewardLinkForm} setShowRewardLinkForm={setShowRewardLinkForm} isSuperAdmin={isSuperAdmin} />
+              <LogoutRestrictionPanel users={users} teachers={teachers} appSettings={appSettings} setAppSettings={setAppSettings} adminUsername={adminProfile?.username} />
               <GameBuilderTokenPanel />
             </div>
           </TabsContent>
