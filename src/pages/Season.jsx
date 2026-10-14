@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { fetchProfileWithRetry } from '@/lib/profileLoader';
+import { fetchProfileWithRetry, withRetry } from '@/lib/profileLoader';
+import { checkIsAdmin } from '@/lib/profileAdmin';
 import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { Sparkles, ArrowLeft, Calendar, Zap, Crown, Star, BookOpen } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
@@ -83,28 +84,23 @@ export default function Season() {
       return;
     }
 
-    // Non-critical loads — failures here should NOT blank the page
-    try {
-      // Admin check
-      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
-      const adminUser = me.username?.toLowerCase?.() === 'crosby' || (allProfiles[0] && allProfiles[0].id === me.id);
-      setIsAdmin(!!adminUser);
-    } catch (e) {
-      console.error('Error checking admin:', e);
-    }
+    // Admin check from profile rank — no extra API call needed
+    setIsAdmin(checkIsAdmin(me));
 
+    // Non-critical loads — failures here should NOT blank the page.
+    // Locks and seasons are fetched in one parallel batch with retry.
     try {
-      // Locks
-      const settings = await base44.entities.AppSetting.list();
+      const [settings, seasons] = await withRetry(() =>
+        Promise.all([
+          base44.entities.AppSetting.list(),
+          base44.entities.Season.filter({ isActive: true })
+        ])
+      );
+
       const fl = settings.find(s => s.key === 'feature_locks');
       setLocks(fl ? fl.value : null);
-    } catch (e) {
-      console.error('Error loading locks:', e);
-    }
 
-    try {
       // Use shared season-selection helper so 1Pass and Season Book agree
-      const seasons = await base44.entities.Season.filter({ isActive: true });
       if (seasons.length > 0) {
         const now = nowInTimezone();
         const current = selectOnePassSeason(seasons, now);

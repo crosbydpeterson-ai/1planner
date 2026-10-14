@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fetchProfileWithRetry } from '@/lib/profileLoader';
+import { fetchProfileWithRetry, withRetry } from '@/lib/profileLoader';
+import { checkIsAdmin } from '@/lib/profileAdmin';
 import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { ShoppingBag, Coins, Sparkles, Clock, Package, Shield, Gem } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
@@ -48,19 +49,20 @@ export default function Shop() {
       const me = profiles[0];
       setProfile(me);
 
-      // Admin check (Crosby or first profile)
-      const allProfiles = await base44.entities.UserProfile.list('created_date', 1);
-      const adminUser = me.username?.toLowerCase?.() === 'crosby' || (allProfiles[0] && allProfiles[0].id === me.id);
-      setIsAdmin(!!adminUser);
+      // Admin check from profile rank — no extra API call needed
+      setIsAdmin(checkIsAdmin(me));
 
-      // Load locks
-      const settings = await base44.entities.AppSetting.list();
+      // Load locks, shop items, and bundles in one parallel batch with retry
+      const [settings, items, bundleList] = await withRetry(() =>
+        Promise.all([
+          base44.entities.AppSetting.list(),
+          base44.entities.ShopItem.filter({ isActive: true }),
+          base44.entities.Bundle.filter({ isActive: true })
+        ])
+      );
+
       const fl = settings.find(s => s.key === 'feature_locks');
       setLocks(fl ? fl.value : null);
-
-      // Load shop items and bundles
-      const items = await base44.entities.ShopItem.filter({ isActive: true });
-      const bundleList = await base44.entities.Bundle.filter({ isActive: true });
       
       // Get all item IDs that are in bundles
       const bundledItemIds = new Set();

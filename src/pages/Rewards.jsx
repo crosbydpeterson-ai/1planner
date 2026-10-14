@@ -4,6 +4,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { fetchProfileWithRetry, withRetry } from '@/lib/profileLoader';
+import { checkIsAdmin } from '@/lib/profileAdmin';
 import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award, Palette, Search } from 'lucide-react';
 import LockedOverlay from '@/components/common/LockedOverlay';
@@ -76,8 +77,7 @@ export default function Rewards() {
       setProfile(me);
 
       // Admin check from profile rank — no extra API call needed
-      const nameIsCrosby = me.username?.toLowerCase?.() === 'crosby';
-      setIsAdmin(me.rank === 'super_admin' || me.rank === 'admin' || nameIsCrosby);
+      setIsAdmin(checkIsAdmin(me));
 
       // Load collections + settings in one parallel batch with retry.
       // MagicEgg is filtered server-side so we don't pull every user's eggs.
