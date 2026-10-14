@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { fetchProfileWithRetry, withRetry } from '@/lib/profileLoader';
+import { fetchProfileWithRetry, withRetry, getAppSettings } from '@/lib/profileLoader';
 import { checkIsAdmin } from '@/lib/profileAdmin';
 import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { Sparkles, ArrowLeft, Calendar, Zap, Crown, Star, BookOpen } from 'lucide-react';
@@ -92,7 +92,7 @@ export default function Season() {
     try {
       const [settings, seasons] = await withRetry(() =>
         Promise.all([
-          base44.entities.AppSetting.list(),
+          getAppSettings(),
           base44.entities.Season.filter({ isActive: true })
         ])
       );

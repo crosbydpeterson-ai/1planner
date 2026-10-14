@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { fetchProfileWithRetry, withRetry } from '@/lib/profileLoader';
+import { fetchProfileWithRetry, withRetry, getAppSettings } from '@/lib/profileLoader';
 import { checkIsAdmin } from '@/lib/profileAdmin';
 import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { Gift, ArrowLeft, Star, Zap, Lock, Check, Sparkles, Award, Palette, Search } from 'lucide-react';
@@ -88,7 +88,7 @@ export default function Rewards() {
           base44.entities.PetCosmetic.list(),
           base44.entities.MagicEgg.filter({ userId: me.userId, isUsed: { $ne: true } }),
           base44.entities.BoothSkin.list(),
-          base44.entities.AppSetting.list()
+          getAppSettings()
         ])
       );
 

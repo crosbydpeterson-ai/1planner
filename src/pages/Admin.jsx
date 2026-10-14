@@ -69,6 +69,7 @@ import AbilitiesPanel from '@/components/admin/AbilitiesPanel';
 import FeatureLockManager from '@/components/admin/FeatureLockManager';
 import MusicAdminPanel from '@/components/admin/MusicAdminPanel';
 import { useSubjects } from '@/hooks/useSubjects';
+import { onProfileSwitch } from '@/lib/dataCache';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -381,7 +382,7 @@ export default function Admin() {
                         <Button size="sm" variant="ghost" onClick={() => handleToggleLock(user)} className="text-slate-400 hover:text-white">{user.isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}</Button>
                         <Button size="sm" variant="ghost" onClick={() => handleToggleHidden(user)} className="text-slate-400 hover:text-white">{user.hiddenFromLeaderboard ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}</Button>
                         <Button size="sm" variant="ghost" onClick={() => { setSelectedUser(user); setEditXp(String(user.xp || 0)); }} className="text-slate-400 hover:text-white"><Edit2 className="w-4 h-4" /></Button>
-                        {isSuperAdmin && <Button size="sm" variant="ghost" onClick={() => { localStorage.setItem('quest_profile_id', user.id); navigate(createPageUrl('Dashboard')); }} className="text-emerald-400 hover:text-emerald-300" title="Switch to this user">Switch</Button>}
+                        {isSuperAdmin && <Button size="sm" variant="ghost" onClick={() => { localStorage.setItem('quest_profile_id', user.id); onProfileSwitch(); navigate(createPageUrl('Dashboard')); }} className="text-emerald-400 hover:text-emerald-300" title="Switch to this user">Switch</Button>}
                         <Button size="sm" variant="ghost" onClick={() => { setGiftUser(user); setGiftUsername(user.username || ''); setGiftItemId(''); setGiftToAll(false); setShowGiftDialog(true); }} className="text-purple-400 hover:text-purple-300" title="Gift"><Gift className="w-4 h-4" /></Button>
                         {(isSuperAdmin || permissions.grantAdminTokens) && <Button size="sm" variant="ghost" onClick={async () => { const nt = (user.adminTokens || 0) + 10; await base44.entities.UserProfile.update(user.id, { adminTokens: nt }); setUsers(users.map(u => u.id === user.id ? { ...u, adminTokens: nt } : u)); toast.success(`Granted 10 admin tokens`); }} className="text-emerald-400 hover:text-emerald-300" title="Grant 10 Admin Tokens"><Plus className="w-4 h-4" /></Button>}
                         <Button size="sm" variant="ghost" onClick={async () => { const ns = !user.isPetCreator; await base44.entities.UserProfile.update(user.id, { isPetCreator: ns }); setUsers(users.map(u => u.id === user.id ? { ...u, isPetCreator: ns } : u)); toast.success(ns ? 'Pet creator granted!' : 'Pet creator removed'); }} className={user.isPetCreator ? "text-pink-400 hover:text-pink-300" : "text-slate-400 hover:text-slate-300"} title="Pet Creator"><Wand2 className="w-4 h-4" /></Button>

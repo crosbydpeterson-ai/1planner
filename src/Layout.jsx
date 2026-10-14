@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, CalendarHeart, MessageSquare, Gamepad2, Store, Bell, Music2, Stamp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
+import { getAppSettings, onProfileSwitch } from '@/lib/dataCache';
 import ThemedBackground from '@/components/theme/ThemedBackground';
 import ChatbotWidget from '@/components/chat/ChatbotWidget';
 import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
@@ -177,7 +178,7 @@ export default function Layout({ children, currentPageName }) {
 
   const loadFeatureLocks = async () => {
     try {
-      const settings = await base44.entities.AppSetting.list();
+      const settings = await getAppSettings();
       const locksSetting = settings.find(s => s.key === 'feature_locks');
       setFeatureLocks(locksSetting ? locksSetting.value : null);
       const reselectSetting = settings.find(s => s.key === 'teacher_reselect_required');

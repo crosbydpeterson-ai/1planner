@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fetchProfileWithRetry, withRetry } from '@/lib/profileLoader';
+import { fetchProfileWithRetry, withRetry, getAppSettings } from '@/lib/profileLoader';
 import { checkIsAdmin } from '@/lib/profileAdmin';
 import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { ShoppingBag, Coins, Sparkles, Clock, Package, Shield, Gem } from 'lucide-react';
@@ -55,7 +55,7 @@ export default function Shop() {
       // Load locks, shop items, and bundles in one parallel batch with retry
       const [settings, items, bundleList] = await withRetry(() =>
         Promise.all([
-          base44.entities.AppSetting.list(),
+          getAppSettings(),
           base44.entities.ShopItem.filter({ isActive: true }),
           base44.entities.Bundle.filter({ isActive: true })
         ])

@@ -8,6 +8,7 @@ import LockedOverlay from '@/components/common/LockedOverlay';
 import SongRequestDialog from '@/components/music/SongRequestDialog';
 import { isTrackVisibleForUser, isPlaylistVisibleForUser, getPlaylistTracks, getUnlockedTrackIds } from '@/lib/musicAccess';
 import { checkFeatureLock } from '@/lib/featureLocks';
+import { getAppSettings } from '@/lib/dataCache';
 
 export default function Music() {
   const [profile, setProfile] = useState(null);
@@ -37,7 +38,7 @@ export default function Music() {
             base44.entities.UserProfile.filter({ id: profileId }),
             base44.entities.MusicTrack.list('-created_date'),
             base44.entities.Playlist.list('-created_date'),
-            base44.entities.AppSetting.list(),
+            getAppSettings(),
           ]);
           break;
         } catch (rateErr) {

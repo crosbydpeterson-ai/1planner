@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTeachers } from '@/hooks/useTeachers';
 import { useAuth } from '@/lib/AuthContext';
+import { onProfileSwitch } from '@/lib/dataCache';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -121,6 +122,7 @@ export default function Home() {
       localStorage.setItem('quest_profile_id', profile.id);
       localStorage.setItem('quest_username', profile.username);
 
+      onProfileSwitch();
       setSession(profile);
       navigate(createPageUrl('Dashboard'));
     } catch (e) {
@@ -303,6 +305,8 @@ export default function Home() {
       localStorage.setItem('quest_user_id', uniqueId);
       localStorage.setItem('quest_profile_id', profile.id);
       localStorage.setItem('quest_username', profile.username);
+
+      onProfileSwitch();
 
       // Clear pending referral and reward
       localStorage.removeItem('pending_referral');
