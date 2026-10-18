@@ -71,6 +71,7 @@ import FeatureLockManager from '@/components/admin/FeatureLockManager';
 import MusicAdminPanel from '@/components/admin/MusicAdminPanel';
 import { useSubjects } from '@/hooks/useSubjects';
 import { onProfileSwitch } from '@/lib/dataCache';
+import { basePermissions, allPermissions, defaultAdminPermissions } from '@/lib/adminPermissions';
 
 const ADMIN_PASSWORD = 'Crosby110!';
 
@@ -84,7 +85,7 @@ export default function Admin() {
   const [adminProfile, setAdminProfile] = useState(null);
   const [isAdminRole, setIsAdminRole] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [permissions, setPermissions] = useState({ accessAI: false, deleteAssets: false, grantAdminTokens: false, toggleAdminRole: false, manageLocks: false, banFlagUsers: false, manageShop: false, manageEvents: false, viewAnalytics: false, manageAssignments: false, manageSuperAssignments: false, managePets: false, manageThemes: false, manageCosmetics: false, manageKitchen: false });
+  const [permissions, setPermissions] = useState(basePermissions());
   const can = (key) => isSuperAdmin || !!permissions[key];
   const [users, setUsers] = useState([]);
   const [showForceTrade, setShowForceTrade] = useState(false);
@@ -158,10 +159,10 @@ export default function Admin() {
       const hasCustomRole = Array.isArray(currentProfile.assignedRoleIds) && currentProfile.assignedRoleIds.length > 0;
       if (!(role === 'admin' || role === 'super_admin' || superByName || hasCustomRole)) { navigate(createPageUrl('Dashboard')); return; }
       setIsSuperAdmin(superByName || role === 'super_admin'); setIsAdminRole(true); setAdminProfile(currentProfile);
-      const basePerms = { accessAI: false, deleteAssets: false, grantAdminTokens: false, toggleAdminRole: false, manageLocks: false, banFlagUsers: false, manageShop: false, manageEvents: false, viewAnalytics: false, manageAssignments: false, manageSuperAssignments: false, managePets: false, manageThemes: false, manageCosmetics: false, manageKitchen: false };
-      if (superByName || role === 'super_admin') { setPermissions(Object.fromEntries(Object.keys(basePerms).map(k => [k, true]))); }
+      const basePerms = basePermissions();
+      if (superByName || role === 'super_admin') { setPermissions(allPermissions()); }
       else if (hasCustomRole) { try { const allRoles = await base44.entities.Role.list(); const myRoles = allRoles.filter(r => currentProfile.assignedRoleIds.includes(r.id)); const merged = { ...basePerms }; myRoles.forEach(r => { const p = r.permissions || {}; Object.keys(merged).forEach(k => { merged[k] = merged[k] || !!p[k]; }); }); setPermissions(merged); } catch (e) { setPermissions(basePerms); } }
-      else { setPermissions(basePerms); }
+      else { setPermissions(defaultAdminPermissions()); }
       const adminAuth = localStorage.getItem('quest_admin_auth');
       if (superByName || role === 'super_admin') { setIsAuthenticated(true); localStorage.setItem('quest_admin_auth', 'true'); loadData(); }
       else if (adminAuth === 'true') { setIsAuthenticated(true); loadData(); }
@@ -334,15 +335,15 @@ export default function Admin() {
             {can('accessAI') && <TabsTrigger value="reward_ai" className="data-[state=active]:bg-slate-700">🎰 Reward AI</TabsTrigger>}
             {can('accessAI') && <TabsTrigger value="question_gen" className="data-[state=active]:bg-slate-700">📝 Question AI</TabsTrigger>}
             {can('accessAI') && <TabsTrigger value="petmojis" className="data-[state=active]:bg-slate-700">😺 Petmojis</TabsTrigger>}
-            <TabsTrigger value="seasons" className="data-[state=active]:bg-slate-700"><Sparkles className="w-4 h-4 mr-2" />Seasons ({seasons.length})</TabsTrigger>
+            {can('manageSeasons') && <TabsTrigger value="seasons" className="data-[state=active]:bg-slate-700"><Sparkles className="w-4 h-4 mr-2" />Seasons ({seasons.length})</TabsTrigger>}
             {isSuperAdmin && <TabsTrigger value="eggs" className="data-[state=active]:bg-slate-700">🥚 Magic Eggs</TabsTrigger>}
-            <TabsTrigger value="loot_eggs" className="data-[state=active]:bg-slate-700">🎰 Loot Eggs</TabsTrigger>
-            <TabsTrigger value="music" className="data-[state=active]:bg-slate-700">🎵 Music</TabsTrigger>
+            {can('manageLootEggs') && <TabsTrigger value="loot_eggs" className="data-[state=active]:bg-slate-700">🎰 Loot Eggs</TabsTrigger>}
+            {can('manageMusic') && <TabsTrigger value="music" className="data-[state=active]:bg-slate-700">🎵 Music</TabsTrigger>}
             {can('manageEvents') && <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">🫧 Events</TabsTrigger>}
             {can('manageKitchen') && <TabsTrigger value="kitchen" className="data-[state=active]:bg-slate-700">👨‍🍳 Kitchen</TabsTrigger>}
             {can('manageShop') && <TabsTrigger value="shop" className="data-[state=active]:bg-slate-700"><ShoppingBag className="w-4 h-4 mr-2" />Shop</TabsTrigger>}
             {can('viewAnalytics') && <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">📊 Analytics</TabsTrigger>}
-            <TabsTrigger value="email" className="data-[state=active]:bg-slate-700">✉️ Email</TabsTrigger>
+            {can('manageEmail') && <TabsTrigger value="email" className="data-[state=active]:bg-slate-700">✉️ Email</TabsTrigger>}
             {(isSuperAdmin || permissions.toggleAdminRole) && <TabsTrigger value="roles" className="data-[state=active]:bg-slate-700"><Shield className="w-4 h-4 mr-2" />Roles</TabsTrigger>}
             {(isSuperAdmin || can('manageSuperAssignments')) && <TabsTrigger value="super_assignments" className="data-[state=active]:bg-slate-700">⭐ Super Assignments</TabsTrigger>}
             {(isSuperAdmin || can('manageLocks')) && <TabsTrigger value="locks" className="data-[state=active]:bg-slate-700"><Lock className="w-4 h-4 mr-2" />Locks</TabsTrigger>}
@@ -351,11 +352,11 @@ export default function Admin() {
             {can('manageEvents') && <TabsTrigger value="community_perms" className="data-[state=active]:bg-slate-700">💬 Community</TabsTrigger>}
             {can('manageEvents') && <TabsTrigger value="moderation" className="data-[state=active]:bg-slate-700">🛡️ Moderation</TabsTrigger>}
             {can('managePets') && <TabsTrigger value="concepts" className="data-[state=active]:bg-slate-700">💡 Pet Concepts</TabsTrigger>}
-            <TabsTrigger value="redeem_codes" className="data-[state=active]:bg-slate-700">🎟️ Codes</TabsTrigger>
-            <TabsTrigger value="dms" className="data-[state=active]:bg-slate-700">💬 DMs</TabsTrigger>
-            <TabsTrigger value="daily_rewards" className="data-[state=active]:bg-slate-700">🎁 Daily Rewards</TabsTrigger>
-            <TabsTrigger value="wheel_library" className="data-[state=active]:bg-slate-700">🎡 Wheel Library</TabsTrigger>
-            <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">⚙️ Settings</TabsTrigger>
+            {can('manageRedeemCodes') && <TabsTrigger value="redeem_codes" className="data-[state=active]:bg-slate-700">🎟️ Codes</TabsTrigger>}
+            {can('manageDMs') && <TabsTrigger value="dms" className="data-[state=active]:bg-slate-700">💬 DMs</TabsTrigger>}
+            {can('manageDailyRewards') && <TabsTrigger value="daily_rewards" className="data-[state=active]:bg-slate-700">🎁 Daily Rewards</TabsTrigger>}
+            {can('manageWheelLibrary') && <TabsTrigger value="wheel_library" className="data-[state=active]:bg-slate-700">🎡 Wheel Library</TabsTrigger>}
+            {can('manageSettings') && <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">⚙️ Settings</TabsTrigger>}
             {isSuperAdmin && <TabsTrigger value="lore" className="data-[state=active]:bg-slate-700">📖 Lore Comic</TabsTrigger>}
           </TabsList>
 

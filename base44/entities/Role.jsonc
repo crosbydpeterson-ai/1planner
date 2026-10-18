@@ -68,6 +68,42 @@
         "manageKitchen": {
           "type": "boolean",
           "default": false
+        },
+        "manageSeasons": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageLootEggs": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageMusic": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageEmail": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageRedeemCodes": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageDMs": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageDailyRewards": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageWheelLibrary": {
+          "type": "boolean",
+          "default": false
+        },
+        "manageSettings": {
+          "type": "boolean",
+          "default": false
         }
       },
       "description": "Granular permissions for admin panel features"

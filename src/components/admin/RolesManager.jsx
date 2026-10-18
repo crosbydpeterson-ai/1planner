@@ -6,24 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-
-const PERMISSIONS = [
-  { key: "accessAI", label: "Access AI tools" },
-  { key: "manageAssignments", label: "Manage assignments" },
-  { key: "manageSuperAssignments", label: "Manage super assignments" },
-  { key: "viewAnalytics", label: "View analytics" },
-  { key: "managePets", label: "Manage pets" },
-  { key: "manageThemes", label: "Manage themes" },
-  { key: "manageCosmetics", label: "Manage cosmetics" },
-  { key: "manageShop", label: "Manage shop" },
-  { key: "manageEvents", label: "Manage events" },
-  { key: "manageKitchen", label: "Manage kitchen" },
-  { key: "manageLocks", label: "Manage locks" },
-  { key: "banFlagUsers", label: "Ban/flag users" },
-  { key: "grantAdminTokens", label: "Grant admin tokens" },
-  { key: "toggleAdminRole", label: "Toggle admin role" },
-  { key: "deleteAssets", label: "Delete assets" }
-];
+import { PERMISSIONS } from "@/lib/adminPermissions";
 
 export default function RolesManager() {
   const [roles, setRoles] = useState([]);
