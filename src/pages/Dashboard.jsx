@@ -280,9 +280,8 @@ export default function Dashboard() {
           className="flex items-center justify-between mb-6">
 
           <div className="flex items-center gap-3">
-            <BrandLogo size="md" />
+            <BrandLogo size="lg" showText={false} />
             <div>
-              <h1 className="text-xl font-bold text-slate-800">1Planner</h1>
               <p className="text-sm text-slate-500">Welcome back, {profile.username}!</p>
             </div>
           </div>
