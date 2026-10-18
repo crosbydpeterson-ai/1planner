@@ -16,7 +16,7 @@ export default function BrandLogo({ size = 'md', showText = true, className = ''
   return (
     <Link to={createPageUrl('Dashboard')} className={cn('flex items-center gap-2', className)}>
       <img src={LOGO_URL} alt="1Planner" className={cn(s.img, 'rounded-full object-cover')} />
-      {showText && <span className={cn("font-bold text-slate-800 hidden", s.text)}>1Planner</span>}
+      
     </Link>);
 
 }
