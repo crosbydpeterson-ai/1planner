@@ -3,10 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Sword, LogOut, Settings, Wand2, User } from 'lucide-react';
+import { LogOut, Settings, Wand2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
-import GlassIcon from '@/components/ui/GlassIcon';
+import BrandLogo from '@/components/branding/BrandLogo';
 
 // Widget components
 import WidgetGrid from '@/components/dashboard/WidgetGrid';
@@ -280,7 +280,7 @@ export default function Dashboard() {
           className="flex items-center justify-between mb-6">
 
           <div className="flex items-center gap-3">
-            <GlassIcon icon={Sword} color="primary" />
+            <BrandLogo size="md" />
             <div>
               <h1 className="text-xl font-bold text-slate-800">1Planner</h1>
               <p className="text-sm text-slate-500">Welcome back, {profile.username}!</p>
