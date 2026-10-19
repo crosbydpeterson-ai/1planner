@@ -159,9 +159,9 @@ export default function Admin() {
       const hasCustomRole = Array.isArray(currentProfile.assignedRoleIds) && currentProfile.assignedRoleIds.length > 0;
       if (!(role === 'admin' || role === 'super_admin' || superByName || hasCustomRole)) { navigate(createPageUrl('Dashboard')); return; }
       setIsSuperAdmin(superByName || role === 'super_admin'); setIsAdminRole(true); setAdminProfile(currentProfile);
-      const basePerms = basePermissions();
       if (superByName || role === 'super_admin') { setPermissions(allPermissions()); }
-      else if (hasCustomRole) { try { const allRoles = await base44.entities.Role.list(); const myRoles = allRoles.filter(r => currentProfile.assignedRoleIds.includes(r.id)); const merged = { ...basePerms }; myRoles.forEach(r => { const p = r.permissions || {}; Object.keys(merged).forEach(k => { merged[k] = merged[k] || !!p[k]; }); }); setPermissions(merged); } catch (e) { setPermissions(basePerms); } }
+      else if (role === 'admin') { setPermissions(allPermissions()); }
+      else if (hasCustomRole) { try { const allRoles = await base44.entities.Role.list(); const myRoles = allRoles.filter(r => currentProfile.assignedRoleIds.includes(r.id)); const merged = basePermissions(); myRoles.forEach(r => { const p = r.permissions || {}; Object.keys(merged).forEach(k => { merged[k] = merged[k] || !!p[k]; }); }); setPermissions(merged); } catch (e) { setPermissions(basePermissions()); } }
       else { setPermissions(defaultAdminPermissions()); }
       const adminAuth = localStorage.getItem('quest_admin_auth');
       if (superByName || role === 'super_admin') { setIsAuthenticated(true); localStorage.setItem('quest_admin_auth', 'true'); loadData(); }

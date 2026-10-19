@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const PRESET_CONTACTS = [
   { username: 'Crosby', role: 'Owner & Main Admin', emoji: '👑', color: 'from-yellow-500 to-orange-500', isBot: false },
@@ -20,7 +21,8 @@ export default function AdminDMInbox({ adminProfile }) {
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   const [tab, setTab] = useState('inbox'); // inbox | contacts
-  const [newContact, setNewContact] = useState({ username: '', role: '', emoji: '😊', color: 'from-blue-500 to-indigo-500', isBot: false });
+  const [newContact, setNewContact] = useState({ username: '', role: '', emoji: '😊', color: 'from-blue-500 to-indigo-500', isBot: false, adminProfileId: '' });
+  const [adminUsers, setAdminUsers] = useState([]);
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -34,12 +36,14 @@ export default function AdminDMInbox({ adminProfile }) {
   }, [activeThread?.messages]);
 
   const loadAll = async () => {
-    const [allContacts, allThreads] = await Promise.all([
+    const [allContacts, allThreads, adminProfiles] = await Promise.all([
       base44.entities.DMContact.list('-created_date'),
       base44.entities.DMThread.list('-lastMessageAt'),
+      base44.entities.UserProfile.filter({ rank: { $in: ['admin', 'super_admin'] } }),
     ]);
     setContacts(allContacts);
     setThreads(allThreads);
+    setAdminUsers(adminProfiles);
     // Refresh active
     if (activeThread) {
       const fresh = allThreads.find(t => t.id === activeThread.id);
@@ -85,7 +89,7 @@ export default function AdminDMInbox({ adminProfile }) {
     if (!newContact.username.trim() || !newContact.role.trim()) { toast.error('Fill in username and role'); return; }
     const created = await base44.entities.DMContact.create({ ...newContact, isActive: true });
     setContacts(prev => [created, ...prev]);
-    setNewContact({ username: '', role: '', emoji: '😊', color: 'from-blue-500 to-indigo-500', isBot: false });
+    setNewContact({ username: '', role: '', emoji: '😊', color: 'from-blue-500 to-indigo-500', isBot: false, adminProfileId: '' });
     toast.success('Contact added!');
   };
 
@@ -193,6 +197,19 @@ export default function AdminDMInbox({ adminProfile }) {
                   <label className="text-slate-400 text-xs whitespace-nowrap">Is Bot?</label>
                   <input type="checkbox" checked={newContact.isBot} onChange={e => setNewContact(p => ({ ...p, isBot: e.target.checked }))} />
                 </div>
+              </div>
+              <div>
+                <p className="text-slate-300 text-sm font-semibold mb-1.5">Link to user (so they can see these DMs)</p>
+                <Select value={newContact.adminProfileId} onValueChange={(v) => {
+                  const u = adminUsers.find(x => x.id === v);
+                  setNewContact(p => ({ ...p, adminProfileId: v, username: u ? u.username : p.username }));
+                }}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white text-sm"><SelectValue placeholder="Select an admin user" /></SelectTrigger>
+                  <SelectContent>
+                    {adminUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.username}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {newContact.adminProfileId && <p className="text-[11px] text-slate-400 mt-1">Username auto-set to match this user so their inbox sees these threads.</p>}
               </div>
               <Button onClick={addContact} className="bg-indigo-600 hover:bg-indigo-700 w-full">
                 <Plus className="w-4 h-4 mr-1" /> Add Contact
