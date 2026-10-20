@@ -3,19 +3,28 @@
   "type": "object",
   "properties": {
     "studentProfileId": {
-      "type": "string"
+      "type": "string",
+      "description": "UserProfile ID of the student side. This is the student's stable identity and is never re-pointed."
     },
     "studentUsername": {
-      "type": "string"
+      "type": "string",
+      "description": "Display snapshot of the student's username (presentation only)"
     },
     "contactId": {
-      "type": "string"
+      "type": "string",
+      "description": "DMContact ID this conversation is addressed to. Resolves to the recipient via the contact's adminProfileId."
     },
     "contactUsername": {
-      "type": "string"
+      "type": "string",
+      "description": "Display snapshot of the contact name shown to students (presentation only \u2014 never used for routing)"
+    },
+    "recipientProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the contact's linked recipient, snapshotted when the thread was created from a verified contact link. Authoritative for routing; reassigning a contact does not move existing conversations. Null on threads whose contact had no verified link when they were created."
     },
     "messages": {
       "type": "array",
+      "description": "Legacy embedded message log. Messages sent from the messaging UI are stored as DMMessage records instead, so two people sending at once cannot overwrite each other. Both sources are merged (and deduplicated by operationId) when a conversation is displayed.",
       "items": {
         "type": "object",
         "properties": {
@@ -32,6 +41,12 @@
           "sentAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "giftData": {
+            "type": "object"
+          },
+          "operationId": {
+            "type": "string"
           }
         }
       }
@@ -42,7 +57,8 @@
     },
     "hasUnreadAdmin": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Unread for the recipient side (contact / admin)"
     },
     "hasUnreadStudent": {
       "type": "boolean",

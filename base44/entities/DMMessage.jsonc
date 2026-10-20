@@ -1,0 +1,44 @@
+{
+  "name": "DMMessage",
+  "type": "object",
+  "properties": {
+    "threadId": {
+      "type": "string",
+      "description": "DMThread ID this message belongs to"
+    },
+    "sender": {
+      "type": "string",
+      "description": "student | admin | bot | system"
+    },
+    "senderName": {
+      "type": "string",
+      "description": "Display name of the author at send time"
+    },
+    "senderProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the author (stable identity, not a display name)"
+    },
+    "text": {
+      "type": "string",
+      "description": "Message text"
+    },
+    "sentAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the message was stored"
+    },
+    "giftData": {
+      "type": "object",
+      "description": "Gift payload when this message is a gift (kept intact across the migration)"
+    },
+    "operationId": {
+      "type": "string",
+      "description": "Stable id reused across retries so one send is stored exactly once"
+    }
+  },
+  "required": [
+    "threadId",
+    "sender",
+    "text"
+  ]
+}

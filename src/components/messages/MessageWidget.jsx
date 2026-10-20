@@ -1,35 +1,82 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import {
+  loadContacts,
+  loadRecipientThreads,
+  loadStudentThreads,
+  recipientContactIds,
+  unlinkedNameMatchContactIds,
+} from '@/lib/dmRouting';
+import { resolveMessagingAccess } from '@/lib/dmAccess';
 
+/**
+ * Unread badge.
+ *
+ * Uses the exact same recipient routing as the inbox (stable ids, no name
+ * matching), so the badge and the personal inbox always agree. Recipient and
+ * student unread counts are both included because both have their own tab.
+ */
 export default function MessageWidget({ currentProfile }) {
   const [unread, setUnread] = useState(0);
   const navigate = useNavigate();
-
-  const isAdmin = currentProfile?.rank === 'admin' || currentProfile?.rank === 'super_admin' ||
-    currentProfile?.username?.toLowerCase() === 'crosby';
+  const refreshTimer = useRef(null);
+  const accessRef = useRef(null);
+  const myContactIdsRef = useRef([]);
 
   useEffect(() => {
     if (!currentProfile?.id) return;
+    let cancelled = false;
+
     const load = async () => {
-      if (isAdmin) {
-        const all = await base44.entities.DMThread.list('-lastMessageAt', 200);
-        const mine = all.filter(t => t.contactUsername?.toLowerCase() === currentProfile.username?.toLowerCase());
-        setUnread(mine.filter(t => t.hasUnreadAdmin).length);
-      } else {
-        const all = await base44.entities.DMThread.filter({ studentProfileId: currentProfile.id });
-        setUnread(all.filter(t => t.hasUnreadStudent).length);
+      try {
+        const contacts = await loadContacts();
+        if (!accessRef.current) accessRef.current = await resolveMessagingAccess(currentProfile, contacts);
+        const access = accessRef.current;
+
+        let count = 0;
+        if (access.hasRecipientInbox) {
+          const verified = recipientContactIds(contacts, currentProfile.id);
+          // The owner keeps seeing history on contacts that aren't linked yet.
+          const fallback = access.canUseFullInbox ? unlinkedNameMatchContactIds(contacts, currentProfile.username) : [];
+          myContactIdsRef.current = [...verified, ...fallback];
+          const { threads } = await loadRecipientThreads({
+            myProfileId: currentProfile.id,
+            verifiedContactIds: verified,
+            fallbackContactIds: fallback,
+          });
+          count += threads.filter((t) => t.hasUnreadAdmin).length;
+        }
+
+        const { threads: mine } = await loadStudentThreads(currentProfile.id);
+        count += mine.filter((t) => t.hasUnreadStudent).length;
+
+        if (!cancelled) setUnread(count);
+      } catch (err) {
+        console.error('Unread badge could not load', err);
       }
     };
-    let timer;
+
     load();
-    const unsub = base44.entities.DMThread.subscribe(() => {
-      clearTimeout(timer);
-      timer = setTimeout(() => load(), 800);
+    const unsub = base44.entities.DMThread.subscribe((event) => {
+      const data = event?.data;
+      // Ignore changes to conversations that aren't this profile's.
+      const relevant = !data
+        || String(data.studentProfileId || '') === String(currentProfile.id)
+        || String(data.recipientProfileId || '') === String(currentProfile.id)
+        || (data.contactId && myContactIdsRef.current.includes(data.contactId));
+      if (!relevant) return;
+      clearTimeout(refreshTimer.current);
+      refreshTimer.current = setTimeout(load, 800);
     });
-    return () => { clearTimeout(timer); unsub?.(); };
-  }, [currentProfile?.id, isAdmin]);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(refreshTimer.current);
+      unsub?.();
+    };
+  }, [currentProfile?.id]);
 
   if (!currentProfile) return null;
 
