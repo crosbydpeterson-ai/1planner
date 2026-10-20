@@ -26,7 +26,7 @@ import IdeaGeneratorPanel from '@/components/admin/IdeaGeneratorPanel';
 import BansAndFlagsPanel from '@/components/admin/BansAndFlagsPanel';
 import CreateShopItemDialog from '@/components/admin/CreateShopItemDialog';
 import CreatePetDialog from '@/components/admin/CreatePetDialog';
-import EconomyCharts from '@/components/admin/EconomyCharts';
+import AnalyticsDashboard from '@/components/admin/analytics/AnalyticsDashboard';
 import AdminEmailBroadcast from '@/components/admin/AdminEmailBroadcast';
 import DailyRewardsTab from '@/components/admin/dailyrewards/DailyRewardsTab';
 import WheelLibraryTab from '@/components/admin/wheellibrary/WheelLibraryTab';
@@ -465,7 +465,21 @@ export default function Admin() {
           <TabsContent value="booths"><BoothSkinManager /></TabsContent>
           <TabsContent value="analytics">
             <div className="space-y-6">
-              <EconomyCharts />
+              <AnalyticsDashboard
+                users={users}
+                assignments={assignments}
+                shopItems={shopItems}
+                bundles={bundles}
+                events={events}
+                customPets={customPets}
+                customThemes={customThemes}
+                magicEggs={magicEggs}
+                seasons={seasons}
+                petCosmetics={petCosmetics}
+                petMojiList={petMojiList}
+                boothSkins={boothSkins}
+                teacherName={(id) => getTeacherName(teachers, id)}
+              />
               <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
                 <UserTimeAnalytics />
               </div>
