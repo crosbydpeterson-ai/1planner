@@ -48,7 +48,7 @@ export default function EconomyAnalytics({
       <SectionHeader title="Economy & Content" icon={ShoppingBag} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-slate-800 rounded-xl p-3 border border-slate-700">
-          <p className="text-xs text-slate-400">Inventory Value</p>
+          <p className="text-xs text-slate-400">Sum of listed item prices</p>
           <p className="text-xl font-bold text-white">{formatNumber(inventoryValue)} 🪙</p>
         </div>
         <div className="bg-slate-800 rounded-xl p-3 border border-slate-700">

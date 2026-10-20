@@ -45,6 +45,10 @@
           "type": "boolean",
           "default": false
         },
+        "viewEventAnalytics": {
+          "type": "boolean",
+          "default": false
+        },
         "manageAssignments": {
           "type": "boolean",
           "default": false

@@ -7,6 +7,7 @@ export const PERMISSIONS = [
   { key: "manageAssignments", label: "Manage assignments" },
   { key: "manageSuperAssignments", label: "Manage super assignments" },
   { key: "viewAnalytics", label: "View analytics" },
+  { key: "viewEventAnalytics", label: "View event analytics" },
   { key: "managePets", label: "Manage pets" },
   { key: "manageThemes", label: "Manage themes" },
   { key: "manageCosmetics", label: "Manage cosmetics" },

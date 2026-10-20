@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { trackAction } from './analyticsTracking';
 import {
   getChicagoDateKey,
   getDailyRewardEligibility,
@@ -188,6 +189,18 @@ export async function claimDailyReward(profile, progress, config, wheelPrize, wh
     };
   }
 
+  // Record the completed daily spin (once per profile per Central-Time day).
+  trackAction({
+    actionType: 'daily_spin',
+    profileId: profile.id,
+    wheelId: wheelMeta?.id || null,
+    wheelVersion: wheelMeta?.version || null,
+    rewardType: rwd?.type || null,
+    rewardAmount: Number(rwd?.amount) || null,
+    rewardId: rwd?.value || null,
+    operationId: `daily_spin:${profile.id}:${today}`,
+  });
+
   return { ok: true, profile: updatedProfile, progress: updatedProgress, awarded, reward: rwd };
 }
 
@@ -285,6 +298,18 @@ export async function claimBonusSpin(profile, progress, config, wheelPrize, whee
       reward: wheelPrize,
     };
   }
+
+  // Record the completed bonus spin (each successful spin is a distinct outcome).
+  trackAction({
+    actionType: 'bonus_spin',
+    profileId: profile.id,
+    wheelId: wheelMeta?.id || null,
+    wheelVersion: wheelMeta?.version || null,
+    rewardType: wheelPrize?.type || null,
+    rewardAmount: Number(wheelPrize?.amount) || null,
+    rewardId: wheelPrize?.value || null,
+    operationId: `bonus_spin:${profile.id}:${today}:${Math.random().toString(36).slice(2, 8)}`,
+  });
 
   return { ok: true, profile: updatedProfile, progress: updatedProgress, awarded, reward: wheelPrize };
 }

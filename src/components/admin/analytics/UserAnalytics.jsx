@@ -28,13 +28,15 @@ export default function UserAnalytics({ users = [], teacherName }) {
     user: "Student", admin: "Admin", super_admin: "Super Admin",
   }), [users]);
 
+  // Mutually exclusive categories with documented precedence:
+  // Banned > Locked > Flagged > Other accounts (so no one is counted twice).
   const statusData = useMemo(() => {
-    const active = users.filter((u) => !u.isBanned && !u.isLocked).length;
+    const other = users.filter((u) => !u.isBanned && !u.isLocked && !u.flagged).length;
     return [
-      { name: "Active", value: active },
       { name: "Banned", value: users.filter((u) => u.isBanned).length },
-      { name: "Locked", value: users.filter((u) => u.isLocked).length },
-      { name: "Flagged", value: users.filter((u) => u.flagged).length },
+      { name: "Locked", value: users.filter((u) => !u.isBanned && u.isLocked).length },
+      { name: "Flagged", value: users.filter((u) => !u.isBanned && !u.isLocked && u.flagged).length },
+      { name: "Other accounts", value: other },
     ];
   }, [users]);
 
@@ -80,7 +82,8 @@ export default function UserAnalytics({ users = [], teacherName }) {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Account Status">
+        <ChartCard title="Account Status" subtitle="mutually exclusive — Banned &gt; Locked &gt; Flagged &gt; Other accounts (not “recently active”)">
+
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>

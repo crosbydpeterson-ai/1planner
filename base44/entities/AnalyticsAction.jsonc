@@ -1,0 +1,51 @@
+{
+  "name": "AnalyticsAction",
+  "type": "object",
+  "properties": {
+    "actionType": {
+      "type": "string",
+      "description": "Completed outcome type: quest_complete | daily_spin | bonus_spin"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the completed action happened"
+    },
+    "profileId": {
+      "type": "string",
+      "description": "UserProfile ID, used for deduplication and unique-person counts"
+    },
+    "eventId": {
+      "type": "string",
+      "description": "AdminEvent or GlobalEvent ID when the action is tied to an event"
+    },
+    "wheelId": {
+      "type": "string",
+      "description": "SpinWheelPreset ID when the action was a wheel spin"
+    },
+    "wheelVersion": {
+      "type": "number",
+      "description": "SpinWheelPreset version used for the spin"
+    },
+    "rewardType": {
+      "type": "string",
+      "description": "Outcome reward type (xp, coins, pet, theme, title, song, playlist)"
+    },
+    "rewardAmount": {
+      "type": "number",
+      "description": "Numeric amount for xp/coins outcomes"
+    },
+    "rewardId": {
+      "type": "string",
+      "description": "Asset ID for pet/theme/title/song/playlist outcomes"
+    },
+    "operationId": {
+      "type": "string",
+      "description": "Stable ID reused across retries so one outcome is recorded once"
+    }
+  },
+  "required": [
+    "actionType",
+    "profileId"
+  ]
+}

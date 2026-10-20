@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import { trackAction } from '@/lib/analyticsTracking';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -304,6 +305,16 @@ export default function Assignments() {
         flagged: shouldFlagUser ? true : profile.flagged,
         flagMessage: shouldFlagUser ? 'Unnatural completion detected: finished within 30 minutes during school hours' : profile.flagMessage,
         flagAcknowledged: shouldFlagUser ? false : profile.flagAcknowledged
+      });
+
+      // Record the completed quest outcome for analytics (fire-and-forget; deduped by quest id).
+      trackAction({
+        actionType: 'quest_complete',
+        profileId: profile.id,
+        eventId: assignment.id,
+        rewardType: 'xp',
+        rewardAmount: xpToAdd,
+        operationId: `quest:${profile.id}:${assignment.id}`,
       });
 
       // Mark daily reward eligibility (manual claim)

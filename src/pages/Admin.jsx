@@ -27,6 +27,7 @@ import BansAndFlagsPanel from '@/components/admin/BansAndFlagsPanel';
 import CreateShopItemDialog from '@/components/admin/CreateShopItemDialog';
 import CreatePetDialog from '@/components/admin/CreatePetDialog';
 import AnalyticsDashboard from '@/components/admin/analytics/AnalyticsDashboard';
+import EventInsights from '@/components/admin/eventinsights/EventInsights';
 import AdminEmailBroadcast from '@/components/admin/AdminEmailBroadcast';
 import DailyRewardsTab from '@/components/admin/dailyrewards/DailyRewardsTab';
 import WheelLibraryTab from '@/components/admin/wheellibrary/WheelLibraryTab';
@@ -342,7 +343,7 @@ export default function Admin() {
             {can('manageEvents') && <TabsTrigger value="events" className="data-[state=active]:bg-slate-700">🫧 Events</TabsTrigger>}
             {can('manageKitchen') && <TabsTrigger value="kitchen" className="data-[state=active]:bg-slate-700">👨‍🍳 Kitchen</TabsTrigger>}
             {can('manageShop') && <TabsTrigger value="shop" className="data-[state=active]:bg-slate-700"><ShoppingBag className="w-4 h-4 mr-2" />Shop</TabsTrigger>}
-            {can('viewAnalytics') && <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">📊 Analytics</TabsTrigger>}
+            {(can('viewAnalytics') || can('viewEventAnalytics')) && <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">{can('viewAnalytics') ? '📊 Analytics' : '📈 Event Insights'}</TabsTrigger>}
             {can('manageEmail') && <TabsTrigger value="email" className="data-[state=active]:bg-slate-700">✉️ Email</TabsTrigger>}
             {(isSuperAdmin || permissions.toggleAdminRole) && <TabsTrigger value="roles" className="data-[state=active]:bg-slate-700"><Shield className="w-4 h-4 mr-2" />Roles</TabsTrigger>}
             {(isSuperAdmin || can('manageSuperAssignments')) && <TabsTrigger value="super_assignments" className="data-[state=active]:bg-slate-700">⭐ Super Assignments</TabsTrigger>}
@@ -465,24 +466,29 @@ export default function Admin() {
           <TabsContent value="booths"><BoothSkinManager /></TabsContent>
           <TabsContent value="analytics">
             <div className="space-y-6">
-              <AnalyticsDashboard
-                users={users}
-                assignments={assignments}
-                shopItems={shopItems}
-                bundles={bundles}
-                events={events}
-                customPets={customPets}
-                customThemes={customThemes}
-                magicEggs={magicEggs}
-                seasons={seasons}
-                petCosmetics={petCosmetics}
-                petMojiList={petMojiList}
-                boothSkins={boothSkins}
-                teacherName={(id) => getTeacherName(teachers, id)}
-              />
-              <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
-                <UserTimeAnalytics />
-              </div>
+              {can('viewAnalytics') && (
+                <AnalyticsDashboard
+                  users={users}
+                  assignments={assignments}
+                  shopItems={shopItems}
+                  bundles={bundles}
+                  events={events}
+                  customPets={customPets}
+                  customThemes={customThemes}
+                  magicEggs={magicEggs}
+                  seasons={seasons}
+                  petCosmetics={petCosmetics}
+                  petMojiList={petMojiList}
+                  boothSkins={boothSkins}
+                  teacherName={(id) => getTeacherName(teachers, id)}
+                />
+              )}
+              {can('viewEventAnalytics') && <EventInsights />}
+              {can('viewAnalytics') && (
+                <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
+                  <UserTimeAnalytics />
+                </div>
+              )}
             </div>
           </TabsContent>
           <TabsContent value="email"><AdminEmailBroadcast /></TabsContent>

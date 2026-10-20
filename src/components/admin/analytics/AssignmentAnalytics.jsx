@@ -20,10 +20,11 @@ export default function AssignmentAnalytics({ assignments = [], teacherName }) {
     everyone: "Everyone", math: "Math", reading: "Reading",
   }), [assignments]);
 
+  // Mutually exclusive categories with precedence: Flagged > Approved > Pending.
   const byStatus = useMemo(() => [
-    { name: "Approved", value: assignments.filter((a) => a.isApproved).length },
     { name: "Flagged", value: assignments.filter((a) => a.isFlagged).length },
-    { name: "Pending", value: assignments.filter((a) => !a.isApproved && !a.isFlagged).length },
+    { name: "Approved", value: assignments.filter((a) => !a.isFlagged && a.isApproved).length },
+    { name: "Pending", value: assignments.filter((a) => !a.isFlagged && !a.isApproved).length },
   ], [assignments]);
 
   const byTeacher = useMemo(() => {
@@ -74,7 +75,8 @@ export default function AssignmentAnalytics({ assignments = [], teacherName }) {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Assignment Status">
+        <ChartCard title="Assignment Status" subtitle="mutually exclusive — Flagged &gt; Approved &gt; Pending">
+
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={byStatus} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
