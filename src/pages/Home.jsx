@@ -89,7 +89,7 @@ export default function Home() {
           break;
         } catch (rateErr) {
           if (attempt === 2) throw rateErr;
-          await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+          await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
         }
       }
       const profile = profiles[0];
@@ -237,9 +237,9 @@ export default function Home() {
 
       // Grant 2 Magic Eggs to new players
       await base44.entities.MagicEgg.bulkCreate([
-        { userId: uniqueId, source: 'new_player' },
-        { userId: uniqueId, source: 'new_player' }
-      ]);
+      { userId: uniqueId, source: 'new_player' },
+      { userId: uniqueId, source: 'new_player' }]
+      );
 
       // Award XP to referrer
       if (referrerProfile) {
@@ -344,7 +344,7 @@ export default function Home() {
             transition={{ type: "spring", delay: 0.2 }}
             className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl">
 
-            <Sword className="w-10 h-10 text-white" />
+            <Sword className="w-10 h-10 text-white hidden" />
           </motion.div>
           <h1 className="text-3xl font-bold text-slate-800">1Planner</h1>
           <p className="text-slate-500 mt-2">make your homework fun</p>
