@@ -50,7 +50,7 @@ import AdminSettingsPanel from '@/components/admin/AdminSettingsPanel';
 import LogoutRestrictionPanel from '@/components/admin/LogoutRestrictionPanel';
 import ActiveEggJobs from '@/components/admin/ActiveEggJobs';
 import SeasonPassGeneratorPanel from '@/components/admin/SeasonPassGeneratorPanel';
-import PlusRewardsEditor from '@/components/admin/PlusRewardsEditor';
+import SeasonManagerPanel from '@/components/admin/seasons/SeasonManagerPanel';
 import PetMojiGeneratorPanel from '@/components/admin/PetMojiGeneratorPanel';
 import BulkPetMojiCreatorPanel from '@/components/admin/BulkPetMojiCreatorPanel';
 import CommunityModerationPanel from '@/components/admin/CommunityModerationPanel';
@@ -241,7 +241,6 @@ export default function Admin() {
   const handleDeleteAssignment = async (a) => { await base44.entities.Assignment.delete(a.id); setAssignments(assignments.filter(x => x.id !== a.id)); toast.success('Assignment deleted'); };
   const handleUpdateAssignment = async () => { if (!editingAssignment) return; const updatePayload = { ...editingAssignment, lootEggId: editingAssignment.lootEggId === 'none' ? null : editingAssignment.lootEggId }; await base44.entities.Assignment.update(editingAssignment.id, updatePayload); setAssignments(assignments.map(a => a.id === editingAssignment.id ? { ...a, ...updatePayload } : a)); setEditingAssignment(null); toast.success('Assignment updated'); };
   const handleCreateSeason = async () => { if (!seasonForm.name.trim() || !seasonForm.startDate || !seasonForm.endDate) { toast.error('Please fill in all required fields'); return; } const n = await base44.entities.Season.create(seasonForm); setSeasons([n, ...seasons]); setShowSeasonForm(false); setSeasonForm({ name: '', startDate: '', endDate: '', isActive: true, rewards: [] }); toast.success('Season created!'); };
-  const handleDeleteSeason = async (s) => { await base44.entities.Season.delete(s.id); setSeasons(seasons.filter(x => x.id !== s.id)); toast.success('Season deleted'); };
   const addSeasonReward = () => setSeasonForm({ ...seasonForm, rewards: [...seasonForm.rewards, { xpRequired: 100, type: 'pet', value: '', name: '' }] });
   const updateSeasonReward = (i, f, v) => { const r = [...seasonForm.rewards]; r[i][f] = v; setSeasonForm({ ...seasonForm, rewards: r }); };
   const removeSeasonReward = (i) => setSeasonForm({ ...seasonForm, rewards: seasonForm.rewards.filter((_, j) => j !== i) });
@@ -428,13 +427,17 @@ export default function Admin() {
 
           <TabsContent value="seasons">
             <SeasonPassGeneratorPanel adminProfile={adminProfile} customPets={customPets} customThemes={customThemes} onSeasonCreated={(s) => setSeasons([s, ...seasons])} />
-            {seasons.filter(s => s.isActive).map(s => (
-              <div key={s.id} className="mt-4">
-                <PlusRewardsEditor season={s} customPets={customPets} customThemes={customThemes} adminProfile={adminProfile} onSeasonUpdated={(updated) => setSeasons(seasons.map(x => x.id === updated.id ? updated : x))} />
-              </div>
-            ))}
-            <div className="flex justify-end mb-4"><Button onClick={() => setShowSeasonForm(true)} className="bg-gradient-to-r from-amber-500 to-orange-600"><Plus className="w-4 h-4 mr-2" />Manual Season</Button></div>
-            <div className="space-y-4">{seasons.map((season) => (<div key={season.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700"><div className="flex items-center justify-between mb-2"><div><h3 className="font-semibold text-white flex items-center gap-2">{season.name}{season.isActive && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Active</span>}</h3><p className="text-xs text-slate-400">{season.startDate} to {season.endDate}</p></div>{isSuperAdmin && <Button size="sm" variant="ghost" onClick={() => handleDeleteSeason(season)} className="text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></Button>}</div>{season.rewards?.length > 0 && <div className="text-sm text-slate-400">{season.rewards.length} rewards configured</div>}</div>))}{seasons.length === 0 && <div className="text-center py-8 text-slate-400">No seasons yet</div>}</div>
+            <div className="mt-4">
+              <SeasonManagerPanel
+                seasons={seasons}
+                onSeasonsChange={setSeasons}
+                onNewSeason={() => setShowSeasonForm(true)}
+                customPets={customPets}
+                customThemes={customThemes}
+                adminProfile={adminProfile}
+                isSuperAdmin={isSuperAdmin}
+              />
+            </div>
           </TabsContent>
 
           {isSuperAdmin ? (<TabsContent value="eggs"><div className="space-y-6"><div className="bg-gradient-to-br from-amber-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-white/10"><div className="flex items-center gap-3 mb-4"><span className="text-4xl">🥚✨</span><div><h3 className="text-xl font-bold text-white">Admin Magic Egg</h3><p className="text-slate-400 text-sm">Create unlimited custom creatures with AI — runs on server so you won't lose progress</p></div></div><div className="space-y-4"><Textarea value={adminEggIdea} onChange={(e) => setAdminEggIdea(e.target.value)} placeholder="Describe your creature idea (for batch: describe a theme and we'll generate variations)..." className="bg-slate-800/50 border-white/10 text-white min-h-[100px]" /><div className="flex items-center gap-3"><Label className="text-slate-300 whitespace-nowrap">Count:</Label><div className="flex gap-1">{[1,2,3,4,5].map(n => (<Button key={n} size="sm" variant={adminEggCount === n ? 'default' : 'outline'} onClick={() => setAdminEggCount(n)} className={adminEggCount === n ? 'bg-purple-600' : 'border-slate-600 text-slate-300'}>{n}</Button>))}</div><span className="text-xs text-slate-500">{adminEggCount > 1 ? `Will create ${adminEggCount} creatures` : 'Single creature'}</span></div><ActiveEggJobs adminProfile={adminProfile} onComplete={() => loadData()} /><Button onClick={async () => { if (!adminEggIdea.trim()) { toast.error('Enter a creature idea!'); return; } setGeneratingAdminPet(true); try { const job = await base44.entities.EggGenerationJob.create({ idea: adminEggIdea.trim(), totalCount: adminEggCount, status: 'pending', startedBy: adminProfile?.userId || 'admin', startedByProfileId: adminProfile?.id, completedCount: 0, createdPetIds: [], createdThemeIds: [] }); base44.functions.invoke('generateMagicEggs', { jobId: job.id }); toast.success('Job started! Progress will update below.'); setAdminEggIdea(''); } catch (e) { toast.error('Failed to start job'); console.error(e); } setGeneratingAdminPet(false); }} disabled={generatingAdminPet} className="w-full bg-gradient-to-r from-purple-500 to-pink-500">{generatingAdminPet ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Starting...</> : <><Wand2 className="w-4 h-4 mr-2" />Create {adminEggCount > 1 ? `${adminEggCount} Creatures` : 'Creature'} with AI</>}</Button></div></div><div><h3 className="text-lg font-semibold text-white mb-4">User Magic Eggs ({magicEggs.length})</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{magicEggs.map((egg) => { const owner = users.find(u => u.userId === egg.userId); return (<div key={egg.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><span className="text-3xl">{egg.isUsed ? '🐣' : '🥚'}</span><div><p className="text-white font-medium">{owner?.username || 'Unknown'}</p><p className="text-xs text-slate-400">{egg.isUsed ? 'Hatched' : 'Unused'}{egg.source ? ` • ${egg.source.replace(/_/g,' ')}` : ''}</p></div></div>{(isSuperAdmin || permissions.deleteAssets) && <Button size="sm" variant="ghost" onClick={async () => { await base44.entities.MagicEgg.delete(egg.id); setMagicEggs(magicEggs.filter(e => e.id !== egg.id)); toast.success('Egg deleted'); }} className="text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></Button>}</div></div>); })}{magicEggs.length === 0 && <div className="col-span-full text-center py-8 text-slate-400">No magic eggs yet</div>}</div></div></div></TabsContent>) : null}
