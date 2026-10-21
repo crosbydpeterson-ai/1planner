@@ -18,6 +18,7 @@ import {
   getSeasonStatus,
   selectOnePassSeason,
 } from '@/lib/seasonUtils';
+import { isPlusActive } from '@/lib/plusAccess';
 
 export default function Season() {
   const navigate = useNavigate();
@@ -397,7 +398,7 @@ export default function Season() {
                     </div>
                     <div className="rounded-2xl bg-white/10 px-3 py-3 text-white">
                       <div className="text-[10px] font-black uppercase text-white/70">1Pass Plus</div>
-                      <div className="text-lg font-black">{profile.has1PassPlus ? 'ON' : 'OFF'}</div>
+                      <div className="text-lg font-black">{isPlusActive(profile) ? 'ON' : 'OFF'}</div>
                     </div>
                   </div>
                 </div>
@@ -414,7 +415,7 @@ export default function Season() {
                 userXp={userXp}
                 claimedRewards={getClaimedRewardsForSeason(profile, season)}
                 onClaim={handleClaimReward}
-                hasPlus={!!profile.has1PassPlus}
+                hasPlus={isPlusActive(profile)}
               />
             </motion.div>
           </>

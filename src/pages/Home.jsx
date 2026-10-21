@@ -281,6 +281,8 @@ export default function Home() {
                 updates.unlockedThemes = [...(profile.unlockedThemes || []), rewardLink.rewardData.themeId];
               } else if (rewardLink.rewardType === 'title' && rewardLink.rewardData?.title) {
                 updates.unlockedTitles = [...(profile.unlockedTitles || []), rewardLink.rewardData.title];
+              } else if (rewardLink.rewardType === 'onepassplus') {
+                updates.has1PassPlus = true;
               }
 
               if (Object.keys(updates).length > 0) {

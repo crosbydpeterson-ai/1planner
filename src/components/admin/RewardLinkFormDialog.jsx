@@ -47,7 +47,7 @@ export default function RewardLinkFormDialog({ open, onOpenChange, form, setForm
               <Label>Reward Type</Label>
               <Select
                 value={form.rewardType}
-                onValueChange={(v) => setForm({ ...form, rewardType: v, rewardValue: v === 'magic_egg' ? 0 : 100, rewardData: {} })}
+                onValueChange={(v) => setForm({ ...form, rewardType: v, rewardValue: v === 'magic_egg' || v === 'onepassplus' ? 0 : 100, rewardData: {} })}
               >
                 <SelectTrigger className="bg-slate-700 border-slate-600">
                   <SelectValue />
@@ -56,6 +56,7 @@ export default function RewardLinkFormDialog({ open, onOpenChange, form, setForm
                   <SelectItem value="xp">XP</SelectItem>
                   <SelectItem value="coins">Quest Coins</SelectItem>
                   {isSuperAdmin && <SelectItem value="magic_egg">Magic Egg</SelectItem>}
+                  {isSuperAdmin && <SelectItem value="onepassplus">⭐ 1Pass Plus</SelectItem>}
                   <SelectItem value="pet">Pet</SelectItem>
                   <SelectItem value="theme">Theme</SelectItem>
                   <SelectItem value="title">Title</SelectItem>

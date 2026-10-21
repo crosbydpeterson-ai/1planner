@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useTeachers } from '@/hooks/useTeachers';
 import { getTeacherName } from '@/lib/teachers';
+import { isPlusActive } from '@/lib/plusAccess';
 import ClassesPanel from '@/components/admin/ClassesPanel';
 import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
@@ -375,8 +376,8 @@ export default function Admin() {
                     <div className="flex items-center gap-4">
                       <PetAvatar petId={user.equippedPetId} cosmeticIds={user.equippedCosmetics || []} cosmeticPositions={user.cosmeticPositions || {}} size="sm" />
                       <div>
-                        <h3 className="font-semibold text-white flex items-center gap-2">{user.username}{user.isLocked && <Lock className="w-4 h-4 text-red-400" />}{user.hiddenFromLeaderboard && <EyeOff className="w-4 h-4 text-yellow-400" />}{user.isPetCreator && <Wand2 className="w-4 h-4 text-pink-400" />}{user.isGameCreator && <Gamepad2 className="w-4 h-4 text-teal-400" />}{user.has1PassPlus && <Sparkles className="w-4 h-4 text-yellow-300" />}</h3>
-                        <p className="text-sm text-slate-400">Math: {getTeacherName(teachers, user.mathTeacher)} • Reading: {getTeacherName(teachers, user.readingTeacher)}{user.has1PassPlus ? ' • 1Pass Plus' : ''}{Object.entries(user.subjectAssignments || {}).filter(([,tid]) => tid).map(([slug, tid]) => ` • ${subjects.find(s => s.slug === slug)?.name || slug}: ${getTeacherName(teachers, tid)}`).join('')}</p>
+                        <h3 className="font-semibold text-white flex items-center gap-2">{user.username}{user.isLocked && <Lock className="w-4 h-4 text-red-400" />}{user.hiddenFromLeaderboard && <EyeOff className="w-4 h-4 text-yellow-400" />}{user.isPetCreator && <Wand2 className="w-4 h-4 text-pink-400" />}{user.isGameCreator && <Gamepad2 className="w-4 h-4 text-teal-400" />}{isPlusActive(user) && <Sparkles className="w-4 h-4 text-yellow-300" />}</h3>
+                        <p className="text-sm text-slate-400">Math: {getTeacherName(teachers, user.mathTeacher)} • Reading: {getTeacherName(teachers, user.readingTeacher)}{isPlusActive(user) ? ' • 1Pass Plus' : ''}{Object.entries(user.subjectAssignments || {}).filter(([,tid]) => tid).map(([slug, tid]) => ` • ${subjects.find(s => s.slug === slug)?.name || slug}: ${getTeacherName(teachers, tid)}`).join('')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -502,7 +503,7 @@ export default function Admin() {
           {can('manageEvents') && <TabsContent value="moderation"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><CommunityModerationPanel /></div></TabsContent>}
           {can('managePets') && <TabsContent value="concepts"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><PetConceptReviewPanel customPets={customPets} setCustomPets={setCustomPets} customThemes={customThemes} setCustomThemes={setCustomThemes} /></div></TabsContent>}
           {isSuperAdmin && <TabsContent value="lore"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><LoreComicPanel /></div></TabsContent>}
-          <TabsContent value="redeem_codes"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><RedeemCodeManager /></div></TabsContent>
+          <TabsContent value="redeem_codes"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><RedeemCodeManager isSuperAdmin={isSuperAdmin} /></div></TabsContent>
           <TabsContent value="dms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AdminDMInbox adminProfile={adminProfile} /></div></TabsContent>
           <TabsContent value="daily_rewards"><DailyRewardsTab /></TabsContent>
           <TabsContent value="wheel_library"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><WheelLibraryTab adminUsername={adminProfile?.username} /></div></TabsContent>

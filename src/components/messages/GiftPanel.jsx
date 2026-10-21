@@ -3,12 +3,13 @@ import { base44 } from '@/api/base44Client';
 import { AlertCircle, Coins, Gift, Loader2, X, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sendThreadMessage } from '@/lib/dmMessages';
+import PlusGiftPicker from '@/components/rewards/PlusGiftPicker';
 
 /**
  * Gift panel for a recipient/admin. The gift payload is stored on a message
  * record, and the panel only closes once the message is actually stored.
  */
-export default function GiftPanel({ thread, senderProfileId, senderName, onGiftSent, onClose }) {
+export default function GiftPanel({ thread, senderProfileId, senderName, canGrantPermanent, onGiftSent, onClose }) {
   const [tab, setTab] = useState('quick'); // quick | pet | theme
   const [pets, setPets] = useState([]);
   const [themes, setThemes] = useState([]);
@@ -49,6 +50,15 @@ export default function GiftPanel({ thread, senderProfileId, senderName, onGiftS
           await base44.entities.UserProfile.update(studentProfile.id, { questCoins: (studentProfile.questCoins || 0) + giftData.amount });
         } else if (giftData.type === 'xp') {
           await base44.entities.UserProfile.update(studentProfile.id, { xp: (studentProfile.xp || 0) + giftData.amount });
+        } else if (giftData.type === 'onepassplus') {
+          // Never send the message without the grant — that would tell the
+          // student they have Plus when they don't.
+          if (!studentProfile) throw new Error('Profile not loaded');
+          await base44.entities.UserProfile.update(studentProfile.id, {
+            has1PassPlus: true,
+            plusSeasonsGranted: giftData.seasonCount || 0,
+            plusExpiresAt: giftData.expiresAt || null,
+          });
         }
       }
       const result = await sendThreadMessage({
@@ -86,7 +96,7 @@ export default function GiftPanel({ thread, senderProfileId, senderName, onGiftS
       </div>
 
       <div className="flex gap-1 mb-3">
-        {[['quick', 'Quick'], ['pet', 'Pet'], ['theme', 'Theme']].map(([k, l]) => (
+        {[['quick', 'Quick'], ['pet', 'Pet'], ['theme', 'Theme'], ['plus', '1Pass Plus']].map(([k, l]) => (
           <button
             key={k}
             onClick={() => setTab(k)}
@@ -190,6 +200,19 @@ export default function GiftPanel({ thread, senderProfileId, senderName, onGiftS
             {filteredThemes.length === 0 && <p className="text-slate-500 text-xs text-center py-3">No themes found</p>}
           </div>
         </div>
+      )}
+
+      {tab === 'plus' && (
+        <PlusGiftPicker
+          sending={sending}
+          canGrantPermanent={canGrantPermanent}
+          onGift={({ seasonCount, expiresAt }) => sendGift(
+            { type: 'onepassplus', seasonCount, expiresAt },
+            seasonCount > 0
+              ? `⭐ You've been gifted 1Pass Plus for ${seasonCount} season${seasonCount > 1 ? 's' : ''} — until ${new Date(expiresAt).toLocaleDateString()}!`
+              : `⭐ You've been gifted 1Pass Plus — no expiry!`
+          )}
+        />
       )}
     </div>
   );

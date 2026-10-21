@@ -17,13 +17,14 @@
         "feature_unlock",
         "food_item",
         "xp",
-        "coins"
+        "coins",
+        "onepassplus"
       ],
-      "description": "What kind of reward this code gives"
+      "description": "What kind of reward this code gives. 'onepassplus' grants permanent 1Pass Plus and can only be created by a super admin."
     },
     "rewardData": {
       "type": "object",
-      "description": "Reward payload. For pet: {petId}. For feature_unlock: {feature: 'games'|'shop'|'market'|'pets'|'battlePass'|'kitchen'}. For food_item: {itemId, quantity}. For xp: {amount}. For coins: {amount}."
+      "description": "Reward payload. For pet: {petId}. For feature_unlock: {feature: 'games'|'shop'|'market'|'pets'|'battlePass'|'kitchen'}. For food_item: {itemId, quantity}. For xp: {amount}. For coins: {amount}. For onepassplus: no payload needed (grants permanent 1Pass Plus)."
     },
     "maxUses": {
       "type": "number",

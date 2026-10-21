@@ -79,6 +79,10 @@ export default function RedeemCodeInput({ profile, onRedeemed }) {
       updateData.questCoins = (profile.questCoins || 0) + (rd.amount || 0);
       successMsg = `You earned +${rd.amount} Quest Coins!`;
 
+    } else if (entry.rewardType === 'onepassplus') {
+      updateData.has1PassPlus = true;
+      successMsg = 'You unlocked 1Pass Plus! ⭐';
+
     } else if (entry.rewardType === 'food_item') {
       // Grant food item via FoodInventory
       const existing = await base44.entities.FoodInventory.filter({ userProfileId: profile.id, itemId: rd.itemId });

@@ -29,7 +29,9 @@ const defaultForm = {
   expiresAt: '',
 };
 
-export default function RedeemCodeManager() {
+export default function RedeemCodeManager({ isSuperAdmin = false }) {
+  // Only a super admin may hand out 1Pass Plus through a code.
+  const rewardTypes = isSuperAdmin ? [...REWARD_TYPES, 'onepassplus'] : REWARD_TYPES;
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(defaultForm);
@@ -100,6 +102,7 @@ export default function RedeemCodeManager() {
     if (c.rewardType === 'xp') return `+${rd.amount} XP`;
     if (c.rewardType === 'coins') return `+${rd.amount} Coins`;
     if (c.rewardType === 'food_item') return `🍎 Food item x${rd.quantity}`;
+    if (c.rewardType === 'onepassplus') return '⭐ 1Pass Plus (no expiry)';
     return c.rewardType;
   };
 
@@ -136,7 +139,7 @@ export default function RedeemCodeManager() {
             onChange={e => setForm(f => ({ ...f, rewardType: e.target.value }))}
             className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
           >
-            {REWARD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            {rewardTypes.map(t => <option key={t} value={t}>{t === 'onepassplus' ? '⭐ 1Pass Plus' : t}</option>)}
           </select>
 
           {form.rewardType === 'pet' && (

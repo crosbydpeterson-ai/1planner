@@ -14,9 +14,10 @@
         "magic_egg",
         "pet",
         "theme",
-        "title"
+        "title",
+        "onepassplus"
       ],
-      "description": "Type of reward"
+      "description": "Type of reward. 'onepassplus' grants permanent 1Pass Plus and can only be created by a super admin."
     },
     "rewardValue": {
       "type": "number",

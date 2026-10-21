@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import StatCard from "./StatCard";
 import { formatNumber, sumBy } from "./analyticsUtils";
+import { isPlusActive } from "@/lib/plusAccess";
 
 export default function OverviewStats({
   users = [], assignments = [], shopItems = [], bundles = [],
@@ -20,7 +21,7 @@ export default function OverviewStats({
   const banned = users.filter((u) => u.isBanned).length;
   const flagged = users.filter((u) => u.flagged).length;
   const locked = users.filter((u) => u.isLocked).length;
-  const plus = users.filter((u) => u.has1PassPlus).length;
+  const plus = users.filter((u) => isPlusActive(u)).length;
   const approvedAssignments = assignments.filter((a) => a.isApproved).length;
   const flaggedAssignments = assignments.filter((a) => a.isFlagged).length;
   const activeShop = shopItems.filter((s) => s.isActive !== false).length;

@@ -221,6 +221,16 @@
       "type": "boolean",
       "default": false
     },
+    "plusSeasonsGranted": {
+      "type": "number",
+      "default": 0,
+      "description": "How many seasons a gifted 1Pass Plus lasts, chosen by the admin who gifted it (0 = no expiry)."
+    },
+    "plusExpiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When a gifted 1Pass Plus lapses. Absent/empty = no expiry. Only meaningful while has1PassPlus is true."
+    },
     "fakeAdClicks": {
       "type": "number",
       "default": 0

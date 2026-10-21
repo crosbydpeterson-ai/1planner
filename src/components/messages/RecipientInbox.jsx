@@ -4,6 +4,7 @@ import { AlertCircle, Bot, ChevronLeft, Edit, Gift, Loader2, Send, Users } from 
 import { cn } from '@/lib/utils';
 import MessageBubble from './MessageBubble';
 import GiftPanel from './GiftPanel';
+import { isSuperAdminProfile } from '@/lib/plusAccess';
 import BulkMessageView from './BulkMessageView';
 import useThreadSender from '@/hooks/useThreadSender';
 import { buildThreadMessages, loadMessagesForThreads } from '@/lib/dmMessages';
@@ -345,6 +346,7 @@ export default function RecipientInbox({ currentProfile, canManage, canGift }) {
               thread={activeThread}
               senderProfileId={currentProfile.id}
               senderName={currentProfile.username}
+              canGrantPermanent={isSuperAdminProfile(currentProfile)}
               onGiftSent={(result) => {
                 setRecords((prev) => ({ ...prev, [activeThread.id]: [...(prev[activeThread.id] || []), result.message] }));
                 setThreads((prev) => prev.map((t) => (t.id === activeThread.id ? { ...t, ...result.thread } : t)));
