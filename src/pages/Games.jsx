@@ -9,7 +9,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import GamePlayDialog from '@/components/games/GamePlayDialog';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import GameCreationToggle from '@/components/games/GameCreationToggle';
-import RedeemCodeInput from '@/components/redeem/RedeemCodeInput';
 import { useFeatureLock } from '@/hooks/useFeatureLock';
 
 export default function Games() {
@@ -303,11 +302,6 @@ export default function Games() {
           </AnimatePresence>
         </div>
       )}
-
-      {/* Redeem Code */}
-      <div className="mt-6">
-        <RedeemCodeInput profile={profile} onRedeemed={loadData} />
-      </div>
 
       {/* Play Dialog */}
       {selectedGame && (

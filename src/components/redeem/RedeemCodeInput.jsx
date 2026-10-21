@@ -4,9 +4,20 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Gift, Loader2, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react';
 import { PETS } from '@/components/quest/PetCatalog';
+import PetAvatar from '@/components/quest/PetAvatar';
 import { CUSTOM_PET_PREFIX, customPetStorageId, isCustomPetId, planRedemption, redeemError } from '@/lib/redeemReward';
 
-export default function RedeemCodeInput({ profile, onRedeemed }) {
+/**
+ * The redemption form itself. `variant="plain"` drops the outer card so it can
+ * sit inside a dialog without looking like a card nested in a card.
+ */
+export default function RedeemCodeInput({
+  profile,
+  onRedeemed,
+  variant = 'card',
+  autoFocus = false,
+  onBusyChange,
+}) {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null); // {success, warning?, message}
@@ -57,6 +68,7 @@ export default function RedeemCodeInput({ profile, onRedeemed }) {
     if (!normalized || !profile?.id || inFlight.current) return;
     inFlight.current = true;
     setLoading(true);
+    onBusyChange?.(true);
     setResult(null);
 
     let rewardApplied = false;
@@ -77,12 +89,13 @@ export default function RedeemCodeInput({ profile, onRedeemed }) {
         entry.rewardType === 'onepassplus' && Number(entry.rewardData?.seasons) > 0;
       const seasons = needsSeasons ? await base44.entities.Season.list('-created_date') : [];
 
+      const resolvedPet = await resolvePet(entry.rewardType, entry.rewardData);
       const plan = planRedemption({
         rewardType: entry.rewardType,
         rewardData: entry.rewardData,
         profile: freshProfile,
         seasons,
-        resolvedPet: await resolvePet(entry.rewardType, entry.rewardData),
+        resolvedPet,
       });
 
       if (plan.foodItem) {
@@ -115,7 +128,13 @@ export default function RedeemCodeInput({ profile, onRedeemed }) {
       if (usedBy.includes(freshProfile.id)) throw redeemError('You have already redeemed this code.');
       await base44.entities.RedeemCode.update(entry.id, { usedBy: [...usedBy, freshProfile.id] });
 
-      setResult({ success: true, message: plan.message });
+      // The pet travelled with the plan, so its artwork can be shown without
+      // writing anything extra to the profile.
+      setResult({
+        success: true,
+        message: plan.message,
+        pet: entry.rewardType === 'pet' ? resolvedPet : null,
+      });
       setCode('');
       onRedeemed?.();
     } catch (err) {
@@ -143,6 +162,7 @@ export default function RedeemCodeInput({ profile, onRedeemed }) {
     } finally {
       inFlight.current = false;
       setLoading(false);
+      onBusyChange?.(false);
     }
   };
 
@@ -153,18 +173,27 @@ export default function RedeemCodeInput({ profile, onRedeemed }) {
       : 'bg-red-50 text-red-700';
   const Icon = result?.warning ? AlertTriangle : result?.success ? CheckCircle2 : AlertCircle;
 
+  const isPlain = variant === 'plain';
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <Gift className="w-5 h-5 text-indigo-500" />
-        <h3 className="font-semibold text-slate-800">Redeem a Code</h3>
-      </div>
+    <div className={isPlain ? 'space-y-3' : 'bg-white rounded-2xl border border-slate-100 shadow-sm p-5'}>
+      {!isPlain && (
+        <div className="flex items-center gap-2 mb-3">
+          <Gift className="w-5 h-5 text-indigo-500" />
+          <h3 className="font-semibold text-slate-800">Redeem a Code</h3>
+        </div>
+      )}
+      {/* A plain text field: codes use letters, digits, underscores and hyphens. */}
       <div className="flex gap-2">
         <Input
           placeholder="Enter code..."
           value={code}
           onChange={e => setCode(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && redeem()}
+          autoFocus={autoFocus}
+          autoComplete="off"
+          spellCheck={false}
+          aria-label="Reward code"
           className="uppercase placeholder:normal-case rounded-xl font-mono tracking-wider"
         />
         <Button onClick={redeem} disabled={loading || !code.trim()} className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white shrink-0">
@@ -173,9 +202,13 @@ export default function RedeemCodeInput({ profile, onRedeemed }) {
       </div>
 
       {result && (
-        <div className={`mt-3 flex items-center gap-2 text-sm rounded-xl px-3 py-2 ${tone}`}>
-          <Icon className="w-4 h-4 shrink-0" />
-          {result.message}
+        <div className={`${isPlain ? '' : 'mt-3'} flex items-center gap-3 text-sm rounded-xl px-3 py-2 ${tone}`}>
+          {result.pet ? (
+            <PetAvatar petId={result.pet.id} size="lg" className="shrink-0" />
+          ) : (
+            <Icon className="w-4 h-4 shrink-0" />
+          )}
+          <span className="font-medium">{result.message}</span>
         </div>
       )}
     </div>

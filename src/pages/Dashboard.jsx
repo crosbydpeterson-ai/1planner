@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { LogOut, Settings, Wand2, User } from 'lucide-react';
+import { LogOut, Settings, Ticket, Wand2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
 import BrandLogo from '@/components/branding/BrandLogo';
@@ -23,6 +23,10 @@ import GlobalEventWidget from '@/components/events/GlobalEventWidget';
 import Tutorial from '@/components/tutorial/Tutorial';
 import WhatsNewPopup from '@/components/announcements/WhatsNewPopup';
 import PromoBanner from '@/components/dashboard/PromoBanner';
+import RedeemCodeWidget from '@/components/dashboard/widgets/RedeemCodeWidget';
+import RedeemCodeDialog from '@/components/redeem/RedeemCodeDialog';
+import { dismissRedeemWidget, isRedeemWidgetDismissed } from '@/lib/redeemWidgetDismissal';
+import { invalidateProfile } from '@/lib/dataCache';
 import { useAuth } from '@/lib/AuthContext';
 import { isLogoutRestricted } from '@/lib/logoutRestriction';
 import LogoutCodeDialog from '@/components/auth/LogoutCodeDialog';
@@ -45,6 +49,9 @@ export default function Dashboard() {
   const [editMode, setEditMode] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [showLogoutCodeDialog, setShowLogoutCodeDialog] = useState(false);
+  // Opened only from the reward widget or the header action — never on login.
+  const [showRedeemDialog, setShowRedeemDialog] = useState(false);
+  const [showRedeemWidget, setShowRedeemWidget] = useState(false);
 
   useEffect(() => {
     if (authChecked && !isAuthenticated) {
@@ -93,6 +100,10 @@ export default function Dashboard() {
 
       const p = profiles[0];
       setProfile(p);
+
+      // The dismissal is remembered per account, so it is read once the
+      // profile id is known.
+      setShowRedeemWidget(!isRedeemWidgetDismissed(p.id));
 
       // Load widget config from profile or use all widgets as default
       if (p.widgetConfig && Array.isArray(p.widgetConfig) && p.widgetConfig.length > 0) {
@@ -178,6 +189,18 @@ export default function Dashboard() {
     // then perform the existing logout (which clears only session keys).
     localStorage.removeItem('quest_admin_auth');
     logout();
+  };
+
+  const handleDismissRedeemWidget = () => {
+    dismissRedeemWidget(profile?.id);
+    setShowRedeemWidget(false);
+  };
+
+  // After a confirmed reward: drop the cached profile row and re-read the
+  // dashboard's own copy of it (XP, coins, pets, titles, unlocks).
+  const handleRedeemed = () => {
+    invalidateProfile(profile?.id);
+    loadProfile();
   };
 
   const handleToggleWidget = (widgetId) => {
@@ -279,13 +302,23 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-6">
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <BrandLogo size="lg" showText={false} />
-            <div>
-              <p className="text-sm text-slate-500">Welcome back, {profile.username}!</p>
+            <div className="min-w-0">
+              <p className="text-sm text-slate-500 truncate">Welcome back, {profile.username}!</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Permanent entry point, so Home → Redeem Code always works */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowRedeemDialog(true)}
+              className="shrink-0 gap-1.5 rounded-xl border-purple-200 bg-white/80 text-purple-700 hover:bg-purple-50 hover:text-purple-800">
+
+              <Ticket className="w-4 h-4" />
+              Redeem Code
+            </Button>
             {profile.isPetCreator &&
             <Button
               variant="ghost"
@@ -328,6 +361,15 @@ export default function Dashboard() {
         {/* Promo Banner */}
         <PromoBanner profile={profile} />
 
+        {/* Reward code widget — hidden only when this account dismissed it */}
+        {showRedeemWidget &&
+          <div className="mb-4">
+            <RedeemCodeWidget
+              onOpen={() => setShowRedeemDialog(true)}
+              onDismiss={handleDismissRedeemWidget} />
+          </div>
+        }
+
         {/* Widgets */}
         <WidgetGrid
           widgets={activeWidgets}
@@ -342,6 +384,13 @@ export default function Dashboard() {
       <div className="w-full px-4 lg:px-8 xl:px-12 2xl:px-16 mt-4 pb-4 relative z-0">
         <GlobalEventWidget profile={profile} />
       </div>
+
+      {/* The single redemption dialog, shared by both entry points */}
+      <RedeemCodeDialog
+        open={showRedeemDialog}
+        onOpenChange={setShowRedeemDialog}
+        profile={profile}
+        onRedeemed={handleRedeemed} />
 
       {/* Customizer Modal */}
       {showCustomizer &&
