@@ -338,14 +338,14 @@ export default function Home() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", delay: 0.2 }}
-            className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl hidden">
+          
 
-            <Sword className="w-10 h-10 text-white hidden" />
-          </motion.div>
+
+
+
+
+
+          
           <h1 className="text-3xl font-bold text-slate-800">1Planner</h1>
           <p className="text-slate-500 mt-2">make your homework fun</p>
         </div>
