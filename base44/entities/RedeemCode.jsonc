@@ -18,13 +18,14 @@
         "food_item",
         "xp",
         "coins",
+        "title",
         "onepassplus"
       ],
-      "description": "What kind of reward this code gives. 'onepassplus' grants permanent 1Pass Plus and can only be created by a super admin."
+      "description": "What kind of reward this code gives. 'title' unlocks the exact title text in rewardData.title. 'onepassplus' grants 1Pass Plus \u2014 permanent unless rewardData.seasons is set \u2014 and can only be created by a super admin."
     },
     "rewardData": {
       "type": "object",
-      "description": "Reward payload. For pet: {petId}. For feature_unlock: {feature: 'games'|'shop'|'market'|'pets'|'battlePass'|'kitchen'}. For food_item: {itemId, quantity}. For xp: {amount}. For coins: {amount}. For onepassplus: no payload needed (grants permanent 1Pass Plus)."
+      "description": "Reward payload. For pet: {petId} \u2014 a built-in pet id or 'custom_<CustomPet id>'. For title: {title} \u2014 the exact title text to unlock. For feature_unlock: {feature: 'games'|'shop'|'market'|'pets'|'battlePass'|'kitchen'}. For food_item: {itemId, quantity}. For xp: {amount}. For coins: {amount}. For onepassplus: no payload grants permanent 1Pass Plus; {seasons: n} grants n season(s) starting from the current 1Pass season (1 = this season only) by setting plusSeasonsGranted and plusExpiresAt."
     },
     "maxUses": {
       "type": "number",
