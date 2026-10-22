@@ -119,13 +119,16 @@ export default function GameBuilder() {
     if (!profile) throw new Error('Profile not loaded');
     const params = new URLSearchParams(window.location.search);
     const editId = params.get('edit');
-    const res = await base44.functions.invoke('gameBuilderAgent', {
-      action: 'create',
-      profileId: profile.id,
-      username: profile.username,
-      editingGameId: editId || null,
+    const convo = await base44.agents.createConversation({
+      agent_name: 'game_builder',
+      metadata: {
+        name: editId ? `Edit Game ${editId}` : 'New Game',
+        description: 'Game Builder session',
+        profileId: profile.id,
+        username: profile.username,
+        editingGameId: editId || null,
+      },
     });
-    const convo = res.data?.conversation;
     if (!convo?.id) throw new Error('Could not start conversation');
     setConversationId(convo.id);
     conversationIdRef.current = convo.id;
@@ -139,11 +142,7 @@ export default function GameBuilder() {
     const started = Date.now();
     convoPollRef.current = setInterval(async () => {
       try {
-        const res = await base44.functions.invoke('gameBuilderAgent', {
-          action: 'get',
-          conversationId: id,
-        });
-        const convo = res.data?.conversation;
+        const convo = await base44.agents.getConversation(id);
         if (convo?.messages) {
           const mapped = convo.messages
             .filter(m => m.role === 'user' || m.role === 'assistant')
@@ -261,12 +260,10 @@ export default function GameBuilder() {
 
       startGamePolling(Date.now() - 1000);
 
-      await base44.functions.invoke('gameBuilderAgent', {
-        action: 'send',
-        conversationId: convoId,
-        content: contextualMessage,
-      });
-      // Agent runs async on backend; polling handles UI updates.
+      // Full conversation object, then let the agent run — polling streams the progress
+      const convo = await base44.agents.getConversation(convoId);
+      base44.agents.addMessage(convo, { role: 'user', content: contextualMessage })
+        .catch((err) => console.error('Agent run error:', err));
     } catch (e) {
       console.error('Send error:', e);
       setMessages(prev => [...prev, {

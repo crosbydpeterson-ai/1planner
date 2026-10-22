@@ -16,37 +16,49 @@ export default function QuestionGeneratorChat({ adminProfile }) {
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState(null);
-  const pollRef = useRef(null);
+  const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     base44.entities.Assignment.list('-created_date', 100).then(setAssignments).catch(() => {});
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Stream the agent's replies as it writes them
+  useEffect(() => {
+    if (!conversationId) return;
+    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
+      const msgs = data.messages || [];
+      setMessages(msgs);
+      const last = msgs[msgs.length - 1];
+      if (last?.role === 'assistant' && last?.content) setThinking(false);
+    });
+    return () => unsubscribe();
+  }, [conversationId]);
+
   const selectedAssignment = assignments.find(a => a.id === selectedAssignmentId);
 
   const startNewSession = async () => {
-    if (pollRef.current) clearInterval(pollRef.current);
     setLoading(true);
     setMessages([]);
     setConversationId(null);
     setSavedId(null);
     try {
+      setError('');
       const profileId = adminProfile?.id || localStorage.getItem('quest_profile_id');
       const username = adminProfile?.username || localStorage.getItem('quest_username') || 'admin';
-      const res = await base44.functions.invoke('questionGeneratorAgent', {
-        action: 'create',
-        profileId,
-        username,
-        assignmentTitle: selectedAssignment?.title || null,
-        assignmentId: selectedAssignmentId || null,
+      const convo = await base44.agents.createConversation({
+        agent_name: 'question_generator',
+        metadata: {
+          name: 'Question Generator Session',
+          description: 'AI question generator session',
+          profileId,
+          username,
+        },
       });
-      const convo = res.data.conversation;
       setConversationId(convo.id);
       setMessages(convo.messages || []);
 
@@ -56,6 +68,7 @@ export default function QuestionGeneratorChat({ adminProfile }) {
       }
     } catch (e) {
       console.error('Failed to start session', e);
+      setError('Could not start a session. Please try again.');
     }
     setLoading(false);
   };
@@ -65,37 +78,13 @@ export default function QuestionGeneratorChat({ adminProfile }) {
     const prompt = `Generate 10 quiz questions for the assignment titled "${assignment.title}"${assignment.description ? `. Description: ${assignment.description}` : ''}${assignment.pdfUrl ? `. PDF: ${assignment.pdfUrl}` : ''}.`;
     setMessages(prev => [...prev, { role: 'user', content: prompt }]);
     try {
-      await base44.functions.invoke('questionGeneratorAgent', {
-        action: 'send',
-        conversationId: convoId,
-        content: prompt,
-      });
-      startPolling(convoId);
+      const convo = await base44.agents.getConversation(convoId);
+      await base44.agents.addMessage(convo, { role: 'user', content: prompt });
     } catch (e) {
       console.error('Auto-prompt error', e);
       setThinking(false);
+      setError('Could not send that request. Please try again.');
     }
-  };
-
-  const startPolling = (convoId) => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await base44.functions.invoke('questionGeneratorAgent', {
-          action: 'get',
-          conversationId: convoId,
-        });
-        const msgs = res.data.conversation.messages || [];
-        setMessages(msgs);
-        const last = msgs[msgs.length - 1];
-        if (last?.role === 'assistant' && last?.content) {
-          clearInterval(pollRef.current);
-          setThinking(false);
-        }
-      } catch (e) {
-        console.error('Poll error', e);
-      }
-    }, 1500);
   };
 
   const sendMessage = async () => {
@@ -106,15 +95,12 @@ export default function QuestionGeneratorChat({ adminProfile }) {
     setThinking(true);
     setSavedId(null);
     try {
-      await base44.functions.invoke('questionGeneratorAgent', {
-        action: 'send',
-        conversationId,
-        content,
-      });
-      startPolling(conversationId);
+      const convo = await base44.agents.getConversation(conversationId);
+      await base44.agents.addMessage(convo, { role: 'user', content });
     } catch (e) {
       console.error('Send error', e);
       setThinking(false);
+      setError('That message did not send. Please try again.');
     }
   };
 
@@ -266,6 +252,7 @@ export default function QuestionGeneratorChat({ adminProfile }) {
       </div>
 
       {/* Input */}
+      {error && <p className="text-xs text-amber-400 mb-2">{error}</p>}
       <div className="flex gap-2">
         <Textarea
           value={input}

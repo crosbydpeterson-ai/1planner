@@ -6,10 +6,6 @@ import ReactMarkdown from 'react-markdown';
 
 const CONV_STORAGE_KEY = 'admin_ai_conversation_id';
 
-// Call the backend function so we use service role auth (works outside Base44 preview)
-const agentCall = (action, params = {}) =>
-  base44.functions.invoke('adminAgentChat', { action, ...params }).then(r => r.data);
-
 export default function AdminChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [conversationId, setConversationId] = useState(null);
@@ -17,7 +13,7 @@ export default function AdminChatWidget() {
   const [input, setInput] = useState('');
   const [initializing, setInitializing] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
-  const pollRef = useRef(null);
+  const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -32,36 +28,26 @@ export default function AdminChatWidget() {
     }
   }, [isOpen]);
 
-  // Poll for updates when thinking
+  // Stream the conversation so the reply appears as the agent writes it
   useEffect(() => {
     if (!conversationId) return;
-    if (!isThinking) {
-      clearInterval(pollRef.current);
-      return;
-    }
-    pollRef.current = setInterval(async () => {
-      try {
-        const { conversation } = await agentCall('get_conversation', { conversationId });
-        const msgs = conversation?.messages || [];
-        setMessages(msgs);
-        // Stop polling when last message is from assistant
-        if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
-          setIsThinking(false);
-        }
-      } catch (e) {
-        console.error('Poll error:', e);
-      }
-    }, 2000);
-    return () => clearInterval(pollRef.current);
-  }, [isThinking, conversationId]);
+    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
+      const msgs = data.messages || [];
+      setMessages(msgs);
+      const last = msgs[msgs.length - 1];
+      if (last?.role === 'assistant' && last?.content) setIsThinking(false);
+    });
+    return () => unsubscribe();
+  }, [conversationId]);
 
   const loadOrCreateConversation = async () => {
     setInitializing(true);
+    setError('');
     try {
       const savedId = localStorage.getItem(CONV_STORAGE_KEY);
       if (savedId) {
         try {
-          const { conversation } = await agentCall('get_conversation', { conversationId: savedId });
+          const conversation = await base44.agents.getConversation(savedId);
           if (conversation?.id) {
             setConversationId(conversation.id);
             setMessages(conversation.messages || []);
@@ -72,12 +58,16 @@ export default function AdminChatWidget() {
           localStorage.removeItem(CONV_STORAGE_KEY);
         }
       }
-      const { conversation } = await agentCall('create_conversation', { agentName: 'admin_assistant' });
+      const conversation = await base44.agents.createConversation({
+        agent_name: 'admin_assistant',
+        metadata: { name: 'Admin Chat' },
+      });
       setConversationId(conversation.id);
       setMessages(conversation.messages || []);
       localStorage.setItem(CONV_STORAGE_KEY, conversation.id);
     } catch (e) {
       console.error('Failed to load conversation:', e);
+      setError('Could not start the assistant. Close and reopen to retry.');
     }
     setInitializing(false);
   };
@@ -89,28 +79,41 @@ export default function AdminChatWidget() {
     setIsThinking(false);
     setInitializing(true);
     try {
-      const { conversation } = await agentCall('create_conversation', { agentName: 'admin_assistant' });
+      const conversation = await base44.agents.createConversation({
+        agent_name: 'admin_assistant',
+        metadata: { name: 'Admin Chat' },
+      });
       setConversationId(conversation.id);
       setMessages(conversation.messages || []);
       localStorage.setItem(CONV_STORAGE_KEY, conversation.id);
     } catch (e) {
       console.error('Failed to create conversation:', e);
+      setError('Could not start a new chat. Please try again.');
     }
     setInitializing(false);
   };
 
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text || !conversationId) return;
+    if (!text || isThinking) return;
+    if (!conversationId) {
+      setError('The assistant is still starting — try again in a moment.');
+      return;
+    }
     // Optimistically add user message
     setMessages(prev => [...prev, { role: 'user', content: text }]);
     setInput('');
     setIsThinking(true);
+    setError('');
     try {
-      await agentCall('send_message', { conversationId, message: text });
+      // The agent needs the full, current conversation object to reply
+      const conversation = await base44.agents.getConversation(conversationId);
+      await base44.agents.addMessage(conversation, { role: 'user', content: text });
     } catch (e) {
       console.error('Failed to send message:', e);
       setIsThinking(false);
+      setError('That message did not send. Please try again.');
+      setInput((cur) => (cur.trim() ? cur : text));
     }
   };
 
@@ -210,6 +213,7 @@ export default function AdminChatWidget() {
               onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
               className="p-3 border-t border-white/10 bg-slate-900/50 backdrop-blur-sm"
             >
+              {error && <p className="text-xs text-amber-300 mb-2 px-1">{error}</p>}
               <div className="flex gap-2">
                 <input
                   type="text"
