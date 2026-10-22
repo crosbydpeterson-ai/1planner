@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { PETS } from '@/components/quest/PetCatalog';
+import { getSeasonRewardLanes, isRewardClaimed } from '@/lib/seasonStudio';
 
 const REWARD_TYPE_ICONS = {
   pet: '🐾',
@@ -17,11 +18,12 @@ const REWARD_TYPE_ICONS = {
   playlist: '🎶'
 };
 
-function RewardCard({ reward, index, tier, userXp, claimedRewards, onClaim, petCache, hasPlus }) {
+function RewardCard({ reward, index, tier, userXp, claimedRewards, onClaim, petCache, hasPlus, previewOnly }) {
   const claimIndex = typeof reward.seasonRewardIndex === 'number' ? reward.seasonRewardIndex : index;
-  const claimKey = `${reward.seasonId}:${claimIndex}:${reward.type}:${reward?.value || reward?.name || 'reward'}`;
   const isUnlocked = userXp >= reward.xpRequired;
-  const isClaimed = claimedRewards.includes(claimKey);
+  // Identity comes from the shared helper: stable reward ids first, with the
+  // legacy index-based keys still recognised.
+  const isClaimed = isRewardClaimed(claimedRewards, reward.seasonId, reward, claimIndex);
   const isPlusCard = tier === 'plus';
   const canUse = !isPlusCard || hasPlus;
 
@@ -72,7 +74,11 @@ function RewardCard({ reward, index, tier, userXp, claimedRewards, onClaim, petC
           </div>
 
           <div>
-            {isClaimed ? (
+            {previewOnly ? (
+              <div className="w-full rounded-xl border-2 border-dashed border-white/50 bg-white/10 px-3 py-2 text-center text-[11px] font-black uppercase text-white">
+                Preview only
+              </div>
+            ) : isClaimed ? (
               <div className="w-full rounded-xl bg-green-500 px-3 py-2 text-center text-xs font-black uppercase text-white shadow-[0_4px_0_rgba(0,0,0,0.18)]">
                 Claimed
               </div>
@@ -100,7 +106,7 @@ function RewardCard({ reward, index, tier, userXp, claimedRewards, onClaim, petC
   );
 }
 
-function RewardLane({ title, subtitle, rewards, tier, userXp, claimedRewards, onClaim, petCache, hasPlus }) {
+function RewardLane({ title, subtitle, rewards, tier, userXp, claimedRewards, onClaim, petCache, hasPlus, previewOnly }) {
   return (
     <div className={cn(
       'rounded-[28px] border-[4px] p-4 md:p-5 shadow-[0_12px_0_rgba(0,0,0,0.25)]',
@@ -142,6 +148,7 @@ function RewardLane({ title, subtitle, rewards, tier, userXp, claimedRewards, on
                 onClaim={onClaim}
                 petCache={petCache}
                 hasPlus={hasPlus}
+                previewOnly={previewOnly}
               />
             </motion.div>
           ))}
@@ -151,7 +158,7 @@ function RewardLane({ title, subtitle, rewards, tier, userXp, claimedRewards, on
   );
 }
 
-export default function SeasonRewards({ season, userXp, claimedRewards = [], onClaim, hasPlus = false }) {
+export default function SeasonRewards({ season, userXp, claimedRewards = [], onClaim, hasPlus = false, previewOnly = false }) {
   const [petCache, setPetCache] = useState({});
 
   useEffect(() => {
@@ -180,8 +187,11 @@ export default function SeasonRewards({ season, userXp, claimedRewards = [], onC
     seasonRewardIndex: index
   }));
 
-  const freeRewards = normalizedRewards.filter((_, index) => index % 2 === 0);
-  const plusRewards = normalizedRewards.filter((_, index) => index % 2 === 1);
+  // Track membership comes from each reward's own lane; seasons written before
+  // lanes existed still alternate Free (even index) and Plus (odd index).
+  const lanes = getSeasonRewardLanes({ rewards: normalizedRewards });
+  const freeRewards = lanes.free.map((entry) => entry.reward);
+  const plusRewards = lanes.plus.map((entry) => entry.reward);
 
   return (
     <div className="space-y-5">
@@ -207,6 +217,7 @@ export default function SeasonRewards({ season, userXp, claimedRewards = [], onC
           subtitle="Admin gifted premium rewards"
           rewards={plusRewards}
           tier="plus"
+          previewOnly={previewOnly}
           userXp={userXp}
           claimedRewards={claimedRewards}
           onClaim={onClaim}
@@ -220,6 +231,7 @@ export default function SeasonRewards({ season, userXp, claimedRewards = [], onC
         subtitle="Free rewards track"
         rewards={freeRewards}
         tier="free"
+        previewOnly={previewOnly}
         userXp={userXp}
         claimedRewards={claimedRewards}
         onClaim={onClaim}

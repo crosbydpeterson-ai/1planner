@@ -19,6 +19,7 @@ import {
   selectOnePassSeason,
 } from '@/lib/seasonUtils';
 import { isPlusActive } from '@/lib/plusAccess';
+import { claimKeyForStorage, isPendingValue, isRewardClaimed, isSeasonVisibleToStudents } from '@/lib/seasonStudio';
 
 export default function Season() {
   const navigate = useNavigate();
@@ -41,11 +42,6 @@ export default function Season() {
   };
 
 
-
-  const getRewardClaimKey = (seasonId, reward, rewardIndex) => {
-    const rewardValue = reward?.value || reward?.name || 'reward';
-    return `${seasonId}:${rewardIndex}:${reward.type}:${rewardValue}`;
-  };
 
   const getClaimedRewardsForSeason = (userProfile, activeSeason) => {
     if (!userProfile || !activeSeason) return [];
@@ -102,9 +98,12 @@ export default function Season() {
       setLocks(fl ? fl.value : null);
 
       // Use shared season-selection helper so 1Pass and Season Book agree
-      if (seasons.length > 0) {
+      // Only published seasons are selectable: a draft stays invisible even when
+      // its dates cover today.
+      const publishedSeasons = seasons.filter((s) => isSeasonVisibleToStudents(s));
+      if (publishedSeasons.length > 0) {
         const now = nowInTimezone();
-        const current = selectOnePassSeason(seasons, now);
+        const current = selectOnePassSeason(publishedSeasons, now);
         if (current) {
           // Track active season ID for reward claiming, but NEVER reset XP
           if (getSeasonStatus(current, now) === 'current' && me.activeSeasonId !== current.id) {
@@ -133,16 +132,21 @@ export default function Season() {
     }
 
     const existingClaimedRewards = getClaimedRewardsForSeason(profile, season);
-    const rewardClaimKey = getRewardClaimKey(season.id, reward, rewardIndex);
 
-    if (existingClaimedRewards.includes(rewardClaimKey)) {
+    if (isRewardClaimed(existingClaimedRewards, season.id, reward, rewardIndex)) {
       toast.error('Reward already claimed!');
+      return;
+    }
+
+    // A reward whose asset is missing or still being generated is not claimable.
+    if (reward.type !== 'magic_egg' && (!String(reward.value ?? '').trim() || isPendingValue(reward))) {
+      toast.error("This reward isn't ready yet — check back later.");
       return;
     }
 
     try {
       const claimsBySeason = profile.claimedSeasonRewardsBySeason || {};
-      const claimedSeasonRewards = [...existingClaimedRewards, rewardClaimKey];
+      const claimedSeasonRewards = [...existingClaimedRewards, claimKeyForStorage(season.id, reward, rewardIndex)];
       
       // Add reward based on type
       let updateData = {
@@ -355,6 +359,9 @@ export default function Season() {
               transition={{ delay: 0.1 }}
               className="rounded-[32px] border-[4px] border-violet-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.16),_rgba(255,255,255,0.04))] p-5 md:p-6 shadow-[0_14px_0_rgba(0,0,0,0.28)] backdrop-blur-sm"
             >
+              {season.artworkUrl && (
+                <img src={season.artworkUrl} alt="" className="mb-4 h-32 w-full rounded-[24px] object-cover md:h-44" />
+              )}
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-4">
                   <div className="inline-flex items-center gap-2 rounded-full bg-yellow-400 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-900 shadow-[0_5px_0_rgba(0,0,0,0.18)]">

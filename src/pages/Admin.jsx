@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -49,8 +49,8 @@ import EditShopItemDialog from '@/components/admin/EditShopItemDialog';
 import AdminSettingsPanel from '@/components/admin/AdminSettingsPanel';
 import LogoutRestrictionPanel from '@/components/admin/LogoutRestrictionPanel';
 import ActiveEggJobs from '@/components/admin/ActiveEggJobs';
-import SeasonPassGeneratorPanel from '@/components/admin/SeasonPassGeneratorPanel';
-import SeasonManagerPanel from '@/components/admin/seasons/SeasonManagerPanel';
+import SeasonStudio from '@/components/admin/seasonstudio/SeasonStudio';
+import { buildSeasonClaimIndex } from '@/lib/seasonStudio';
 import PetMojiGeneratorPanel from '@/components/admin/PetMojiGeneratorPanel';
 import BulkPetMojiCreatorPanel from '@/components/admin/BulkPetMojiCreatorPanel';
 import CommunityModerationPanel from '@/components/admin/CommunityModerationPanel';
@@ -105,8 +105,10 @@ export default function Admin() {
   const [themeForm, setThemeForm] = useState({ name: '', rarity: 'common', xpRequired: 0, description: '', primaryColor: '#6366f1', secondaryColor: '#8b5cf6', accentColor: '#f59e0b', bgColor: '#f8fafc' });
   const [cosmeticForm, setCosmeticForm] = useState({ name: '', description: '', cosmeticType: 'hat', imageUrl: '', price: 50, rarity: 'common', isLimited: false, isActive: true });
   const [showGiftDialog, setShowGiftDialog] = useState(false); const [giftUser, setGiftUser] = useState(null); const [giftUsername, setGiftUsername] = useState(''); const [giftType, setGiftType] = useState('pet'); const [giftItemId, setGiftItemId] = useState('');
-  const [seasons, setSeasons] = useState([]); const [showSeasonForm, setShowSeasonForm] = useState(false);
-  const [seasonForm, setSeasonForm] = useState({ name: '', startDate: '', endDate: '', isActive: true, rewards: [] });
+  const [seasons, setSeasons] = useState([]);
+  // Claim keys per season across every profile, so the studio can protect
+  // rewards students have already claimed.
+  const seasonClaimIndex = useMemo(() => buildSeasonClaimIndex(users), [users]);
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [magicEggs, setMagicEggs] = useState([]); const [adminEggIdea, setAdminEggIdea] = useState(''); const [generatingAdminPet, setGeneratingAdminPet] = useState(false); const [adminEggCount, setAdminEggCount] = useState(1); const [adminEggProgress, setAdminEggProgress] = useState(null);
   const [events, setEvents] = useState([]); const [showEventForm, setShowEventForm] = useState(false);
@@ -162,7 +164,10 @@ export default function Admin() {
       if (!(role === 'admin' || role === 'super_admin' || superByName || hasCustomRole)) { navigate(createPageUrl('Dashboard')); return; }
       setIsSuperAdmin(superByName || role === 'super_admin'); setIsAdminRole(true); setAdminProfile(currentProfile);
       if (superByName || role === 'super_admin') { setPermissions(allPermissions()); }
-      else if (role === 'admin') { setPermissions(allPermissions()); }
+      // An admin with assigned custom roles is limited to those roles; an admin
+      // without roles keeps the full set, and the owner/super admin is never
+      // restricted (handled above).
+      else if (role === 'admin' && !hasCustomRole) { setPermissions(allPermissions()); }
       else if (hasCustomRole) { try { const allRoles = await base44.entities.Role.list(); const myRoles = allRoles.filter(r => currentProfile.assignedRoleIds.includes(r.id)); const merged = basePermissions(); myRoles.forEach(r => { const p = r.permissions || {}; Object.keys(merged).forEach(k => { merged[k] = merged[k] || !!p[k]; }); }); setPermissions(merged); } catch (e) { setPermissions(basePermissions()); } }
       else { setPermissions(defaultAdminPermissions()); }
       const adminAuth = localStorage.getItem('quest_admin_auth');
@@ -240,10 +245,7 @@ export default function Admin() {
   const handleApproveAssignment = async (a) => { await base44.entities.Assignment.update(a.id, { isApproved: true }); setAssignments(assignments.map(x => x.id === a.id ? { ...x, isApproved: true } : x)); toast.success('Assignment approved'); };
   const handleDeleteAssignment = async (a) => { await base44.entities.Assignment.delete(a.id); setAssignments(assignments.filter(x => x.id !== a.id)); toast.success('Assignment deleted'); };
   const handleUpdateAssignment = async () => { if (!editingAssignment) return; const updatePayload = { ...editingAssignment, lootEggId: editingAssignment.lootEggId === 'none' ? null : editingAssignment.lootEggId }; await base44.entities.Assignment.update(editingAssignment.id, updatePayload); setAssignments(assignments.map(a => a.id === editingAssignment.id ? { ...a, ...updatePayload } : a)); setEditingAssignment(null); toast.success('Assignment updated'); };
-  const handleCreateSeason = async () => { if (!seasonForm.name.trim() || !seasonForm.startDate || !seasonForm.endDate) { toast.error('Please fill in all required fields'); return; } const n = await base44.entities.Season.create(seasonForm); setSeasons([n, ...seasons]); setShowSeasonForm(false); setSeasonForm({ name: '', startDate: '', endDate: '', isActive: true, rewards: [] }); toast.success('Season created!'); };
-  const addSeasonReward = () => setSeasonForm({ ...seasonForm, rewards: [...seasonForm.rewards, { xpRequired: 100, type: 'pet', value: '', name: '' }] });
-  const updateSeasonReward = (i, f, v) => { const r = [...seasonForm.rewards]; r[i][f] = v; setSeasonForm({ ...seasonForm, rewards: r }); };
-  const removeSeasonReward = (i) => setSeasonForm({ ...seasonForm, rewards: seasonForm.rewards.filter((_, j) => j !== i) });
+
   const resolveGiftRecipient = () => { if (giftUser) return giftUser; const u = giftUsername.trim(); if (!u) { toast.error('Please select a user'); return null; } const m = users.find(x => x.username?.toLowerCase() === u.toLowerCase()); if (!m) { toast.error(`User "${u}" not found`); return null; } setGiftUser(m); return m; };
   const handleGiftItem = async () => {
     const requiresItemValue = !['onepassplus'].includes(giftType);
@@ -426,18 +428,16 @@ export default function Admin() {
           {can('managePets') && <TabsContent value="abilities"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AbilitiesPanel /></div></TabsContent>}
 
           <TabsContent value="seasons">
-            <SeasonPassGeneratorPanel adminProfile={adminProfile} customPets={customPets} customThemes={customThemes} onSeasonCreated={(s) => setSeasons([s, ...seasons])} />
-            <div className="mt-4">
-              <SeasonManagerPanel
-                seasons={seasons}
-                onSeasonsChange={setSeasons}
-                onNewSeason={() => setShowSeasonForm(true)}
-                customPets={customPets}
-                customThemes={customThemes}
-                adminProfile={adminProfile}
-                isSuperAdmin={isSuperAdmin}
-              />
-            </div>
+            <SeasonStudio
+              seasons={seasons}
+              onSeasonsChange={setSeasons}
+              customPets={customPets}
+              customThemes={customThemes}
+              adminProfile={adminProfile}
+              isSuperAdmin={isSuperAdmin}
+              permissions={permissions}
+              seasonClaimIndex={seasonClaimIndex}
+            />
           </TabsContent>
 
           {isSuperAdmin ? (<TabsContent value="eggs"><div className="space-y-6"><div className="bg-gradient-to-br from-amber-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-white/10"><div className="flex items-center gap-3 mb-4"><span className="text-4xl">🥚✨</span><div><h3 className="text-xl font-bold text-white">Admin Magic Egg</h3><p className="text-slate-400 text-sm">Create unlimited custom creatures with AI — runs on server so you won't lose progress</p></div></div><div className="space-y-4"><Textarea value={adminEggIdea} onChange={(e) => setAdminEggIdea(e.target.value)} placeholder="Describe your creature idea (for batch: describe a theme and we'll generate variations)..." className="bg-slate-800/50 border-white/10 text-white min-h-[100px]" /><div className="flex items-center gap-3"><Label className="text-slate-300 whitespace-nowrap">Count:</Label><div className="flex gap-1">{[1,2,3,4,5].map(n => (<Button key={n} size="sm" variant={adminEggCount === n ? 'default' : 'outline'} onClick={() => setAdminEggCount(n)} className={adminEggCount === n ? 'bg-purple-600' : 'border-slate-600 text-slate-300'}>{n}</Button>))}</div><span className="text-xs text-slate-500">{adminEggCount > 1 ? `Will create ${adminEggCount} creatures` : 'Single creature'}</span></div><ActiveEggJobs adminProfile={adminProfile} onComplete={() => loadData()} /><Button onClick={async () => { if (!adminEggIdea.trim()) { toast.error('Enter a creature idea!'); return; } setGeneratingAdminPet(true); try { const job = await base44.entities.EggGenerationJob.create({ idea: adminEggIdea.trim(), totalCount: adminEggCount, status: 'pending', startedBy: adminProfile?.userId || 'admin', startedByProfileId: adminProfile?.id, completedCount: 0, createdPetIds: [], createdThemeIds: [] }); base44.functions.invoke('generateMagicEggs', { jobId: job.id }); toast.success('Job started! Progress will update below.'); setAdminEggIdea(''); } catch (e) { toast.error('Failed to start job'); console.error(e); } setGeneratingAdminPet(false); }} disabled={generatingAdminPet} className="w-full bg-gradient-to-r from-purple-500 to-pink-500">{generatingAdminPet ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Starting...</> : <><Wand2 className="w-4 h-4 mr-2" />Create {adminEggCount > 1 ? `${adminEggCount} Creatures` : 'Creature'} with AI</>}</Button></div></div><div><h3 className="text-lg font-semibold text-white mb-4">User Magic Eggs ({magicEggs.length})</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{magicEggs.map((egg) => { const owner = users.find(u => u.userId === egg.userId); return (<div key={egg.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><span className="text-3xl">{egg.isUsed ? '🐣' : '🥚'}</span><div><p className="text-white font-medium">{owner?.username || 'Unknown'}</p><p className="text-xs text-slate-400">{egg.isUsed ? 'Hatched' : 'Unused'}{egg.source ? ` • ${egg.source.replace(/_/g,' ')}` : ''}</p></div></div>{(isSuperAdmin || permissions.deleteAssets) && <Button size="sm" variant="ghost" onClick={async () => { await base44.entities.MagicEgg.delete(egg.id); setMagicEggs(magicEggs.filter(e => e.id !== egg.id)); toast.success('Egg deleted'); }} className="text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></Button>}</div></div>); })}{magicEggs.length === 0 && <div className="col-span-full text-center py-8 text-slate-400">No magic eggs yet</div>}</div></div></div></TabsContent>) : null}
@@ -533,7 +533,7 @@ export default function Admin() {
 
         <Dialog open={!!editingAssignment} onOpenChange={() => setEditingAssignment(null)}><DialogContent className="bg-slate-800 border-slate-700 text-white"><DialogHeader><DialogTitle>Edit Assignment</DialogTitle></DialogHeader>{editingAssignment && <div className="space-y-4 py-4"><div className="space-y-2"><Label>Title</Label><Input value={editingAssignment.title} onChange={(e) => setEditingAssignment({ ...editingAssignment, title: e.target.value })} className="bg-slate-700 border-slate-600" /></div><div className="space-y-2"><Label>Description</Label><Textarea value={editingAssignment.description || ''} onChange={(e) => setEditingAssignment({ ...editingAssignment, description: e.target.value })} className="bg-slate-700 border-slate-600" /></div><div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>XP Reward</Label><Input type="number" value={editingAssignment.xpReward || 25} onChange={(e) => setEditingAssignment({ ...editingAssignment, xpReward: parseInt(e.target.value) || 0 })} className="bg-slate-700 border-slate-600" /></div><div className="space-y-2"><Label>Due Date</Label><Input type="date" value={editingAssignment.dueDate || ''} onChange={(e) => setEditingAssignment({ ...editingAssignment, dueDate: e.target.value })} className="bg-slate-700 border-slate-600" /></div></div><div className="space-y-2"><Label>Assignment Egg</Label><Select value={editingAssignment.lootEggId || 'none'} onValueChange={(v) => setEditingAssignment({ ...editingAssignment, lootEggId: v })}><SelectTrigger className="bg-slate-700 border-slate-600"><SelectValue placeholder="Select loot egg" /></SelectTrigger><SelectContent><SelectItem value="none">No egg</SelectItem>{lootEggs.map((egg) => (<SelectItem key={egg.id} value={egg.id}>{egg.emoji || '🥚'} {egg.name}</SelectItem>))}</SelectContent></Select></div></div>}<DialogFooter><Button variant="ghost" onClick={() => setEditingAssignment(null)}>Cancel</Button><Button onClick={handleUpdateAssignment} className="bg-emerald-600">Save Changes</Button></DialogFooter></DialogContent></Dialog>
 
-        <Dialog open={showSeasonForm} onOpenChange={setShowSeasonForm}><DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Create Season</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label>Season Name</Label><Input value={seasonForm.name} onChange={(e) => setSeasonForm({ ...seasonForm, name: e.target.value })} placeholder="Spring 2024" className="bg-slate-700 border-slate-600" /></div><div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>Start Date</Label><Input type="date" value={seasonForm.startDate} onChange={(e) => setSeasonForm({ ...seasonForm, startDate: e.target.value })} className="bg-slate-700 border-slate-600" /></div><div className="space-y-2"><Label>End Date</Label><Input type="date" value={seasonForm.endDate} onChange={(e) => setSeasonForm({ ...seasonForm, endDate: e.target.value })} className="bg-slate-700 border-slate-600" /></div></div><div className="space-y-2"><div className="flex items-center justify-between"><Label>Season Rewards</Label><Button size="sm" onClick={addSeasonReward} className="bg-amber-600"><Plus className="w-3 h-3 mr-1" /> Add Reward</Button></div><div className="space-y-3">{seasonForm.rewards.map((reward, index) => (<div key={index} className="bg-slate-700 rounded-lg p-3 space-y-2"><div className="flex items-center justify-between"><span className="text-sm text-slate-300">Reward {index + 1}</span><Button size="sm" variant="ghost" onClick={() => removeSeasonReward(index)} className="text-red-400 h-6 px-2"><X className="w-3 h-3" /></Button></div><div className="grid grid-cols-2 gap-2"><Input placeholder="Name" value={reward.name} onChange={(e) => updateSeasonReward(index, 'name', e.target.value)} className="bg-slate-600 border-slate-500 text-sm" /><Input type="number" placeholder="XP Required" value={reward.xpRequired} onChange={(e) => updateSeasonReward(index, 'xpRequired', parseInt(e.target.value) || 0)} className="bg-slate-600 border-slate-500 text-sm" /></div><div className="grid grid-cols-2 gap-2"><Select value={reward.type} onValueChange={(v) => updateSeasonReward(index, 'type', v)}><SelectTrigger className="bg-slate-600 border-slate-500 text-sm"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="pet">Pet</SelectItem><SelectItem value="theme">Theme</SelectItem><SelectItem value="title">Title</SelectItem><SelectItem value="food">Food</SelectItem></SelectContent></Select>{reward.type === 'food' ? <Input placeholder="Food Item ID" value={reward.value} onChange={(e) => updateSeasonReward(index, 'value', e.target.value)} className="bg-slate-600 border-slate-500 text-sm" /> : reward.type === 'pet' ? <Select value={reward.value} onValueChange={(v) => updateSeasonReward(index, 'value', v)}><SelectTrigger className="bg-slate-600 border-slate-500 text-sm"><SelectValue placeholder="Select pet" /></SelectTrigger><SelectContent>{customPets.map(p => <SelectItem key={p.id} value={`custom_${p.id}`}>{p.emoji||'🎁'} {p.name}</SelectItem>)}</SelectContent></Select> : reward.type === 'theme' ? <Select value={reward.value} onValueChange={(v) => updateSeasonReward(index, 'value', v)}><SelectTrigger className="bg-slate-600 border-slate-500 text-sm"><SelectValue placeholder="Select theme" /></SelectTrigger><SelectContent>{customThemes.map(t => <SelectItem key={t.id} value={`custom_${t.id}`}>{t.name}</SelectItem>)}</SelectContent></Select> : <Input placeholder="Title text" value={reward.value} onChange={(e) => updateSeasonReward(index, 'value', e.target.value)} className="bg-slate-600 border-slate-500 text-sm" />}</div></div>))}{seasonForm.rewards.length === 0 && <p className="text-sm text-slate-500 text-center py-2">No rewards added yet</p>}</div></div></div><DialogFooter><Button variant="ghost" onClick={() => setShowSeasonForm(false)}>Cancel</Button><Button onClick={handleCreateSeason} className="bg-amber-600">Create Season</Button></DialogFooter></DialogContent></Dialog>
+
 
         <CreateShopItemDialog open={showShopItemForm} onOpenChange={setShowShopItemForm} form={shopItemForm} setForm={setShopItemForm} customPets={customPets} customThemes={customThemes} isSuperAdmin={isSuperAdmin} onCreated={(i) => setShopItems([i, ...shopItems])} />
         <EditShopItemDialog item={editingShopItem} onOpenChange={(v) => { if (!v) setEditingShopItem(null); }} onSaved={(u) => { setShopItems(shopItems.map(i => i.id === u.id ? u : i)); setEditingShopItem(null); }} />

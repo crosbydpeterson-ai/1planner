@@ -89,7 +89,11 @@ export function selectOnePassSeason(activeSeasons, now) {
  * Other future seasons are hidden.
  */
 export function getSeasonBookSeasons(allSeasons, onePassSeason, now) {
+  // A season still sitting in Draft is never shown to students, not even as
+  // finished history. Seasons stored before statuses existed keep appearing as
+  // they always did.
   const ended = allSeasons
+    .filter((s) => s?.status !== 'draft')
     .filter((s) => getSeasonStatus(s, now) === 'ended')
     .sort((a, b) => parseSeasonDate(b.endDate) - parseSeasonDate(a.endDate));
 

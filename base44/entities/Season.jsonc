@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Season name"
     },
+    "description": {
+      "type": "string",
+      "description": "Short description shown to the event manager and in the studio"
+    },
     "startDate": {
       "type": "string",
       "format": "date"
@@ -14,15 +18,61 @@
       "type": "string",
       "format": "date"
     },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "scheduled",
+        "live",
+        "archived"
+      ],
+      "description": "Publication state. draft = hidden from students, scheduled and live = published (dates decide whether students see it as live or upcoming), archived = removed from the active rotation but kept in the Season Book. Seasons created before this field existed fall back to isActive (true = live, false = draft)."
+    },
     "isActive": {
       "type": "boolean",
-      "default": true
+      "default": false,
+      "description": "Legacy publish flag. The studio keeps it in step with status: true for scheduled and live seasons, false for draft and archived."
+    },
+    "artworkUrl": {
+      "type": "string",
+      "description": "Optional banner image shown on the student 1Pass page"
+    },
+    "xpPerQuest": {
+      "type": "number",
+      "default": 25,
+      "description": "XP an average quest is assumed to award, used for the studio's estimated-quests planning"
+    },
+    "linkedEventIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "AdminEvent IDs the event manager has related to this season. Linking never changes or activates the event."
+    },
+    "linkedWheelIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "SpinWheelPreset IDs related to this season. Linking never changes or activates the wheel."
     },
     "rewards": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable reward ID. Claims are stored against it, so rewards can be reordered without changing claim identity."
+          },
+          "lane": {
+            "type": "string",
+            "enum": [
+              "free",
+              "plus"
+            ],
+            "description": "Track this reward sits on. Seasons written before this field existed alternate Free (even index) and Plus (odd index)."
+          },
           "xpRequired": {
             "type": "number"
           },

@@ -6,14 +6,15 @@ import { THEMES } from '@/components/quest/ThemeCatalog';
 import StampArt from '@/components/seasonbook/StampArt';
 import { getStampMaskStyle } from '@/components/seasonbook/stampMask';
 import { isPetEquipped, isThemeEquipped, isTitleEquipped } from '@/lib/equipHelpers';
+import { claimKeyForStorage, getRewardLane, isRewardClaimed } from '@/lib/seasonStudio';
 
 const EQUIP_LABEL = { pet: 'Equip Pet', theme: 'Equip Theme', title: 'Equip Title' };
 const isEquippableType = (t) => t === 'pet' || t === 'theme' || t === 'title';
 
-// Match the existing claim-key format from Season.jsx
+// Claim identity comes from the shared Season Studio helper, so a reward keeps
+// its identity even when tiers are reordered.
 export function getRewardClaimKey(seasonId, reward, rewardIndex) {
-  const rewardValue = reward?.value || reward?.name || 'reward';
-  return `${seasonId}:${rewardIndex}:${reward.type}:${rewardValue}`;
+  return claimKeyForStorage(seasonId, reward, rewardIndex);
 }
 
 // Ownership rules:
@@ -30,7 +31,7 @@ export function isRewardOwned(reward, rewardIndex, seasonId, profile, claimedKey
   // Song/playlist rewards grant permanent access — check the unlock inventory.
   if (reward.type === 'song') return (profile.unlockedTrackIds || []).includes(reward.value);
   if (reward.type === 'playlist') return (profile.unlockedPlaylistIds || []).includes(reward.value);
-  return claimedKeys.includes(getRewardClaimKey(seasonId, reward, rewardIndex));
+  return isRewardClaimed(claimedKeys, seasonId, reward, rewardIndex);
 }
 
 const STAMP_MASK = getStampMaskStyle(7, 26);
@@ -44,8 +45,9 @@ const PAPER_TEXTURE = {
 
 export default function StampCard({ reward, rewardIndex, isOwned, petCache, themeCache, trackCache, playlistCache, profile, onEquip, equipping, equippingKey }) {
   const [imgError, setImgError] = useState(false);
-  // Track rule: original array indexes 0,2,4… = Free; 1,3,5… = Plus
-  const isPlus = rewardIndex % 2 === 1;
+  // Track rule: the reward's own lane, falling back to the original alternating
+  // Free (0,2,4…) / Plus (1,3,5…) positions for seasons written before lanes.
+  const isPlus = getRewardLane(reward, rewardIndex) === 'plus';
 
   const myKey = `${reward.type}:${rewardIndex}`;
   const isThisEquipping = equippingKey === myKey;

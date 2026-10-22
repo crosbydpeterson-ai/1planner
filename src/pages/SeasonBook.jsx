@@ -7,6 +7,7 @@ import { AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { isRewardOwned } from '@/components/seasonbook/StampCard';
+import { isSeasonVisibleToStudents } from '@/lib/seasonStudio';
 import { equipPet, equipTheme, equipTitle } from '@/lib/equipHelpers';
 import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
@@ -112,7 +113,8 @@ export default function SeasonBook() {
     }
 
     const now = nowInTimezone();
-    const activeSeasons = (allSeasons || []).filter((s) => s.isActive !== false);
+    // Same rule as the 1Pass page: only published seasons are selectable.
+    const activeSeasons = (allSeasons || []).filter((s) => s.isActive !== false && isSeasonVisibleToStudents(s));
     const onePassSeason = selectOnePassSeason(activeSeasons, now);
     const bookSeasons = getSeasonBookSeasons(allSeasons, onePassSeason, now);
 
