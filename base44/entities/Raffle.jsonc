@@ -1,0 +1,234 @@
+{
+  "name": "Raffle",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Raffle name shown to admins and students"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description shown on the student raffle card"
+    },
+    "artworkUrl": {
+      "type": "string",
+      "description": "Optional banner image URL. Stored as a public link so every student can load it without signing in."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "ready",
+        "drawing",
+        "completed"
+      ],
+      "default": "draft",
+      "description": "draft = still being set up (hidden from students). ready = entries frozen and the draw order is saved, no winner drawn yet. drawing = at least one winner saved. completed = every entry in the plan has been saved."
+    },
+    "paused": {
+      "type": "boolean",
+      "default": false,
+      "description": "Blocks new draws and delivery attempts until an admin resumes."
+    },
+    "pauseReason": {
+      "type": "string",
+      "description": "Why the raffle is paused (admin note or the automatic inconsistency message)"
+    },
+    "pauseIsAutomatic": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the app paused the raffle itself after finding conflicting results or excess prize allocations"
+    },
+    "pausedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "pausedBy": {
+      "type": "string",
+      "description": "Admin username who paused, or 'auto' for an automatic pause"
+    },
+    "prizeMode": {
+      "type": "string",
+      "enum": [
+        "limited",
+        "everyone",
+        "everyone_plus"
+      ],
+      "default": "limited",
+      "description": "limited = only drawn students win. everyone = every eligible student gets a prize (or the base reward once the prize pool runs out). everyone_plus = everyone gets the base reward and extra prizes are drawn on top."
+    },
+    "allowMultipleWins": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether one student may win more than one drawn prize. The base reward in everyone_plus is unaffected."
+    },
+    "prizes": {
+      "type": "array",
+      "default": [],
+      "description": "Configured prizes. Each entry mirrors the RedeemCode reward shape so delivery can reuse the existing code redemption path.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable prize id. Saved results refer to it."
+          },
+          "rewardType": {
+            "type": "string",
+            "enum": [
+              "xp",
+              "coins",
+              "pet",
+              "title",
+              "feature_unlock",
+              "food_item",
+              "onepassplus"
+            ]
+          },
+          "rewardData": {
+            "type": "object",
+            "description": "Same payload shape RedeemCode uses: xp/coins {amount}, pet {petId}, title {title}, feature_unlock {feature}, food_item {itemId, quantity}, onepassplus {seasons} or {}"
+          },
+          "label": {
+            "type": "string",
+            "description": "Admin-facing and student-facing prize name, e.g. '+250 XP' or 'Math Cat'"
+          },
+          "quantity": {
+            "type": "number",
+            "default": 1,
+            "description": "How many of this prize the raffle gives out"
+          }
+        },
+        "required": [
+          "id",
+          "rewardType",
+          "quantity"
+        ]
+      }
+    },
+    "fallbackReward": {
+      "type": "object",
+      "description": "The base reward every student receives in 'everyone' mode once the prize pool runs out, and in 'everyone_plus' mode for everybody. Required before those modes can be drawn.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "rewardType": {
+          "type": "string",
+          "enum": [
+            "xp",
+            "coins",
+            "pet",
+            "title",
+            "feature_unlock",
+            "food_item",
+            "onepassplus"
+          ]
+        },
+        "rewardData": {
+          "type": "object"
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "eligibility": {
+      "type": "object",
+      "description": "Who gets one automatic entry. Uses the same class/subject fields the rest of the app uses.",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "everyone",
+            "class",
+            "profiles"
+          ],
+          "default": "everyone"
+        },
+        "subject": {
+          "type": "string",
+          "description": "When scope=class: 'math', 'reading', or a custom Subject slug"
+        },
+        "teacherId": {
+          "type": "string",
+          "description": "When scope=class: the Teacher entity id"
+        },
+        "profileIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "When scope=profiles: the UserProfile ids that get an entry"
+        }
+      }
+    },
+    "participants": {
+      "type": "array",
+      "description": "Frozen entry list, saved when the raffle is locked for drawing. One entry per student. Later profile changes do not alter it.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "plan": {
+      "type": "array",
+      "description": "Frozen draw order, produced from the seed when the raffle is locked. 'seq' is the position, so a refresh or a repeated click can never reroll a winner.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "seq": {
+            "type": "number"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "prizeId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "prize",
+              "everyone"
+            ],
+            "description": "prize = won from the prize pool, everyone = the base reward"
+          }
+        }
+      }
+    },
+    "seed": {
+      "type": "number",
+      "description": "Seed used to build the frozen draw order, kept so the plan can be re-checked"
+    },
+    "frozenAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "frozenBy": {
+      "type": "string",
+      "description": "Admin username who locked the entries"
+    },
+    "completedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "Admin username who created the raffle"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

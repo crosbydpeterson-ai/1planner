@@ -65,6 +65,7 @@ import AdminKitchenPanel from '@/components/admin/AdminKitchenPanel';
 import RewardAIGenerator from '@/components/admin/RewardAIGenerator';
 import QuestionGeneratorChat from '@/components/admin/QuestionGeneratorChat';
 import RedeemCodeManager from '@/components/admin/RedeemCodeManager';
+import RaffleManager from '@/components/admin/raffle/RaffleManager';
 import AdminDMInbox from '@/components/admin/AdminDMInbox';
 import GameBuilderTokenPanel from '@/components/admin/GameBuilderTokenPanel';
 import UserTimeAnalytics from '@/components/admin/UserTimeAnalytics';
@@ -356,6 +357,7 @@ export default function Admin() {
             {can('manageEvents') && <TabsTrigger value="moderation" className="data-[state=active]:bg-slate-700">🛡️ Moderation</TabsTrigger>}
             {can('managePets') && <TabsTrigger value="concepts" className="data-[state=active]:bg-slate-700">💡 Pet Concepts</TabsTrigger>}
             {can('manageRedeemCodes') && <TabsTrigger value="redeem_codes" className="data-[state=active]:bg-slate-700">🎟️ Codes</TabsTrigger>}
+            {can('manageRedeemCodes') && <TabsTrigger value="raffles" className="data-[state=active]:bg-slate-700">🎟️ Raffles</TabsTrigger>}
             {can('manageDMs') && <TabsTrigger value="dms" className="data-[state=active]:bg-slate-700">💬 DMs</TabsTrigger>}
             {can('manageDailyRewards') && <TabsTrigger value="daily_rewards" className="data-[state=active]:bg-slate-700">🎁 Daily Rewards</TabsTrigger>}
             {can('manageWheelLibrary') && <TabsTrigger value="wheel_library" className="data-[state=active]:bg-slate-700">🎡 Wheel Library</TabsTrigger>}
@@ -507,6 +509,7 @@ export default function Admin() {
           {can('managePets') && <TabsContent value="concepts"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><PetConceptReviewPanel customPets={customPets} setCustomPets={setCustomPets} customThemes={customThemes} setCustomThemes={setCustomThemes} /></div></TabsContent>}
           {isSuperAdmin && <TabsContent value="lore"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><LoreComicPanel /></div></TabsContent>}
           <TabsContent value="redeem_codes"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><RedeemCodeManager isSuperAdmin={isSuperAdmin} /></div></TabsContent>
+          {can('manageRedeemCodes') && <TabsContent value="raffles"><RaffleManager adminProfile={adminProfile} isSuperAdmin={isSuperAdmin} /></TabsContent>}
           <TabsContent value="dms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AdminDMInbox adminProfile={adminProfile} /></div></TabsContent>
           <TabsContent value="daily_rewards"><DailyRewardsTab /></TabsContent>
           <TabsContent value="wheel_library"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><WheelLibraryTab adminUsername={adminProfile?.username} /></div></TabsContent>

@@ -16,6 +16,7 @@ import { colorStyle } from '@/components/theme/themeUtils';
 import PetAvatar from '@/components/quest/PetAvatar';
 import GlassIcon from '@/components/ui/GlassIcon';
 import MagicEggCreator from '@/components/rewards/MagicEggCreator';
+import RaffleCard from '@/components/raffle/RaffleCard';
 import Tutorial from '@/components/tutorial/Tutorial';
 import DailyRewardsPanel from '@/components/rewards/DailyRewardsPanel';
 import { toast } from 'sonner';
@@ -322,6 +323,9 @@ export default function Rewards() {
             </div>
           </div>
         </motion.div>
+
+        {/* Raffles */}
+        <RaffleCard profile={profile} />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => {

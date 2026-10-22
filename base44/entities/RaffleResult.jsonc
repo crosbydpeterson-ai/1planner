@@ -1,0 +1,103 @@
+{
+  "name": "RaffleResult",
+  "type": "object",
+  "properties": {
+    "raffleId": {
+      "type": "string",
+      "description": "Raffle entity id this result belongs to"
+    },
+    "raffleTitle": {
+      "type": "string",
+      "description": "Snapshot of the raffle title, so a student's prize history reads correctly on its own"
+    },
+    "seq": {
+      "type": "number",
+      "description": "Position in the frozen draw order this result came from. Draws always continue from the highest saved position."
+    },
+    "operationId": {
+      "type": "string",
+      "description": "Stable id (raffleId:seq:profileId) reused across retries so one draw position is stored exactly once"
+    },
+    "profileId": {
+      "type": "string",
+      "description": "UserProfile id of the winner"
+    },
+    "username": {
+      "type": "string",
+      "description": "Display snapshot of the winner's username"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "prize",
+        "everyone"
+      ],
+      "description": "prize = won from the prize pool, everyone = the base reward"
+    },
+    "prizeId": {
+      "type": "string",
+      "description": "Configured prize id, or the fallback reward id for base rewards"
+    },
+    "rewardType": {
+      "type": "string",
+      "description": "Snapshot of the reward type so later config edits cannot change a saved winner's prize"
+    },
+    "rewardData": {
+      "type": "object",
+      "description": "Snapshot of the reward payload (the RedeemCode shape)"
+    },
+    "prizeLabel": {
+      "type": "string",
+      "description": "What the student sees as their prize"
+    },
+    "prizeEmoji": {
+      "type": "string"
+    },
+    "selectionSavedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the winner selection was saved (kept separate from delivery)"
+    },
+    "deliveryStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "delivering",
+        "delivered",
+        "failed",
+        "needs_review"
+      ],
+      "default": "pending",
+      "description": "pending = saved but not delivered. delivering = an attempt is running. delivered = the reward landed. failed = nothing was applied and an admin may retry. needs_review = the reward may have been applied but could not be confirmed \u2014 never retried automatically."
+    },
+    "codeId": {
+      "type": "string",
+      "description": "RedeemCode record created for this result and persisted before redemption. Admins can open it to inspect or troubleshoot."
+    },
+    "codeMasked": {
+      "type": "string",
+      "description": "Masked form of the code, safe to show in lists. The full value lives only on the RedeemCode record."
+    },
+    "deliveryError": {
+      "type": "string",
+      "description": "Why delivery failed or needs review"
+    },
+    "deliveryAttempts": {
+      "type": "number",
+      "default": 0
+    },
+    "deliveredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "deliveredBy": {
+      "type": "string",
+      "description": "Admin username who ran the delivery, or 'admin-confirmed' when an admin reconciled it by hand"
+    }
+  },
+  "required": [
+    "raffleId",
+    "seq",
+    "profileId"
+  ]
+}
