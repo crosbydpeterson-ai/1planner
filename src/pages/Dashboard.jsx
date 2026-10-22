@@ -11,6 +11,7 @@ import BrandLogo from '@/components/branding/BrandLogo';
 // Widget components
 import WidgetGrid from '@/components/dashboard/WidgetGrid';
 import WidgetCustomizer from '@/components/dashboard/WidgetCustomizer';
+import { LEGACY_DEFAULT_WIDGETS, getActiveWidgetIds } from '@/lib/widgetRegistry';
 // EventManager removed — events only show on Events page
 import XPWidget from '@/components/dashboard/widgets/XPWidget';
 import PetWidget from '@/components/dashboard/widgets/PetWidget';
@@ -24,6 +25,18 @@ import Tutorial from '@/components/tutorial/Tutorial';
 import WhatsNewPopup from '@/components/announcements/WhatsNewPopup';
 import PromoBanner from '@/components/dashboard/PromoBanner';
 import RedeemCodeWidget from '@/components/dashboard/widgets/RedeemCodeWidget';
+// Optional Home widgets (added to the widget gallery; off until a student adds them)
+import MiniMusicPlayerWidget from '@/components/dashboard/widgets/MiniMusicPlayerWidget';
+import EventTicketWidget from '@/components/dashboard/widgets/EventTicketWidget';
+import PetSpotlightWidget from '@/components/dashboard/widgets/PetSpotlightWidget';
+import RewardGoalWidget from '@/components/dashboard/widgets/RewardGoalWidget';
+import StickyNoteWidget from '@/components/dashboard/widgets/StickyNoteWidget';
+import CollectionSpotlightWidget from '@/components/dashboard/widgets/CollectionSpotlightWidget';
+import NextQuestWidget from '@/components/dashboard/widgets/NextQuestWidget';
+import WeekWrappedWidget from '@/components/dashboard/widgets/WeekWrappedWidget';
+import WheelWindowWidget from '@/components/dashboard/widgets/WheelWindowWidget';
+import SchoolBulletinWidget from '@/components/dashboard/widgets/SchoolBulletinWidget';
+import CollectionWishlistWidget from '@/components/dashboard/widgets/CollectionWishlistWidget';
 import RedeemCodeDialog from '@/components/redeem/RedeemCodeDialog';
 import { dismissRedeemWidget, isRedeemWidgetDismissed } from '@/lib/redeemWidgetDismissal';
 import { invalidateProfile } from '@/lib/dataCache';
@@ -31,8 +44,9 @@ import { useAuth } from '@/lib/AuthContext';
 import { isLogoutRestricted } from '@/lib/logoutRestriction';
 import LogoutCodeDialog from '@/components/auth/LogoutCodeDialog';
 
-const DEFAULT_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
-const ALL_WIDGETS = ['xp', 'pet', 'stats', 'leaderboard', 'assignments', 'season', 'nav'];
+// The layout an account gets before it has saved one — the original widgets.
+// Optional widgets are only ever added on purpose, from the widget gallery.
+const DEFAULT_WIDGETS = [...LEGACY_DEFAULT_WIDGETS];
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -41,6 +55,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [recentAssignments, setRecentAssignments] = useState([]);
+  // Full visible list for the "what should I do first" widget; the list is
+  // already filtered to this student's classes when it is loaded.
+  const [visibleAssignments, setVisibleAssignments] = useState([]);
+  const [assignmentsFailed, setAssignmentsFailed] = useState(false);
   const [currentPet, setCurrentPet] = useState(null);
   const [petTheme, setPetTheme] = useState(null);
 
@@ -105,12 +123,9 @@ export default function Dashboard() {
       // profile id is known.
       setShowRedeemWidget(!isRedeemWidgetDismissed(p.id));
 
-      // Load widget config from profile or use all widgets as default
-      if (p.widgetConfig && Array.isArray(p.widgetConfig) && p.widgetConfig.length > 0) {
-        setActiveWidgets(p.widgetConfig);
-      } else {
-        setActiveWidgets(ALL_WIDGETS);
-      }
+      // Saved layouts are kept as they are: unknown/removed ids are dropped, and
+      // an absent or unusable config falls back to the original layout.
+      setActiveWidgets(getActiveWidgetIds(p.widgetConfig));
 
       // Get equipped pet and its theme
       const pet = PETS.find((pet) => pet.id === p.equippedPetId) || PETS[0];
@@ -120,10 +135,12 @@ export default function Dashboard() {
       // Load visible assignments — non-critical, so a failure here must not
       // blank the whole dashboard. Fall back to an empty list on error.
       let assignments = [];
+      let assignmentLoadFailed = false;
       try {
         assignments = await base44.entities.Assignment.filter({ isApproved: true });
       } catch (assignErr) {
         console.error('Error loading assignments (non-fatal):', assignErr);
+        assignmentLoadFailed = true;
       }
       let visible = assignments.filter((a) => {
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
@@ -138,6 +155,9 @@ export default function Dashboard() {
         return false;
       });
       setRecentAssignments(visible.slice(0, 3));
+      setVisibleAssignments(visible);
+      // Lets a widget tell "no quests" apart from "quests couldn't load".
+      setAssignmentsFailed(assignmentLoadFailed);
 
       // Create tutorial assignment if user hasn't completed tutorial — non-critical
       if (!p.tutorialCompleted) {
@@ -201,6 +221,17 @@ export default function Dashboard() {
   const handleRedeemed = () => {
     invalidateProfile(profile?.id);
     loadProfile();
+  };
+
+  // A widget equipped something (pet/title): refresh the cached profile row and
+  // update the dashboard's own copy so every widget agrees — without refetching.
+  const handleProfileUpdated = (updated) => {
+    if (!updated) return;
+    invalidateProfile(updated.id);
+    setProfile(updated);
+    const pet = PETS.find((p) => p.id === updated.equippedPetId) || PETS[0];
+    setCurrentPet(pet);
+    setPetTheme(pet.theme);
   };
 
   const handleToggleWidget = (widgetId) => {
@@ -288,6 +319,43 @@ export default function Dashboard() {
 
       case 'nav':
         return <QuickNavWidget key={widgetId} />;
+
+      // --- optional widgets ---
+      case 'musicPlayer':
+        return <MiniMusicPlayerWidget key={widgetId} profile={profile} />;
+      case 'eventTicket':
+        return <EventTicketWidget key={widgetId} />;
+      case 'petSpotlight':
+        return <PetSpotlightWidget key={widgetId} profile={profile} />;
+      case 'rewardGoal':
+        return <RewardGoalWidget key={widgetId} profile={profile} />;
+      case 'stickyNote':
+        return <StickyNoteWidget key={widgetId} profileId={profile.id} />;
+      case 'collectionNew':
+        return (
+          <CollectionSpotlightWidget
+            key={widgetId}
+            profile={profile}
+            onProfileChange={handleProfileUpdated} />);
+
+
+      case 'nextQuest':
+        return (
+          <NextQuestWidget
+            key={widgetId}
+            assignments={visibleAssignments}
+            completedIds={profile.completedAssignments}
+            loadFailed={assignmentsFailed} />);
+
+
+      case 'weekWrapped':
+        return <WeekWrappedWidget key={widgetId} profileId={profile.id} />;
+      case 'wheelWindow':
+        return <WheelWindowWidget key={widgetId} profileId={profile.id} />;
+      case 'bulletin':
+        return <SchoolBulletinWidget key={widgetId} profileId={profile.id} />;
+      case 'wishlist':
+        return <CollectionWishlistWidget key={widgetId} profile={profile} />;
       default:
         return null;
     }
