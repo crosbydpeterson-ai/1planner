@@ -2,7 +2,7 @@ import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
 import { getRewardLane } from '@/lib/seasonStudio';
 import { findPet, findTheme, findTrack } from '@/lib/widgetAssets';
-import { getUnlockedTrackIds, isTrackVisibleForUser } from '@/lib/musicAccess';
+import { getUnlockedTrackIds, isTrackVisibleForUser, isPlayableTrack } from '@/lib/musicAccess';
 
 /**
  * Wishlist sources.
@@ -57,11 +57,11 @@ export function describeItemSource(kind, id, { seasons = [], catalogs = {}, prof
     if (!track) return 'No longer available';
     if (track.isActive === false) return 'Not available';
     if (track.isSeasonExclusive) {
-      const unlocked = getUnlockedTrackIds(profile);
+      const unlocked = getUnlockedTrackIds(profile, catalogs?.playlists || []);
       return isTrackVisibleForUser(track, profile, unlocked) ? '1Pass reward · unlocked' : '1Pass reward';
     }
-    const unlocked = getUnlockedTrackIds(profile);
-    if (!isTrackVisibleForUser(track, profile, unlocked)) return 'Not available to your class';
+    const unlocked = getUnlockedTrackIds(profile, catalogs?.playlists || []);
+    if (!isPlayableTrack(track, profile, unlocked)) return 'Not available to your class';
     return 'Music library';
   }
 
@@ -111,9 +111,9 @@ export function buildWishlistCatalogs({ catalogs = {}, seasons = [], profile }) 
     emoji: '🏷️',
   }));
 
-  const unlocked = getUnlockedTrackIds(profile);
+  const unlocked = getUnlockedTrackIds(profile, catalogs.playlists || []);
   const songs = (catalogs.tracks || [])
-    .filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile, unlocked))
+    .filter((t) => isPlayableTrack(t, profile, unlocked))
     .map((t) => ({ kind: 'song', id: t.id, label: t.title || 'Song', emoji: '🎵' }));
 
   return { pets, themes, titles, songs };

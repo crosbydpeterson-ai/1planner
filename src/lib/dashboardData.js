@@ -1,5 +1,6 @@
 import { base44 } from '@/api/base44Client';
 import { safeRead, getAppSettings } from '@/lib/dataCache';
+import { loadMusicCatalogs } from '@/lib/musicData';
 import { isSeasonVisibleToStudents } from '@/lib/seasonStudio';
 import { selectOnePassSeason } from '@/lib/seasonUtils';
 import { resolveActiveWheel } from '@/lib/wheelLibrary';
@@ -179,17 +180,19 @@ export function loadAssetCatalogs() {
   return safeRead(
     'assetCatalogs',
     async () => {
-      const [pets, themes, tracks, playlists] = await Promise.all([
+      const emptyMusic = { tracks: [], playlists: [] };
+      const [pets, themes, music] = await Promise.all([
         base44.entities.CustomPet.list().catch(() => []),
         base44.entities.CustomTheme.list().catch(() => []),
-        base44.entities.MusicTrack.list().catch(() => []),
-        base44.entities.Playlist.list().catch(() => []),
+        // Music uses the shared cached read, so the widget and the Music page
+        // never fetch the same library twice.
+        loadMusicCatalogs().catch(() => emptyMusic),
       ]);
       return {
         pets: asArray(pets),
         themes: asArray(themes),
-        tracks: asArray(tracks),
-        playlists: asArray(playlists),
+        tracks: music.tracks,
+        playlists: music.playlists,
       };
     },
     { ttl: TTL.long }

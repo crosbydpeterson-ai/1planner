@@ -271,7 +271,9 @@ export default function Layout({ children, currentPageName }) {
       {children}
       {!hideNav && currentPageName !== 'CommunityWall' && currentPageName !== 'community' && <ChatbotWidget />}
       {!hideNav && currentProfile && <MessageWidget currentProfile={currentProfile} />}
-      {!hideNav && currentProfile && <MusicPlayerBar profile={currentProfile} />}
+      {/* The player keeps its media mounted on every page so playback survives
+          navigation; only the visible bar is hidden where there is no room. */}
+      {currentProfile && <MusicPlayerBar profile={currentProfile} hideUI={hideNav} />}
       
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 safe-area-pb z-40">

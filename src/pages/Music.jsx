@@ -6,7 +6,8 @@ import PlaylistCard from '@/components/music/PlaylistCard';
 import PlaylistDialog from '@/components/music/PlaylistDialog';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import SongRequestDialog from '@/components/music/SongRequestDialog';
-import { isTrackVisibleForUser, isPlaylistVisibleForUser, getPlaylistTracks, getUnlockedTrackIds } from '@/lib/musicAccess';
+import { isPlayableTrack, isPlaylistVisibleForUser, getPlaylistTracks, getUnlockedTrackIds } from '@/lib/musicAccess';
+import { loadMusicCatalogs } from '@/lib/musicData';
 import { checkFeatureLock } from '@/lib/featureLocks';
 import { getAppSettings } from '@/lib/dataCache';
 
@@ -28,16 +29,15 @@ export default function Music() {
     setLoadError(false);
     try {
       let profiles = null;
-      let allTracks = null;
-      let allPlaylists = null;
+      let music = null;
       let settings = null;
       // Retry the entire load up to 3 times — any of these calls can rate-limit
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          [profiles, allTracks, allPlaylists, settings] = await Promise.all([
+          [profiles, music, settings] = await Promise.all([
             base44.entities.UserProfile.filter({ id: profileId }),
-            base44.entities.MusicTrack.list('-created_date'),
-            base44.entities.Playlist.list('-created_date'),
+            // Shared cached read — the Home music widget uses the same one.
+            loadMusicCatalogs(),
             getAppSettings(),
           ]);
           break;
@@ -49,8 +49,8 @@ export default function Music() {
       const p = profiles?.[0];
       if (!p) { setLoadError(true); setLoading(false); return; }
       setProfile(p);
-      setTracks(allTracks || []);
-      setPlaylists(allPlaylists || []);
+      setTracks(music?.tracks || []);
+      setPlaylists(music?.playlists || []);
       const locksSetting = settings?.find((s) => s.key === 'feature_locks');
       setLocks(locksSetting?.value || null);
       const pageSetting = settings?.find((s) => s.key === 'lock_page_config');
@@ -101,10 +101,10 @@ export default function Music() {
   }
 
   const unlockedTrackIds = getUnlockedTrackIds(profile, playlists);
-  const visible = tracks.filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile, unlockedTrackIds));
+  const visible = tracks.filter((t) => isPlayableTrack(t, profile, unlockedTrackIds));
   const visiblePlaylists = playlists.filter((p) => p.isActive !== false && isPlaylistVisibleForUser(p, profile));
   const openPlaylistTracks = openPlaylist
-    ? getPlaylistTracks(openPlaylist, tracks).filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile, unlockedTrackIds))
+    ? getPlaylistTracks(openPlaylist, tracks).filter((t) => isPlayableTrack(t, profile, unlockedTrackIds))
     : [];
 
   return (
@@ -139,7 +139,7 @@ export default function Music() {
               <PlaylistCard
                 key={pl.id}
                 playlist={pl}
-                trackCount={getPlaylistTracks(pl, tracks).filter((t) => t.isActive !== false && isTrackVisibleForUser(t, profile, unlockedTrackIds)).length}
+                trackCount={getPlaylistTracks(pl, tracks).filter((t) => isPlayableTrack(t, profile, unlockedTrackIds)).length}
                 onClick={() => setOpenPlaylist(pl)}
               />
             ))}

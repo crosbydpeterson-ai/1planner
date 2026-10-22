@@ -81,7 +81,6 @@ export default function Dashboard() {
     if (authChecked && isAuthenticated) {
       loadProfile();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authChecked, isAuthenticated]);
 
   const handleTutorialComplete = async () => {

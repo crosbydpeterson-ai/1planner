@@ -1,5 +1,19 @@
 // Determines whether a given student profile is allowed to see/play a track.
-// Admins see everything.
+//
+// Precedence for a track (first match wins):
+//   1. Admins (rank admin/super_admin, or the owner account "Crosby") see everything.
+//   2. Season-exclusive tracks need a 1Pass unlock — either the track id itself
+//      or a season-exclusive playlist containing it (getUnlockedTrackIds). An
+//      explicit award therefore outranks a lock, which is the long-standing
+//      behaviour on the Music page.
+//   3. A per-user lock (lockedProfileIds) removes the track for that student.
+//   4. A per-class lock (lockedClassKeys, keyed "math:<teacherId>") removes it
+//      for every student in that class.
+//   5. A track assigned to specific students (assignedProfileIds) is only for
+//      them; an empty list means everyone.
+// A track that is switched off entirely (isActive === false) is never offered
+// to students — see isPlayableTrack, which packages this rule with the locks
+// above so every surface offers exactly the same songs.
 
 function isAdminProfile(profile) {
   if (!profile) return false;
@@ -7,11 +21,29 @@ function isAdminProfile(profile) {
     (typeof profile.username === 'string' && profile.username.toLowerCase() === 'crosby');
 }
 
+// Membership that works whether the caller holds an array (entity data) or a
+// Set (what getUnlockedTrackIds returns).
+function hasId(collection, id) {
+  if (!collection || !id) return false;
+  if (collection instanceof Set) return collection.has(id);
+  if (Array.isArray(collection)) return collection.includes(id);
+  return false;
+}
+
+function toIdList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (value instanceof Set) return Array.from(value);
+  return [];
+}
+
 // Build the full set of track IDs a user has unlocked: directly unlocked tracks
 // plus every track inside any season-exclusive playlist they unlocked via 1Pass.
+// Returns a Set — callers may pass it (or a plain array) straight back into the
+// visibility helpers.
 export function getUnlockedTrackIds(profile, playlists = []) {
-  const ids = new Set(profile?.unlockedTrackIds || []);
-  const unlockedPlaylists = profile?.unlockedPlaylistIds || [];
+  const ids = new Set(toIdList(profile?.unlockedTrackIds));
+  const unlockedPlaylists = toIdList(profile?.unlockedPlaylistIds);
   if (unlockedPlaylists.length > 0 && Array.isArray(playlists)) {
     playlists.forEach((pl) => {
       if (pl?.isSeasonExclusive && unlockedPlaylists.includes(pl.id) && Array.isArray(pl.trackIds)) {
@@ -26,28 +58,39 @@ export function isTrackVisibleForUser(track, profile, unlockedTrackIds) {
   if (!track || !profile) return false;
   if (isAdminProfile(profile)) return true;
 
-  // Season-exclusive tracks are gated behind 1Pass song/playlist rewards.
-  // Visible if the user unlocked the track directly OR via a playlist containing it.
+  // Season-exclusive tracks are gated behind 1Pass song/playlist rewards:
+  // visible when the user unlocked the track directly or via a playlist.
   if (track.isSeasonExclusive) {
     const unlocked = unlockedTrackIds || profile.unlockedTrackIds || [];
-    return unlocked.includes(track.id) || (Array.isArray(unlocked) && unlocked.has?.(track.id));
+    return hasId(unlocked, track.id);
   }
 
   // Locked for this specific user
-  if ((track.lockedProfileIds || []).includes(profile.id)) return false;
+  if (toIdList(track.lockedProfileIds).includes(profile.id)) return false;
 
   // Locked for one of this user's classes
   const classKeys = [
     profile.mathTeacher ? `math:${profile.mathTeacher}` : null,
     profile.readingTeacher ? `reading:${profile.readingTeacher}` : null,
   ].filter(Boolean);
-  if ((track.lockedClassKeys || []).some(k => classKeys.includes(k))) return false;
+  if (toIdList(track.lockedClassKeys).some((k) => classKeys.includes(k))) return false;
 
   // Assigned to specific users (empty = everyone)
-  const assigned = track.assignedProfileIds || [];
+  const assigned = toIdList(track.assignedProfileIds);
   if (assigned.length > 0 && !assigned.includes(profile.id)) return false;
 
   return true;
+}
+
+/**
+ * The one rule for "this student may actually play this track": the track is
+ * still switched on and passes the visibility rules above. Used by the Music
+ * page, the Home music widget and the collectible widgets so a song can never
+ * be offered in one place and refused in another.
+ */
+export function isPlayableTrack(track, profile, unlockedTrackIds) {
+  if (!track || track.isActive === false) return false;
+  return isTrackVisibleForUser(track, profile, unlockedTrackIds);
 }
 
 // Playlists follow the same exclusivity model: a season-exclusive playlist is
@@ -57,7 +100,7 @@ export function isPlaylistVisibleForUser(playlist, profile) {
   if (playlist.isActive === false) return false;
   if (isAdminProfile(profile)) return true;
   if (playlist.isSeasonExclusive) {
-    return (profile.unlockedPlaylistIds || []).includes(playlist.id);
+    return toIdList(profile.unlockedPlaylistIds).includes(playlist.id);
   }
   return true;
 }

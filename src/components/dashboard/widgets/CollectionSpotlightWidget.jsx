@@ -4,7 +4,7 @@ import { Gem, Play, ChevronRight, Clock } from 'lucide-react';
 import { loadRecentAcquisitions, loadAssetCatalogs } from '@/lib/dashboardData';
 import { describeAsset, isAssetOwned } from '@/lib/widgetAssets';
 import { equipPet, equipTitle } from '@/lib/equipHelpers';
-import { getUnlockedTrackIds, isTrackVisibleForUser } from '@/lib/musicAccess';
+import { getUnlockedTrackIds, isPlayableTrack } from '@/lib/musicAccess';
 import { musicPlayer } from '@/lib/musicPlayerStore';
 import { formatCentralDateTime } from '@/lib/centralTime';
 import { PETS } from '@/components/quest/PetCatalog';
@@ -111,13 +111,10 @@ export default function CollectionSpotlightWidget({ profile, onProfileChange }) 
 
   const handlePlay = (entry) => {
     const track = (catalogs.tracks || []).find((t) => t.id === entry.id);
-    if (!track || track.isActive === false) {
+    // Same rule (and playlist-derived unlocks) the Study Music page uses.
+    const unlocked = getUnlockedTrackIds(profile, catalogs.playlists || []);
+    if (!track || !isPlayableTrack(track, profile, unlocked)) {
       setNotice('That song is not available to play.');
-      return;
-    }
-    const unlocked = getUnlockedTrackIds(profile);
-    if (!isTrackVisibleForUser(track, profile, unlocked)) {
-      setNotice('That song is not available to your class.');
       return;
     }
     musicPlayer.play(track);
