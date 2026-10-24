@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Trash2, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import moment from 'moment';
+import { timeAgo } from '@/lib/serverTime';
 import { cn } from '@/lib/utils';
 import { moderateContent, loadModSettings } from './ContentModeration';
 import { toast } from 'sonner';
@@ -46,7 +46,7 @@ export default function CommentSection({ comments, canComment, isAdmin, channelI
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-slate-700 text-xs">{c.authorUsername}</span>
-              <span className="text-[10px] text-slate-400">{moment(c.created_date).fromNow()}</span>
+              <span className="text-[10px] text-slate-400">{timeAgo(c.created_date)}</span>
               {c.status === 'pending' && <span className="text-[9px] text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded-full font-medium">pending</span>}
             </div>
             <p className="text-slate-600 text-xs leading-relaxed mt-0.5">{c.content}</p>

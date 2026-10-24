@@ -4,7 +4,7 @@ import { ArrowBigUp, MessageCircle, Type, Mic, Youtube, Loader2 } from 'lucide-r
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import moment from 'moment';
+import { timeAgo } from '@/lib/serverTime';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { parseYouTubeId } from '@/lib/musicPlayerStore';
 
@@ -70,7 +70,7 @@ export default function SongRequestPostCard({ request, currentProfileId, isAdmin
               </span>
               <span className="text-[10px] text-slate-400">song request</span>
             </div>
-            <span className="text-[11px] text-slate-400">{moment(request.created_date).fromNow()}</span>
+            <span className="text-[11px] text-slate-400">{timeAgo(request.created_date)}</span>
           </div>
         </div>
 

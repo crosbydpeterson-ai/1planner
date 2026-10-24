@@ -2,7 +2,7 @@ import React from 'react';
 import { MessageCircle, Pin, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import moment from 'moment';
+import { timeAgo } from '@/lib/serverTime';
 import ReactionBar from './ReactionBar';
 import PollDisplay from './PollDisplay';
 import PetConceptPostDisplay from './PetConceptPostDisplay';
@@ -39,7 +39,7 @@ export default function PostCard({ post, isAdmin, currentProfileId, onReact, onD
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-slate-400">{moment(post.created_date).fromNow()}</span>
+              <span className="text-[11px] text-slate-400">{timeAgo(post.created_date)}</span>
               {post.isPinned && (
                 <span className="text-[10px] text-amber-500 flex items-center gap-0.5"><Pin className="w-3 h-3" />Pinned</span>
               )}
