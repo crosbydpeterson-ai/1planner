@@ -15,15 +15,20 @@
       "description": "Generates or edits React mini-game code, thumbnails, and quiz questions"
     }
   ],
-  "model": "claude_sonnet_4_6",
+  "model": "gpt_6_luna",
   "whatsapp_greeting": "Hey! \ud83c\udfae I'm your Game Builder AI. Describe the mini-game you want and I'll build it!",
   "selected_skill_names": [],
   "selected_workspace_skill_ids": [],
   "memory_config": {
     "enabled": true,
     "scope": "both",
+    "include_other_conversation_context": false,
     "instructions": "save from people who are not admin or allowed here save username"
   },
   "telegram_greeting": "",
+  "context_files": [],
+  "app_user_connector_configs": [],
+  "line_greeting": "",
+  "allow_anonymous_access": true,
   "name": "game_builder"
 }
