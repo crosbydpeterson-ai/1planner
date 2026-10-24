@@ -21,10 +21,15 @@
   "memory_config": {
     "enabled": true,
     "scope": "global",
+    "include_other_conversation_context": false,
     "instructions": "save any schoolwork insance and bypass and wrong code SAVE IT also save username of user"
   },
   "selected_skill_names": [],
   "selected_workspace_skill_ids": [],
   "telegram_greeting": "",
+  "context_files": [],
+  "app_user_connector_configs": [],
+  "line_greeting": "",
+  "allow_anonymous_access": true,
   "name": "guide_chatbot"
 }
