@@ -19,19 +19,19 @@ import {
  * appears only after the save succeeded — a failure keeps the draft and offers
  * Retry with the same operation id, so a retry can never open a second request.
  */
-export default function ByteSupportHandoffDialog({ open, thread, byteMessages, supportAdminCount, onClose, onSubmitted }) {
+export default function ByteSupportHandoffDialog({ open, thread, messages, supportAdminCount, onClose, onSubmitted }) {
   const [summary, setSummary] = useState('');
   const [details, setDetails] = useState('');
   const [phase, setPhase] = useState('edit'); // edit | saving | sent | failed
   const [error, setError] = useState('');
   const opRef = useRef(null);
 
-  const transcript = useMemo(() => buildSupportTranscript(byteMessages), [byteMessages]);
+  const transcript = useMemo(() => buildSupportTranscript(messages), [messages]);
   const existingStatus = supportStatusOf(thread);
 
   useEffect(() => {
     if (!open) return;
-    setSummary(existingStatus ? thread.escalationSummary || draftSummary(byteMessages) : draftSummary(byteMessages));
+    setSummary(existingStatus ? thread.escalationSummary || draftSummary(messages) : draftSummary(messages));
     setDetails(thread?.supportDetails || '');
     setPhase('edit');
     setError('');

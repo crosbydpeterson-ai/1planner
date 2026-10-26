@@ -6,7 +6,8 @@ import MessageBubble from './MessageBubble';
 import ByteSupportThread from './ByteSupportThread';
 import ByteSupportHandoffDialog from './ByteSupportHandoffDialog';
 import useThreadSender from '@/hooks/useThreadSender';
-import { buildThreadMessages, loadMessagesForThreads, loadThreadMessages } from '@/lib/dmMessages';
+import { buildThreadMessages, loadMessagesForThreads, loadThreadMessages, newOperationId, sendThreadMessage } from '@/lib/dmMessages';
+import { askByte, byteHistory } from '@/lib/byteAssistant';
 import { ensureThread, loadContacts, loadStudentThreads } from '@/lib/dmRouting';
 import {
   isSupportOpen,
@@ -29,12 +30,10 @@ export default function StudentMessages({ currentProfile }) {
   const [truncated, setTruncated] = useState(false);
   const [opening, setOpening] = useState(false);
   const [byteLoading, setByteLoading] = useState(false);
-  const [byteMessages, setByteMessages] = useState([]);
   const [byteError, setByteError] = useState('');
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportAdminIds, setSupportAdminIds] = useState([]);
   const [supportBusy, setSupportBusy] = useState(false);
-  const byteUnsubRef = useRef(null);
   const endRef = useRef(null);
   const refreshTimer = useRef(null);
 
@@ -80,7 +79,6 @@ export default function StudentMessages({ currentProfile }) {
     return () => {
       clearTimeout(refreshTimer.current);
       unsub?.();
-      byteUnsubRef.current?.();
     };
   }, [currentProfile.id]);
 
@@ -89,45 +87,63 @@ export default function StudentMessages({ currentProfile }) {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeThread?.id, records, activePending, activeFailed, byteMessages.length]);
+  }, [activeThread?.id, records, activePending, activeFailed, byteLoading]);
 
-  const initByte = async (thread) => {
-    setByteMessages([]);
-    setByteLoading(false);
-    setByteError('');
-    byteUnsubRef.current?.();
-    let convId = thread.byteConvId;
-    let byteConv = null;
-    if (!convId) {
-      byteConv = await base44.agents.createConversation({
-        agent_name: 'support_bot',
-        metadata: {
-          name: `${currentProfile.username} ↔ Byte`,
-          studentProfileId: currentProfile.id,
-          studentUsername: currentProfile.username,
-          studentUserId: currentProfile.userId,
-        },
+  /** Byte's reply is an ordinary message in this conversation. */
+  const saveByteReply = async (thread, text) => {
+    try {
+      const { message, thread: updated } = await sendThreadMessage({
+        thread,
+        sender: 'bot',
+        senderName: 'Byte',
+        text,
+        operationId: newOperationId('byte'),
+        unreadPatch: { hasUnreadStudent: false },
       });
-      convId = byteConv.id;
-      // Send an invisible system context message so Byte knows who it's talking to
-      await base44.agents.addMessage(byteConv, {
-        role: 'user',
-        content: `[SYSTEM CONTEXT — do not reply to this, just use it] My username is "${currentProfile.username}", my profileId is "${currentProfile.id}", my userId is "${currentProfile.userId || ''}".`,
-      });
-      const updated = await base44.entities.DMThread.update(thread.id, { byteConvId: convId });
-      setActiveThread((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
-    } else {
-      byteConv = await base44.agents.getConversation(convId);
-      // Filter out the hidden system context message from display
-      setByteMessages((byteConv.messages || []).filter((m) => !m.content?.startsWith('[SYSTEM CONTEXT')));
+      setRecords((prev) => ({ ...prev, [thread.id]: [...(prev[thread.id] || []), message] }));
+      setThreads((prev) => prev.map((t) => (t.id === thread.id ? { ...t, ...updated } : t)));
+      setActiveThread((prev) => (prev && prev.id === thread.id ? { ...prev, ...updated } : prev));
+    } catch (err) {
+      console.error('Byte’s reply was not saved', err);
+      setByteError('Byte answered, but the reply could not be saved. Please try again.');
     }
-    byteUnsubRef.current = base44.agents.subscribeToConversation(convId, (data) => {
-      const msgs = (data.messages || []).filter((m) => !m.content?.startsWith('[SYSTEM CONTEXT'));
-      setByteMessages(msgs);
-      // Stop loading whenever the last message is from the assistant (even partial)
-      const lastMsg = msgs[msgs.length - 1];
-      if (lastMsg?.role === 'assistant') setByteLoading(false);
+  };
+
+  /**
+   * One exchange with Byte.
+   *
+   * The student's message is stored first so it can never be lost, then Byte
+   * answers through the platform AI call — which works for a visitor without an
+   * account, unlike platform agent conversations. When the exchange belongs to an
+   * open support request the reply comes from the admin instead, so Byte stays out
+   * of the way.
+   */
+  const runByteExchange = async (text, { toSupport } = {}) => {
+    const thread = activeThread;
+    if (!thread?.id) return 'empty';
+    // Composed before sending, so the history excludes the message being answered.
+    const history = byteHistory(buildThreadMessages({ thread, records: records[thread.id] }));
+    const status = await sender.run({
+      thread,
+      sender: 'student',
+      senderName: currentProfile.username,
+      senderProfileId: currentProfile.id,
+      text,
+      unreadPatch: toSupport ? studentMessagePatch() : { hasUnreadStudent: false },
     });
+    if (status !== 'sent' || toSupport) return status;
+
+    setByteLoading(true);
+    try {
+      const reply = await askByte({ profile: currentProfile, history, question: text });
+      await saveByteReply(thread, reply);
+    } catch (err) {
+      console.error('Byte could not answer', err);
+      setByteError('Byte could not answer that one. Try again, or tap Talk to an admin.');
+    } finally {
+      setByteLoading(false);
+    }
+    return status;
   };
 
   const openThread = async (contact) => {
@@ -153,7 +169,6 @@ export default function StudentMessages({ currentProfile }) {
       }
       const msgs = await loadThreadMessages(thread.id);
       setRecords((prev) => ({ ...prev, [thread.id]: msgs }));
-      if (contact.isBot) await initByte(thread);
     } catch (err) {
       console.error('Could not open conversation', err);
       setError('Could not open this conversation. Please try again.');
@@ -184,24 +199,13 @@ export default function StudentMessages({ currentProfile }) {
     }
 
     if (activeContact?.isBot) {
+      const toSupport = isSupportOpen(activeThread);
       setInput('');
       setByteError('');
-      setByteLoading(true);
-      const timeoutId = setTimeout(() => setByteLoading(false), 45000);
-      try {
-        // Fetch fresh conversation so addMessage has the full up-to-date messages array
-        const freshConv = await base44.agents.getConversation(activeThread.byteConvId);
-        await base44.agents.addMessage(freshConv, { role: 'user', content: text });
-        // They asked for a human in their own words — open the handoff preview.
-        if (looksLikeHumanRequest(text)) setSupportOpen(true);
-      } catch (err) {
-        console.error('Byte did not receive the message', err);
-        setByteError('Byte did not receive that. Your text is back in the box — tap send to retry.');
-        setInput((cur) => (cur.trim() ? cur : text));
-        setByteLoading(false);
-      } finally {
-        clearTimeout(timeoutId);
-      }
+      const status = await runByteExchange(text, { toSupport });
+      if (status === 'busy') setInput((cur) => (cur.trim() ? cur : text));
+      // They asked for a human in their own words — open the handoff preview.
+      if (!toSupport && looksLikeHumanRequest(text)) setSupportOpen(true);
       return;
     }
 
@@ -219,25 +223,15 @@ export default function StudentMessages({ currentProfile }) {
     if (status === 'busy') setInput((cur) => (cur.trim() ? cur : text));
   };
 
-  // "Ask Byte": a separate AI path that never touches the human thread.
-  const askByte = async () => {
+  // "Ask Byte": Byte answers without waking the support team, so a student can
+  // keep chatting with the AI while their request is open.
+  const askByteAgain = async () => {
     const text = input.trim();
-    if (!text || byteLoading || !activeThread?.byteConvId) return;
+    if (!text || byteLoading || sender.isBusy || !activeThread) return;
     setInput('');
     setByteError('');
-    setByteLoading(true);
-    const timeoutId = setTimeout(() => setByteLoading(false), 45000);
-    try {
-      const freshConv = await base44.agents.getConversation(activeThread.byteConvId);
-      await base44.agents.addMessage(freshConv, { role: 'user', content: text });
-    } catch (err) {
-      console.error('Byte did not receive the message', err);
-      setByteError('Byte did not receive that. Your text is back in the box — tap send to retry.');
-      setInput((cur) => (cur.trim() ? cur : text));
-      setByteLoading(false);
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    const status = await runByteExchange(text, { toSupport: false });
+    if (status === 'busy') setInput((cur) => (cur.trim() ? cur : text));
   };
 
   const reopenRequest = async () => {
@@ -331,7 +325,7 @@ export default function StudentMessages({ currentProfile }) {
   return (
     <div className="max-w-md mx-auto flex flex-col" style={{ height: 'calc(100vh - 180px)' }}>
       <button
-        onClick={() => { setView('contacts'); setActiveThread(null); setActiveContact(null); byteUnsubRef.current?.(); }}
+        onClick={() => { setView('contacts'); setActiveThread(null); setActiveContact(null); }}
         className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm mb-3 px-1 transition-colors"
       >
         <ChevronLeft className="w-4 h-4" /> Back to Messages
@@ -370,7 +364,6 @@ export default function StudentMessages({ currentProfile }) {
           <ByteSupportThread
             thread={activeThread}
             records={records[activeThread?.id] || []}
-            byteMessages={byteMessages}
             pending={activePending}
             failed={activeFailed}
             currentProfile={currentProfile}
@@ -406,7 +399,7 @@ export default function StudentMessages({ currentProfile }) {
         <div className="flex items-center gap-2 px-3 py-3 border-t border-white/20">
           {activeContact?.isBot && isSupportOpen(activeThread) && (
             <button
-              onClick={askByte}
+              onClick={askByteAgain}
               disabled={!input.trim() || byteLoading}
               title="Ask Byte while you wait"
               className="text-[11px] font-semibold bg-white/50 hover:bg-white/70 border border-white/50 text-slate-700 disabled:opacity-40 rounded-full px-3 py-2 shrink-0 transition-colors"
@@ -438,7 +431,7 @@ export default function StudentMessages({ currentProfile }) {
       <ByteSupportHandoffDialog
         open={supportOpen}
         thread={activeThread}
-        byteMessages={byteMessages}
+        messages={messages}
         supportAdminCount={supportAdminIds.length}
         onClose={() => setSupportOpen(false)}
         onSubmitted={({ thread: updated }) => {

@@ -6,8 +6,8 @@ import { sendThreadMessage } from './dmMessages';
  *
  * The handoff lives on the student's EXISTING Byte conversation (a DMThread
  * whose contact is the Byte bot), so student and support admin talk in the one
- * conversation the student already has open. Human messages stay DMMessage
- * records; Byte's AI replies stay in the agent conversation.
+ * conversation the student already has open. Every message — the student's, Byte's
+ * answers and the admin's replies — is a DMMessage record on that thread.
  *
  * Only the profiles named in the `byte_support_admins` app setting may read or
  * answer these requests — a role that manages events is never included.
@@ -117,27 +117,26 @@ export function looksLikeHumanRequest(text) {
 // ── the shared transcript ────────────────────────────────────────────────────
 
 /**
- * Text-only snapshot of the Byte conversation.
- * System context, tool noise and anything without text is dropped; the shared
- * copy is capped so a long chat cannot bloat the record.
+ * Text-only snapshot of the student's chat with Byte.
+ * Anything without text is dropped and the shared copy is capped, so a long chat
+ * cannot bloat the record. The student's own words and Byte's answers are shared;
+ * admin replies are not copied here — the admin can read the conversation itself.
  */
-export function buildSupportTranscript(agentMessages) {
-  return (agentMessages || [])
-    .filter((m) => m?.content && !String(m.content).startsWith('[SYSTEM CONTEXT'))
+export function buildSupportTranscript(messages) {
+  return (messages || [])
+    .filter((m) => m?.text && (m.sender === 'student' || m.sender === 'bot'))
     .slice(-40)
     .map((m) => ({
-      role: m.role === 'user' ? 'student' : 'byte',
-      text: String(m.content).slice(0, 2000),
-      sentAt: m.created_date || m.sentAt || new Date().toISOString(),
+      role: m.sender === 'student' ? 'student' : 'byte',
+      text: String(m.text).slice(0, 2000),
+      sentAt: m.sentAt || new Date().toISOString(),
     }));
 }
 
 /** Draft summary from the student's own words, which they can edit before sending. */
-export function draftSummary(agentMessages) {
-  const mine = (agentMessages || []).filter(
-    (m) => m.role === 'user' && m.content && !String(m.content).startsWith('[SYSTEM CONTEXT')
-  );
-  const text = String(mine[mine.length - 1]?.content || '').trim().replace(/\s+/g, ' ');
+export function draftSummary(messages) {
+  const mine = (messages || []).filter((m) => m.sender === 'student' && m.text);
+  const text = String(mine[mine.length - 1]?.text || '').trim().replace(/\s+/g, ' ');
   return text.length > 280 ? `${text.slice(0, 277)}…` : text;
 }
 
