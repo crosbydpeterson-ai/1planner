@@ -23,15 +23,24 @@ const HANDOFF_MESSAGE_PREFIX = 'support_handoff';
 
 // ── named support admins ─────────────────────────────────────────────────────
 
+/**
+ * The named support admins. A missing or unreadable setting must never break
+ * messaging, so a failure just resolves to "nobody is named yet".
+ */
 export async function loadSupportAdmins() {
-  const rows = await base44.entities.AppSetting.filter({ key: SUPPORT_ADMINS_KEY });
-  const setting = rows[0] || null;
-  const value = setting?.value || {};
-  return {
-    setting,
-    profileIds: Array.isArray(value.profileIds) ? value.profileIds.map(String) : [],
-    usernames: value.usernames || {},
-  };
+  try {
+    const rows = await base44.entities.AppSetting.filter({ key: SUPPORT_ADMINS_KEY });
+    const setting = rows[0] || null;
+    const value = setting?.value || {};
+    return {
+      setting,
+      profileIds: Array.isArray(value.profileIds) ? value.profileIds.map(String) : [],
+      usernames: value.usernames || {},
+    };
+  } catch (err) {
+    console.error('Could not load the support admin list', err);
+    return { setting: null, profileIds: [], usernames: {} };
+  }
 }
 
 export async function saveSupportAdmins(setting, profileIds, usernames) {

@@ -15,8 +15,8 @@ const NOTE = {
   resolved: 'An admin marked this resolved. Reply or reopen it if you still need help.',
 };
 
-export default function SupportStatusBar({ thread, onReopen, busy }) {
-  const status = supportStatusOf(thread);
+export default function SupportStatusBar({ thread, onReopen, busy, statusOverride }) {
+  const status = statusOverride || supportStatusOf(thread);
   if (!status) return null;
 
   const Icon = status === SUPPORT_RESOLVED ? CheckCircle2 : status === SUPPORT_REPLIED ? MessageSquareReply : Clock;

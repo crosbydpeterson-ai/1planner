@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import MessageBubble from './MessageBubble';
 import SupportStatusBar from './SupportStatusBar';
 import { buildThreadMessages } from '@/lib/dmMessages';
+import { SUPPORT_REPLIED } from '@/lib/byteSupport';
 
 /**
  * The student's Byte conversation.
@@ -52,9 +53,19 @@ export default function ByteSupportThread({
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [timeline.length, byteLoading]);
 
+  // Requests escalated before the status field existed never saved one; if an
+  // admin has already answered in the conversation, show it as answered.
+  const legacyAnswered =
+    escalated && !thread.supportStatus && timeline.some((e) => e.kind === 'human' && e.msg.sender === 'admin');
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <SupportStatusBar thread={thread} onReopen={onReopen} busy={reopenBusy} />
+      <SupportStatusBar
+        thread={thread}
+        onReopen={onReopen}
+        busy={reopenBusy}
+        statusOverride={legacyAnswered ? SUPPORT_REPLIED : null}
+      />
 
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {timeline.length === 0 && (
