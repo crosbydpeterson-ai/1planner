@@ -13,6 +13,7 @@ import {
   isSupportOpen,
   loadSupportAdmins,
   looksLikeHumanRequest,
+  runByteHandoff,
   setSupportStatus,
   studentMessagePatch,
 } from '@/lib/byteSupport';
@@ -120,7 +121,7 @@ export default function StudentMessages({ currentProfile }) {
    */
   const runByteExchange = async (text, { toSupport } = {}) => {
     const thread = activeThread;
-    if (!thread?.id) return 'empty';
+    if (!thread?.id) return { status: 'empty' };
     // Composed before sending, so the history excludes the message being answered.
     const history = byteHistory(buildThreadMessages({ thread, records: records[thread.id] }));
     const status = await sender.run({
@@ -131,19 +132,36 @@ export default function StudentMessages({ currentProfile }) {
       text,
       unreadPatch: toSupport ? studentMessagePatch() : { hasUnreadStudent: false },
     });
-    if (status !== 'sent' || toSupport) return status;
+    if (status !== 'sent' || toSupport) return { status };
 
+    let handedOff = false;
     setByteLoading(true);
     try {
-      const reply = await askByte({ profile: currentProfile, history, question: text });
-      await saveByteReply(thread, reply);
+      const { reply, handoff } = await askByte({ profile: currentProfile, history, question: text, thread });
+      if (!handoff) {
+        await saveByteReply(thread, reply);
+      } else {
+        // Byte decided this needs a person. The app performs the handoff through the
+        // same service the student's own button uses, so Byte's explanation and the
+        // confirmation land in this conversation and no second request can open.
+        const result = await runByteHandoff({
+          thread,
+          profile: currentProfile,
+          handoff: { ...handoff, explanation: reply },
+        });
+        handedOff = true;
+        const stored = await loadThreadMessages(thread.id);
+        setRecords((prev) => ({ ...prev, [thread.id]: stored }));
+        setThreads((prev) => prev.map((t) => (t.id === result.thread.id ? { ...t, ...result.thread } : t)));
+        setActiveThread((prev) => (prev && prev.id === result.thread.id ? { ...prev, ...result.thread } : prev));
+      }
     } catch (err) {
       console.error('Byte could not answer', err);
       setByteError('Byte could not answer that one. Try again, or tap Talk to an admin.');
     } finally {
       setByteLoading(false);
     }
-    return status;
+    return { status, handedOff };
   };
 
   const openThread = async (contact) => {
@@ -202,10 +220,11 @@ export default function StudentMessages({ currentProfile }) {
       const toSupport = isSupportOpen(activeThread);
       setInput('');
       setByteError('');
-      const status = await runByteExchange(text, { toSupport });
+      const { status, handedOff } = await runByteExchange(text, { toSupport });
       if (status === 'busy') setInput((cur) => (cur.trim() ? cur : text));
-      // They asked for a human in their own words — open the handoff preview.
-      if (!toSupport && looksLikeHumanRequest(text)) setSupportOpen(true);
+      // They asked for a human in their own words and Byte has not already passed
+      // the conversation on — show the preview so they can send it themselves.
+      if (!toSupport && !handedOff && looksLikeHumanRequest(text)) setSupportOpen(true);
       return;
     }
 
@@ -230,7 +249,7 @@ export default function StudentMessages({ currentProfile }) {
     if (!text || byteLoading || sender.isBusy || !activeThread) return;
     setInput('');
     setByteError('');
-    const status = await runByteExchange(text, { toSupport: false });
+    const { status } = await runByteExchange(text, { toSupport: false });
     if (status === 'busy') setInput((cur) => (cur.trim() ? cur : text));
   };
 

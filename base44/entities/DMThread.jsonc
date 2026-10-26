@@ -89,9 +89,20 @@
       ],
       "description": "Support handoff state. waiting = sent and no human reply yet, replied = a support admin answered, resolved = closed by a support admin. Threads escalated before this field existed fall back to waiting."
     },
+    "supportReason": {
+      "type": "string",
+      "enum": [
+        "human_request",
+        "troubleshooting_failed",
+        "admin_only_action",
+        "reward_problem",
+        "uncertain_fix"
+      ],
+      "description": "Why the conversation needed a person, as a supported category rather than free text. Only the keys listed here are ever stored; the label the student and admin read is derived from it in the app."
+    },
     "supportDetails": {
       "type": "string",
-      "description": "Optional extra details the student added in the handoff preview"
+      "description": "Optional extra details the student added in the handoff preview, or the further details Byte appended to an already-open request."
     },
     "supportTranscript": {
       "type": "array",

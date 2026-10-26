@@ -13,6 +13,7 @@ import {
   assignSupportRequest,
   claimSupportRequest,
   setSupportStatus,
+  supportReasonLabel,
   supportStatusLabel,
   supportStatusOf,
 } from '@/lib/byteSupport';
@@ -115,6 +116,9 @@ export default function SupportRequestDetail({ thread, records, currentProfile, 
           <div className="bg-amber-500/10 backdrop-blur-sm border border-amber-500/25 rounded-xl px-3 py-2">
             <p className="text-[11px] font-semibold text-amber-800 mb-0.5">Student’s summary</p>
             <p className="text-xs text-amber-900 whitespace-pre-wrap">{thread.escalationSummary || '—'}</p>
+            {supportReasonLabel(thread.supportReason) && (
+              <p className="text-[10px] text-amber-700 mt-1">Reason: {supportReasonLabel(thread.supportReason)}</p>
+            )}
           </div>
 
           {thread.supportDetails && (

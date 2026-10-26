@@ -64,6 +64,11 @@ export default function ByteSupportThread({
         statusOverride={legacyAnswered ? SUPPORT_REPLIED : null}
       />
 
+      <p className="px-3 pt-2 text-[10px] leading-snug text-slate-500">
+        Byte is 1planner’s AI helper and can’t change an account. If you need a person, your request and the
+        relevant part of this conversation can be passed to the app’s authorized support admins.
+      </p>
+
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {timeline.length === 0 && (
           <p className="text-center text-xs text-slate-400 py-6">Ask Byte anything about the planner.</p>

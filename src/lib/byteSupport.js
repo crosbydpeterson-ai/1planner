@@ -1,5 +1,5 @@
 import { base44 } from '@/api/base44Client';
-import { sendThreadMessage } from './dmMessages';
+import { loadThreadMessages, mergeThreadMessages, newOperationId, sendThreadMessage } from './dmMessages';
 
 /**
  * Byte → human support handoff.
@@ -152,7 +152,7 @@ export function newHandoffOperationId() {
  * Idempotent: the same operationId is never stored twice, and a request that is
  * already open on this conversation is continued instead of duplicated.
  */
-export async function submitSupportHandoff({ thread, summary, details, transcript, operationId }) {
+export async function submitSupportHandoff({ thread, summary, details, reason, transcript, operationId }) {
   if (!thread?.id) throw new Error('No conversation to send');
   if (operationId && thread.supportOperationId === operationId) {
     return { thread, reused: false, alreadyStored: true };
@@ -162,6 +162,7 @@ export async function submitSupportHandoff({ thread, summary, details, transcrip
   const patch = {
     isEscalated: true,
     escalationSummary: summary,
+    supportReason: reason || null,
     supportDetails: details || null,
     supportTranscript: transcript || [],
     supportStatus: SUPPORT_WAITING,
@@ -194,6 +195,196 @@ export async function submitSupportHandoff({ thread, summary, details, transcrip
   }
 
   return { thread: updated, reused, alreadyStored: false };
+}
+
+// ── Byte's own handoff ───────────────────────────────────────────────────────
+
+/**
+ * Why a conversation needed a person, in the app's own words.
+ *
+ * A category is never free text: Byte picks one of these keys, and the label
+ * below is what the student and the support admin read.
+ */
+export const SUPPORT_REASONS = {
+  human_request: 'They asked for a real person',
+  troubleshooting_failed: 'Troubleshooting did not fix it',
+  admin_only_action: 'Needs a change only an admin can make',
+  reward_problem: 'A reward, purchase or account problem could not be verified',
+  uncertain_fix: 'Not safe to fix automatically',
+};
+
+export function supportReasonLabel(reason) {
+  return SUPPORT_REASONS[reason] || '';
+}
+
+/** Keep the newest details only, so an open request never grows without limit. */
+export function appendSupportDetails(existing, addition) {
+  const first = String(existing || '').trim();
+  const next = String(addition || '').trim();
+  if (!next) return first || null;
+  if (!first) return next;
+  if (first.includes(next)) return first;
+  return `${first}\n\n${next}`.slice(-1200);
+}
+
+/** The conversation as stored, so the shared snapshot is the real thing and not a stale UI copy. */
+async function storedConversation(thread) {
+  const records = await loadThreadMessages(thread.id);
+  return mergeThreadMessages(thread, records);
+}
+
+/**
+ * Byte's support handoff — the single operation Byte can ask for.
+ *
+ * This is the SAME service the student's "Talk to an admin" button uses: it writes
+ * only the support fields of the conversation it is handed, and it can never pick a
+ * student, a recipient, a role or a ticket owner — the recipients stay whoever the
+ * app's support-admin setting names, the request stays on the student's own
+ * conversation, and the owner is assigned by an admin later.
+ *
+ * Where the check runs, honestly: in the student's own browser, on their own
+ * conversation — exactly the authority the existing button already has, so this
+ * adds NO new privilege and is not an admin or privileged endpoint. The platform
+ * cannot verify a PIN profile on a server for this app (it does not use the
+ * platform login, and backend functions are not on the current plan), so the
+ * trusted checks that do exist are: the conversation must belong to the profile
+ * passing it, the re-read request below, and the app's own support-admin setting.
+ *
+ * Returns { status, requestId, supportStatus, thread } where status is
+ * 'created' | 'existing' | 'updated' | 'failed'.
+ */
+export async function byteSubmitSupportRequest({ thread, profile, summary, reason, operationId }) {
+  const requestId = thread?.id;
+  const fail = (code) => ({ status: 'failed', requestId: requestId || null, error: code, thread: thread || null });
+  if (!requestId) return fail('no_conversation');
+  // The request must belong to the student who is talking to Byte.
+  if (!profile?.id || String(thread.studentProfileId) !== String(profile.id)) return fail('not_this_student');
+
+  const text = String(summary || '').trim().slice(0, 280);
+  if (!text) return fail('no_summary');
+  const key = SUPPORT_REASONS[reason] ? reason : null;
+  const opId = operationId || newHandoffOperationId();
+
+  // Re-read the conversation before deciding: another tab may have opened the
+  // request already, and a retry may already have been stored.
+  let fresh = thread;
+  try {
+    const record = await base44.entities.DMThread.get(requestId);
+    if (!record?.id) return fail('not_found');
+    fresh = record;
+  } catch (err) {
+    console.error('Could not re-read the conversation before handing it over', err);
+    return fail('unreachable');
+  }
+  if (String(fresh.studentProfileId) !== String(profile.id)) return fail('not_this_student');
+
+  // Exactly this submission is already stored (a repeated call or a retry).
+  if (fresh.supportOperationId === opId) {
+    return { status: 'existing', requestId, supportStatus: supportStatusOf(fresh) || SUPPORT_WAITING, thread: fresh };
+  }
+
+  // One request per conversation: add to the open one instead of opening another.
+  if (isSupportOpen(fresh)) {
+    const details = appendSupportDetails(fresh.supportDetails, text);
+    if (details === (fresh.supportDetails || null) && (fresh.supportReason || null) === key) {
+      return { status: 'existing', requestId, supportStatus: supportStatusOf(fresh), thread: fresh };
+    }
+    const updated = await base44.entities.DMThread.update(requestId, {
+      supportStatus: SUPPORT_WAITING,
+      supportReason: key || fresh.supportReason || null,
+      supportDetails: details,
+      supportTranscript: buildSupportTranscript(await storedConversation(fresh)),
+      supportResolvedAt: null,
+      supportResolvedByUsername: null,
+      hasUnreadAdmin: true,
+      hasUnreadStudent: false,
+    });
+    try {
+      await sendThreadMessage({
+        thread: updated,
+        sender: 'system',
+        senderName: 'Byte',
+        text: `Added to your open support request — status: ${supportStatusLabel(SUPPORT_WAITING)}.`,
+        operationId: `${HANDOFF_MESSAGE_PREFIX}:${requestId}:${opId}`,
+        unreadPatch: { hasUnreadAdmin: true, hasUnreadStudent: false },
+      });
+    } catch (err) {
+      console.error('Handoff marker message was not stored', err);
+    }
+    return { status: 'updated', requestId, supportStatus: SUPPORT_WAITING, thread: updated };
+  }
+
+  try {
+    const result = await submitSupportHandoff({
+      thread: fresh,
+      summary: text,
+      details: null,
+      reason: key,
+      transcript: buildSupportTranscript(await storedConversation(fresh)),
+      operationId: opId,
+    });
+    return {
+      status: 'created',
+      requestId,
+      supportStatus: supportStatusOf(result.thread) || SUPPORT_WAITING,
+      thread: result.thread,
+    };
+  } catch (err) {
+    console.error('Support handoff failed', err);
+    // The save may have landed before the failure: look the request up by its
+    // operation id instead of submitting again blindly.
+    try {
+      const after = await base44.entities.DMThread.get(requestId);
+      if (after?.supportOperationId === opId || isSupportOpen(after)) {
+        return { status: 'existing', requestId, supportStatus: supportStatusOf(after) || SUPPORT_WAITING, thread: after };
+      }
+    } catch (checkErr) {
+      console.error('Could not confirm whether the support request was stored', checkErr);
+    }
+    return { status: 'failed', requestId, error: 'not_confirmed', thread: fresh };
+  }
+}
+
+/**
+ * Carry out Byte's handoff decision and put the outcome in the conversation.
+ *
+ * Byte's own explanation goes out first, then the request is stored, and only a
+ * stored request is ever described as sent. A failure keeps the conversation and
+ * the draft as they are, says the request could not be confirmed, and leaves the
+ * student's "Talk to an admin" button as the fallback.
+ */
+export async function runByteHandoff({ thread, profile, handoff, operationId }) {
+  const result = await byteSubmitSupportRequest({
+    thread,
+    profile,
+    summary: handoff?.summary,
+    reason: handoff?.reason,
+    operationId: operationId || newHandoffOperationId(),
+  });
+
+  const outcome =
+    result.status === 'created' || result.status === 'updated'
+      ? 'Your request has been sent to an admin. Their reply will appear here.'
+      : result.status === 'existing'
+      ? 'This is the request you already have open with an admin. Their reply will appear here.'
+      : 'I could not confirm that your request was sent. Tap “Talk to an admin” to send it, or try again in a moment.';
+
+  const text = [String(handoff?.explanation || '').trim(), outcome].filter(Boolean).join('\n\n');
+
+  try {
+    const { message, thread: updated } = await sendThreadMessage({
+      thread: result.thread || thread,
+      sender: 'bot',
+      senderName: 'Byte',
+      text,
+      operationId: newOperationId('byte'),
+      unreadPatch: { hasUnreadStudent: false },
+    });
+    return { ...result, thread: updated, message };
+  } catch (err) {
+    console.error('Byte’s handoff message was not saved', err);
+    return result;
+  }
 }
 
 // ── support inbox queries and actions ────────────────────────────────────────
