@@ -98,7 +98,7 @@
   "model": "gpt_6_luna",
   "memory_config": {
     "enabled": true,
-    "scope": "conversation",
+    "scope": "user",
     "include_other_conversation_context": false,
     "instructions": "Remember the student's username, profileId, userId, every issue they raised, every fix you applied (with exact amounts), whether the conversation was escalated, and whether an admin application was submitted this conversation. If an egg hatch is in progress, remember which step you're on and the egg.id."
   },
