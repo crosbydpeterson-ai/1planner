@@ -74,19 +74,15 @@ export default function Games() {
 
   const handleRegenerateThumbnail = async (game) => {
     try {
-      const res = await base44.functions.invoke('generateGameCode', {
-        action: 'generateThumbnail',
-        gameName: game.name,
-        gameDescriptionForThumb: game.description,
-        colorTheme: game.colorTheme,
+      const { url } = await base44.integrations.Core.GenerateImage({
+        prompt: `A colorful, fun, kid-friendly game thumbnail icon for "${game.name}". ${game.description || ''}. Style: flat design, vibrant ${game.colorTheme || 'blue'} colors, playful, school learning app. Square, simple, eye-catching. No text.`,
       });
-      const url = res.data?.thumbnailUrl;
-      if (url) {
-        await base44.entities.MiniGame.update(game.id, { thumbnailUrl: url });
-        setGames(prev => prev.map(g => g.id === game.id ? { ...g, thumbnailUrl: url } : g));
-      } else {
-        alert('Thumbnail generation failed: ' + (res.data?.error || 'unknown'));
+      if (!url) {
+        alert('Thumbnail generation failed.');
+        return;
       }
+      await base44.entities.MiniGame.update(game.id, { thumbnailUrl: url });
+      setGames(prev => prev.map(g => g.id === game.id ? { ...g, thumbnailUrl: url } : g));
     } catch (e) {
       alert('Thumbnail error: ' + e.message);
     }

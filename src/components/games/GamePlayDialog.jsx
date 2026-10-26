@@ -10,6 +10,7 @@ import GameLeaderboard from './GameLeaderboard';
 import GameScorePrizesEditor from './GameScorePrizesEditor';
 import QuestionImporter from './QuestionImporter';
 import { PETS } from '@/components/quest/PetCatalog';
+import { generateQuizQuestions } from '@/lib/gameQuestions';
 
 export default function GamePlayDialog({ game, profile, onClose, isAdmin }) {
   const [step, setStep] = useState('pick'); // pick, loading, playing, results
@@ -20,6 +21,7 @@ export default function GamePlayDialog({ game, profile, onClose, isAdmin }) {
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [petPrize, setPetPrize] = useState(null); // pet won this session
   const [myBestBefore, setMyBestBefore] = useState(null); // best score before this game
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadAssignments();
@@ -52,22 +54,28 @@ export default function GamePlayDialog({ game, profile, onClose, isAdmin }) {
 
   const equippedPet = getEquippedPet();
 
-  const generateQuestionsViaAgent = async (_prompt, saveData) => {
-    const payload = { action: 'generateQuestions', questionCount: 10 };
-    if (saveData.assignmentId) {
-      const a = assignments.find(x => x.id === saveData.assignmentId);
-      payload.assignmentTitle = a?.title || '';
-      payload.assignmentDescription = a?.description || '';
-      if (a?.pdfUrl) payload.pdfUrl = a.pdfUrl;
-    } else if (saveData.topic) {
-      payload.topic = saveData.topic;
-    }
-    const res = await base44.functions.invoke('generateGameCode', payload);
-    const qs = res.data?.questions || [];
+  // Questions come from the app's own question_generator agent — no backend function.
+  const generateQuestions = async (saveData) => {
+    const assignment = saveData.assignmentId ? assignments.find(x => x.id === saveData.assignmentId) : null;
+    const qs = await generateQuizQuestions({ topic: saveData.topic, assignment });
     if (qs.length > 0) {
       await base44.entities.GameQuestion.create({ ...saveData, questions: qs });
     }
     return qs;
+  };
+
+  // A timeout or an unusable reply leaves no questions — say so rather than
+  // dropping the player into an empty game.
+  const finishWithQuestions = (qs) => {
+    setLoadingQuestions(false);
+    if (!qs.length) {
+      setErrorMessage('Could not create questions this time — try another topic.');
+      setStep('pick');
+      return;
+    }
+    setErrorMessage('');
+    setQuestions(qs);
+    setStep('playing');
   };
 
   const startWithAssignment = async (assignment) => {
@@ -80,11 +88,8 @@ export default function GamePlayDialog({ game, profile, onClose, isAdmin }) {
       setStep('playing');
       return;
     }
-    const prompt = `Generate 10 multiple-choice questions for the assignment titled "${assignment.title}". Description: ${assignment.description || 'N/A'}.${assignment.pdfUrl ? ` PDF: ${assignment.pdfUrl}` : ''} Return them as a JSON array in a code block, each with fields: question, options (array of 4), correctAnswer.`;
-    const qs = await generateQuestionsViaAgent(prompt, { assignmentId: assignment.id, miniGameId: game.id });
-    setQuestions(qs);
-    setLoadingQuestions(false);
-    setStep('playing');
+    const qs = await generateQuestions({ assignmentId: assignment.id, miniGameId: game.id });
+    finishWithQuestions(qs);
   };
 
   const startWithTopic = async () => {
@@ -98,11 +103,8 @@ export default function GamePlayDialog({ game, profile, onClose, isAdmin }) {
       setStep('playing');
       return;
     }
-    const prompt = `Generate 10 multiple-choice questions about "${topic.trim()}". Return them as a JSON array in a code block, each with fields: question, options (array of 4), correctAnswer.`;
-    const qs = await generateQuestionsViaAgent(prompt, { topic: topic.trim(), miniGameId: game.id });
-    setQuestions(qs);
-    setLoadingQuestions(false);
-    setStep('playing');
+    const qs = await generateQuestions({ topic: topic.trim(), miniGameId: game.id });
+    finishWithQuestions(qs);
   };
 
   // Check score milestone prizes first, then fall back to random chance
@@ -237,6 +239,7 @@ export default function GamePlayDialog({ game, profile, onClose, isAdmin }) {
               </TabsList>
 
               <TabsContent value="play" className="flex-1 overflow-y-auto p-5 pt-4 space-y-4">
+                {errorMessage && <p className="text-xs text-red-500">{errorMessage}</p>}
                 {/* Topic input */}
                 <div>
                   <div className="flex items-center gap-2 mb-2 text-sm font-medium text-slate-700">
