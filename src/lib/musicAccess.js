@@ -11,9 +11,10 @@
 //      for every student in that class.
 //   5. A track assigned to specific students (assignedProfileIds) is only for
 //      them; an empty list means everyone.
-// A track that is switched off entirely (isActive === false) is never offered
-// to students — see isPlayableTrack, which packages this rule with the locks
-// above so every surface offers exactly the same songs.
+// Ahead of all of the above, a track the student already owns — won from a wheel,
+// a 1Pass reward or a redeem code — is always offered, even when it is switched
+// off for the general library. See isPlayableTrack, which packages these rules so
+// every surface offers exactly the same songs.
 
 function isAdminProfile(profile) {
   if (!profile) return false;
@@ -89,7 +90,16 @@ export function isTrackVisibleForUser(track, profile, unlockedTrackIds) {
  * be offered in one place and refused in another.
  */
 export function isPlayableTrack(track, profile, unlockedTrackIds) {
-  if (!track || track.isActive === false) return false;
+  if (!track || !profile) return false;
+
+  // A song the student owns — won from a wheel, a 1Pass reward or a redeem code —
+  // is always playable. The Active switch and the locks below decide who may be
+  // offered a song they have not earned; they must never take back one that was
+  // already awarded, since admins keep season-exclusive songs switched off so they
+  // stay out of the public library.
+  if (hasId(unlockedTrackIds || profile.unlockedTrackIds || [], track.id)) return true;
+
+  if (track.isActive === false) return false;
   return isTrackVisibleForUser(track, profile, unlockedTrackIds);
 }
 
