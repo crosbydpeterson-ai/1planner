@@ -44,7 +44,7 @@ export default function PlusGiftPicker({ sending, canGrantPermanent, onGift }) {
       <select
         value={length}
         onChange={(e) => setLength(e.target.value)}
-        className="w-full bg-slate-700 text-white rounded-lg px-3 py-1.5 text-sm outline-none"
+        className="w-full bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none"
       >
         {SEASON_LENGTHS.map((n) => (
           <option key={n} value={String(n)}>{n} season{n > 1 ? 's' : ''}</option>

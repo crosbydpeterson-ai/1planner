@@ -219,14 +219,14 @@ export default function RecipientInbox({ currentProfile, canManage, canGift }) {
   if (view === 'new' && canManage) {
     return (
       <div className="max-w-md mx-auto">
-        <button onClick={() => setView('threads')} className="flex items-center gap-1 text-slate-400 hover:text-white text-sm mb-4 px-1 transition-colors">
+        <button onClick={() => setView('threads')} className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm mb-4 px-1 transition-colors">
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
-        <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-700">
-            <p className="text-white font-semibold text-sm mb-2">New Message</p>
+        <div className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/20">
+            <p className="text-slate-800 font-semibold text-sm mb-2">New Message</p>
             <input
-              className="w-full bg-slate-700 text-white rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
+              className="w-full bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-white/60 placeholder:text-slate-400"
               placeholder="Search student…"
               value={searchStudent}
               onChange={(e) => setSearchStudent(e.target.value)}
@@ -235,21 +235,21 @@ export default function RecipientInbox({ currentProfile, canManage, canGift }) {
           </div>
           <div className="max-h-64 overflow-y-auto">
             {filteredStudents.map((student) => (
-              <button key={student.id} onClick={() => setSearchStudent(student.username)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700 text-left border-b border-slate-700/40">
-                <div className="w-9 h-9 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold text-sm shrink-0">{student.username?.[0]?.toUpperCase()}</div>
+              <button key={student.id} onClick={() => setSearchStudent(student.username)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/25 text-left border-b border-white/20">
+                <div className="w-9 h-9 rounded-full bg-white/40 backdrop-blur-sm border border-white/30 flex items-center justify-center text-slate-700 font-bold text-sm shrink-0">{student.username?.[0]?.toUpperCase()}</div>
                 <div>
-                  <p className="text-sm text-slate-200 font-medium">{student.username}</p>
+                  <p className="text-sm text-slate-700 font-medium">{student.username}</p>
                   <p className="text-xs text-slate-500">{student.mathTeacher} · {student.readingTeacher}</p>
                 </div>
               </button>
             ))}
           </div>
           {selectedStudent && (
-            <div className="p-4 border-t border-slate-700 space-y-2">
-              <p className="text-xs text-slate-400">To: <span className="text-white font-semibold">{selectedStudent.username}</span></p>
+            <div className="p-4 border-t border-white/20 space-y-2">
+              <p className="text-xs text-slate-500">To: <span className="text-slate-800 font-semibold">{selectedStudent.username}</span></p>
               <div className="flex gap-2">
                 <input
-                  className="flex-1 bg-slate-700 text-white rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
+                  className="flex-1 bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-white/60 placeholder:text-slate-400"
                   placeholder="Type a message…"
                   value={newMsgText}
                   onChange={(e) => setNewMsgText(e.target.value)}
@@ -263,7 +263,7 @@ export default function RecipientInbox({ currentProfile, canManage, canGift }) {
                   {startingNew ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </button>
               </div>
-              {error && <p className="text-[11px] text-red-300 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {error}</p>}
+              {error && <p className="text-[11px] text-red-600 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {error}</p>}
             </div>
           )}
         </div>
@@ -284,17 +284,17 @@ export default function RecipientInbox({ currentProfile, canManage, canGift }) {
 
     return (
       <div className="max-w-md mx-auto flex flex-col" style={{ height: 'calc(100vh - 180px)' }}>
-        <button onClick={() => { setView('threads'); setShowGift(false); }} className="flex items-center gap-1 text-slate-400 hover:text-white text-sm mb-3 px-1 transition-colors">
+        <button onClick={() => { setView('threads'); setShowGift(false); }} className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm mb-3 px-1 transition-colors">
           <ChevronLeft className="w-4 h-4" /> Back to Inbox
         </button>
-        <div className="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col flex-1 overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-700">
-            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
+        <div className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl flex flex-col flex-1 overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-white/20">
+            <div className="w-10 h-10 rounded-full bg-white/40 backdrop-blur-sm border border-white/30 flex items-center justify-center text-slate-700 font-bold">
               {activeThread.studentUsername?.[0]?.toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white font-semibold text-sm truncate">{activeThread.studentUsername}</p>
-              <p className="text-xs text-slate-400">
+              <p className="text-slate-800 font-semibold text-sm truncate">{activeThread.studentUsername}</p>
+              <p className="text-xs text-slate-500">
                 {activeThread.lastMessageAt ? new Date(activeThread.lastMessageAt).toLocaleDateString() : ''}
                 {activeContact && <> · via {activeContact.username}</>}
                 {activeContact && !activeContact.isActive && ' (inactive contact)'}
@@ -303,27 +303,27 @@ export default function RecipientInbox({ currentProfile, canManage, canGift }) {
             {canGift && !activeIsBot && (
               <button
                 onClick={() => setShowGift((v) => !v)}
-                className={cn('flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-colors', showGift ? 'bg-amber-500 border-amber-500 text-white' : 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10')}
+                className={cn('flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-colors', showGift ? 'bg-amber-500 border-amber-500 text-white' : 'border-amber-500/40 text-amber-700 hover:bg-amber-500/10')}
               >
                 <Gift className="w-3.5 h-3.5" /> Gift
               </button>
             )}
             {activeThread.isEscalated && (
-              <span className="flex items-center gap-1 text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-1 rounded-full">
+              <span className="flex items-center gap-1 text-[10px] bg-amber-500/15 backdrop-blur-sm text-amber-700 border border-amber-500/30 px-2 py-1 rounded-full">
                 <Bot className="w-3 h-3" /> Escalated by Byte
               </span>
             )}
           </div>
 
           {activeThread.needsRepair && (
-            <p className="mx-3 mt-3 text-[11px] bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-lg px-2 py-1.5">
+            <p className="mx-3 mt-3 text-[11px] bg-amber-500/15 backdrop-blur-sm border border-amber-500/30 text-amber-700 rounded-xl px-2 py-1.5">
               This conversation came from a contact that isn't linked to an account. It only appears for the owner until an admin links it.
             </p>
           )}
           {activeThread.isEscalated && activeThread.escalationSummary && (
-            <div className="mx-3 mt-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
-              <p className="text-[11px] text-amber-400 font-semibold mb-0.5">📋 Byte's Summary</p>
-              <p className="text-xs text-amber-300">{activeThread.escalationSummary}</p>
+            <div className="mx-3 mt-3 bg-amber-500/15 backdrop-blur-sm border border-amber-500/30 rounded-xl px-3 py-2">
+              <p className="text-[11px] text-amber-700 font-semibold mb-0.5">📋 Byte's Summary</p>
+              <p className="text-xs text-amber-700">{activeThread.escalationSummary}</p>
             </div>
           )}
 
@@ -357,14 +357,14 @@ export default function RecipientInbox({ currentProfile, canManage, canGift }) {
           )}
 
           {error && (
-            <p className="mx-3 mb-1 text-[11px] bg-red-500/10 border border-red-500/30 text-red-300 rounded-lg px-2 py-1.5 flex items-center gap-1">
+            <p className="mx-3 mb-1 text-[11px] bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-600 rounded-xl px-2 py-1.5 flex items-center gap-1">
               <AlertCircle className="w-3.5 h-3.5" /> {error}
             </p>
           )}
 
-          <div className="flex items-center gap-2 px-3 py-3 border-t border-slate-700">
+          <div className="flex items-center gap-2 px-3 py-3 border-t border-white/20">
             <input
-              className="flex-1 bg-slate-700 text-white rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
+              className="flex-1 bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-white/60 placeholder:text-slate-400"
               placeholder={activeIsBot ? 'Byte conversations are handled in the student app' : `Reply as ${currentProfile.username}…`}
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
@@ -388,12 +388,12 @@ export default function RecipientInbox({ currentProfile, canManage, canGift }) {
   return (
     <div className="max-w-md mx-auto">
       <div className="flex items-center justify-between mb-4 px-1">
-        <h2 className="text-xl font-bold text-white">
+        <h2 className="text-xl font-bold text-slate-800">
           {currentProfile.username}'s Inbox {unreadCount > 0 && <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{unreadCount}</span>}
         </h2>
         {canManage && (
           <div className="flex gap-2">
-            <button onClick={() => setView('bulk')} className="flex items-center gap-1.5 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 text-xs px-3 py-1.5 rounded-full transition-colors">
+            <button onClick={() => setView('bulk')} className="flex items-center gap-1.5 bg-purple-500/15 hover:bg-purple-500/25 backdrop-blur-sm border border-purple-500/30 text-purple-700 text-xs px-3 py-1.5 rounded-full transition-colors">
               <Users className="w-3 h-3" /> Bulk
             </button>
             <button onClick={() => setView('new')} className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1.5 rounded-full transition-colors">
@@ -405,12 +405,12 @@ export default function RecipientInbox({ currentProfile, canManage, canGift }) {
 
       {truncated && <p className="text-[11px] text-slate-500 mb-2 px-1">Showing the 100 most recent conversations.</p>}
       {error && (
-        <p className="mb-2 text-[11px] text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-2 py-1.5 flex items-center gap-1">
+        <p className="mb-2 text-[11px] text-red-600 bg-red-500/10 backdrop-blur-sm border border-red-500/20 rounded-xl px-2 py-1.5 flex items-center gap-1">
           <AlertCircle className="w-3.5 h-3.5" /> {error}
         </p>
       )}
 
-      <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+      <div className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl overflow-hidden">
         {threads.length === 0 && <p className="text-slate-500 text-sm text-center py-10">No conversations yet</p>}
         {threads.map((thread, i) => {
           const lastMsg = buildThreadMessages({ thread, records: records[thread.id] }).at(-1);
@@ -419,28 +419,28 @@ export default function RecipientInbox({ currentProfile, canManage, canGift }) {
             <button
               key={thread.id}
               onClick={() => openThread(thread)}
-              className={cn('w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-700/60', i > 0 && 'border-t border-slate-700/40')}
+              className={cn('w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/25', i > 0 && 'border-t border-white/20')}
             >
               <div className="relative shrink-0">
-                <div className="w-11 h-11 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
+                <div className="w-11 h-11 rounded-full bg-white/40 backdrop-blur-sm border border-white/30 flex items-center justify-center text-slate-700 font-bold">
                   {contact?.emoji || thread.studentUsername?.[0]?.toUpperCase() || '?'}
                 </div>
-                {thread.hasUnreadAdmin && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-slate-800" />}
-                {thread.isEscalated && <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-amber-500 rounded-full border-2 border-slate-800 flex items-center justify-center text-[8px]">B</span>}
+                {thread.hasUnreadAdmin && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white/70" />}
+                {thread.isEscalated && <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-amber-500 rounded-full border-2 border-white/70 flex items-center justify-center text-[8px]">B</span>}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-0.5">
-                  <p className={cn('text-sm truncate', thread.hasUnreadAdmin ? 'font-bold text-white' : 'font-medium text-slate-300')}>{thread.studentUsername}</p>
+                  <p className={cn('text-sm truncate', thread.hasUnreadAdmin ? 'font-bold text-slate-900' : 'font-medium text-slate-700')}>{thread.studentUsername}</p>
                   {thread.lastMessageAt && <p className="text-[11px] text-slate-500">{new Date(thread.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
                 </div>
-                <p className={cn('text-xs truncate', thread.hasUnreadAdmin ? 'text-blue-400 font-medium' : 'text-slate-500')}>
+                <p className={cn('text-xs truncate', thread.hasUnreadAdmin ? 'text-blue-600 font-medium' : 'text-slate-500')}>
                   {lastMsg
                     ? (lastMsg.giftData
                         ? `🎁 Gift: ${lastMsg.giftData.name || lastMsg.giftData.type}`
                         : `${lastMsg.sender === 'admin' ? 'You' : lastMsg.senderName || thread.studentUsername}: ${lastMsg.text}`)
                     : 'No messages yet'}
                 </p>
-                {thread.needsRepair && <p className="text-[10px] text-amber-400 mt-0.5">Contact not linked — needs repair</p>}
+                {thread.needsRepair && <p className="text-[10px] text-amber-700 mt-0.5">Contact not linked — needs repair</p>}
               </div>
             </button>
           );

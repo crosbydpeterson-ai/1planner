@@ -83,7 +83,7 @@ export default function MessageWidget({ currentProfile }) {
   return (
     <button
       onClick={() => navigate('/messages')}
-      className="fixed top-3 right-3 z-50 relative bg-white/90 backdrop-blur-sm border border-slate-200 shadow-lg rounded-full w-10 h-10 flex items-center justify-center hover:bg-white transition-colors"
+      className="fixed top-3 right-3 z-50 bg-white/25 backdrop-blur-xl border border-white/30 shadow-lg rounded-full w-10 h-10 flex items-center justify-center hover:bg-white/40 transition-colors"
     >
       <MessageCircle className="w-5 h-5 text-indigo-600" />
       {unread > 0 && (

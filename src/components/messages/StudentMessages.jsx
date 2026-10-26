@@ -203,7 +203,7 @@ export default function StudentMessages({ currentProfile }) {
         {truncated && (
           <p className="text-[11px] text-slate-500 mb-2 px-1">Showing your most recent conversations only.</p>
         )}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl overflow-hidden">
           {visibleContacts.length === 0 && <p className="text-center text-slate-400 text-sm py-10">No contacts yet</p>}
           {visibleContacts.map((contact, i) => {
             const thread = getThread(contact);
@@ -213,10 +213,10 @@ export default function StudentMessages({ currentProfile }) {
               <button
                 key={contact.id}
                 onClick={() => openThread(contact)}
-                className={cn('w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors text-left', i > 0 && 'border-t border-slate-50')}
+                className={cn('w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/25 transition-colors text-left', i > 0 && 'border-t border-white/20')}
               >
                 <div className="relative shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-2xl shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-white/40 backdrop-blur-sm border border-white/30 flex items-center justify-center text-2xl shadow-lg">
                     {contact.isBot ? '🤖' : contact.emoji}
                   </div>
                   {hasUnread && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white" />}
@@ -236,7 +236,7 @@ export default function StudentMessages({ currentProfile }) {
           })}
         </div>
         {error && (
-          <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 flex items-center gap-1">
+          <p className="mt-3 text-xs text-red-600 bg-red-500/10 backdrop-blur-sm border border-red-500/20 rounded-xl px-3 py-2 flex items-center gap-1">
             <AlertCircle className="w-3.5 h-3.5" /> {error}
           </p>
         )}
@@ -263,9 +263,9 @@ export default function StudentMessages({ currentProfile }) {
       >
         <ChevronLeft className="w-4 h-4" /> Back to Messages
       </button>
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col flex-1 overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xl">{activeContact?.isBot ? '🤖' : activeContact?.emoji}</div>
+      <div className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl flex flex-col flex-1 overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/20">
+          <div className="w-10 h-10 rounded-full bg-white/40 backdrop-blur-sm border border-white/30 flex items-center justify-center text-xl">{activeContact?.isBot ? '🤖' : activeContact?.emoji}</div>
           <div className="min-w-0">
             <p className="font-semibold text-slate-800 text-sm truncate">{activeContact?.username}</p>
             <p className="text-xs text-slate-400">{activeContact?.role}</p>
@@ -278,7 +278,7 @@ export default function StudentMessages({ currentProfile }) {
         </div>
 
         {!activeContact?.isBot && !activeContact?.adminProfileId && (
-          <p className="mx-3 mt-2 text-[11px] bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-2 py-1.5">
+          <p className="mx-3 mt-2 text-[11px] bg-amber-500/15 backdrop-blur-sm border border-amber-500/30 text-amber-700 rounded-xl px-2 py-1.5">
             This contact isn't linked to an account yet, so replies may not reach anyone until an admin links it.
           </p>
         )}
@@ -288,7 +288,7 @@ export default function StudentMessages({ currentProfile }) {
           </p>
         )}
 
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-slate-50">
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
           {!activeContact?.isBot && messages.length === 0 && (
             <p className="text-center text-xs text-slate-400 py-6">Say hi to {activeContact?.username}!</p>
           )}
@@ -332,14 +332,14 @@ export default function StudentMessages({ currentProfile }) {
         </div>
 
         {(error || byteError) && (
-          <p className="mx-3 mb-1 text-[11px] bg-red-50 border border-red-100 text-red-600 rounded-lg px-2 py-1.5 flex items-center gap-1">
+          <p className="mx-3 mb-1 text-[11px] bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-600 rounded-xl px-2 py-1.5 flex items-center gap-1">
             <AlertCircle className="w-3.5 h-3.5" /> {byteError || error}
           </p>
         )}
 
-        <div className="flex items-center gap-2 px-3 py-3 border-t border-slate-100 bg-white">
+        <div className="flex items-center gap-2 px-3 py-3 border-t border-white/20">
           <input
-            className="flex-1 bg-slate-100 rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-300"
+            className="flex-1 bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 placeholder:text-slate-400 rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-white/60"
             placeholder={activeContact?.isBot ? 'Ask Byte…' : `Message ${activeContact?.username}…`}
             value={input}
             onChange={(e) => setInput(e.target.value)}

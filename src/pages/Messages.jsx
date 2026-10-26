@@ -59,27 +59,30 @@ export default function MessagesPage() {
   const showTabs = !!access?.hasRecipientInbox;
   const activeTab = showTabs ? tab : 'mine';
 
+  // Frosted pill tabs, matching the glass treatment used across the rest of the app.
+  const tabClass = (active) => cn(
+    'flex-1 text-xs font-semibold py-2 rounded-full backdrop-blur-xl border transition-colors',
+    active
+      ? 'bg-blue-500/80 text-white border-white/30 shadow-lg'
+      : 'bg-white/20 text-slate-600 border-white/30 hover:bg-white/30'
+  );
+
+  // Left transparent so the app's themed background shows through the glass panels.
   return (
-    <div className={cn('min-h-screen pt-16 pb-24 px-4', activeTab === 'inbox' ? 'bg-slate-900' : 'bg-slate-50')}>
+    <div className="min-h-screen pt-16 pb-24 px-4">
       {showTabs && (
-        <div className="max-w-md mx-auto mb-4 flex gap-2 px-1">
-          <button
-            onClick={() => setTab('inbox')}
-            className={cn('flex-1 text-xs font-semibold py-2 rounded-full transition-colors', activeTab === 'inbox' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700')}
-          >
+        <div className="max-w-md mx-auto mb-4 flex gap-2 p-1 rounded-full bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg">
+          <button onClick={() => setTab('inbox')} className={tabClass(activeTab === 'inbox')}>
             Inbox
           </button>
-          <button
-            onClick={() => setTab('mine')}
-            className={cn('flex-1 text-xs font-semibold py-2 rounded-full transition-colors', activeTab === 'mine' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700')}
-          >
+          <button onClick={() => setTab('mine')} className={tabClass(activeTab === 'mine')}>
             My messages
           </button>
         </div>
       )}
 
       {error && (
-        <p className="max-w-md mx-auto mb-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
+        <p className="max-w-md mx-auto mb-3 text-xs text-red-600 bg-red-500/10 backdrop-blur-xl border border-red-500/20 rounded-xl px-3 py-2">{error}</p>
       )}
 
       {activeTab === 'inbox' ? (

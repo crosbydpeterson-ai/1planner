@@ -85,12 +85,12 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
   const filteredThemes = themes.filter((t) => !themeSearch || t.name?.toLowerCase().includes(themeSearch.toLowerCase()));
 
   return (
-    <div className="border-t border-slate-700 bg-slate-900 p-3">
+    <div className="border-t border-white/20 p-3">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-amber-400 text-xs font-bold flex items-center gap-1">
+        <p className="text-amber-700 text-xs font-bold flex items-center gap-1">
           <Gift className="w-3.5 h-3.5" /> Send Gift to {thread.studentUsername}
         </p>
-        <button onClick={onClose} className="text-slate-500 hover:text-slate-300">
+        <button onClick={onClose} className="text-slate-500 hover:text-slate-800">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -100,7 +100,7 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
           <button
             key={k}
             onClick={() => setTab(k)}
-            className={cn('text-xs px-3 py-1 rounded-full transition-colors', tab === k ? 'bg-amber-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600')}
+            className={cn('text-xs px-3 py-1 rounded-full transition-colors', tab === k ? 'bg-amber-500 text-white shadow-lg' : 'bg-white/40 backdrop-blur-sm border border-white/40 text-slate-600 hover:bg-white/60')}
           >
             {l}
           </button>
@@ -108,7 +108,7 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
       </div>
 
       {error && (
-        <p className="mb-2 text-[11px] bg-red-500/10 border border-red-500/30 text-red-300 rounded-lg px-2 py-1.5 flex items-center gap-1">
+        <p className="mb-2 text-[11px] bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-600 rounded-xl px-2 py-1.5 flex items-center gap-1">
           <AlertCircle className="w-3 h-3" /> {error}
         </p>
       )}
@@ -121,21 +121,21 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
               onChange={(e) => setAmount(e.target.value)}
               placeholder="Amount"
               type="number"
-              className="flex-1 bg-slate-700 text-white rounded-lg px-3 py-1.5 text-sm outline-none"
+              className="flex-1 bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none"
             />
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => sendGift({ type: 'coins', amount: Number(amount) || 50 }, `🎁 You've been gifted ${amount || 50} Quest Coins!`)}
               disabled={sending}
-              className="flex-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 rounded-lg py-2 text-xs font-semibold flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+              className="flex-1 bg-yellow-500/20 hover:bg-yellow-500/30 backdrop-blur-sm text-yellow-700 border border-yellow-500/30 rounded-lg py-2 text-xs font-semibold flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
             >
               <Coins className="w-3.5 h-3.5" /> Coins
             </button>
             <button
               onClick={() => sendGift({ type: 'xp', amount: Number(amount) || 25 }, `🎁 You've been gifted ${amount || 25} XP!`)}
               disabled={sending}
-              className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-lg py-2 text-xs font-semibold flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+              className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 backdrop-blur-sm text-blue-700 border border-blue-500/30 rounded-lg py-2 text-xs font-semibold flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
             >
               <Zap className="w-3.5 h-3.5" /> XP
             </button>
@@ -154,7 +154,7 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
             value={petSearch}
             onChange={(e) => setPetSearch(e.target.value)}
             placeholder="Search pets…"
-            className="w-full bg-slate-700 text-white rounded-lg px-3 py-1.5 text-xs outline-none mb-2"
+            className="w-full bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 rounded-lg px-3 py-1.5 text-xs outline-none mb-2"
           />
           <div className="max-h-40 overflow-y-auto space-y-1">
             {filteredPets.map((pet) => (
@@ -162,13 +162,13 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
                 key={pet.id}
                 disabled={sending}
                 onClick={() => sendGift({ type: 'pet', id: `custom_${pet.id}`, name: pet.name }, `🎁 You've been gifted the "${pet.name}" pet!`)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-left disabled:opacity-50"
+                className="w-full flex items-center gap-2 px-2 py-1.5 bg-white/40 hover:bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg transition-colors text-left disabled:opacity-50"
               >
                 <span className="text-lg">
                   {pet.imageUrl ? <img src={pet.imageUrl} className="w-6 h-6 rounded object-cover" alt="" /> : pet.emoji || '🐾'}
                 </span>
-                <span className="text-white text-xs font-medium flex-1 truncate">{pet.name}</span>
-                <span className="text-slate-400 text-[10px]">{pet.rarity}</span>
+                <span className="text-slate-800 text-xs font-medium flex-1 truncate">{pet.name}</span>
+                <span className="text-slate-500 text-[10px]">{pet.rarity}</span>
               </button>
             ))}
             {filteredPets.length === 0 && <p className="text-slate-500 text-xs text-center py-3">No pets found</p>}
@@ -182,7 +182,7 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
             value={themeSearch}
             onChange={(e) => setThemeSearch(e.target.value)}
             placeholder="Search themes…"
-            className="w-full bg-slate-700 text-white rounded-lg px-3 py-1.5 text-xs outline-none mb-2"
+            className="w-full bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 rounded-lg px-3 py-1.5 text-xs outline-none mb-2"
           />
           <div className="max-h-40 overflow-y-auto space-y-1">
             {filteredThemes.map((theme) => (
@@ -190,11 +190,11 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
                 key={theme.id}
                 disabled={sending}
                 onClick={() => sendGift({ type: 'theme', id: `custom_${theme.id}`, name: theme.name }, `🎁 You've been gifted the "${theme.name}" theme!`)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-left disabled:opacity-50"
+                className="w-full flex items-center gap-2 px-2 py-1.5 bg-white/40 hover:bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg transition-colors text-left disabled:opacity-50"
               >
                 <div className="w-5 h-5 rounded-full shrink-0" style={{ background: theme.primaryColor || '#888' }} />
-                <span className="text-white text-xs font-medium flex-1 truncate">{theme.name}</span>
-                <span className="text-slate-400 text-[10px]">{theme.rarity}</span>
+                <span className="text-slate-800 text-xs font-medium flex-1 truncate">{theme.name}</span>
+                <span className="text-slate-500 text-[10px]">{theme.rarity}</span>
               </button>
             ))}
             {filteredThemes.length === 0 && <p className="text-slate-500 text-xs text-center py-3">No themes found</p>}

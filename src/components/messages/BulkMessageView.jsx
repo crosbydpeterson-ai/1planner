@@ -85,47 +85,47 @@ export default function BulkMessageView({ currentProfile, myContact, allStudents
 
   return (
     <div className="max-w-md mx-auto">
-      <button onClick={onBack} className="flex items-center gap-1 text-slate-400 hover:text-white text-sm mb-4 px-1 transition-colors">
+      <button onClick={onBack} className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm mb-4 px-1 transition-colors">
         <ChevronLeft className="w-4 h-4" /> Back
       </button>
-      <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-700">
-          <p className="text-white font-bold text-sm flex items-center gap-2">
-            <Users className="w-4 h-4 text-blue-400" /> Bulk Message
+      <div className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/20">
+          <p className="text-slate-800 font-bold text-sm flex items-center gap-2">
+            <Users className="w-4 h-4 text-blue-600" /> Bulk Message
           </p>
-          <p className="text-slate-400 text-xs mt-0.5">Send one message to many students at once</p>
+          <p className="text-slate-500 text-xs mt-0.5">Send one message to many students at once</p>
         </div>
         <div className="p-4 space-y-3">
           {!myContact && (
-            <p className="text-[11px] bg-red-500/10 border border-red-500/30 text-red-300 rounded-lg px-2 py-1.5 flex items-center gap-1">
+            <p className="text-[11px] bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-600 rounded-xl px-2 py-1.5 flex items-center gap-1">
               <AlertCircle className="w-3 h-3" /> Your sending contact isn't set up. Link a contact to your account in the Admin DM inbox first.
             </p>
           )}
 
           <div>
-            <p className="text-slate-400 text-xs mb-1.5 font-semibold">Target</p>
+            <p className="text-slate-500 text-xs mb-1.5 font-semibold">Target</p>
             <div className="flex gap-2 mb-2">
               {[['all', 'All Students'], ['math', 'Math Class'], ['reading', 'Reading Class']].map(([k, l]) => (
                 <button
                   key={k}
                   onClick={() => { setFilter(k); setTeacherFilter(''); }}
-                  className={cn('text-xs px-3 py-1.5 rounded-full transition-colors', filter === k ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600')}
+                  className={cn('text-xs px-3 py-1.5 rounded-full transition-colors', filter === k ? 'bg-blue-500/80 text-white border border-white/30 shadow-lg' : 'bg-white/20 backdrop-blur-xl border border-white/30 text-slate-600 hover:bg-white/30')}
                 >
                   {l}
                 </button>
               ))}
             </div>
             {(filter === 'math' || filter === 'reading') && (
-              <select value={teacherFilter} onChange={(e) => setTeacherFilter(e.target.value)} className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none">
+              <select value={teacherFilter} onChange={(e) => setTeacherFilter(e.target.value)} className="w-full bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 rounded-lg px-3 py-2 text-sm outline-none">
                 <option value="">-- Pick a teacher --</option>
                 {teachers.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             )}
           </div>
 
-          <div className="bg-slate-700/50 rounded-lg px-3 py-2 text-xs text-slate-300">
-            Sending to <span className="text-white font-bold">{targets.length}</span> student{targets.length !== 1 ? 's' : ''}
-            {targets.length > 0 && targets.length <= 5 && <span className="text-slate-400"> ({targets.map((s) => s.username).join(', ')})</span>}
+          <div className="bg-white/30 backdrop-blur-sm border border-white/30 rounded-lg px-3 py-2 text-xs text-slate-600">
+            Sending to <span className="text-slate-900 font-bold">{targets.length}</span> student{targets.length !== 1 ? 's' : ''}
+            {targets.length > 0 && targets.length <= 5 && <span className="text-slate-500"> ({targets.map((s) => s.username).join(', ')})</span>}
           </div>
 
           <textarea
@@ -133,7 +133,7 @@ export default function BulkMessageView({ currentProfile, myContact, allStudents
             onChange={(e) => setMsgText(e.target.value)}
             placeholder="Type your message…"
             rows={3}
-            className="w-full bg-slate-700 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-500 resize-none"
+            className="w-full bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-white/60 placeholder:text-slate-400 resize-none"
           />
 
           <button
@@ -149,18 +149,18 @@ export default function BulkMessageView({ currentProfile, myContact, allStudents
           </button>
 
           {done && (
-            <div className="flex items-center gap-2 bg-green-500/20 border border-green-500/30 rounded-xl px-3 py-2 text-green-400 text-sm">
+            <div className="flex items-center gap-2 bg-green-500/15 backdrop-blur-sm border border-green-500/30 rounded-xl px-3 py-2 text-green-700 text-sm">
               <Check className="w-4 h-4" /> Sent to {sentCount} students!
             </div>
           )}
 
           {failures.length > 0 && !sending && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2 space-y-2">
-              <p className="text-red-300 text-xs flex items-center gap-1">
+            <div className="bg-red-500/10 backdrop-blur-sm border border-red-500/20 rounded-xl px-3 py-2 space-y-2">
+              <p className="text-red-600 text-xs flex items-center gap-1">
                 <AlertCircle className="w-3.5 h-3.5" /> Sent to {sentCount}. {failures.length} failed: {failures.map((s) => s.username).join(', ')}
               </p>
-              <p className="text-red-200/70 text-[11px]">Your message text is kept, and retrying only re-sends the failures.</p>
-              <button onClick={retryFailed} className="text-xs bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-200 rounded-lg px-3 py-1.5 font-semibold">
+              <p className="text-red-600/80 text-[11px]">Your message text is kept, and retrying only re-sends the failures.</p>
+              <button onClick={retryFailed} className="text-xs bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-700 rounded-lg px-3 py-1.5 font-semibold">
                 Retry {failures.length} failed
               </button>
             </div>
