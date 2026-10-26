@@ -88,6 +88,12 @@ export default function SupportInbox({ currentProfile, supportAdminIds }) {
     setActive(updated);
   };
 
+  // A stored reply belongs in the open conversation straight away.
+  const applyStoredMessage = (threadId, message) => {
+    if (!message) return;
+    setRecords((prev) => ({ ...prev, [threadId]: [...(prev[threadId] || []), message] }));
+  };
+
   if (!supportAdminIds.includes(String(currentProfile.id))) {
     return <p className="max-w-md mx-auto text-sm text-slate-500 py-10 text-center">Support requests are limited to the app’s support admins.</p>;
   }
@@ -100,6 +106,7 @@ export default function SupportInbox({ currentProfile, supportAdminIds }) {
         currentProfile={currentProfile}
         supportAdmins={supportAdmins}
         onThreadUpdate={applyUpdate}
+        onMessageSaved={applyStoredMessage}
         onBack={() => setActive(null)}
       />
     );

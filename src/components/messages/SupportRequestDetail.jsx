@@ -19,7 +19,7 @@ import {
 } from '@/lib/byteSupport';
 
 /** One escalated request: summary, shared Byte transcript, the thread and its actions. */
-export default function SupportRequestDetail({ thread, records, currentProfile, supportAdmins, onThreadUpdate, onBack }) {
+export default function SupportRequestDetail({ thread, records, currentProfile, supportAdmins, onThreadUpdate, onMessageSaved, onBack }) {
   const [replyText, setReplyText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -28,7 +28,13 @@ export default function SupportRequestDetail({ thread, records, currentProfile, 
 
   const status = supportStatusOf(thread);
   const sender = useThreadSender({
-    onSaved: (result) => onThreadUpdate(result.thread),
+    // The stored reply goes into the open conversation as well, so a reply that
+    // landed is never left looking unsent.
+    onSaved: (result) => {
+      onThreadUpdate(result.thread);
+      onMessageSaved?.(thread.id, result.message);
+      setError(result.summaryUpdated ? '' : 'Reply stored, but the conversation summary could not be updated.');
+    },
     onError: () => setError('That reply was not sent. It is kept below — tap Retry.'),
   });
 
@@ -71,6 +77,7 @@ export default function SupportRequestDetail({ thread, records, currentProfile, 
   const sendReply = async () => {
     const text = replyText.trim();
     if (!text || sender.isBusy) return;
+    setError('');
     setReplyText('');
     const result = await sender.run({
       thread,

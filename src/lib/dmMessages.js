@@ -124,7 +124,10 @@ export function mergeThreadMessages(thread, records = []) {
 export function buildThreadMessages({ thread, records, pending, failed, sender, senderName }) {
   const merged = mergeThreadMessages(thread, records);
   const stamp = new Date().toISOString();
-  if (pending) {
+  // A message that is already stored must not also show as an in-flight or
+  // failed bubble for the same send.
+  const storedKeys = new Set(merged.map((m) => m.__key));
+  if (pending && !(pending.opId && storedKeys.has(pending.opId))) {
     merged.push({
       sender,
       senderName,
@@ -135,7 +138,7 @@ export function buildThreadMessages({ thread, records, pending, failed, sender, 
       state: 'sending',
     });
   }
-  if (failed) {
+  if (failed && !(failed.opId && storedKeys.has(failed.opId))) {
     merged.push({
       sender,
       senderName,
