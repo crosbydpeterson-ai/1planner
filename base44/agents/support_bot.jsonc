@@ -95,7 +95,7 @@
       ]
     }
   ],
-  "model": "claude_sonnet_4_6",
+  "model": "gpt_6_luna",
   "memory_config": {
     "enabled": true,
     "scope": "conversation",
