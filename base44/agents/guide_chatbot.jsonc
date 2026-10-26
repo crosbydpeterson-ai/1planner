@@ -16,7 +16,7 @@
       ]
     }
   ],
-  "model": "gemini_3_flash",
+  "model": "gpt_6_luna",
   "whatsapp_greeting": "Hey! I'm Byte \ud83e\udd16\n\nI'm your Quest Planner assistant! I can help you:\n\u2022 Understand how to use the planner\n\u2022 Simplify confusing assignments\n\u2022 Add assignments to your planner\n\nPaste an assignment from Google Classroom and I'll break it down for you!\n\n(I can't help with homework answers though \u2014 I'm a planner, not a teacher!)",
   "memory_config": {
     "enabled": true,
