@@ -25,5 +25,6 @@
     "scope": "both",
     "instructions": "Remember the overarching lore narrative across all pets. Track recurring characters, locations, and events that have been mentioned. Keep a mental map of how pets are related to each other and to the Great Wifi Incident. Also remember visual motifs used in lore images so illustrations feel consistent across all pets."
   },
-  "model": "automatic"
+  "model": "automatic",
+  "allow_anonymous_access": true
 }

@@ -16,5 +16,6 @@
         "read"
       ]
     }
-  ]
+  ],
+  "allow_anonymous_access": true
 }

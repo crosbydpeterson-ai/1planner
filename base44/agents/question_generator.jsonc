@@ -25,5 +25,6 @@
     }
   ],
   "model": "automatic",
-  "whatsapp_greeting": "Hello! \ud83d\udcdd I'm your Question Generator AI. Give me a topic or assignment and I'll create quiz questions for your students!"
+  "whatsapp_greeting": "Hello! \ud83d\udcdd I'm your Question Generator AI. Give me a topic or assignment and I'll create quiz questions for your students!",
+  "allow_anonymous_access": true
 }
