@@ -19,7 +19,7 @@
       ]
     }
   ],
-  "model": "claude-sonnet-5",
+  "model": "gpt_6_luna",
   "whatsapp_greeting": "Hey! \ud83c\udfae I'm your Game Builder AI. Describe the mini-game you want and I'll build it!",
   "selected_skill_names": [],
   "selected_workspace_skill_ids": [],
