@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -39,6 +39,15 @@ export default function SeasonStudio({
   const [saving, setSaving] = useState(false);
   const [issues, setIssues] = useState({ errors: [], warnings: [] });
   const [previewSeason, setPreviewSeason] = useState(null);
+  const [savedSnapshot, setSavedSnapshot] = useState(null);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const autoSaveTimer = useRef(null);
+  const draftRef = useRef(null);
+  const autoSaveArmed = useRef(false);
+
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
 
   const claimCounts = useMemo(() => {
     const counts = {};
@@ -59,9 +68,17 @@ export default function SeasonStudio({
     return [...titles];
   }, [seasons]);
 
-  const patch = (changes) => setDraft((current) => (current ? { ...current, ...changes } : current));
+  // Auto-save only starts once the manager actually changes something, so simply
+  // opening a season — or a copy of one — never writes anything by itself.
+  const patch = (changes) => {
+    autoSaveArmed.current = true;
+    setDraft((current) => (current ? { ...current, ...changes } : current));
+  };
   const closeEditor = () => {
+    autoSaveArmed.current = false;
+    clearTimeout(autoSaveTimer.current);
     setDraft(null);
+    setSavedSnapshot(null);
     setIssues({ errors: [], warnings: [] });
   };
 
@@ -77,19 +94,71 @@ export default function SeasonStudio({
     return created;
   };
 
+  const draftStatus = (target) => (target?.status === 'live' || target?.status === 'scheduled' ? target.status : 'draft');
+
+  /** One silent write of the draft, shared by the auto-save and the close-flush. */
+  const autoSave = async () => {
+    const current = draftRef.current;
+    if (!current) return 'unavailable';
+    if (validateBasics(current).errors.length) return 'unavailable';
+    setAutoSaving(true);
+    try {
+      const stored = await store(current, draftStatus(current));
+      // A new season becomes an editable draft, so the next auto-save updates it
+      // instead of creating a second copy of the same season.
+      const saved = { ...current, id: current.id || stored.id };
+      setDraft((value) => (value ? { ...value, id: saved.id } : value));
+      setSavedSnapshot(JSON.stringify(saved));
+      return 'saved';
+    } catch (e) {
+      console.error('Could not auto-save the season', e);
+      return 'failed';
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
+  /** Drops the pending timer and writes now — used when the dialog is closing. */
+  const flushAutoSave = () => {
+    clearTimeout(autoSaveTimer.current);
+    if (!autoSaveArmed.current) return Promise.resolve('saved');
+    if (savedSnapshot && JSON.stringify(draftRef.current) === savedSnapshot) return Promise.resolve('saved');
+    return autoSave();
+  };
+
+  useEffect(() => {
+    if (!draft || !autoSaveArmed.current) return undefined;
+    if (JSON.stringify(draft) === savedSnapshot) return undefined;
+    // Nothing storable yet (no name or dates) — the editor keeps it on screen.
+    if (validateBasics(draft).errors.length) return undefined;
+    clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      autoSave();
+    }, 1200);
+    return () => clearTimeout(autoSaveTimer.current);
+  }, [draft, savedSnapshot]);
+
   const openCreate = () => {
     setIssues({ errors: [], warnings: [] });
+    autoSaveArmed.current = false;
+    setSavedSnapshot(null);
     setDraft(newSeasonDraft(now));
   };
 
   const openEdit = (season) => {
+    const next = seasonToDraft(season);
     setIssues({ errors: [], warnings: [] });
-    setDraft(seasonToDraft(season));
+    autoSaveArmed.current = false;
+    setSavedSnapshot(JSON.stringify(next));
+    setDraft(next);
   };
 
   const openDuplicate = (season) => {
+    const next = duplicateSeasonDraft(season);
     setIssues({ errors: [], warnings: [] });
-    setDraft(duplicateSeasonDraft(season));
+    autoSaveArmed.current = false;
+    setSavedSnapshot(JSON.stringify(next));
+    setDraft(next);
     toast.info('Copy created as a draft — students never see it until you publish.');
   };
 
@@ -160,6 +229,10 @@ export default function SeasonStudio({
       const isActive = status === 'live' || status === 'scheduled';
       await base44.entities.Season.update(draft.id, { status, isActive });
       onSeasonsChange(seasons.map((season) => (season.id === draft.id ? { ...season, status, isActive } : season)));
+      // Keep the draft in step, so a later auto-save can never write the old state back.
+      const next = { ...draftRef.current, status };
+      setDraft((value) => (value ? { ...value, status } : value));
+      setSavedSnapshot(JSON.stringify(next));
       toast.success(status === 'archived' ? 'Season archived' : status === 'draft' ? 'Season moved to draft' : 'Season published');
       return true;
     } catch (e) {
@@ -213,6 +286,10 @@ export default function SeasonStudio({
         claimedCount={draft?.id ? claimCounts[draft.id] || 0 : 0}
         titleSuggestions={titleSuggestions}
         now={now}
+        adminProfile={adminProfile}
+        autoSaving={autoSaving}
+        savedSnapshot={savedSnapshot}
+        onFlushAutoSave={flushAutoSave}
       />
 
       <Dialog open={!!previewSeason} onOpenChange={(open) => { if (!open) setPreviewSeason(null); }}>

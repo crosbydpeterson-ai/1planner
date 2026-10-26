@@ -15,6 +15,9 @@ export default function useSeasonAssets({ customPets = [], customThemes = [] } =
   const [playlists, setPlaylists] = useState([]);
   const [foods, setFoods] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Assets created on the spot — an approved AI suggestion that just made a pet
+  // or a theme — so the reward pointing at them validates before any reload.
+  const [createdAssets, setCreatedAssets] = useState({ pets: [], themes: [] });
 
   useEffect(() => {
     let alive = true;
@@ -39,8 +42,20 @@ export default function useSeasonAssets({ customPets = [], customThemes = [] } =
     };
   }, []);
 
+  const registerAssets = (created = {}) =>
+    setCreatedAssets((prev) => ({
+      pets: [...prev.pets, ...(created.pets || [])],
+      themes: [...prev.themes, ...(created.themes || [])],
+    }));
+
   return useMemo(() => {
-    const pets = [
+    // Newly created assets are listed alongside the loaded ones, without ever
+    // showing the same asset twice.
+    const merge = (base, extra) => {
+      const seen = new Set(base.map((item) => item.id));
+      return [...base, ...extra.filter((item) => !seen.has(item.id))];
+    };
+    const pets = merge([
       ...PETS.map((pet) => ({
         id: pet.id,
         name: pet.name,
@@ -56,11 +71,11 @@ export default function useSeasonAssets({ customPets = [], customThemes = [] } =
         subtitle: `${pet.rarity || 'common'} · custom${pet.isGiftOnly ? ' · gift only' : ''}`,
         giftOnly: !!pet.isGiftOnly,
       })),
-    ];
-    const themes = [
+    ], createdAssets.pets);
+    const themes = merge([
       ...THEMES.map((theme) => ({ id: theme.id, name: theme.name, subtitle: 'built-in theme' })),
       ...(customThemes || []).map((theme) => ({ id: `custom_${theme.id}`, name: theme.name, subtitle: 'custom theme' })),
-    ];
+    ], createdAssets.themes);
     const trackOptions = (tracks || [])
       .filter((track) => track.isActive !== false)
       .map((track) => ({ id: track.id, name: track.title, emoji: '🎵', subtitle: track.isSeasonExclusive ? 'season exclusive song' : 'song' }));
@@ -83,6 +98,7 @@ export default function useSeasonAssets({ customPets = [], customThemes = [] } =
       playlists: playlistOptions,
       foods: foodOptions,
       index: buildAssetIndex({ pets, themes, tracks: trackOptions, playlists: playlistOptions, foods: foodOptions }),
+      registerAssets,
     };
-  }, [customPets, customThemes, tracks, playlists, foods, loading]);
+  }, [customPets, customThemes, tracks, playlists, foods, loading, createdAssets]);
 }

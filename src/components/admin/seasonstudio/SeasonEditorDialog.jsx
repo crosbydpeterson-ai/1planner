@@ -18,17 +18,26 @@ import AiSuggestionsSection from './AiSuggestionsSection';
 export default function SeasonEditorDialog({
   open, draft, onPatch, onClose, onSaveDraft, onPublish, onSetStatus,
   saving, issues, assets, permissions = {}, claimedCount, titleSuggestions = [], now,
+  adminProfile, autoSaving, savedSnapshot, onFlushAutoSave,
 }) {
   const [tab, setTab] = useState('overview');
   const [confirmClose, setConfirmClose] = useState(false);
+  const [blockedReason, setBlockedReason] = useState('');
   const baseline = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     setTab('overview');
     setConfirmClose(false);
-    baseline.current = JSON.stringify(draft);
+    setBlockedReason('');
   }, [open]);
+
+  // The baseline is the last stored version, so the badge clears as soon as the
+  // auto-save has written the edits.
+  useEffect(() => {
+    if (!open) return;
+    baseline.current = savedSnapshot || JSON.stringify(draft);
+  }, [open, savedSnapshot]);
 
   useEffect(() => {
     if (issues?.errors?.length) setTab('publish');
@@ -39,11 +48,21 @@ export default function SeasonEditorDialog({
   const dirty = baseline.current !== null && JSON.stringify(draft) !== baseline.current;
   const hasErrors = (issues?.errors?.length || 0) > 0;
 
-  const attemptClose = () => {
+  // Closing never loses work: anything still pending is written first, and the
+  // admin is only asked when the draft cannot be stored at all.
+  const attemptClose = async () => {
     if (saving) return;
-    if (dirty && !confirmClose) {
-      setConfirmClose(true);
-      return;
+    if (dirty) {
+      const result = await onFlushAutoSave?.();
+      if (result !== 'saved') {
+        setBlockedReason(
+          result === 'unavailable'
+            ? 'Add a season name and dates before this can be saved.'
+            : 'The last save did not go through — your edits are still here.'
+        );
+        setConfirmClose(true);
+        return;
+      }
     }
     setConfirmClose(false);
     onClose();
@@ -67,7 +86,15 @@ export default function SeasonEditorDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             {draft.id ? 'Edit season' : 'New season'}
-            {dirty && <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-black uppercase text-amber-300">Unsaved edits</span>}
+            {autoSaving ? (
+              <span className="flex items-center gap-1 rounded-full bg-sky-500/20 px-2 py-0.5 text-[10px] font-black uppercase text-sky-300">
+                <Loader2 className="h-3 w-3 animate-spin" /> Auto-saving
+              </span>
+            ) : dirty ? (
+              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-black uppercase text-amber-300">Unsaved edits</span>
+            ) : savedSnapshot ? (
+              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-300">Auto-saved</span>
+            ) : null}
           </DialogTitle>
           <DialogDescription className="text-slate-400">
             {draft.name || 'Untitled season'} · everything stays hidden from students until you publish.
@@ -127,7 +154,13 @@ export default function SeasonEditorDialog({
 
           {permissions.accessAI && (
             <TabsContent value="ai" className="pt-4">
-              <AiSuggestionsSection draft={draft} onPatch={onPatch} now={now} />
+              <AiSuggestionsSection
+                draft={draft}
+                onPatch={onPatch}
+                now={now}
+                assets={assets}
+                adminProfile={adminProfile}
+              />
             </TabsContent>
           )}
         </Tabs>
@@ -135,7 +168,7 @@ export default function SeasonEditorDialog({
         <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-slate-700 pt-3">
           {confirmClose ? (
             <>
-              <span className="mr-auto text-xs text-amber-300">You have unsaved edits.</span>
+              <span className="mr-auto text-xs text-amber-300">{blockedReason || 'You have unsaved edits.'}</span>
               <Button type="button" variant="ghost" onClick={() => setConfirmClose(false)} className="text-slate-300">
                 Keep editing
               </Button>
