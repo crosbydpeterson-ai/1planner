@@ -67,6 +67,7 @@ import QuestionGeneratorChat from '@/components/admin/QuestionGeneratorChat';
 import RedeemCodeManager from '@/components/admin/RedeemCodeManager';
 import RaffleManager from '@/components/admin/raffle/RaffleManager';
 import AdminDMInbox from '@/components/admin/AdminDMInbox';
+import SupportAdminManager from '@/components/admin/SupportAdminManager';
 import GameBuilderTokenPanel from '@/components/admin/GameBuilderTokenPanel';
 import UserTimeAnalytics from '@/components/admin/UserTimeAnalytics';
 import AbilitiesPanel from '@/components/admin/AbilitiesPanel';
@@ -510,7 +511,7 @@ export default function Admin() {
           {isSuperAdmin && <TabsContent value="lore"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><LoreComicPanel /></div></TabsContent>}
           <TabsContent value="redeem_codes"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><RedeemCodeManager isSuperAdmin={isSuperAdmin} /></div></TabsContent>
           {can('manageRedeemCodes') && <TabsContent value="raffles"><RaffleManager adminProfile={adminProfile} isSuperAdmin={isSuperAdmin} /></TabsContent>}
-          <TabsContent value="dms"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AdminDMInbox adminProfile={adminProfile} /></div></TabsContent>
+          <TabsContent value="dms"><div className="space-y-4"><SupportAdminManager /><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><AdminDMInbox adminProfile={adminProfile} /></div></div></TabsContent>
           <TabsContent value="daily_rewards"><DailyRewardsTab /></TabsContent>
           <TabsContent value="wheel_library"><div className="bg-slate-800 rounded-2xl p-5 border border-slate-700"><WheelLibraryTab adminUsername={adminProfile?.username} /></div></TabsContent>
           <TabsContent value="settings">

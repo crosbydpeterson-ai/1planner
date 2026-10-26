@@ -4,8 +4,10 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import StudentMessages from '@/components/messages/StudentMessages';
 import RecipientInbox from '@/components/messages/RecipientInbox';
+import SupportInbox from '@/components/messages/SupportInbox';
 import { loadContacts } from '@/lib/dmRouting';
 import { resolveMessagingAccess } from '@/lib/dmAccess';
+import { loadSupportAdmins } from '@/lib/byteSupport';
 
 /**
  * Messages page.
@@ -19,7 +21,8 @@ export default function MessagesPage() {
   const [access, setAccess] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState('mine'); // 'inbox' | 'mine'
+  const [tab, setTab] = useState('mine'); // 'inbox' | 'mine' | 'support'
+  const [supportAdminIds, setSupportAdminIds] = useState([]);
 
   useEffect(() => {
     const profileId = localStorage.getItem('quest_profile_id');
@@ -30,10 +33,19 @@ export default function MessagesPage() {
         const profile = profiles[0] || null;
         setCurrentProfile(profile);
         if (profile) {
-          const contacts = await loadContacts();
+          const [contacts, admins] = await Promise.all([loadContacts(), loadSupportAdmins()]);
           const resolved = await resolveMessagingAccess(profile, contacts);
           setAccess(resolved);
-          setTab(resolved.hasRecipientInbox ? 'inbox' : 'mine');
+          setSupportAdminIds(admins.profileIds);
+          // A support admin who is not a contact recipient opens straight into the
+          // requests they are responsible for.
+          setTab(
+            resolved.hasRecipientInbox
+              ? 'inbox'
+              : admins.profileIds.includes(String(profile.id))
+              ? 'support'
+              : 'mine'
+          );
         }
       } catch (err) {
         console.error('Could not resolve messaging access', err);
@@ -56,7 +68,8 @@ export default function MessagesPage() {
     return <div className="min-h-screen flex items-center justify-center text-slate-400 text-sm">No profile found</div>;
   }
 
-  const showTabs = !!access?.hasRecipientInbox;
+  const isSupport = !!currentProfile && supportAdminIds.includes(String(currentProfile.id));
+  const showTabs = !!access?.hasRecipientInbox || isSupport;
   const activeTab = showTabs ? tab : 'mine';
 
   // Frosted pill tabs, matching the glass treatment used across the rest of the app.
@@ -72,12 +85,19 @@ export default function MessagesPage() {
     <div className="min-h-screen pt-16 pb-24 px-4">
       {showTabs && (
         <div className="max-w-md mx-auto mb-4 flex gap-2 p-1 rounded-full bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg">
-          <button onClick={() => setTab('inbox')} className={tabClass(activeTab === 'inbox')}>
-            Inbox
-          </button>
+          {access?.hasRecipientInbox && (
+            <button onClick={() => setTab('inbox')} className={tabClass(activeTab === 'inbox')}>
+              Inbox
+            </button>
+          )}
           <button onClick={() => setTab('mine')} className={tabClass(activeTab === 'mine')}>
             My messages
           </button>
+          {isSupport && (
+            <button onClick={() => setTab('support')} className={tabClass(activeTab === 'support')}>
+              Escalated from Byte
+            </button>
+          )}
         </div>
       )}
 
@@ -85,7 +105,9 @@ export default function MessagesPage() {
         <p className="max-w-md mx-auto mb-3 text-xs text-red-600 bg-red-500/10 backdrop-blur-xl border border-red-500/20 rounded-xl px-3 py-2">{error}</p>
       )}
 
-      {activeTab === 'inbox' ? (
+      {activeTab === 'support' ? (
+        <SupportInbox currentProfile={currentProfile} supportAdminIds={supportAdminIds} />
+      ) : activeTab === 'inbox' ? (
         <RecipientInbox
           currentProfile={currentProfile}
           canManage={!!access?.canUseFullInbox}

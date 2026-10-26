@@ -10,6 +10,7 @@ import {
   unlinkedNameMatchContactIds,
 } from '@/lib/dmRouting';
 import { resolveMessagingAccess } from '@/lib/dmAccess';
+import { SUPPORT_RESOLVED, isSupportAdmin, loadSupportAdmins, loadSupportThreads, supportStatusOf } from '@/lib/byteSupport';
 
 /**
  * Unread badge.
@@ -24,6 +25,8 @@ export default function MessageWidget({ currentProfile }) {
   const refreshTimer = useRef(null);
   const accessRef = useRef(null);
   const myContactIdsRef = useRef([]);
+  const supportAdminIdsRef = useRef([]);
+  const supportLoadedRef = useRef(false);
 
   useEffect(() => {
     if (!currentProfile?.id) return;
@@ -52,6 +55,17 @@ export default function MessageWidget({ currentProfile }) {
         const { threads: mine } = await loadStudentThreads(currentProfile.id);
         count += mine.filter((t) => t.hasUnreadStudent).length;
 
+        // Named support admins also carry unread requests escalated from Byte.
+        if (!supportLoadedRef.current) {
+          const { profileIds } = await loadSupportAdmins();
+          supportAdminIdsRef.current = profileIds;
+          supportLoadedRef.current = true;
+        }
+        if (isSupportAdmin(currentProfile, supportAdminIdsRef.current)) {
+          const { threads: escalated } = await loadSupportThreads(50);
+          count += escalated.filter((t) => t.hasUnreadAdmin && supportStatusOf(t) !== SUPPORT_RESOLVED).length;
+        }
+
         if (!cancelled) setUnread(count);
       } catch (err) {
         console.error('Unread badge could not load', err);
@@ -65,7 +79,8 @@ export default function MessageWidget({ currentProfile }) {
       const relevant = !data
         || String(data.studentProfileId || '') === String(currentProfile.id)
         || String(data.recipientProfileId || '') === String(currentProfile.id)
-        || (data.contactId && myContactIdsRef.current.includes(data.contactId));
+        || (data.contactId && myContactIdsRef.current.includes(data.contactId))
+        || (!!data.isEscalated && isSupportAdmin(currentProfile, supportAdminIdsRef.current));
       if (!relevant) return;
       clearTimeout(refreshTimer.current);
       refreshTimer.current = setTimeout(load, 800);

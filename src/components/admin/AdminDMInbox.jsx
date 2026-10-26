@@ -18,6 +18,7 @@ import {
   loadContacts,
 } from '@/lib/dmRouting';
 import { loadMessagesForThreads, mergeThreadMessages, storeMessage, touchThreadSummary } from '@/lib/dmMessages';
+import { adminMessagePatch } from '@/lib/byteSupport';
 
 const PRESET_CONTACTS = [
   { username: 'Crosby', role: 'Owner & Main Admin', emoji: '👑', color: 'from-yellow-500 to-orange-500', isBot: false },
@@ -141,6 +142,8 @@ export default function AdminDMInbox({ adminProfile }) {
         lastMessageAt: message.sentAt,
         hasUnreadStudent: true,
         hasUnreadAdmin: false,
+        // Answering an escalation here counts as a support reply.
+        ...(thread.isEscalated ? adminMessagePatch(thread, adminProfile) : {}),
       });
       setThreads((prev) => prev.map((t) => (t.id === thread.id ? updated : t)));
       setActiveThread((prev) => (prev && prev.id === thread.id ? updated : prev));
@@ -412,6 +415,13 @@ export default function AdminDMInbox({ adminProfile }) {
               </p>
             )}
 
+            {activeThread.isEscalated && (
+              <p className="mx-3 mt-3 text-[11px] bg-blue-500/10 border border-blue-500/20 text-blue-200 rounded-lg px-2 py-1.5">
+                Escalated from Byte — replying here answers {activeThread.studentUsername} on that request. Support admins also see it under Messages → Escalated from Byte.
+                {activeThread.escalationSummary ? ` Summary: ${activeThread.escalationSummary}` : ''}
+              </p>
+            )}
+
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-slate-900">
               {activeMessages.length === 0 && <p className="text-center text-slate-500 text-sm py-4">No messages yet</p>}
               {activeMessages.map((msg, i) => (
@@ -429,15 +439,17 @@ export default function AdminDMInbox({ adminProfile }) {
             <div className="flex items-center gap-2 px-3 py-3 border-t border-slate-700 bg-slate-800">
               <input
                 className="flex-1 bg-slate-700 text-white rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
-                placeholder={activeIsBot ? 'Byte replies come from the AI agent' : `Reply as ${adminProfile?.username || 'Admin'}…`}
+                placeholder={activeIsBot && !activeThread.isEscalated
+                  ? 'Byte replies come from the AI agent'
+                  : `Reply as ${adminProfile?.username || 'Admin'}…`}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendReply(); } }}
-                disabled={sending || activeIsBot}
+                disabled={sending || (activeIsBot && !activeThread.isEscalated)}
               />
               <button
                 onClick={sendReply}
-                disabled={sending || activeIsBot || !replyText.trim()}
+                disabled={sending || (activeIsBot && !activeThread.isEscalated) || !replyText.trim()}
                 className="w-9 h-9 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center text-white disabled:opacity-40 transition-colors shrink-0"
               >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

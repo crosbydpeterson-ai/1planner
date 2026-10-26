@@ -58,7 +58,7 @@
     "hasUnreadAdmin": {
       "type": "boolean",
       "default": false,
-      "description": "Unread for the recipient side (contact / admin)"
+      "description": "Unread for the recipient side (contact / admin). On an escalated thread this means a support admin has not read the student's latest message."
     },
     "hasUnreadStudent": {
       "type": "boolean",
@@ -79,6 +79,63 @@
     "escalationSummary": {
       "type": "string",
       "description": "Byte's summary of the issue before escalating"
+    },
+    "supportStatus": {
+      "type": "string",
+      "enum": [
+        "waiting",
+        "replied",
+        "resolved"
+      ],
+      "description": "Support handoff state. waiting = sent and no human reply yet, replied = a support admin answered, resolved = closed by a support admin. Threads escalated before this field existed fall back to waiting."
+    },
+    "supportDetails": {
+      "type": "string",
+      "description": "Optional extra details the student added in the handoff preview"
+    },
+    "supportTranscript": {
+      "type": "array",
+      "description": "Snapshot of the Byte conversation shared with support admins at handoff time. Text only \u2014 never PINs, tokens or unrelated account fields.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "student | byte"
+          },
+          "text": {
+            "type": "string"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "supportRequestedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the student first sent (or re-sent) this request. Kept stable across updates."
+    },
+    "supportOperationId": {
+      "type": "string",
+      "description": "Stable id of the submitted handoff, so a repeated tap or retry never creates a second request"
+    },
+    "supportAssignedAdminProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the support admin who claimed or was assigned this request"
+    },
+    "supportAssignedAdminUsername": {
+      "type": "string",
+      "description": "Display snapshot of the assigned support admin"
+    },
+    "supportResolvedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "supportResolvedByUsername": {
+      "type": "string"
     }
   },
   "required": [

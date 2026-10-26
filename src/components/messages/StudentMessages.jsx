@@ -1,11 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { AlertCircle, ChevronLeft, Loader2, Send } from 'lucide-react';
+import { AlertCircle, ChevronLeft, LifeBuoy, Loader2, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MessageBubble from './MessageBubble';
+import ByteSupportThread from './ByteSupportThread';
+import ByteSupportHandoffDialog from './ByteSupportHandoffDialog';
 import useThreadSender from '@/hooks/useThreadSender';
 import { buildThreadMessages, loadMessagesForThreads, loadThreadMessages } from '@/lib/dmMessages';
 import { ensureThread, loadContacts, loadStudentThreads } from '@/lib/dmRouting';
+import {
+  isSupportOpen,
+  loadSupportAdmins,
+  looksLikeHumanRequest,
+  setSupportStatus,
+  studentMessagePatch,
+} from '@/lib/byteSupport';
 
 /** Student side of the messaging system: contacts, conversations and replies. */
 export default function StudentMessages({ currentProfile }) {
@@ -22,6 +31,9 @@ export default function StudentMessages({ currentProfile }) {
   const [byteLoading, setByteLoading] = useState(false);
   const [byteMessages, setByteMessages] = useState([]);
   const [byteError, setByteError] = useState('');
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportAdminIds, setSupportAdminIds] = useState([]);
+  const [supportBusy, setSupportBusy] = useState(false);
   const byteUnsubRef = useRef(null);
   const endRef = useRef(null);
   const refreshTimer = useRef(null);
@@ -37,7 +49,12 @@ export default function StudentMessages({ currentProfile }) {
   });
 
   const loadAll = async () => {
-    const [allContacts, mine] = await Promise.all([loadContacts(), loadStudentThreads(currentProfile.id)]);
+    const [allContacts, mine, admins] = await Promise.all([
+      loadContacts(),
+      loadStudentThreads(currentProfile.id),
+      loadSupportAdmins(),
+    ]);
+    setSupportAdminIds(admins.profileIds);
     setContacts(allContacts);
     setThreads(mine.threads);
     setTruncated(mine.truncated);
@@ -150,6 +167,22 @@ export default function StudentMessages({ currentProfile }) {
     const text = input.trim();
     if (!text) return;
 
+    // Once a request is open the main send goes to the support team; Byte stays
+    // available behind "Ask Byte" so the two never mix.
+    if (activeContact?.isBot && isSupportOpen(activeThread)) {
+      setInput('');
+      const status = await sender.run({
+        thread: activeThread,
+        sender: 'student',
+        senderName: currentProfile.username,
+        senderProfileId: currentProfile.id,
+        text,
+        unreadPatch: studentMessagePatch(),
+      });
+      if (status === 'busy') setInput((cur) => (cur.trim() ? cur : text));
+      return;
+    }
+
     if (activeContact?.isBot) {
       setInput('');
       setByteError('');
@@ -159,6 +192,8 @@ export default function StudentMessages({ currentProfile }) {
         // Fetch fresh conversation so addMessage has the full up-to-date messages array
         const freshConv = await base44.agents.getConversation(activeThread.byteConvId);
         await base44.agents.addMessage(freshConv, { role: 'user', content: text });
+        // They asked for a human in their own words — open the handoff preview.
+        if (looksLikeHumanRequest(text)) setSupportOpen(true);
       } catch (err) {
         console.error('Byte did not receive the message', err);
         setByteError('Byte did not receive that. Your text is back in the box — tap send to retry.');
@@ -182,6 +217,44 @@ export default function StudentMessages({ currentProfile }) {
     });
     // A duplicate tap stored nothing, so the text must not be lost.
     if (status === 'busy') setInput((cur) => (cur.trim() ? cur : text));
+  };
+
+  // "Ask Byte": a separate AI path that never touches the human thread.
+  const askByte = async () => {
+    const text = input.trim();
+    if (!text || byteLoading || !activeThread?.byteConvId) return;
+    setInput('');
+    setByteError('');
+    setByteLoading(true);
+    const timeoutId = setTimeout(() => setByteLoading(false), 45000);
+    try {
+      const freshConv = await base44.agents.getConversation(activeThread.byteConvId);
+      await base44.agents.addMessage(freshConv, { role: 'user', content: text });
+    } catch (err) {
+      console.error('Byte did not receive the message', err);
+      setByteError('Byte did not receive that. Your text is back in the box — tap send to retry.');
+      setInput((cur) => (cur.trim() ? cur : text));
+      setByteLoading(false);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
+
+  const reopenRequest = async () => {
+    if (!activeThread || supportBusy) return;
+    setSupportBusy(true);
+    setError('');
+    try {
+      // Reopening keeps the same request and returns it to the support inbox.
+      const updated = await setSupportStatus(activeThread, 'waiting', currentProfile);
+      setThreads((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      setActiveThread(updated);
+    } catch (err) {
+      console.error('Could not reopen the request', err);
+      setError('Could not reopen that request. Please try again.');
+    } finally {
+      setSupportBusy(false);
+    }
   };
 
   const getThread = (contact) => threads.find((t) => t.contactId === contact.id);
@@ -266,14 +339,19 @@ export default function StudentMessages({ currentProfile }) {
       <div className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl flex flex-col flex-1 overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/20">
           <div className="w-10 h-10 rounded-full bg-white/40 backdrop-blur-sm border border-white/30 flex items-center justify-center text-xl">{activeContact?.isBot ? '🤖' : activeContact?.emoji}</div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-semibold text-slate-800 text-sm truncate">{activeContact?.username}</p>
             <p className="text-xs text-slate-400">{activeContact?.role}</p>
           </div>
-          {activeThread?.isEscalated && (
-            <span className="ml-auto flex items-center gap-1 text-[10px] bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
-              <AlertCircle className="w-3 h-3" /> Forwarded to admin
-            </span>
+          {activeContact?.isBot && (
+            <button
+              onClick={() => setSupportOpen(true)}
+              disabled={opening || !activeThread}
+              className="flex items-center gap-1 text-[11px] font-semibold bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white px-3 py-1.5 rounded-full transition-colors shrink-0"
+            >
+              <LifeBuoy className="w-3.5 h-3.5" />
+              {isSupportOpen(activeThread) ? 'Update request' : 'Talk to an admin'}
+            </button>
           )}
         </div>
 
@@ -288,48 +366,36 @@ export default function StudentMessages({ currentProfile }) {
           </p>
         )}
 
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {!activeContact?.isBot && messages.length === 0 && (
-            <p className="text-center text-xs text-slate-400 py-6">Say hi to {activeContact?.username}!</p>
-          )}
-          {!activeContact?.isBot && messages.map((msg, i) => (
-            <MessageBubble
-              key={msg.__key || i}
-              msg={msg}
-              isMe={msg.sender === 'student'}
-              state={msg.state}
-              onRetry={() => sender.retry(activeThread)}
-            />
-          ))}
-          {activeContact?.isBot && byteMessages.filter((m) => m.content && !m.content.startsWith('[SYSTEM CONTEXT')).map((msg, i) => (
-            <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-              <div
-                className="max-w-[78%] px-3 py-2 text-sm leading-snug"
-                style={{
-                  borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                  background: msg.role === 'user' ? 'rgba(59,130,246,0.85)' : 'rgba(255,255,255,0.6)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: msg.role === 'user' ? '1px solid rgba(147,197,253,0.3)' : '1px solid rgba(255,255,255,0.5)',
-                  color: msg.role === 'user' ? '#fff' : '#1e293b',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                }}
-              >
-                {msg.content}
-                <div style={{ fontSize: '10px', marginTop: '2px', opacity: 0.65 }}>{msg.role === 'user' ? 'You' : 'Byte'}</div>
-              </div>
-            </div>
-          ))}
-          {activeContact?.isBot && byteLoading && byteMessages.length > 0 && (
-            <div className="flex justify-start">
-              <div className="px-3 py-2.5 flex items-center gap-2" style={{ borderRadius: '18px 18px 18px 4px', background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.5)' }}>
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
-                <span className="text-xs text-slate-400">Byte is typing…</span>
-              </div>
-            </div>
-          )}
-          <div ref={endRef} />
-        </div>
+        {activeContact?.isBot ? (
+          <ByteSupportThread
+            thread={activeThread}
+            records={records[activeThread?.id] || []}
+            byteMessages={byteMessages}
+            pending={activePending}
+            failed={activeFailed}
+            currentProfile={currentProfile}
+            byteLoading={byteLoading}
+            onRetry={() => sender.retry(activeThread)}
+            onReopen={reopenRequest}
+            reopenBusy={supportBusy}
+          />
+        ) : (
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+            {messages.length === 0 && (
+              <p className="text-center text-xs text-slate-400 py-6">Say hi to {activeContact?.username}!</p>
+            )}
+            {messages.map((msg, i) => (
+              <MessageBubble
+                key={msg.__key || i}
+                msg={msg}
+                isMe={msg.sender === 'student'}
+                state={msg.state}
+                onRetry={() => sender.retry(activeThread)}
+              />
+            ))}
+            <div ref={endRef} />
+          </div>
+        )}
 
         {(error || byteError) && (
           <p className="mx-3 mb-1 text-[11px] bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-600 rounded-xl px-2 py-1.5 flex items-center gap-1">
@@ -338,9 +404,21 @@ export default function StudentMessages({ currentProfile }) {
         )}
 
         <div className="flex items-center gap-2 px-3 py-3 border-t border-white/20">
+          {activeContact?.isBot && isSupportOpen(activeThread) && (
+            <button
+              onClick={askByte}
+              disabled={!input.trim() || byteLoading}
+              title="Ask Byte while you wait"
+              className="text-[11px] font-semibold bg-white/50 hover:bg-white/70 border border-white/50 text-slate-700 disabled:opacity-40 rounded-full px-3 py-2 shrink-0 transition-colors"
+            >
+              Ask Byte
+            </button>
+          )}
           <input
             className="flex-1 bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 placeholder:text-slate-400 rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-white/60"
-            placeholder={activeContact?.isBot ? 'Ask Byte…' : `Message ${activeContact?.username}…`}
+            placeholder={activeContact?.isBot
+              ? (isSupportOpen(activeThread) ? 'Message the support team…' : 'Ask Byte…')
+              : `Message ${activeContact?.username}…`}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
@@ -356,6 +434,21 @@ export default function StudentMessages({ currentProfile }) {
           </button>
         </div>
       </div>
+
+      <ByteSupportHandoffDialog
+        open={supportOpen}
+        thread={activeThread}
+        byteMessages={byteMessages}
+        supportAdminCount={supportAdminIds.length}
+        onClose={() => setSupportOpen(false)}
+        onSubmitted={({ thread: updated }) => {
+          setThreads((prev) => (prev.some((t) => t.id === updated.id) ? prev.map((t) => (t.id === updated.id ? updated : t)) : [...prev, updated]));
+          setActiveThread(updated);
+          loadThreadMessages(updated.id)
+            .then((msgs) => setRecords((prev) => ({ ...prev, [updated.id]: msgs })))
+            .catch((err) => console.error('Could not refresh the conversation', err));
+        }}
+      />
     </div>
   );
 }
