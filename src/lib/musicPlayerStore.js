@@ -24,6 +24,12 @@ const idleState = () => ({
   // Bumped to ask the player to re-attempt the current track (e.g. after a
   // failed or expired signed URL). The player reloads for the new token.
   retryToken: 0,
+  // The list being played (a playlist, or a single song) and where we are in it.
+  // An empty queue means one song, which Repeat simply replays.
+  queue: [],
+  queueIndex: 0,
+  // Repeat keeps the song — or the whole playlist — going when it finishes.
+  repeat: false,
 });
 
 let state = idleState();
@@ -37,8 +43,44 @@ export const musicPlayer = {
   getState: () => state,
 
   play: (track) => {
-    state = { ...idleState(), track, isPlaying: true, status: 'loading' };
+    state = { ...idleState(), repeat: state.repeat, track, isPlaying: true, status: 'loading' };
     emit();
+  },
+
+  // Play a list of songs from a chosen position — a playlist, or the songs a
+  // shared playlist gives this student. Repeat then loops the whole list.
+  playQueue: (tracks, index = 0) => {
+    const list = (tracks || []).filter(Boolean);
+    if (list.length === 0) return;
+    const at = Math.min(Math.max(index, 0), list.length - 1);
+    state = {
+      ...idleState(),
+      repeat: state.repeat,
+      queue: list,
+      queueIndex: at,
+      track: list[at],
+      isPlaying: true,
+      status: 'loading',
+    };
+    emit();
+  },
+
+  setRepeat: (on) => {
+    if (state.repeat === !!on) return;
+    state = { ...state, repeat: !!on };
+    emit();
+  },
+
+  // A song finished by itself: step through the list, loop it while Repeat is
+  // on, and otherwise leave the finished song showing so Play replays it.
+  advance: () => {
+    const { queue, queueIndex, repeat } = state;
+    if (repeat) {
+      if (queue.length === 0) { musicPlayer.resume(); return; } // Repeat one song
+      musicPlayer.playQueue(queue, queueIndex >= queue.length - 1 ? 0 : queueIndex + 1);
+      return;
+    }
+    if (queueIndex < queue.length - 1) musicPlayer.playQueue(queue, queueIndex + 1);
   },
 
   // What the media element really reports — keeps isPlaying honest.
@@ -91,7 +133,7 @@ export const musicPlayer = {
   },
 
   stop: () => {
-    state = idleState();
+    state = { ...idleState(), repeat: state.repeat };
     emit();
   },
 

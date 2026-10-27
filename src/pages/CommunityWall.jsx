@@ -274,7 +274,7 @@ export default function CommunityWall() {
               </div>
             ) : visiblePosts.map(post => (
               <div key={post.id}>
-                <PostCard post={post} isAdmin={isAdmin} currentProfileId={profile.id} onReact={handleReact} onDelete={handleDeletePost} onApprove={handleApprovePost} onReject={handleRejectPost} onToggleComments={toggleComments} onVotePoll={handleVotePoll} commentCount={(comments[post.id] || []).filter(c => isAdmin || c.status === 'approved').length} isExpanded={!!expandedComments[post.id]} userPets={userPets} authorTags={getTagsForProfile(post.authorProfileId)} authorTheme={getThemeForProfile(post.authorProfileId)} profilesCache={profilesCache} />
+                <PostCard post={post} isAdmin={isAdmin} currentProfileId={profile.id} viewerProfile={profile} onReact={handleReact} onDelete={handleDeletePost} onApprove={handleApprovePost} onReject={handleRejectPost} onToggleComments={toggleComments} onVotePoll={handleVotePoll} commentCount={(comments[post.id] || []).filter(c => isAdmin || c.status === 'approved').length} isExpanded={!!expandedComments[post.id]} userPets={userPets} authorTags={getTagsForProfile(post.authorProfileId)} authorTheme={getThemeForProfile(post.authorProfileId)} profilesCache={profilesCache} />
                 {expandedComments[post.id] && <CommentSection comments={comments[post.id] || []} canComment={canCommentPerm} isAdmin={isAdmin} channelId={activeChannelId} currentProfileId={profile.id} onSubmit={(text) => handleSubmitComment(post.id, text)} onDelete={(cId) => handleDeleteComment(cId, post.id)} onApprove={(cId) => handleApproveComment(cId, post.id)} onReject={(cId) => handleRejectComment(cId, post.id)} />}
               </div>
             ))}

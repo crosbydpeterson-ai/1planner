@@ -4,6 +4,10 @@ import { Music2, Loader2, Plus, ListMusic } from 'lucide-react';
 import MusicTrackCard from '@/components/music/MusicTrackCard';
 import PlaylistCard from '@/components/music/PlaylistCard';
 import PlaylistDialog from '@/components/music/PlaylistDialog';
+import NewPlaylistDialog from '@/components/music/NewPlaylistDialog';
+import SharePlaylistDialog from '@/components/music/SharePlaylistDialog';
+import { musicPlayer } from '@/lib/musicPlayerStore';
+import { toast } from 'sonner';
 import LockedOverlay from '@/components/common/LockedOverlay';
 import SongRequestDialog from '@/components/music/SongRequestDialog';
 import { isPlayableTrack, isPlaylistVisibleForUser, getPlaylistTracks, getUnlockedTrackIds } from '@/lib/musicAccess';
@@ -20,6 +24,8 @@ export default function Music() {
   const [lockPageConfig, setLockPageConfig] = useState(null);
   const [showRequest, setShowRequest] = useState(false);
   const [openPlaylist, setOpenPlaylist] = useState(null);
+  const [showNewPlaylist, setShowNewPlaylist] = useState(false);
+  const [shareTarget, setShareTarget] = useState(null);
   const [loadError, setLoadError] = useState(false);
 
   const loadAll = async () => {
@@ -102,7 +108,10 @@ export default function Music() {
 
   const unlockedTrackIds = getUnlockedTrackIds(profile, playlists);
   const visible = tracks.filter((t) => isPlayableTrack(t, profile, unlockedTrackIds));
-  const visiblePlaylists = playlists.filter((p) => p.isActive !== false && isPlaylistVisibleForUser(p, profile));
+  // A student's own playlists are theirs alone; the shared Playlists row stays
+  // the library an admin curated.
+  const myPlaylists = playlists.filter((p) => p.ownerProfileId === profile.id);
+  const visiblePlaylists = playlists.filter((p) => !p.ownerProfileId && p.isActive !== false && isPlaylistVisibleForUser(p, profile));
   const openPlaylistTracks = openPlaylist
     ? getPlaylistTracks(openPlaylist, tracks).filter((t) => isPlayableTrack(t, profile, unlockedTrackIds))
     : [];
@@ -126,6 +135,34 @@ export default function Music() {
         >
           <Plus className="w-4 h-4" /> Request a song
         </button>
+      </div>
+
+      {/* My Playlists — built only from songs in this student's own collection */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <ListMusic className="w-5 h-5 text-indigo-500" />
+          <h2 className="text-lg font-bold text-slate-800">My Playlists</h2>
+          <button
+            onClick={() => setShowNewPlaylist(true)}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> New Playlist
+          </button>
+        </div>
+        {myPlaylists.length === 0 ? (
+          <p className="text-sm text-slate-400">Make a playlist from your songs, then share it with the community.</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {myPlaylists.map((pl) => (
+              <PlaylistCard
+                key={pl.id}
+                playlist={pl}
+                trackCount={getPlaylistTracks(pl, tracks).filter((t) => isPlayableTrack(t, profile, unlockedTrackIds)).length}
+                onClick={() => setOpenPlaylist(pl)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {visiblePlaylists.length > 0 && (
@@ -164,6 +201,24 @@ export default function Music() {
         tracks={openPlaylistTracks}
         open={!!openPlaylist}
         onOpenChange={(o) => { if (!o) setOpenPlaylist(null); }}
+        onPlayAll={() => musicPlayer.playQueue(openPlaylistTracks)}
+        onShare={openPlaylist?.ownerProfileId === profile.id ? () => setShareTarget(openPlaylist) : null}
+      />
+      <NewPlaylistDialog
+        open={showNewPlaylist}
+        onOpenChange={setShowNewPlaylist}
+        profile={profile}
+        tracks={visible}
+        onCreated={(created) => { setPlaylists([created, ...playlists]); toast.success('Playlist created!'); }}
+      />
+      <SharePlaylistDialog
+        open={!!shareTarget}
+        onOpenChange={(o) => { if (!o) setShareTarget(null); }}
+        playlist={shareTarget}
+        tracks={tracks}
+        profile={profile}
+        isAdmin={profile.rank === 'admin' || profile.rank === 'super_admin'}
+        onShared={(channel) => { setShareTarget(null); toast.success(`Shared to ${channel.name}!`); }}
       />
       <SongRequestDialog open={showRequest} onOpenChange={setShowRequest} profile={profile} />
     </div>);

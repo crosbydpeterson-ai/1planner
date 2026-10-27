@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, X, Volume2, VolumeX, Loader2, AlertCircle } from 'lucide-react';
+import { Play, Pause, X, Volume2, VolumeX, Loader2, AlertCircle, Repeat } from 'lucide-react';
 import { formatTime } from '@/lib/musicPlayerStore';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { useMusicPlaybackEngine } from '@/hooks/useMusicPlaybackEngine';
@@ -14,7 +14,7 @@ import { useMusicPlaybackEngine } from '@/hooks/useMusicPlaybackEngine';
  */
 export default function MusicPlayerBar({ profile, hideUI = false }) {
   const engine = useMusicPlaybackEngine(profile);
-  const { track, isPlaying, currentTime, duration, isLoading, hasError, error, muted, seeking } = engine;
+  const { track, isPlaying, currentTime, duration, isLoading, hasError, error, muted, repeat, seeking } = engine;
   const coverSrc = useSignedUrl(track?.coverImageUri);
 
   const dur = duration || 0;
@@ -53,6 +53,14 @@ export default function MusicPlayerBar({ profile, hideUI = false }) {
                 ) : (
                   <Play className="w-4 h-4" />
                 )}
+              </button>
+              <button
+                onClick={engine.toggleRepeat}
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${repeat ? 'text-indigo-600 bg-indigo-50' : 'text-slate-500 hover:bg-slate-100'}`}
+                aria-label={repeat ? 'Repeat on' : 'Repeat off'}
+                title={repeat ? 'Repeat on — this song or playlist keeps playing' : 'Repeat off'}
+              >
+                <Repeat className="w-4 h-4" />
               </button>
               <button
                 onClick={() => engine.setMuted(m => !m)}

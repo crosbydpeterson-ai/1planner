@@ -1,12 +1,15 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ListMusic } from 'lucide-react';
+import { ListMusic, Play, Share2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import MusicTrackCard from '@/components/music/MusicTrackCard';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 // Shows the tracks inside a playlist. Only tracks the viewer is allowed to
-// play are listed (season-exclusive tracks require an unlock).
-export default function PlaylistDialog({ playlist, tracks, open, onOpenChange }) {
+// play are listed (season-exclusive tracks require an unlock). Play all sends
+// them to the player, where Repeat can loop the whole playlist; Share is only
+// offered on the student's own playlists.
+export default function PlaylistDialog({ playlist, tracks, open, onOpenChange, onPlayAll, onShare }) {
   const coverSrc = useSignedUrl(playlist?.coverImageUri);
   if (!playlist) return null;
 
@@ -22,12 +25,24 @@ export default function PlaylistDialog({ playlist, tracks, open, onOpenChange })
                 <ListMusic className="w-7 h-7" />
               )}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <DialogTitle className="truncate">{playlist.name}</DialogTitle>
               <DialogDescription className="truncate">
                 {tracks.length} {tracks.length === 1 ? 'song' : 'songs'}
                 {playlist.description ? ` • ${playlist.description}` : ''}
               </DialogDescription>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {tracks.length > 0 && (
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700" onClick={() => onPlayAll?.()}>
+                  <Play className="w-3.5 h-3.5" /> Play all
+                </Button>
+              )}
+              {onShare && (
+                <Button size="sm" variant="outline" onClick={onShare}>
+                  <Share2 className="w-3.5 h-3.5" /> Share
+                </Button>
+              )}
             </div>
           </div>
         </DialogHeader>

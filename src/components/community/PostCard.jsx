@@ -6,8 +6,9 @@ import { timeAgo } from '@/lib/serverTime';
 import ReactionBar from './ReactionBar';
 import PollDisplay from './PollDisplay';
 import PetConceptPostDisplay from './PetConceptPostDisplay';
+import CommunityPlaylistPost from './CommunityPlaylistPost';
 
-export default function PostCard({ post, isAdmin, currentProfileId, onReact, onDelete, onApprove, onReject, onToggleComments, commentCount, isExpanded, userPets, authorTags, authorTheme, onVotePoll, profilesCache }) {
+export default function PostCard({ post, isAdmin, currentProfileId, viewerProfile, onReact, onDelete, onApprove, onReject, onToggleComments, commentCount, isExpanded, userPets, authorTags, authorTheme, onVotePoll, profilesCache }) {
   const isPending = post.status === 'pending';
   const avatarBg = authorTheme?.primary || '#6366f1';
 
@@ -77,6 +78,9 @@ export default function PostCard({ post, isAdmin, currentProfileId, onReact, onD
         )}
         {post.postType === 'pet_concept' && post.petConceptData && (
           <PetConceptPostDisplay data={post.petConceptData} />
+        )}
+        {post.postType === 'playlist' && post.playlistData && (
+          <CommunityPlaylistPost data={post.playlistData} viewerProfile={viewerProfile} />
         )}
 
         {/* Reactions + comments bar */}

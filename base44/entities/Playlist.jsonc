@@ -32,6 +32,14 @@
       "default": false,
       "description": "If true, the playlist is only visible to users who unlocked it via a 1Pass playlist reward (admins always see it)"
     },
+    "ownerProfileId": {
+      "type": "string",
+      "description": "UserProfile ID of the student who made this playlist. Empty on an admin-curated playlist, which is offered to every student; a student's own playlist is visible to that student only (sharing it to the community posts a snapshot of its songs)."
+    },
+    "ownerUsername": {
+      "type": "string",
+      "description": "Display snapshot of the student who made this playlist"
+    },
     "createdBy": {
       "type": "string",
       "description": "Admin username who created the playlist"

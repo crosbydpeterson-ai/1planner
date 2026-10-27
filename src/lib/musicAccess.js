@@ -109,6 +109,9 @@ export function isPlaylistVisibleForUser(playlist, profile) {
   if (!playlist || !profile) return false;
   if (playlist.isActive === false) return false;
   if (isAdminProfile(profile)) return true;
+  // A student's own playlist is theirs alone; the shared Playlists row stays the
+  // library an admin curated (sharing posts a snapshot to the community).
+  if (playlist.ownerProfileId) return playlist.ownerProfileId === profile.id;
   if (playlist.isSeasonExclusive) {
     return toIdList(profile.unlockedPlaylistIds).includes(playlist.id);
   }

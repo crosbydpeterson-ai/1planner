@@ -360,6 +360,7 @@ export function useMusicPlaybackEngine(profile) {
         loggedRef.current = null; // a replay counts as a new play
         musicPlayer.setStatus('ended');
         writeLog('complete', t);
+        musicPlayer.advance(); // Repeat loops here; otherwise the next song starts
         break;
       default:
         break;
@@ -552,6 +553,7 @@ export function useMusicPlaybackEngine(profile) {
       loggedRef.current = null; // a replay counts as a new play
       musicPlayer.setStatus('ended');
       writeLog('complete');
+      musicPlayer.advance(); // Repeat loops here; otherwise the next song starts
     },
     onTimeUpdate: (e) => {
       if (!uploadIsCurrent() || seekingRef.current) return;
@@ -576,6 +578,8 @@ export function useMusicPlaybackEngine(profile) {
     hasError,
     muted,
     setMuted,
+    repeat: state.repeat,
+    toggleRepeat: () => musicPlayer.setRepeat(!musicPlayer.getState().repeat),
     seeking,
     beginSeek,
     commitSeek,

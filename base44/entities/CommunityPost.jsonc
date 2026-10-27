@@ -23,7 +23,8 @@
       "enum": [
         "text",
         "poll",
-        "pet_concept"
+        "pet_concept",
+        "playlist"
       ],
       "default": "text",
       "description": "Type of post"
@@ -42,6 +43,10 @@
     "petConceptData": {
       "type": "object",
       "description": "Pet concept data: { name, description, imageUrl, rarity, theme }"
+    },
+    "playlistData": {
+      "type": "object",
+      "description": "A playlist a student shared: { name, description, ownerUsername, tracks }. The song list is a snapshot taken when it was shared, so the post keeps reading correctly; each viewer may only play the songs in their own collection."
     },
     "status": {
       "type": "string",
