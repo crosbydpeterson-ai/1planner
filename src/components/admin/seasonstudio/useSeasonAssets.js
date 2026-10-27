@@ -4,6 +4,13 @@ import { PETS } from '@/components/quest/PetCatalog';
 import { THEMES } from '@/components/quest/ThemeCatalog';
 import { buildAssetIndex } from '@/lib/seasonStudio';
 
+/** How the picker describes a song or playlist, including one switched off. */
+function mediaStateLabel(kind, item) {
+  if (item?.isSeasonExclusive) return `season exclusive ${kind}`;
+  if (item?.isActive === false) return `${kind} · hidden until awarded`;
+  return kind;
+}
+
 /**
  * Every asset a season reward can reference, in the exact ID format rewards
  * store. Pets and themes come from the built-in catalogs plus the custom
@@ -76,12 +83,22 @@ export default function useSeasonAssets({ customPets = [], customThemes = [] } =
       ...THEMES.map((theme) => ({ id: theme.id, name: theme.name, subtitle: 'built-in theme' })),
       ...(customThemes || []).map((theme) => ({ id: `custom_${theme.id}`, name: theme.name, subtitle: 'custom theme' })),
     ], createdAssets.themes);
-    const trackOptions = (tracks || [])
-      .filter((track) => track.isActive !== false)
-      .map((track) => ({ id: track.id, name: track.title, emoji: '🎵', subtitle: track.isSeasonExclusive ? 'season exclusive song' : 'song' }));
-    const playlistOptions = (playlists || [])
-      .filter((playlist) => playlist.isActive !== false)
-      .map((playlist) => ({ id: playlist.id, name: playlist.name, emoji: '🎶', subtitle: 'playlist' }));
+    // Songs and playlists are listed even when their Active switch is off: a
+    // season-exclusive song is deliberately kept off so it stays out of the public
+    // library, and a 1Pass song reward is exactly how it reaches a student — an
+    // awarded song plays even while it is switched off (see isPlayableTrack).
+    const trackOptions = (tracks || []).map((track) => ({
+      id: track.id,
+      name: track.title,
+      emoji: '🎵',
+      subtitle: mediaStateLabel('song', track),
+    }));
+    const playlistOptions = (playlists || []).map((playlist) => ({
+      id: playlist.id,
+      name: playlist.name,
+      emoji: '🎶',
+      subtitle: mediaStateLabel('playlist', playlist),
+    }));
     const foodOptions = (foods || []).map((food) => ({
       id: food.id,
       name: food.name,
