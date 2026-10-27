@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Lock, Youtube, Music2 } from 'lucide-react';
+import { Lock, Youtube, Music2 } from 'lucide-react';
 import { musicPlayer } from '@/lib/musicPlayerStore';
 import { useMusicPlayer } from '@/hooks/useMusicPlayer';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
@@ -8,7 +8,6 @@ export default function MusicTrackCard({ track }) {
   const { track: current, isPlaying } = useMusicPlayer();
   const isCurrent = current?.id === track.id;
   const coverSrc = useSignedUrl(track.coverImageUri);
-  const playing = isCurrent && isPlaying;
 
   const handlePlay = () => {
     if (isCurrent) {
@@ -28,15 +27,12 @@ export default function MusicTrackCard({ track }) {
             <Music2 className="w-12 h-12" />
           </div>
         )}
+        {/* The whole cover is the play/pause target — no icon sits on the art. */}
         <button
           onClick={handlePlay}
-          className={`absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors group ${playing ? 'bg-black/20' : ''}`}
-          aria-label={playing ? 'Pause' : 'Play'}
-        >
-          <span className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 ${playing ? 'bg-white text-indigo-600' : 'bg-white/90 text-indigo-600'}`}>
-            {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-          </span>
-        </button>
+          className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors"
+          aria-label={isCurrent && isPlaying ? 'Pause' : 'Play'}
+        />
         <div className="absolute top-2 right-2 flex gap-1">
           {track.sourceType === 'youtube' && (
             <span className="bg-red-500/90 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1">
