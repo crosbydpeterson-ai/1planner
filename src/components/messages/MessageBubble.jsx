@@ -29,6 +29,7 @@ export default function MessageBubble({ msg, isMe, state, onRetry }) {
             {msg.giftData.type === 'theme' && `🎨 Theme: ${msg.giftData.name}`}
             {msg.giftData.type === 'coins' && `🪙 ${msg.giftData.amount} Quest Coins`}
             {msg.giftData.type === 'xp' && `⚡ ${msg.giftData.amount} XP`}
+            {msg.giftData.type === 'song' && `🎵 Song: ${msg.giftData.name}`}
           </div>
         )}
         <div style={{ fontSize: '10px', marginTop: '2px', opacity: 0.65, color: isMe || isGift ? '#fff' : isSystem ? '#92400e' : '#64748b' }}>

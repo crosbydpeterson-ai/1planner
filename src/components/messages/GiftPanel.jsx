@@ -4,17 +4,20 @@ import { AlertCircle, Coins, Gift, Loader2, X, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sendThreadMessage } from '@/lib/dmMessages';
 import PlusGiftPicker from '@/components/rewards/PlusGiftPicker';
+import { describeTrack, loadGiftableTracks, songGrantPatch } from '@/lib/songGift';
 
 /**
  * Gift panel for a recipient/admin. The gift payload is stored on a message
  * record, and the panel only closes once the message is actually stored.
  */
 export default function GiftPanel({ thread, senderProfileId, senderName, canGrantPermanent, onGiftSent, onClose }) {
-  const [tab, setTab] = useState('quick'); // quick | pet | theme
+  const [tab, setTab] = useState('quick'); // quick | pet | theme | song | plus
   const [pets, setPets] = useState([]);
   const [themes, setThemes] = useState([]);
+  const [tracks, setTracks] = useState([]);
   const [petSearch, setPetSearch] = useState('');
   const [themeSearch, setThemeSearch] = useState('');
+  const [songSearch, setSongSearch] = useState('');
   const [amount, setAmount] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -24,6 +27,7 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
   useEffect(() => {
     base44.entities.CustomPet.list('-created_date', 200).then(setPets);
     base44.entities.CustomTheme.list('-created_date', 200).then(setThemes);
+    loadGiftableTracks().then(setTracks);
     base44.entities.UserProfile.filter({ id: thread.studentProfileId }).then((r) => setStudentProfile(r[0] || null));
   }, [thread.studentProfileId]);
 
@@ -45,6 +49,13 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
           const current = studentProfile.unlockedThemes || [];
           if (!current.includes(giftData.id)) {
             await base44.entities.UserProfile.update(studentProfile.id, { unlockedThemes: [...current, giftData.id] });
+          }
+        } else if (giftData.type === 'song') {
+          // The song is owned outright, so it plays even while the track is
+          // switched off for the general library.
+          const patch = songGrantPatch(studentProfile, giftData.id);
+          if (Object.keys(patch).length > 0) {
+            await base44.entities.UserProfile.update(studentProfile.id, patch);
           }
         } else if (giftData.type === 'coins') {
           await base44.entities.UserProfile.update(studentProfile.id, { questCoins: (studentProfile.questCoins || 0) + giftData.amount });
@@ -83,6 +94,7 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
 
   const filteredPets = pets.filter((p) => !petSearch || p.name?.toLowerCase().includes(petSearch.toLowerCase()));
   const filteredThemes = themes.filter((t) => !themeSearch || t.name?.toLowerCase().includes(themeSearch.toLowerCase()));
+  const filteredTracks = tracks.filter((t) => !songSearch || t.title?.toLowerCase().includes(songSearch.toLowerCase()));
 
   return (
     <div className="border-t border-white/20 p-3">
@@ -96,7 +108,7 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
       </div>
 
       <div className="flex gap-1 mb-3">
-        {[['quick', 'Quick'], ['pet', 'Pet'], ['theme', 'Theme'], ['plus', '1Pass Plus']].map(([k, l]) => (
+        {[['quick', 'Quick'], ['pet', 'Pet'], ['theme', 'Theme'], ['song', 'Song'], ['plus', '1Pass Plus']].map(([k, l]) => (
           <button
             key={k}
             onClick={() => setTab(k)}
@@ -198,6 +210,32 @@ export default function GiftPanel({ thread, senderProfileId, senderName, canGran
               </button>
             ))}
             {filteredThemes.length === 0 && <p className="text-slate-500 text-xs text-center py-3">No themes found</p>}
+          </div>
+        </div>
+      )}
+
+      {tab === 'song' && (
+        <div>
+          <input
+            value={songSearch}
+            onChange={(e) => setSongSearch(e.target.value)}
+            placeholder="Search songs…"
+            className="w-full bg-white/40 backdrop-blur-sm border border-white/40 text-slate-700 rounded-lg px-3 py-1.5 text-xs outline-none mb-2"
+          />
+          <div className="max-h-40 overflow-y-auto space-y-1">
+            {filteredTracks.map((track) => (
+              <button
+                key={track.id}
+                disabled={sending}
+                onClick={() => sendGift({ type: 'song', id: track.id, name: track.title }, `🎁 You've been gifted the song "${track.title}"!`)}
+                className="w-full flex items-center gap-2 px-2 py-1.5 bg-white/40 hover:bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg transition-colors text-left disabled:opacity-50"
+              >
+                <span className="text-lg">🎵</span>
+                <span className="text-slate-800 text-xs font-medium flex-1 truncate">{track.title}</span>
+                <span className="text-slate-500 text-[10px]">{describeTrack(track)}</span>
+              </button>
+            ))}
+            {filteredTracks.length === 0 && <p className="text-slate-500 text-xs text-center py-3">No songs found</p>}
           </div>
         </div>
       )}
