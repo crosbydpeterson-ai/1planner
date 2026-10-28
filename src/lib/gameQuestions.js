@@ -1,59 +1,88 @@
 import { base44 } from '@/api/base44Client';
 
-// Quiz questions for the Game Studio come from the app's own question_generator
-// agent, so no backend function is involved.
+// Quiz questions come from the app's own AI integration (InvokeLLM), so no
+// logged-in Base44 user and no backend function is involved.
 
-const POLL_INTERVAL_MS = 2500;
-const POLL_TIMEOUT_MS = 120000;
+const QUESTION_ITEM_SCHEMA = {
+  type: 'object',
+  properties: {
+    question: { type: 'string' },
+    options: { type: 'array', items: { type: 'string' } },
+    correctAnswer: { type: 'string' },
+  },
+  required: ['question', 'options', 'correctAnswer'],
+};
 
-/** Pulls the JSON question array out of the agent's reply. */
-export function parseQuestions(content) {
-  if (!content) return [];
-  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-  for (const raw of [fenced?.[1], content]) {
-    if (!raw) continue;
-    try {
-      const parsed = JSON.parse(raw.trim());
-      const list = Array.isArray(parsed) ? parsed : parsed?.questions;
-      const clean = (list || []).filter(
-        (q) => q?.question && Array.isArray(q?.options) && q?.correctAnswer
-      );
-      if (clean.length) return clean;
-    } catch (e) {
-      // Not valid JSON on its own — try the next candidate.
-    }
-  }
-  return [];
+const REPLY_SCHEMA = {
+  type: 'object',
+  properties: {
+    message: { type: 'string' },
+    questions: { type: 'array', items: QUESTION_ITEM_SCHEMA },
+  },
+  required: ['message', 'questions'],
+};
+
+const RULES = `RULES
+- Every question must have exactly 4 options.
+- correctAnswer must exactly match one of the options.
+- Questions must be clear and age-appropriate for elementary/middle school students.
+- Default to 10 questions unless the teacher asks for a different number.
+- "message" is one or two friendly sentences about what you made. Never repeat the questions themselves inside it.
+- Return the complete set of questions the teacher should have right now, in "questions".`;
+
+/** Drops malformed questions so a partial reply still yields usable ones. */
+export function cleanQuestions(list) {
+  return (Array.isArray(list) ? list : []).filter(
+    (q) => q?.question && Array.isArray(q?.options) && q.options.length >= 2 && q?.correctAnswer
+  );
 }
 
 /**
- * Asks the question_generator agent for quiz questions and waits for its reply.
- * Returns [] if nothing usable came back in time.
+ * Sends the conversation so far to the question generator.
+ * Returns { message, questions }.
+ */
+export async function askQuestionGenerator({ transcript = [], fileUrls = [] } = {}) {
+  const history = transcript
+    .filter((m) => m?.content)
+    .map((m) => `${m.role === 'assistant' ? 'You' : 'Teacher'}: ${m.content}`)
+    .join('\n\n');
+
+  const prompt = [
+    'You are the Question Generator for Quest Planner. You write multiple-choice quiz questions for educational mini-games.',
+    RULES,
+    `Conversation so far:\n${history}`,
+    "Reply to the teacher's latest message with a short message plus the full question set.",
+  ].join('\n\n');
+
+  const res = await base44.integrations.Core.InvokeLLM({
+    prompt,
+    response_json_schema: REPLY_SCHEMA,
+    ...(fileUrls.length ? { file_urls: fileUrls } : {}),
+  });
+
+  return {
+    message: typeof res?.message === 'string' ? res.message.trim() : '',
+    questions: cleanQuestions(res?.questions),
+  };
+}
+
+/** Builds the prompt used when questions are generated for a game round. */
+export function questionsRequest({ topic, assignment, questionCount = 10 }) {
+  if (assignment) {
+    return `Generate ${questionCount} quiz questions for the assignment titled "${assignment.title}"${
+      assignment.description ? `. Description: ${assignment.description}` : ''
+    }.`;
+  }
+  return `Generate ${questionCount} quiz questions about "${topic}".`;
+}
+
+/**
+ * Asks the generator for quiz questions. Returns [] if nothing usable came back.
  */
 export async function generateQuizQuestions({ topic, assignment, questionCount = 10 } = {}) {
-  const profileId = localStorage.getItem('quest_profile_id');
-  const label = assignment?.title || topic || 'Game questions';
-  const convo = await base44.agents.createConversation({
-    agent_name: 'question_generator',
-    metadata: { name: `Questions: ${label}`, description: 'Game Studio question generation', profileId },
+  const { questions } = await askQuestionGenerator({
+    transcript: [{ role: 'user', content: questionsRequest({ topic, assignment, questionCount }) }],
+    fileUrls: assignment?.pdfUrl ? [assignment.pdfUrl] : [],
   });
-  if (!convo?.id) throw new Error('The question generator is unavailable right now.');
-
-  const prompt = assignment
-    ? `Generate ${questionCount} quiz questions for the assignment titled "${assignment.title}"${assignment.description ? `. Description: ${assignment.description}` : ''}.`
-    : `Generate ${questionCount} quiz questions about "${topic}".`;
-
-  const message = { role: 'user', content: prompt };
-  if (assignment?.pdfUrl) message.file_urls = [assignment.pdfUrl];
-  await base44.agents.addMessage(convo, message);
-
-  const started = Date.now();
-  while (Date.now() - started < POLL_TIMEOUT_MS) {
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-    const fresh = await base44.agents.getConversation(convo.id);
-    const replies = (fresh?.messages || []).filter((m) => m.role === 'assistant' && m.content);
-    const questions = parseQuestions(replies[replies.length - 1]?.content);
-    if (questions.length) return questions;
-  }
-  return [];
+  return questions;
 }

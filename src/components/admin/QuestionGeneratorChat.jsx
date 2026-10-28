@@ -4,13 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Loader2, Bot, User, Plus, Save, CheckCircle2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import { askQuestionGenerator } from '@/lib/gameQuestions';
 
 export default function QuestionGeneratorChat({ adminProfile }) {
-  const [conversationId, setConversationId] = useState(null);
+  const [started, setStarted] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [assignments, setAssignments] = useState([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
@@ -25,103 +24,79 @@ export default function QuestionGeneratorChat({ adminProfile }) {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, thinking]);
 
-  // Stream the agent's replies as it writes them
-  useEffect(() => {
-    if (!conversationId) return;
-    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-      const msgs = data.messages || [];
-      setMessages(msgs);
-      const last = msgs[msgs.length - 1];
-      if (last?.role === 'assistant' && last?.content) setThinking(false);
-    });
-    return () => unsubscribe();
-  }, [conversationId]);
+  const selectedAssignment = assignments.find((a) => a.id === selectedAssignmentId);
 
-  const selectedAssignment = assignments.find(a => a.id === selectedAssignmentId);
-
-  const startNewSession = async () => {
-    setLoading(true);
-    setMessages([]);
-    setConversationId(null);
-    setSavedId(null);
+  const runTurn = async (transcript, fileUrls = []) => {
+    setThinking(true);
+    setError('');
     try {
-      setError('');
-      const profileId = adminProfile?.id || localStorage.getItem('quest_profile_id');
-      const username = adminProfile?.username || localStorage.getItem('quest_username') || 'admin';
-      const convo = await base44.agents.createConversation({
-        agent_name: 'question_generator',
-        metadata: {
-          name: 'Question Generator Session',
-          description: 'AI question generator session',
-          profileId,
-          username,
+      const { message, questions } = await askQuestionGenerator({ transcript, fileUrls });
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            message ||
+            (questions.length
+              ? `Here are ${questions.length} questions.`
+              : 'I could not build questions from that — try naming a topic.'),
+          questions,
         },
-      });
-      setConversationId(convo.id);
-      setMessages(convo.messages || []);
-
-      // If assignment selected, auto-prompt the agent
-      if (selectedAssignment) {
-        setTimeout(() => autoPromptAssignment(convo.id, selectedAssignment), 500);
-      }
+      ]);
     } catch (e) {
-      console.error('Failed to start session', e);
-      setError('Could not start a session. Please try again.');
+      console.error('Question generator error', e);
+      setError('The generator could not answer. Please try again.');
     }
-    setLoading(false);
+    setThinking(false);
   };
 
-  const autoPromptAssignment = async (convoId, assignment) => {
-    setThinking(true);
-    const prompt = `Generate 10 quiz questions for the assignment titled "${assignment.title}"${assignment.description ? `. Description: ${assignment.description}` : ''}${assignment.pdfUrl ? `. PDF: ${assignment.pdfUrl}` : ''}.`;
-    setMessages(prev => [...prev, { role: 'user', content: prompt }]);
-    try {
-      const convo = await base44.agents.getConversation(convoId);
-      await base44.agents.addMessage(convo, { role: 'user', content: prompt });
-    } catch (e) {
-      console.error('Auto-prompt error', e);
-      setThinking(false);
-      setError('Could not send that request. Please try again.');
+  const startNewSession = async () => {
+    setSavedId(null);
+    setError('');
+    setInput('');
+    setStarted(true);
+
+    if (!selectedAssignment) {
+      setMessages([
+        {
+          role: 'assistant',
+          content: 'Tell me a topic (or which assignment) and I will build the quiz questions.',
+        },
+      ]);
+      return;
     }
+
+    const prompt = `Generate 10 quiz questions for the assignment titled "${selectedAssignment.title}"${
+      selectedAssignment.description ? `. Description: ${selectedAssignment.description}` : ''
+    }.`;
+    const userMessage = { role: 'user', content: prompt };
+    setMessages([userMessage]);
+    await runTurn([userMessage], selectedAssignment.pdfUrl ? [selectedAssignment.pdfUrl] : []);
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || !conversationId || thinking) return;
     const content = input.trim();
+    if (!content || thinking) return;
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content }]);
-    setThinking(true);
     setSavedId(null);
-    try {
-      const convo = await base44.agents.getConversation(conversationId);
-      await base44.agents.addMessage(convo, { role: 'user', content });
-    } catch (e) {
-      console.error('Send error', e);
-      setThinking(false);
-      setError('That message did not send. Please try again.');
-    }
+    const userMessage = { role: 'user', content };
+    const transcript = [...messages, userMessage];
+    setMessages(transcript);
+    await runTurn(transcript);
   };
 
-  // Extract JSON questions array from the last assistant message
-  const extractQuestions = () => {
-    const assistantMsgs = messages.filter(m => m.role === 'assistant' && m.content);
-    if (!assistantMsgs.length) return null;
-    const last = assistantMsgs[assistantMsgs.length - 1].content;
-    const match = last.match(/```json\s*([\s\S]*?)```/);
-    if (!match) return null;
-    try {
-      const parsed = JSON.parse(match[1]);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    } catch {}
-    return null;
+  const latestQuestions = () => {
+    const last = [...messages].reverse().find((m) => m.role === 'assistant' && m.questions?.length);
+    return last?.questions || null;
   };
 
   const saveQuestions = async () => {
-    const questions = extractQuestions();
+    const questions = latestQuestions();
     if (!questions) return;
     setSaving(true);
+    setError('');
     try {
       const record = await base44.entities.GameQuestion.create({
         questions,
@@ -131,6 +106,7 @@ export default function QuestionGeneratorChat({ adminProfile }) {
       setSavedId(record.id);
     } catch (e) {
       console.error('Save error', e);
+      setError('Those questions could not be saved. Please try again.');
     }
     setSaving(false);
   };
@@ -142,9 +118,9 @@ export default function QuestionGeneratorChat({ adminProfile }) {
     }
   };
 
-  const parsedQuestions = extractQuestions();
+  const parsedQuestions = latestQuestions();
 
-  if (!conversationId) {
+  if (!started) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center space-y-5">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
@@ -162,13 +138,13 @@ export default function QuestionGeneratorChat({ adminProfile }) {
               <SelectValue placeholder="Pick an assignment (optional)" />
             </SelectTrigger>
             <SelectContent>
-              {assignments.map(a => (
+              {assignments.map((a) => (
                 <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={startNewSession} disabled={loading} className="w-full bg-gradient-to-r from-emerald-500 to-teal-600">
-            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+          <Button onClick={startNewSession} className="w-full bg-gradient-to-r from-emerald-500 to-teal-600">
+            <Plus className="w-4 h-4 mr-2" />
             {selectedAssignment ? `Generate for "${selectedAssignment.title}"` : 'Start New Session'}
           </Button>
         </div>
@@ -205,7 +181,12 @@ export default function QuestionGeneratorChat({ adminProfile }) {
               <CheckCircle2 className="w-4 h-4" /> Saved!
             </span>
           )}
-          <Button size="sm" variant="ghost" onClick={() => { setConversationId(null); setMessages([]); setSavedId(null); }} className="text-slate-400 hover:text-white">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => { setStarted(false); setMessages([]); setSavedId(null); setError(''); }}
+            className="text-slate-400 hover:text-white"
+          >
             <Plus className="w-4 h-4 mr-1" /> New
           </Button>
         </div>
@@ -213,22 +194,39 @@ export default function QuestionGeneratorChat({ adminProfile }) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1">
-        {messages.filter(m => m.role === 'user' || m.role === 'assistant').map((msg, i) => (
+        {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && (
               <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Bot className="w-4 h-4 text-emerald-400" />
               </div>
             )}
-            <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
+            <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm space-y-2 ${
               msg.role === 'user' ? 'bg-slate-600 text-white' : 'bg-slate-700 text-slate-100'
             }`}>
-              {msg.role === 'assistant' ? (
-                <ReactMarkdown className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                  {msg.content}
-                </ReactMarkdown>
-              ) : (
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+              <p className="whitespace-pre-wrap">{msg.content}</p>
+              {msg.questions?.length > 0 && (
+                <ol className="list-decimal list-inside space-y-1.5 border-t border-slate-600 pt-2 text-xs text-slate-200">
+                  {msg.questions.map((q, qi) => (
+                    <li key={qi}>
+                      <span className="font-medium">{q.question}</span>
+                      <div className="mt-0.5 flex flex-wrap gap-1">
+                        {q.options.map((opt, oi) => (
+                          <span
+                            key={oi}
+                            className={`px-1.5 py-0.5 rounded ${
+                              opt === q.correctAnswer
+                                ? 'bg-emerald-500/25 text-emerald-300 font-semibold'
+                                : 'bg-slate-600/60 text-slate-300'
+                            }`}
+                          >
+                            {opt}
+                          </span>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               )}
             </div>
             {msg.role === 'user' && (
