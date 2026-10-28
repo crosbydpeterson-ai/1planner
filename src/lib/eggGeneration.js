@@ -126,3 +126,74 @@ export async function createPetAndTheme(concept, opts = {}) {
     themeId: `custom_${theme.id}`
   };
 }
+
+/**
+ * Runs a Magic Egg batch in the browser: concepts -> images -> saved pets,
+ * writing progress back to the EggGenerationJob record as it goes.
+ * `job.concepts` may already hold the list; otherwise each one is generated.
+ */
+export async function runEggGenerationJob(job, opts = {}) {
+  const { createdBy = 'admin', createdByProfileId } = opts;
+  const totalCount = job.concepts?.length || job.totalCount || 1;
+  const createdPetIds = [];
+  const createdThemeIds = [];
+
+  try {
+    await base44.entities.EggGenerationJob.update(job.id, {
+      status: 'processing',
+      currentStep: `Generating concept 1 of ${totalCount}...`,
+      completedCount: 0,
+      error: ''
+    });
+
+    for (let i = 0; i < totalCount; i++) {
+      let concept = job.concepts?.[i];
+
+      if (!concept) {
+        await base44.entities.EggGenerationJob.update(job.id, {
+          currentStep: `Generating concept ${i + 1} of ${totalCount}...`
+        });
+        const variation = totalCount > 1
+          ? ` This is variation ${i + 1} of ${totalCount} — make it clearly different from the others.`
+          : '';
+        concept = await generatePetConcept(`${job.idea}.${variation}`);
+      }
+
+      await base44.entities.EggGenerationJob.update(job.id, {
+        currentStep: `Generating image ${i + 1} of ${totalCount} (${concept.name || 'creature'})...`
+      });
+
+      const imageUrl = await generatePetImage(concept);
+      const { pet, theme } = await createPetAndTheme(
+        { ...concept, imageUrl },
+        { createdBy, createdByProfileId, sourceTab: 'admin_eggs' }
+      );
+      createdPetIds.push(pet.id);
+      createdThemeIds.push(theme.id);
+
+      await base44.entities.EggGenerationJob.update(job.id, {
+        completedCount: i + 1,
+        createdPetIds,
+        createdThemeIds
+      });
+    }
+
+    await base44.entities.EggGenerationJob.update(job.id, {
+      status: 'completed',
+      completedCount: createdPetIds.length,
+      createdPetIds,
+      createdThemeIds,
+      currentStep: `Done! Created ${createdPetIds.length} creature${createdPetIds.length === 1 ? '' : 's'}.`
+    });
+    opts.onComplete?.();
+    return { createdPetIds, createdThemeIds };
+  } catch (e) {
+    console.error('Egg generation job failed:', e);
+    await base44.entities.EggGenerationJob.update(job.id, {
+      status: 'failed',
+      currentStep: `Failed: ${e.message || 'Unknown error'}`,
+      error: e.message || 'Unknown error'
+    }).catch(() => {});
+    return { createdPetIds, createdThemeIds };
+  }
+}
