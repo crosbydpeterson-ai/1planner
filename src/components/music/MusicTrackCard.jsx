@@ -30,7 +30,8 @@ export default function MusicTrackCard({ track }) {
         {/* The whole cover is the play/pause target — no icon sits on the art. */}
         <button
           onClick={handlePlay}
-          className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors"
+          type="button"
+          className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors touch-manipulation"
           aria-label={isCurrent && isPlaying ? 'Pause' : 'Play'}
         />
         <div className="absolute top-2 right-2 flex gap-1">

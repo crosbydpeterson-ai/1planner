@@ -25,6 +25,10 @@ import { loadYouTubeIframeApi } from '@/lib/youtubeIframe';
 const YOUTUBE_START_TIMEOUT = 8000; // no PLAYING by then → tell the student
 const UPLOAD_START_TIMEOUT = 12000;
 const YOUTUBE_SETTLE_MS = 1200; // ignore the previous video's pause/ended
+// A few silent samples. Playing this on the first real tap unlocks sound output
+// for the page on headset and tablet browsers, which otherwise refuse a play()
+// that happens after the signed-URL request instead of straight inside the tap.
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=';
 const YOUTUBE = { UNSTARTED: -1, ENDED: 0, PLAYING: 1, PAUSED: 2, BUFFERING: 3, CUED: 5 };
 
 export function useMusicPlaybackEngine(profile) {
@@ -496,6 +500,27 @@ export function useMusicPlaybackEngine(profile) {
     mutedRef.current = muted;
     applyMute();
   }, [muted, ytReady, track?.id]);
+
+  // Unlock sound on the first tap anywhere in the app. Headset and tablet
+  // browsers only allow audio that begins inside a gesture; the player instead
+  // starts it after the signed-URL request, so without this the Play button can
+  // look like it does nothing. Harmless once a real source has been loaded.
+  useEffect(() => {
+    const unlock = () => {
+      const audio = audioRef.current;
+      if (!audio || audio.src) return;
+      try {
+        audio.src = SILENT_WAV;
+        const attempt = audio.play();
+        if (attempt && typeof attempt.then === 'function') {
+          attempt.then(() => audio.pause()).catch(() => {});
+        }
+      } catch (e) { /* nothing to unlock */ }
+    };
+    const events = ['pointerdown', 'touchstart', 'click'];
+    events.forEach((ev) => document.addEventListener(ev, unlock, { capture: true, once: true }));
+    return () => events.forEach((ev) => document.removeEventListener(ev, unlock, true));
+  }, []);
 
   // A different student on the same device must never inherit playback.
   useEffect(() => {

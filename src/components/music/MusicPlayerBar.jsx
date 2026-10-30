@@ -26,7 +26,7 @@ export default function MusicPlayerBar({ profile, hideUI = false }) {
     <>
       {showBar ? (
         <div className="fixed bottom-16 left-0 right-0 z-40 px-3 pb-1 safe-area-pb pointer-events-none">
-          <div className="max-w-md mx-auto bg-white/95 backdrop-blur rounded-2xl shadow-lg border border-slate-200 pointer-events-auto">
+          <div className="max-w-md mx-auto bg-white/95 backdrop-blur rounded-2xl shadow-lg border border-slate-200 pointer-events-auto touch-manipulation">
             <div className="flex items-center gap-3 p-2">
               {coverSrc ? (
                 <img src={coverSrc} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
@@ -42,16 +42,17 @@ export default function MusicPlayerBar({ profile, hideUI = false }) {
               </div>
               <button
                 onClick={engine.toggle}
-                className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white hover:bg-indigo-700"
+                type="button"
+                className="w-11 h-11 rounded-full bg-indigo-600 flex items-center justify-center text-white hover:bg-indigo-700 touch-manipulation flex-shrink-0"
                 aria-label={toggleLabel}
                 title={toggleLabel}
               >
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : isPlaying && !hasError ? (
-                  <Pause className="w-4 h-4" />
+                  <Pause className="w-5 h-5" />
                 ) : (
-                  <Play className="w-4 h-4" />
+                  <Play className="w-5 h-5" />
                 )}
               </button>
               <button
@@ -92,7 +93,7 @@ export default function MusicPlayerBar({ profile, hideUI = false }) {
                   onMouseUp={(e) => engine.commitSeek(parseFloat(e.target.value))}
                   onTouchEnd={(e) => engine.commitSeek(parseFloat(e.target.value))}
                   onKeyUp={(e) => engine.commitSeek(parseFloat(e.target.value))}
-                  className="flex-1 h-1.5 accent-indigo-600 cursor-pointer"
+                  className="flex-1 h-2.5 accent-indigo-600 cursor-pointer touch-manipulation"
                   aria-label="Seek"
                 />
                 <span className="text-[10px] text-slate-400 tabular-nums w-8">{formatTime(dur)}</span>
@@ -108,9 +109,15 @@ export default function MusicPlayerBar({ profile, hideUI = false }) {
         </div>
       ) : null}
 
-      {/* Media elements stay mounted independently of the visible bar. */}
-      <audio {...engine.media.audioProps} className="hidden" />
-      <div {...engine.media.hostProps} className="hidden" aria-hidden="true" />
+      {/* Media elements stay mounted independently of the visible bar, and stay
+          rendered rather than display:none — headset browsers refuse to start
+          media that lives inside a hidden element. */}
+      <audio {...engine.media.audioProps} className="sr-only" />
+      <div
+        {...engine.media.hostProps}
+        className="fixed bottom-0 left-0 w-px h-px overflow-hidden opacity-0 pointer-events-none"
+        aria-hidden="true"
+      />
     </>
   );
 }
