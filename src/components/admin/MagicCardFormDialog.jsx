@@ -102,7 +102,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit magic card' : 'Add magic card'}</DialogTitle>
           <DialogDescription>
@@ -110,7 +110,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 min-h-0 overflow-y-auto overscroll-contain pr-1">
           {scanning ? (
             <div className="space-y-2">
               <MagicCardScanner
