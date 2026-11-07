@@ -3,9 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScanLine, Hash, X } from 'lucide-react';
 import MagicCardScanner from '@/components/auth/MagicCardScanner';
+import MagicAccountPicker from '@/components/admin/MagicAccountPicker';
 import {
   addCard, updateCard, listCards, isDuplicateNumber, normalizeCardNumber, hashCardPin,
 } from '@/lib/magicCards';
@@ -15,6 +15,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
   const [number, setNumber] = useState('');
   const [nickname, setNickname] = useState('');
   const [profileId, setProfileId] = useState('');
+  const [profileUsername, setProfileUsername] = useState('');
   const [pin, setPin] = useState('');
   const [removePin, setRemovePin] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -26,6 +27,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
     setNumber(card?.number || '');
     setNickname(card?.nickname || '');
     setProfileId(card?.profileId || '');
+    setProfileUsername(card?.profileUsername || '');
     setPin('');
     setRemovePin(false);
     setScanning(false);
@@ -58,7 +60,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
       number: cleanNumber,
       nickname: nickname.trim(),
       profileId,
-      profileUsername: profiles.find((p) => p.id === profileId)?.username || card?.profileUsername || '',
+      profileUsername: profiles.find((p) => p.id === profileId)?.username || profileUsername || card?.profileUsername || '',
     };
     if (removePin) payload.pinHash = '';
     else if (pin) payload.pinHash = hashCardPin(pin);
@@ -131,22 +133,16 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
 
           <div className="space-y-2">
             <Label className="text-slate-700">Opens account</Label>
-            <Select value={profileId} onValueChange={setProfileId}>
-              <SelectTrigger className="h-11 rounded-xl">
-                <SelectValue placeholder="Choose any account" />
-              </SelectTrigger>
-              <SelectContent>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.username || p.id}
-                    {(p.rank === 'admin' || p.rank === 'super_admin') ? ' · admin' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {profiles.length === 0 && (
-              <p className="text-[11px] text-amber-700">No accounts loaded yet.</p>
-            )}
+            <MagicAccountPicker
+              profiles={profiles}
+              value={profileId}
+              fallbackLabel={profileUsername}
+              onChange={(p) => {
+                setProfileId(p.id);
+                setProfileUsername(p.username || '');
+                setError('');
+              }}
+            />
           </div>
 
           <div className="space-y-2">
