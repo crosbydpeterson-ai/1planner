@@ -28,7 +28,7 @@ const THEME_SCHEMA = {
     },
     text: { type: 'string', description: 'hex text colour that stays readable on the artwork' },
     sticker: { type: 'string', description: 'one emoji that fits the theme' },
-    artPrompt: { type: 'string', description: 'one sentence describing background artwork, no text' },
+    artPrompt: { type: 'string', description: 'two sentences about a concrete scene with a physical focal object, no text' },
   },
   required: ['name', 'blurb', 'templateId', 'colors', 'text', 'sticker', 'artPrompt'],
 };
@@ -58,7 +58,8 @@ Invent ONE distinctive, evocative theme. Avoid clichés: no generic rainbow, no 
 - colors: a deliberate palette — primary, secondary, accent and a very dark ink. Do not use three unrelated brights: let the accent be the one loud colour against a moody pair, and keep the ink dark enough for the card edge. Vary hues between generations.
 - text: a hex that stays clearly readable over that palette.
 - sticker: one emoji that fits the scene.
-- artPrompt: two vivid sentences describing a wide card background — the main subject, its setting, where the light comes from, the atmosphere, and the medium (digital painting, 3D render or illustration). Name the real palette colours. No lettering, no logos, no people, no card frame.`;
+- artPrompt: two vivid sentences describing a real place, not a mood. Start with a PHYSICAL object you could touch (e.g. "a floating glass cathedral", "a brass diving bell half sunk in coral", "a frost-covered war horn on a stone altar"), then the environment around it, the light source, and the medium. Never describe mere energy, glow, shards of light, gradients or colour fields as the subject — abstract words alone produce flat art. Never mention lettering, logos, people or a card frame.
+Good example: "A vast ice cavern where a translucent sapphire spine erupts from a frozen lake, jagged crystal pillars catching pale blue light. Wide shot, digital painting, drifting frost."`;
 
 export default function CardThemeAI({ onSaved }) {
   const [idea, setIdea] = useState('');
@@ -79,7 +80,11 @@ export default function CardThemeAI({ onSaved }) {
       // The artwork is painted in the theme's own colours and lit like real
       // illustration, so a saved theme reads as one picture instead of a
       // gradient behind a label.
-      const artPrompt = `${theme.artPrompt} Palette: ${c.primary}, ${c.secondary} and ${c.accent} against a deep ${c.ink} base. Collectible trading card background artwork: wide landscape, cinematic lighting, deep atmospheric perspective, rich saturated detail, glowing highlights, soft vignette at the edges, clear breathing room in the lower third for the card name. No text, no lettering, no logos, no people, no card frame.`;
+      const artPrompt = `Detailed illustration for a fantasy trading card: ${theme.artPrompt}
+The scene fills the frame edge to edge as one place — a close foreground, a lit middle distance and a far horizon — ${direction}.
+Rich painted detail, dramatic key light, deep shadows, glowing highlights, believable textures in the stone, metal, water and glass.
+Colours: ${c.primary}, ${c.secondary} and ${c.accent} lit against deep ${c.ink} shadows.
+A vivid illustration of a real scene. Not an abstract gradient, not a plain colour field, not a texture swatch, not a glow alone. No text, no lettering, no logos, no people, no card frame.`;
       let backgroundUri = '';
       try {
         const art = await base44.integrations.Core.GenerateImage({ prompt: artPrompt });
