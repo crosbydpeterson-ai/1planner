@@ -1,0 +1,248 @@
+import React, { useEffect, useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { ScanLine, Hash, Keyboard, RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
+import MagicCardScanner from '@/components/auth/MagicCardScanner';
+import { resolveCard, cardPinMatches, normalizeCardNumber } from '@/lib/magicCards';
+
+export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
+  const [scanning, setScanning] = useState(true);
+  const [scanKey, setScanKey] = useState(0);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualNumber, setManualNumber] = useState('');
+  const [scanHint, setScanHint] = useState('');
+  const [card, setCard] = useState(null);
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setScanning(true);
+    setScanKey((k) => k + 1);
+    setManualMode(false);
+    setManualNumber('');
+    setScanHint('');
+    setCard(null);
+    setPin('');
+    setError('');
+    setBusy(false);
+  }, [open]);
+
+  const rescan = () => {
+    setError('');
+    setScanHint('');
+    setScanning(true);
+    setScanKey((k) => k + 1);
+  };
+
+  const openProfile = async (matchedCard) => {
+    setBusy(true);
+    setError('');
+    try {
+      const profiles = await base44.entities.UserProfile.filter({ id: matchedCard.profileId });
+      const profile = profiles[0];
+      if (!profile) {
+        setError('The linked test profile no longer exists. Update the card in Admin → Magic Login.');
+        setBusy(false);
+        return;
+      }
+      if (profile.rank === 'admin' || profile.rank === 'super_admin') {
+        setError('This card is linked to an admin profile. Magic Login only opens test profiles.');
+        setBusy(false);
+        return;
+      }
+      if (profile.isLocked) {
+        setError('The linked test profile is locked. Unlock it before using this card.');
+        setBusy(false);
+        return;
+      }
+      onUnlocked(profile);
+      onOpenChange(false);
+    } catch (e) {
+      console.error('Magic login failed:', e);
+      setError('Could not open the test profile. Please try again.');
+      setBusy(false);
+    }
+  };
+
+  const handleCardValue = (raw) => {
+    // A scan or typed number is consumed once; the camera stops either way.
+    setScanning(false);
+    const result = resolveCard(raw);
+    if (result.status === 'unknown') {
+      setError('Unrecognized card. Scan it again or type the number manually.');
+      return;
+    }
+    if (result.status === 'disabled') {
+      setError('This card is disabled. Ask an admin to enable it.');
+      return;
+    }
+    setError('');
+    if (result.status === 'pin_required') {
+      setCard(result.card);
+      setPin('');
+      return;
+    }
+    openProfile(result.card);
+  };
+
+  const submitPin = () => {
+    if (!/^\d+$/.test(pin)) {
+      setError('Enter the card PIN.');
+      return;
+    }
+    if (!cardPinMatches(card, pin)) {
+      setError('Incorrect PIN. Try again.');
+      return;
+    }
+    openProfile(card);
+  };
+
+  const submitManual = () => {
+    const number = normalizeCardNumber(manualNumber);
+    if (!number) {
+      setError('Enter the card number printed on the card.');
+      return;
+    }
+    handleCardValue(number);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ScanLine className="w-5 h-5 text-indigo-600" />
+            Magic Login
+            <Badge variant="outline" className="ml-1 text-[10px] font-medium text-amber-700 border-amber-300 bg-amber-50">
+              This browser only
+            </Badge>
+          </DialogTitle>
+          <DialogDescription>
+            {card
+              ? 'Enter this card’s PIN to continue.'
+              : 'Hold a magic card up to the camera, or type its number.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        {card ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-slate-700">Card PIN</Label>
+              <div className="relative">
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  type="password"
+                  inputMode="numeric"
+                  autoFocus
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  onKeyDown={(e) => e.key === 'Enter' && submitPin()}
+                  placeholder="••••"
+                  className="pl-9 h-12 rounded-xl text-center text-xl tracking-[0.4em] font-mono"
+                />
+              </div>
+              <p className="text-xs text-slate-500">
+                {card.nickname || 'Magic card'} → {card.profileUsername || 'test profile'}
+              </p>
+            </div>
+            {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="h-12 rounded-xl"
+                onClick={() => {
+                  setCard(null);
+                  setPin('');
+                  setError('');
+                  rescan();
+                }}
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
+              <Button
+                onClick={submitPin}
+                disabled={busy}
+                className="flex-1 h-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold"
+              >
+                {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Open test profile'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {scanning && !manualMode ? (
+              <>
+                <MagicCardScanner
+                  key={scanKey}
+                  onDetected={handleCardValue}
+                  onUnavailable={(message) => {
+                    setScanHint(message);
+                    setManualMode(true);
+                  }}
+                />
+                {!scanHint && (
+                  <p className="text-xs text-slate-500 text-center">
+                    Keep the card steady inside the frame. Each scan is used once.
+                  </p>
+                )}
+              </>
+            ) : (
+              !manualMode && (
+                <Button variant="outline" onClick={rescan} className="w-full h-12 rounded-xl">
+                  <RefreshCw className="w-4 h-4 mr-2" /> Scan again
+                </Button>
+              )
+            )}
+
+            {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>}
+
+            {manualMode && (
+              <div className="space-y-2">
+                {scanHint && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2">{scanHint}</p>}
+                <Label className="text-slate-700">Card number</Label>
+                <div className="relative">
+                  <Keyboard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    value={manualNumber}
+                    onChange={(e) => setManualNumber(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && submitManual()}
+                    placeholder="e.g. 0042 7781"
+                    inputMode="text"
+                    className="pl-9 h-12 rounded-xl font-mono tracking-wider"
+                  />
+                </div>
+                <Button
+                  onClick={submitManual}
+                  disabled={busy}
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold"
+                >
+                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Use this card number'}
+                </Button>
+              </div>
+            )}
+
+            {!manualMode && (
+              <Button
+                variant="ghost"
+                onClick={() => { setManualMode(true); setScanning(false); setError(''); }}
+                className="w-full text-slate-600"
+              >
+                <Keyboard className="w-4 h-4 mr-2" /> Enter card number
+              </Button>
+            )}
+
+            <p className="text-[11px] text-slate-400 text-center">
+              This browser only — cards and their PINs are saved in this browser.
+            </p>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

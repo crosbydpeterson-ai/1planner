@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sword, Shield, Sparkles, User, Hash, BookOpen, Calculator, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Sword, Shield, Sparkles, User, Hash, BookOpen, Calculator, ChevronRight, Eye, EyeOff, ScanLine } from 'lucide-react';
+import MagicLoginDialog from '@/components/auth/MagicLoginDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [referralCode, setReferralCode] = useState(null);
   const [rewardCode, setRewardCode] = useState(null);
+  const [magicOpen, setMagicOpen] = useState(false);
   const { teachers } = useTeachers();
   const { authChecked, isAuthenticated, setSession } = useAuth();
 
@@ -130,6 +132,16 @@ export default function Home() {
       setError('Login failed. Please try again.');
     }
     setLoading(false);
+  };
+
+  // Magic Login: a scanned card opens its linked test profile (no admin access).
+  const handleMagicUnlocked = (profile) => {
+    localStorage.setItem('quest_user_id', profile.userId);
+    localStorage.setItem('quest_profile_id', profile.id);
+    localStorage.setItem('quest_username', profile.username);
+    onProfileSwitch();
+    setSession(profile);
+    navigate(createPageUrl('Dashboard'));
   };
 
   const handleSignup = async () => {
@@ -489,6 +501,26 @@ export default function Home() {
                   </>
                 }
               </Button>
+
+              {/* Experimental: arcade card login, kept separate from sign-in */}
+              {mode === 'login' &&
+              <div className="pt-1">
+                <div className="flex items-center gap-3 py-2">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-[11px] uppercase tracking-wider text-slate-400">experimental</span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMagicOpen(true)}
+                  className="w-full h-12 rounded-xl border-dashed border-slate-300 text-slate-600">
+                  <ScanLine className="w-5 h-5 mr-2" />
+                  Scan Magic Card
+                </Button>
+                <p className="text-[11px] text-slate-400 text-center mt-2">This browser only.</p>
+              </div>
+              }
             </motion.div>
           </AnimatePresence>
         </div>
@@ -498,6 +530,11 @@ export default function Home() {
           <Sparkles className="w-4 h-4 inline mr-1" />
           Earn XP, unlock pets & themes, compete on the leaderboard!
         </div>
+
+        <MagicLoginDialog
+          open={magicOpen}
+          onOpenChange={setMagicOpen}
+          onUnlocked={handleMagicUnlocked} />
       </motion.div>
     </div>);
 
