@@ -7,9 +7,13 @@ import { playScanSound, primeScanAudio } from '@/lib/scanSound';
 // Chrome) the frames are decoded in JavaScript, so scanning works in any
 // browser. Only a blocked/absent camera falls back to typing the number.
 const FORMATS = [
-  'qr_code', 'code_128', 'code_39', 'code_93', 'codabar', 'itf',
-  'ean_13', 'ean_8', 'upc_a', 'upc_e', 'data_matrix', 'pdf417',
+  'qr_code', 'code_39', 'code_128',
 ];
+
+// The decoder is large; start downloading it as soon as a screen that offers
+// scanning loads, so the first scan is not held up by the download.
+const zxingPromise = import('@zxing/browser');
+
 
 export default function MagicCardScanner({ onDetected, onUnavailable }) {
   const videoRef = useRef(null);
@@ -50,7 +54,7 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
       stop();
       setStatus('detected');
       // Let the success flash land before handing the card over.
-      successTimer = setTimeout(() => onDetected?.(String(value)), 550);
+      successTimer = setTimeout(() => onDetected?.(String(value)), 400);
     };
 
     // A device that refuses the rear-camera hint still has a usable camera, so
@@ -101,7 +105,14 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
         if (Detector) {
           let detector;
           try {
-            detector = new Detector({ formats: FORMATS });
+            // Only ask for the formats the cards use: fewer formats is read
+            // noticeably faster. Anything the device cannot read is dropped.
+            const supported =
+              typeof Detector.getSupportedFormats === 'function'
+                ? await Detector.getSupportedFormats().catch(() => null)
+                : null;
+            const usable = supported?.length ? FORMATS.filter((f) => supported.includes(f)) : FORMATS;
+            detector = new Detector(usable.length ? { formats: usable } : undefined);
           } catch {
             detector = new Detector();
           }
@@ -118,19 +129,22 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
             } catch {
               // Individual frames can fail while the camera warms up — keep looking.
             }
-            timer = setTimeout(loop, 350);
+            timer = setTimeout(loop, 150);
           };
           loop();
           return;
         }
 
         // No built-in detector: decode the video frames in JavaScript instead.
-        const { BrowserMultiFormatReader } = await import('@zxing/browser');
+        const { BrowserMultiFormatReader, BarcodeFormat } = await zxingPromise;
         if (cancelled) return;
         const reader = new BrowserMultiFormatReader(undefined, {
-          delayBetweenScanAttempts: 120,
-          delayBetweenScanSuccess: 400,
+          delayBetweenScanAttempts: 60,
+          delayBetweenScanSuccess: 250,
         });
+        // Restricting the formats keeps each frame cheap, which is what makes
+        // a card read in well under a second instead of several.
+        reader.possibleFormats = [BarcodeFormat.CODE_39, BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE];
         const started = await reader.decodeFromStream(stream, videoRef.current, (result) => {
           if (result) finish(result.getText());
         });
