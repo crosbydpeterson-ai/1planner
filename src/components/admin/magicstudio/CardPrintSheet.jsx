@@ -42,12 +42,29 @@ export default function CardPrintSheet({ open, onClose, card, design, name }) {
   const makePdf = async () => {
     setBuilding(true);
     try {
-      setPdfUrl(await buildCardPdfUrl(captureRef.current));
+      const url = await buildCardPdfUrl(captureRef.current);
+      setPdfUrl(url);
+      return url;
     } catch (e) {
       console.error('Could not build the card PDF', e);
+      return null;
     } finally {
       setBuilding(false);
     }
+  };
+
+  // Downloads both sides as one letter PDF: front on page 1, back on page 2,
+  // already at wallet-card size with the margins baked in, so the file prints
+  // the same on paper without any print dialog.
+  const download = async () => {
+    const url = pdfUrl || (await makePdf());
+    if (!url) return;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `magic-card-${card?.number || 'card'}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   return (
@@ -80,8 +97,8 @@ export default function CardPrintSheet({ open, onClose, card, design, name }) {
             {pdfUrl && (
               <div className="mt-4 rounded-lg border border-slate-300 bg-slate-50 p-3">
                 <p className="mb-2 text-[11px] leading-relaxed text-slate-700">
-                  This window does not allow the print dialog. Your card is ready as a PDF below — print it from the
-                  PDF viewer or download it, then send it to your printer.
+                  Both sides are on one letter PDF below, already at wallet-card size with 0.5 in margins. Print it from
+                  the PDF viewer, or download it and send it straight to your printer.
                 </p>
                 <iframe title="Magic Card PDF" src={pdfUrl} className="h-[360px] w-full rounded border bg-white" />
               </div>
@@ -100,15 +117,11 @@ export default function CardPrintSheet({ open, onClose, card, design, name }) {
               <Button variant="outline" onClick={onClose}>
                 Close
               </Button>
-              {pdfUrl && (
-                <Button variant="outline" asChild>
-                  <a href={pdfUrl} download={`magic-card-${card?.number || 'card'}.pdf`}>
-                    <Download className="w-4 h-4 mr-2" /> Download PDF
-                  </a>
-                </Button>
-              )}
+              <Button variant="outline" onClick={download} disabled={building}>
+                <Download className="w-4 h-4 mr-2" /> {building ? 'Preparing…' : 'Download PDF'}
+              </Button>
               <Button onClick={print} disabled={building} className="bg-indigo-600 hover:bg-indigo-700">
-                <Printer className="w-4 h-4 mr-2" /> {building ? 'Preparing…' : 'Print'}
+                <Printer className="w-4 h-4 mr-2" /> Print
               </Button>
             </div>
           </div>
