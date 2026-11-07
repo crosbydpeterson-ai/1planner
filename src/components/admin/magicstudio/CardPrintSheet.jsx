@@ -30,8 +30,13 @@ export default function CardPrintSheet({ open, onClose, card, design, name }) {
 
   return (
     <>
+      {/* The studio dialog switches pointer events off for the whole page while
+          it is open, so this window turns them back on for itself. */}
       {createPortal(
-        <div className="print-overlay fixed inset-0 z-[120] bg-slate-900/70 overflow-auto p-4">
+        <div
+          className="print-overlay fixed inset-0 z-[120] overflow-auto p-4"
+          style={{ pointerEvents: 'auto', background: 'rgba(15, 23, 42, 0.7)' }}
+        >
           <div className="mx-auto max-w-3xl rounded-xl bg-white p-5">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
