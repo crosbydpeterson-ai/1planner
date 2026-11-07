@@ -134,7 +134,7 @@ export default function Home() {
     setLoading(false);
   };
 
-  // Magic Login: a scanned card opens its linked test profile (no admin access).
+  // Magic Login: a scanned card opens whichever account the admin linked to it.
   const handleMagicUnlocked = (profile) => {
     localStorage.setItem('quest_user_id', profile.userId);
     localStorage.setItem('quest_profile_id', profile.id);

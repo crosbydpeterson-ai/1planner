@@ -47,17 +47,12 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
       const profiles = await base44.entities.UserProfile.filter({ id: matchedCard.profileId });
       const profile = profiles[0];
       if (!profile) {
-        setError('The linked test profile no longer exists. Update the card in Admin → Magic Login.');
-        setBusy(false);
-        return;
-      }
-      if (profile.rank === 'admin' || profile.rank === 'super_admin') {
-        setError('This card is linked to an admin profile. Magic Login only opens test profiles.');
+        setError('The linked account no longer exists. Update the card in Admin → Magic Login.');
         setBusy(false);
         return;
       }
       if (profile.isLocked) {
-        setError('The linked test profile is locked. Unlock it before using this card.');
+        setError('The linked account is locked. Unlock it before using this card.');
         setBusy(false);
         return;
       }
@@ -65,7 +60,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
       onOpenChange(false);
     } catch (e) {
       console.error('Magic login failed:', e);
-      setError('Could not open the test profile. Please try again.');
+      setError('Could not open the linked account. Please try again.');
       setBusy(false);
     }
   };
@@ -148,7 +143,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
                 />
               </div>
               <p className="text-xs text-slate-500">
-                {card.nickname || 'Magic card'} → {card.profileUsername || 'test profile'}
+                {card.nickname || 'Magic card'} → {card.profileUsername || 'linked account'}
               </p>
             </div>
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>}
@@ -170,7 +165,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
                 disabled={busy}
                 className="flex-1 h-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold"
               >
-                {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Open test profile'}
+                {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Open account'}
               </Button>
             </div>
           </div>

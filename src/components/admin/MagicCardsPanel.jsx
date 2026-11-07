@@ -1,15 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { ScanLine, Plus, Pencil, Hash, UserRoundPlus, Loader2, CreditCard } from 'lucide-react';
+import { ScanLine, Plus, Pencil, Hash, UserRoundPlus, Loader2, CreditCard, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { MAGIC_CARDS_UPDATED, listCards, updateCard } from '@/lib/magicCards';
 import MagicCardFormDialog from '@/components/admin/MagicCardFormDialog';
 import { useTeachers } from '@/hooks/useTeachers';
 
-const isTestProfile = (p) => p.rank !== 'admin' && p.rank !== 'super_admin';
+const isAdminProfile = (p) => p?.rank === 'admin' || p?.rank === 'super_admin';
 
 export default function MagicCardsPanel({ users = [] }) {
   const { teachers } = useTeachers();
@@ -18,6 +18,7 @@ export default function MagicCardsPanel({ users = [] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [creatingDemo, setCreatingDemo] = useState(false);
+  const attemptedLookups = useRef(new Set());
 
   const refresh = () => setCards(listCards());
 
@@ -32,13 +33,52 @@ export default function MagicCardsPanel({ users = [] }) {
     };
   }, []);
 
-  const profiles = useMemo(
-    () => [...users, ...extraProfiles].filter(isTestProfile),
-    [users, extraProfiles]
-  );
+  // Any account can be linked — admins included — so every profile is offered once.
+  const profiles = useMemo(() => {
+    const byId = new Map();
+    [...users, ...extraProfiles].forEach((p) => {
+      if (p?.id && !byId.has(p.id)) byId.set(p.id, p);
+    });
+    return [...byId.values()].sort((a, b) =>
+      (a.username || '').localeCompare(b.username || '')
+    );
+  }, [users, extraProfiles]);
+
+  const profileFor = (card) =>
+    profiles.find((p) => p.id === card.profileId) || null;
 
   const profileName = (card) =>
-    profiles.find((p) => p.id === card.profileId)?.username || card.profileUsername || 'missing profile';
+    profileFor(card)?.username || card.profileUsername || 'missing account';
+
+  // A card can point at an account that is missing from the loaded list; fetch it
+  // once so the row never claims the account is gone when it is not.
+  useEffect(() => {
+    const known = new Set(profiles.map((p) => p.id));
+    const missing = [...new Set(cards.map((c) => c.profileId))].filter(
+      (id) => id && !known.has(id) && !attemptedLookups.current.has(id)
+    );
+    if (missing.length === 0) return;
+    missing.forEach((id) => attemptedLookups.current.add(id));
+    let cancelled = false;
+    (async () => {
+      try {
+        const found = await Promise.all(
+          missing.map((id) =>
+            base44.entities.UserProfile.filter({ id })
+              .then((rows) => rows[0] || null)
+              .catch(() => null)
+          )
+        );
+        if (!cancelled) {
+          const resolved = found.filter(Boolean);
+          if (resolved.length) setExtraProfiles((prev) => [...prev, ...resolved]);
+        }
+      } catch (e) {
+        console.error('Failed to load linked accounts:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [cards, profiles]);
 
   const toggleCard = (card, enabled) => {
     updateCard(card.id, { enabled });
@@ -95,8 +135,8 @@ export default function MagicCardsPanel({ users = [] }) {
               </Badge>
             </h2>
             <p className="text-sm text-slate-400 mt-1">
-              A card with no PIN opens its test profile in one scan. Cards are stored in this browser only —
-              never in the database — and are separate from regular sign-in.
+              Link a card to any account — link admins too. A card with no PIN opens its account in one scan.
+              Cards are stored in this browser only — never in the database — and are separate from regular sign-in.
             </p>
           </div>
           <div className="flex gap-2">
@@ -137,7 +177,14 @@ export default function MagicCardsPanel({ users = [] }) {
                   )}
                 </div>
                 <p className="text-xs text-slate-400 font-mono tracking-wide mt-1">{card.number}</p>
-                <p className="text-xs text-slate-500 mt-0.5">Opens: {profileName(card)}</p>
+                <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                  Opens: {profileName(card)}
+                  {isAdminProfile(profileFor(card)) && (
+                    <Badge variant="outline" className="text-[10px] text-sky-300 border-sky-500/50 bg-sky-500/10">
+                      <Shield className="w-3 h-3 mr-1" /> Admin
+                    </Badge>
+                  )}
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <Switch checked={!!card.enabled} onCheckedChange={(v) => toggleCard(card, v)} />

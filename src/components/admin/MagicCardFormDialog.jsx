@@ -42,7 +42,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
       return;
     }
     if (!profileId) {
-      setError('Choose the test profile this card opens.');
+      setError('Choose the account this card opens.');
       return;
     }
     if (isDuplicateNumber(cleanNumber, card?.id)) {
@@ -130,19 +130,22 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-700">Opens test profile</Label>
+            <Label className="text-slate-700">Opens account</Label>
             <Select value={profileId} onValueChange={setProfileId}>
               <SelectTrigger className="h-11 rounded-xl">
-                <SelectValue placeholder="Choose a non-admin test profile" />
+                <SelectValue placeholder="Choose any account" />
               </SelectTrigger>
               <SelectContent>
                 {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.username}</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.username || p.id}
+                    {(p.rank === 'admin' || p.rank === 'super_admin') ? ' · admin' : ''}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {profiles.length === 0 && (
-              <p className="text-[11px] text-amber-700">Create a test profile first.</p>
+              <p className="text-[11px] text-amber-700">No accounts loaded yet.</p>
             )}
           </div>
 
