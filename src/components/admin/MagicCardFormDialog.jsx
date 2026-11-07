@@ -6,6 +6,10 @@ import { Label } from '@/components/ui/label';
 import { ScanLine, Hash, X } from 'lucide-react';
 import MagicCardScanner from '@/components/auth/MagicCardScanner';
 import MagicAccountPicker from '@/components/admin/MagicAccountPicker';
+import CardSoundPicker from '@/components/admin/CardSoundPicker';
+import {
+  playScanSound, playRejectSound, primeScanAudio, DEFAULT_SCAN_SOUND, DEFAULT_REJECT_SOUND,
+} from '@/lib/scanSound';
 import {
   addCard, updateCard, listCards, isDuplicateNumber, normalizeCardNumber, hashCardPin,
 } from '@/lib/magicCards';
@@ -18,6 +22,8 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
   const [profileUsername, setProfileUsername] = useState('');
   const [pin, setPin] = useState('');
   const [removePin, setRemovePin] = useState(false);
+  const [successSound, setSuccessSound] = useState(DEFAULT_SCAN_SOUND);
+  const [rejectSound, setRejectSound] = useState(DEFAULT_REJECT_SOUND);
   const [scanning, setScanning] = useState(false);
   const [scanHint, setScanHint] = useState('');
   const [error, setError] = useState('');
@@ -31,6 +37,8 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
     setProfileUsername(card?.profileUsername || '');
     setPin('');
     setRemovePin(false);
+    setSuccessSound(card?.successSound || DEFAULT_SCAN_SOUND);
+    setRejectSound(card?.rejectSound || DEFAULT_REJECT_SOUND);
     setScanning(false);
     setScanHint('');
     setError('');
@@ -67,6 +75,8 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
         nickname: nickname.trim(),
         profileId,
         profileUsername: profiles.find((p) => p.id === profileId)?.username || profileUsername || card?.profileUsername || '',
+        successSound,
+        rejectSound,
       };
       if (removePin) payload.pinHash = '';
       else if (pin) payload.pinHash = hashCardPin(pin);
@@ -99,6 +109,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
             <div className="space-y-2">
               <MagicCardScanner
                 onDetected={(value) => {
+                  playScanSound(successSound);
                   setScanning(false);
                   setNumber(normalizeCardNumber(value));
                   setError('');
@@ -113,7 +124,14 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
               </Button>
             </div>
           ) : (
-            <Button variant="outline" onClick={() => setScanning(true)} className="w-full h-10 rounded-xl border-dashed">
+            <Button
+              variant="outline"
+              onClick={() => {
+                primeScanAudio();
+                setScanning(true);
+              }}
+              className="w-full h-10 rounded-xl border-dashed"
+            >
               <ScanLine className="w-4 h-4 mr-2" /> Scan barcode or QR code
             </Button>
           )}
@@ -183,6 +201,19 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
               </div>
             )}
           </div>
+
+          <CardSoundPicker
+            successSound={successSound}
+            rejectSound={rejectSound}
+            onSuccess={(id) => {
+              setSuccessSound(id);
+              playScanSound(id);
+            }}
+            onReject={(id) => {
+              setRejectSound(id);
+              playRejectSound(id);
+            }}
+          />
 
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>}
         </div>

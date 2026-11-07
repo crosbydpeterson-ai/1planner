@@ -78,6 +78,8 @@ export const addCard = async (data) => {
     profileUsername: data.profileUsername || '',
     pinHash: data.pinHash || '',
     enabled: data.enabled !== false,
+    successSound: data.successSound || '',
+    rejectSound: data.rejectSound || '',
   });
   notify();
   return card;

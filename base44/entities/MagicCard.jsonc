@@ -31,6 +31,14 @@
       "default": true,
       "description": "Disabled cards are ignored at the login screen"
     },
+    "successSound": {
+      "type": "string",
+      "description": "Chime played when this card is recognised: chime, sparkle, coin, powerup or zen. Empty falls back to the default chime."
+    },
+    "rejectSound": {
+      "type": "string",
+      "description": "Sound played when this card is refused (disabled card or wrong PIN): buzz, thud or deny. Empty falls back to the default buzz."
+    },
     "design": {
       "type": "object",
       "description": "Magic Card Studio look only. Kept apart from the sign-in fields (number, PIN, linked profile, enabled), so changing the artwork never changes how the card logs in.",

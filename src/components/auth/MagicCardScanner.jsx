@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Check, Loader2 } from 'lucide-react';
-import { playScanSound, primeScanAudio } from '@/lib/scanSound';
+import { primeScanAudio } from '@/lib/scanSound';
 
 // Reads a barcode / QR code with the camera. Newer mobile browsers have a
 // built-in BarcodeDetector; everywhere else (Firefox, Safari, most desktop
@@ -49,8 +49,9 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
 
     const finish = (value) => {
       if (handledRef.current || !value) return;
-      handledRef.current = true; // one scan is handled once
-      playScanSound();
+      // One scan is handled once. The chime is played by the screen that knows
+      // this card, so each card keeps its own sound.
+      handledRef.current = true;
       stop();
       setStatus('detected');
       // Let the success flash land before handing the card over.

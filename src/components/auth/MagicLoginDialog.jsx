@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScanLine, Hash, Keyboard, Camera, RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
 import MagicCardScanner from '@/components/auth/MagicCardScanner';
 import { resolveCard, cardPinMatches, normalizeCardNumber } from '@/lib/magicCards';
-import { primeScanAudio } from '@/lib/scanSound';
+import { primeScanAudio, playScanSound, playRejectSound } from '@/lib/scanSound';
 
 export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
   const [scanning, setScanning] = useState(true);
@@ -76,13 +76,17 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
     try {
       const result = await resolveCard(raw);
       if (result.status === 'unknown') {
+        playRejectSound();
         setError('Unrecognized card. Scan it again or type the number manually.');
         return;
       }
       if (result.status === 'disabled') {
+        playRejectSound(result.card?.rejectSound);
         setError('This card is disabled. Ask an admin to enable it.');
         return;
       }
+      // The card was read, so its own chime plays the moment it is recognised.
+      playScanSound(result.card?.successSound);
       if (result.status === 'pin_required') {
         setCard(result.card);
         setPin('');
@@ -103,9 +107,11 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
       return;
     }
     if (!cardPinMatches(card, pin)) {
+      playRejectSound(card?.rejectSound);
       setError('Incorrect PIN. Try again.');
       return;
     }
+    playScanSound(card?.successSound);
     openProfile(card);
   };
 

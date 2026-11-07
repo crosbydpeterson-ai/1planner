@@ -4,10 +4,8 @@ import { Printer, X, Info, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PrintCardSlot from '@/components/admin/magicstudio/PrintCardSlot';
 import PrintPagePreview from '@/components/admin/magicstudio/PrintPagePreview';
-import CardFront from '@/components/admin/magicstudio/CardFront';
-import CardBack from '@/components/admin/magicstudio/CardBack';
-import { CARD_W, CARD_H } from '@/lib/brandAssets';
-import { buildCardPdfUrl } from '@/lib/cardPdf';
+import CardCapture from '@/components/admin/magicstudio/CardCapture';
+import { buildCardPdfUrl, downloadCardPdf } from '@/lib/cardPdf';
 
 // Prints one card on two Letter pages: the front on page 1, the back on page 2
 // at the mirrored position, so a two-sided print (flip on long edge) lines the
@@ -17,6 +15,7 @@ export default function CardPrintSheet({ open, onClose, card, design, name }) {
   const captureRef = useRef({});
   const [pdfUrl, setPdfUrl] = useState(null);
   const [building, setBuilding] = useState(false);
+  const [pdfError, setPdfError] = useState('');
 
   if (!open || !card) return null;
 
@@ -57,14 +56,18 @@ export default function CardPrintSheet({ open, onClose, card, design, name }) {
   // already at wallet-card size with the margins baked in, so the file prints
   // the same on paper without any print dialog.
   const download = async () => {
-    const url = pdfUrl || (await makePdf());
-    if (!url) return;
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `magic-card-${card?.number || 'card'}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    setBuilding(true);
+    setPdfError('');
+    try {
+      const pdf = await downloadCardPdf(captureRef.current, `magic-card-${card?.number || 'card'}.pdf`);
+      // Same file shown on screen, in case the browser blocks the download.
+      setPdfUrl(String(pdf.output('bloburl')));
+    } catch (e) {
+      console.error('Card PDF download failed:', e);
+      setPdfError('The PDF could not be built. Close this window and try again.');
+    } finally {
+      setBuilding(false);
+    }
   };
 
   return (
@@ -113,6 +116,10 @@ export default function CardPrintSheet({ open, onClose, card, design, name }) {
               </div>
             </div>
 
+            {pdfError && (
+              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-700">{pdfError}</p>
+            )}
+
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Button variant="outline" onClick={onClose}>
                 Close
@@ -140,20 +147,10 @@ export default function CardPrintSheet({ open, onClose, card, design, name }) {
         document.body
       )}
 
-      {/* Full-size render kept off-screen so the PDF fallback can capture the
+      {/* Full-size front and back kept off-screen so the PDF can capture the
           exact card artwork without depending on the printer. */}
       {createPortal(
-        <div
-          aria-hidden
-          style={{ position: 'fixed', left: '-10000px', top: 0, width: CARD_W, pointerEvents: 'none' }}
-        >
-          <div ref={(el) => (captureRef.current.front = el)} style={{ width: CARD_W, height: CARD_H }}>
-            <CardFront name={name} design={design} />
-          </div>
-          <div ref={(el) => (captureRef.current.back = el)} style={{ width: CARD_W, height: CARD_H }}>
-            <CardBack number={card.number || ''} design={design} />
-          </div>
-        </div>,
+        <CardCapture refs={captureRef} card={card} design={design} name={name} />,
         document.body
       )}
     </>

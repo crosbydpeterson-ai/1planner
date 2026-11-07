@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -19,6 +18,8 @@ import CardColors from '@/components/admin/magicstudio/CardColors';
 import CardArtPicker from '@/components/admin/magicstudio/CardArtPicker';
 import CardArtGenerator from '@/components/admin/magicstudio/CardArtGenerator';
 import CardPrintSheet from '@/components/admin/magicstudio/CardPrintSheet';
+import CardCapture from '@/components/admin/magicstudio/CardCapture';
+import { downloadCardPdf } from '@/lib/cardPdf';
 
 const loadOwnedPets = async () => {
   const profileId = localStorage.getItem('quest_profile_id');
@@ -54,7 +55,7 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
-  const captureRef = useRef(null);
+  const captureRef = useRef({});
 
   useEffect(() => {
     if (!open) return;
@@ -88,18 +89,15 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
     persist(fresh, 'Design reset');
   };
 
+  // One PDF holding both sides of the card, already sized for Letter paper.
   const downloadArtwork = async () => {
-    if (!captureRef.current) return;
     setDownloading(true);
     try {
-      const canvas = await html2canvas(captureRef.current, { scale: 3, useCORS: true, backgroundColor: null });
-      const link = document.createElement('a');
-      link.download = `${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-card-front.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      const slug = name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+      await downloadCardPdf(captureRef.current, `${slug}-magic-card.pdf`);
     } catch (e) {
-      console.error('Artwork export failed:', e);
-      toast.error('Could not export the artwork');
+      console.error('Card PDF export failed:', e);
+      toast.error('Could not build the card PDF');
     } finally {
       setDownloading(false);
     }
@@ -148,12 +146,13 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
                 </Button>
                 <Button variant="outline" size="sm" onClick={downloadArtwork} disabled={downloading}>
                   {downloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Download className="w-4 h-4 mr-1" />}
-                  Download Artwork
+                  Download Card PDF
                 </Button>
               </div>
 
               <p className="text-[11px] text-slate-500">
-                Printing keeps the scannable back on its own white plate; downloads give you the front only, for sharing.
+                The download is one Letter PDF with both sides — the front on page 1 and the scannable back on page 2 —
+                so it prints at wallet-card size even when the print dialog is blocked.
               </p>
 
               {card && sanitizeCode39(card.number) !== String(card.number).toUpperCase() && (
@@ -219,12 +218,8 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
         </DialogContent>
       </Dialog>
 
-      {/* Offscreen full-size front, used for the artwork download */}
-      <div style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }} aria-hidden>
-        <div ref={captureRef}>
-          <CardFront name={name} design={design} scale={1} />
-        </div>
-      </div>
+      {/* Offscreen full-size front and back, used for the PDF download */}
+      <CardCapture refs={captureRef} card={card} design={design} name={name} />
 
       <CardPrintSheet
         open={printOpen}
