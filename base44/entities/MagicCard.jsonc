@@ -84,6 +84,14 @@
           "type": "string",
           "description": "Overrides the template's default text colour. Empty falls back to the template."
         },
+        "backTextColor": {
+          "type": "string",
+          "description": "Text colour printed on the card back (number and labels). Empty keeps the theme's text colour."
+        },
+        "barcodeColor": {
+          "type": "string",
+          "description": "Bar colour of the card back's Code 39 barcode, printed on a white plate. Empty uses near-black."
+        },
         "backgroundUri": {
           "type": "string",
           "description": "URL of the AI-generated (or other) background artwork. Card numbers and PINs are never sent anywhere."

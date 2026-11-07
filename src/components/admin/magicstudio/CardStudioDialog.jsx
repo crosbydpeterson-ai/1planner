@@ -9,13 +9,14 @@ import { Printer, Download, RotateCcw, Save, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { updateCard } from '@/lib/magicCards';
 import { PETS } from '@/components/quest/PetCatalog';
-import { normalizeDesign, blankDesign, themeToDesign } from '@/lib/cardDesigns';
+import { normalizeDesign, blankDesign, themeToDesign, getTemplate } from '@/lib/cardDesigns';
 import { listCardThemes, deleteCardTheme } from '@/lib/cardThemes';
 import { sanitizeCode39 } from '@/lib/code39';
 import CardFront from '@/components/admin/magicstudio/CardFront';
 import CardBack from '@/components/admin/magicstudio/CardBack';
 import TemplateGrid from '@/components/admin/magicstudio/TemplateGrid';
 import CardColors from '@/components/admin/magicstudio/CardColors';
+import BackColors from '@/components/admin/magicstudio/BackColors';
 import CardArtPicker from '@/components/admin/magicstudio/CardArtPicker';
 import CardArtGenerator from '@/components/admin/magicstudio/CardArtGenerator';
 import CardPrintSheet from '@/components/admin/magicstudio/CardPrintSheet';
@@ -207,15 +208,32 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
                       themeName: '',
                       colors: { ...template.colors },
                       textColor: '',
+                      backTextColor: '',
                     }))
                   }
-                  onPickTheme={(theme) => setDesign((d) => ({ ...d, ...themeToDesign(theme) }))}
+                  onPickTheme={(theme) =>
+                    setDesign((d) => ({ ...d, ...themeToDesign(theme), backTextColor: '' }))
+                  }
                 />
               </div>
 
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Colors</p>
                 <CardColors colors={design.colors} onChange={(colors) => setDesign({ ...design, colors })} />
+              </div>
+
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+                  Back readability
+                </p>
+                <BackColors
+                  design={design}
+                  textFallback={design.textColor || getTemplate(design.templateId).text}
+                  onChange={setDesign}
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  The barcode always prints on a white plate, so any bar colour you pick stays scannable.
+                </p>
               </div>
 
               <CardArtPicker design={design} pets={pets} onChange={setDesign} />

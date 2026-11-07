@@ -114,6 +114,8 @@ export const DEFAULT_DESIGN = {
   themeName: '',
   colors: { ...CARD_TEMPLATES[0].colors },
   textColor: '',
+  backTextColor: '',
+  barcodeColor: '',
   backgroundUri: '',
   sticker: '🎮',
   petId: '',
@@ -130,6 +132,8 @@ export const normalizeDesign = (design) => {
     templateId: template.id,
     colors: { ...template.colors, ...(design?.colors || {}) },
     textColor: design?.textColor || '',
+    backTextColor: design?.backTextColor || '',
+    barcodeColor: design?.barcodeColor || '',
   };
 };
 
