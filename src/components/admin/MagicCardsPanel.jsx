@@ -3,10 +3,11 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { ScanLine, Plus, Pencil, Hash, UserRoundPlus, Loader2, CreditCard, Shield } from 'lucide-react';
+import { ScanLine, Plus, Pencil, Hash, UserRoundPlus, Loader2, CreditCard, Shield, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import { MAGIC_CARDS_UPDATED, listCards, updateCard } from '@/lib/magicCards';
 import MagicCardFormDialog from '@/components/admin/MagicCardFormDialog';
+import CardStudioDialog from '@/components/admin/magicstudio/CardStudioDialog';
 import { useTeachers } from '@/hooks/useTeachers';
 
 const isAdminProfile = (p) => p?.rank === 'admin' || p?.rank === 'super_admin';
@@ -17,6 +18,7 @@ export default function MagicCardsPanel({ users = [] }) {
   const [extraProfiles, setExtraProfiles] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [studioCard, setStudioCard] = useState(null);
   const [creatingDemo, setCreatingDemo] = useState(false);
   const attemptedLookups = useRef(new Set());
 
@@ -198,6 +200,14 @@ export default function MagicCardsPanel({ users = [] }) {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => setStudioCard(card)}
+                  className="border-indigo-500/60 text-indigo-200 hover:bg-indigo-500/15"
+                >
+                  <Palette className="w-4 h-4 mr-1" /> Customize Card
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => { setEditing(card); setDialogOpen(true); }}
                   className="border-slate-600 text-slate-300 hover:bg-slate-700"
                 >
@@ -215,6 +225,13 @@ export default function MagicCardsPanel({ users = [] }) {
         card={editing}
         profiles={profiles}
         onSaved={() => { refresh(); toast.success(editing ? 'Card updated' : 'Card added'); }}
+      />
+
+      <CardStudioDialog
+        open={!!studioCard}
+        onOpenChange={(v) => { if (!v) setStudioCard(null); }}
+        card={studioCard}
+        onSaved={refresh}
       />
     </div>
   );

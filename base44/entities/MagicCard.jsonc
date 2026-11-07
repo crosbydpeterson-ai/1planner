@@ -30,6 +30,55 @@
       "type": "boolean",
       "default": true,
       "description": "Disabled cards are ignored at the login screen"
+    },
+    "design": {
+      "type": "object",
+      "description": "Magic Card Studio look only. Kept apart from the sign-in fields (number, PIN, linked profile, enabled), so changing the artwork never changes how the card logs in.",
+      "properties": {
+        "templateId": {
+          "type": "string",
+          "description": "neon_arcade | pet_passport | holo_collector | midnight_quest"
+        },
+        "colors": {
+          "type": "object",
+          "properties": {
+            "primary": {
+              "type": "string"
+            },
+            "secondary": {
+              "type": "string"
+            },
+            "accent": {
+              "type": "string"
+            },
+            "ink": {
+              "type": "string"
+            }
+          }
+        },
+        "backgroundUri": {
+          "type": "string",
+          "description": "URL of the AI-generated (or other) background artwork. Card numbers and PINs are never sent anywhere."
+        },
+        "sticker": {
+          "type": "string",
+          "description": "Emoji sticker printed on the front"
+        },
+        "petId": {
+          "type": "string",
+          "description": "Owned pet shown on the front (display only)"
+        },
+        "petEmoji": {
+          "type": "string"
+        },
+        "petImageUrl": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Name printed on the card front"
+        }
+      }
     }
   },
   "required": [

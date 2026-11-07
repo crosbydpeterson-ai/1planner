@@ -86,3 +86,47 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Magic Card Studio: only the card sheet is printed. */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-overlay {
+    position: static !important;
+    background: #fff !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  [data-print-sheet],
+  [data-print-sheet] * {
+    visibility: visible !important;
+  }
+
+  [data-print-sheet] {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  @page {
+    margin: 0.5in;
+  }
+}
