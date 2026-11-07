@@ -33,12 +33,32 @@ const THEME_SCHEMA = {
   required: ['name', 'blurb', 'templateId', 'colors', 'text', 'sticker', 'artPrompt'],
 };
 
-const AI_PROMPT = (idea) => `You design collectible trading card themes for a kids' learning app.
-Create one original theme inspired by: "${idea}".
-Pick the base card look from the allowed list that best carries the idea.
-Choose a bold, appealing palette: a main colour, a second colour, an accent, and a very dark ink colour.
-The text colour must contrast strongly against those colours so a card is always readable.
-The art prompt should describe a beautiful wide card background: scene, colours, mood, no lettering.`;
+// Each generation is nudged down a different art direction, so repeated ideas do
+// not turn into the same picture.
+const ART_DIRECTIONS = [
+  'one huge glowing artifact at the centre, everything else falling away into darkness',
+  'layered depth: dark foreground silhouettes, a lit scene in the middle, a vast sky behind',
+  'storm-lit sky with strong light shafts cutting through heavy clouds',
+  'hand-painted storybook illustration with soft ink edges and visible brushwork',
+  'polished 3D render with rim light, glassy refraction and floating debris',
+  'carved ancient stone, glowing runes and slow drifting dust',
+  'bioluminescent night scene with particles rising through still air',
+  'paper-cut layered collage with crisp shadows and flat saturated shapes',
+];
+
+const AI_PROMPT = (idea, direction) => `You design collectible trading card themes for a kids' learning app — the kind of art a kid would trade for.
+
+Theme idea: "${idea}".
+Art direction to follow: ${direction}.
+
+Invent ONE distinctive, evocative theme. Avoid clichés: no generic rainbow, no plain pile of gold coins, no flat gradient.
+- name: two or three words that sound like a legendary card, e.g. "Cinder Bloom", "Hollow Tide", "Saltlight Vault".
+- blurb: max six words, concrete and sensory ("molten veins under black glass").
+- templateId: the base card look whose mood matches best.
+- colors: a deliberate palette — primary, secondary, accent and a very dark ink. Do not use three unrelated brights: let the accent be the one loud colour against a moody pair, and keep the ink dark enough for the card edge. Vary hues between generations.
+- text: a hex that stays clearly readable over that palette.
+- sticker: one emoji that fits the scene.
+- artPrompt: two vivid sentences describing a wide card background — the main subject, its setting, where the light comes from, the atmosphere, and the medium (digital painting, 3D render or illustration). Name the real palette colours. No lettering, no logos, no people, no card frame.`;
 
 export default function CardThemeAI({ onSaved }) {
   const [idea, setIdea] = useState('');
@@ -50,15 +70,19 @@ export default function CardThemeAI({ onSaved }) {
     setBusy(true);
     setDraft(null);
     try {
+      const direction = ART_DIRECTIONS[Math.floor(Math.random() * ART_DIRECTIONS.length)];
       const theme = await base44.integrations.Core.InvokeLLM({
-        prompt: AI_PROMPT(idea.trim() || 'something surprising and fun'),
+        prompt: AI_PROMPT(idea.trim() || 'something surprising and fun', direction),
         response_json_schema: THEME_SCHEMA,
       });
+      const c = theme.colors || {};
+      // The artwork is painted in the theme's own colours and lit like real
+      // illustration, so a saved theme reads as one picture instead of a
+      // gradient behind a label.
+      const artPrompt = `${theme.artPrompt} Palette: ${c.primary}, ${c.secondary} and ${c.accent} against a deep ${c.ink} base. Collectible trading card background artwork: wide landscape, cinematic lighting, deep atmospheric perspective, rich saturated detail, glowing highlights, soft vignette at the edges, clear breathing room in the lower third for the card name. No text, no lettering, no logos, no people, no card frame.`;
       let backgroundUri = '';
       try {
-        const art = await base44.integrations.Core.GenerateImage({
-          prompt: `${theme.artPrompt} Wide landscape card background artwork, vibrant, no text, no letters, no logos, no people.`,
-        });
+        const art = await base44.integrations.Core.GenerateImage({ prompt: artPrompt });
         backgroundUri = art?.url || art?.data?.url || '';
       } catch (e) {
         console.error('Theme artwork generation failed:', e);
