@@ -22,6 +22,7 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
     let timer = null;
     let successTimer = null;
     let controls = null;
+    let guard = null;
     let cancelled = false;
 
     const stop = () => {
@@ -52,18 +53,40 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
       successTimer = setTimeout(() => onDetected?.(String(value)), 550);
     };
 
+    // A device that refuses the rear-camera hint still has a usable camera, so
+    // fall back to any camera instead of giving up. A blocked camera throws
+    // straight away and is reported as such.
+    const openCamera = async () => {
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+      } catch (e) {
+        if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') throw e;
+        return await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+    };
+
     (async () => {
       const Detector = typeof window !== 'undefined' ? window.BarcodeDetector : null;
+      // A camera that never answers must not leave the card stuck on
+      // "Opening camera…", so hand over to typing instead.
+      let live = false;
+      guard = setTimeout(() => {
+        if (cancelled || live || handledRef.current) return;
+        stop();
+        setStatus('error');
+        onUnavailable?.('The camera did not open. Type the card number instead.');
+      }, 8000);
       try {
         if (!navigator.mediaDevices?.getUserMedia) {
           throw Object.assign(new Error('no camera api'), { name: 'UnsupportedError' });
         }
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
-          audio: false,
-        });
+        stream = await openCamera();
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop());
+          clearTimeout(guard);
           return;
         }
         if (videoRef.current) {
@@ -71,6 +94,8 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
           await videoRef.current.play().catch(() => {});
         }
 
+        live = true;
+        clearTimeout(guard);
         setStatus('scanning');
 
         if (Detector) {
@@ -102,7 +127,10 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
         // No built-in detector: decode the video frames in JavaScript instead.
         const { BrowserMultiFormatReader } = await import('@zxing/browser');
         if (cancelled) return;
-        const reader = new BrowserMultiFormatReader(undefined, 200);
+        const reader = new BrowserMultiFormatReader(undefined, {
+          delayBetweenScanAttempts: 120,
+          delayBetweenScanSuccess: 400,
+        });
         const started = await reader.decodeFromStream(stream, videoRef.current, (result) => {
           if (result) finish(result.getText());
         });
@@ -116,6 +144,7 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
           controls = started;
         }
       } catch (e) {
+        clearTimeout(guard);
         if (cancelled) return;
         stop();
         setStatus('error');
@@ -129,6 +158,7 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
 
     return () => {
       cancelled = true;
+      if (guard) clearTimeout(guard);
       if (successTimer) clearTimeout(successTimer);
       stop();
     };
@@ -138,6 +168,7 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
     <div className="relative rounded-2xl overflow-hidden bg-slate-900 aspect-[4/3] flex items-center justify-center">
       <video
         ref={videoRef}
+        autoPlay
         muted
         playsInline
         className="absolute inset-0 w-full h-full object-cover"

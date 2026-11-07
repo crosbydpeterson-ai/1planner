@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ScanLine, Hash, Keyboard, RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
+import { ScanLine, Hash, Keyboard, Camera, RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
 import MagicCardScanner from '@/components/auth/MagicCardScanner';
 import { resolveCard, cardPinMatches, normalizeCardNumber } from '@/lib/magicCards';
 import { primeScanAudio } from '@/lib/scanSound';
@@ -38,6 +38,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
   const rescan = () => {
     setError('');
     setScanHint('');
+    setManualMode(false);
     setScanning(true);
     setScanKey((k) => k + 1);
   };
@@ -228,6 +229,9 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
                   className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold"
                 >
                   {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Use this card number'}
+                </Button>
+                <Button variant="ghost" onClick={rescan} className="w-full text-slate-600">
+                  <Camera className="w-4 h-4 mr-2" /> Scan with the camera instead
                 </Button>
               </div>
             )}
