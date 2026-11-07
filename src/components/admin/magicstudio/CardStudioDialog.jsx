@@ -209,6 +209,9 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
                       colors: { ...template.colors },
                       textColor: '',
                       backTextColor: '',
+                      // A generated background image covers the theme artwork,
+                      // so choosing a theme drops it and the theme shows through.
+                      backgroundUri: '',
                     }))
                   }
                   onPickTheme={(theme) =>
