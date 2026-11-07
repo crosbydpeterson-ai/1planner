@@ -1,0 +1,61 @@
+{
+  "name": "CardTheme",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Theme name shown in the Magic Card Studio picker"
+    },
+    "blurb": {
+      "type": "string",
+      "description": "One short line describing the look, e.g. 'Glowing lava cracks'"
+    },
+    "templateId": {
+      "type": "string",
+      "description": "Built-in card look the theme is drawn on: neon_arcade, pet_passport, holo_collector, midnight_quest, aurora_wave, sunset_synth, deep_sea, candy_pop, dragon_forge, galaxy_swirl, frost_crystal or comic_hero"
+    },
+    "colors": {
+      "type": "object",
+      "description": "Theme palette. Purely visual and never part of how a card signs in.",
+      "properties": {
+        "primary": {
+          "type": "string"
+        },
+        "secondary": {
+          "type": "string"
+        },
+        "accent": {
+          "type": "string"
+        },
+        "ink": {
+          "type": "string"
+        }
+      }
+    },
+    "text": {
+      "type": "string",
+      "description": "Text colour that stays readable on top of this theme's artwork"
+    },
+    "backgroundUri": {
+      "type": "string",
+      "description": "AI-generated artwork used as the theme's background. No card numbers or PINs are ever involved."
+    },
+    "sticker": {
+      "type": "string",
+      "description": "Emoji the theme suggests as a starting sticker"
+    },
+    "artPrompt": {
+      "type": "string",
+      "description": "The artwork description that produced backgroundUri, kept so the art can be regenerated"
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "Admin username who saved the theme"
+    }
+  },
+  "required": [
+    "name",
+    "templateId",
+    "colors"
+  ]
+}

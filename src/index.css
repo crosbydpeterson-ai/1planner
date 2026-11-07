@@ -143,3 +143,44 @@
     display: none !important;
   }
 }
+
+/* Magic card fun: a light sweep across the face and a slow foil shift on the
+   glowing themes. Screen only — print and the PDF export use the still card. */
+@keyframes card-shine-sweep {
+  0% {
+    transform: translateX(-160%) rotate(8deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  55% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(520%) rotate(8deg);
+    opacity: 0;
+  }
+}
+
+.card-shine {
+  animation: card-shine-sweep 4.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes card-holo-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.card-holo {
+  animation: card-holo-shift 8s ease-in-out infinite;
+  will-change: background-position;
+}

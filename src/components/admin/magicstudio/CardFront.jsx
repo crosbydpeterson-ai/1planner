@@ -4,15 +4,17 @@ import { getTemplate, alpha } from '@/lib/cardDesigns';
 import { APP_LOGO_URL, CARD_W, CARD_H } from '@/lib/brandAssets';
 
 // Wallet-size card front: logo, printed nickname and the chosen art. The number
-// and PIN never appear here — they belong to the back.
-export default function CardFront({ name, design, scale = 1 }) {
+// and PIN never appear here — they belong to the back. `shine` adds the animated
+// foil sweep, which only runs on screen (never in print or the PDF export).
+export default function CardFront({ name, design, scale = 1, shine = false }) {
   const template = getTemplate(design.templateId);
   const c = design.colors;
+  const textColor = design.textColor || template.text;
   const isPet = !!design.petId;
   const frame =
-    template.id === 'holo_collector'
+    template.frame === 'holo'
       ? 'rgba(255,255,255,0.85)'
-      : template.id === 'pet_passport'
+      : template.frame === 'soft'
       ? alpha(c.primary, 0.6)
       : alpha(c.primary, 0.85);
 
@@ -28,12 +30,41 @@ export default function CardFront({ name, design, scale = 1 }) {
           border: `3px solid ${frame}`,
           boxShadow: `inset 0 0 26px ${alpha(c.primary, 0.35)}`,
           fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-          color: template.text,
+          color: textColor,
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
         }}
       >
-        <CardTemplateArt templateId={template.id} colors={c} backgroundUri={design.backgroundUri} />
+        <CardTemplateArt templateId={template.art} colors={c} backgroundUri={design.backgroundUri} />
+
+        {shine && template.glow && (
+          <div
+            className="card-holo"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: 0.2,
+              backgroundImage: `linear-gradient(115deg, ${alpha(c.primary, 0.95)}, transparent 32%, ${alpha(c.secondary, 0.9)} 52%, transparent 72%, ${alpha(c.accent, 0.95)})`,
+              backgroundSize: '260% 260%',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+
+        {shine && (
+          <div
+            className="card-shine"
+            style={{
+              position: 'absolute',
+              top: '-40%',
+              bottom: '-40%',
+              left: 0,
+              width: '32%',
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
 
         <div style={{ position: 'absolute', inset: 0, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -57,7 +88,7 @@ export default function CardFront({ name, design, scale = 1 }) {
                 borderRadius: 999,
                 background: alpha(c.ink, 0.35),
                 border: `1px solid ${alpha(c.primary, 0.8)}`,
-                color: template.text,
+                color: textColor,
               }}
             >
               MAGIC CARD
@@ -66,14 +97,16 @@ export default function CardFront({ name, design, scale = 1 }) {
 
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', opacity: 0.75 }}>Card holder</div>
+              <div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', opacity: 0.75 }}>
+                {design.themeName || 'Card holder'}
+              </div>
               <div
                 style={{
                   fontSize: 30,
                   fontWeight: 900,
                   lineHeight: 1.1,
                   marginTop: 4,
-                  textShadow: template.id === 'midnight_quest' || template.id === 'neon_arcade' ? `0 0 14px ${alpha(c.primary, 0.9)}` : 'none',
+                  textShadow: template.glow ? `0 0 14px ${alpha(c.primary, 0.9)}` : 'none',
                   wordBreak: 'break-word',
                 }}
               >
@@ -88,7 +121,7 @@ export default function CardFront({ name, design, scale = 1 }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: alpha(c.ink, template.id === 'pet_passport' ? 0.06 : 0.32),
+                background: alpha(c.ink, template.stickerBg),
                 border: `2px solid ${alpha(c.accent, 0.85)}`,
                 overflow: 'hidden',
                 flexShrink: 0,

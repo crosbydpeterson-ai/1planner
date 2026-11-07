@@ -23,7 +23,9 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
   const [pin, setPin] = useState('');
   const [removePin, setRemovePin] = useState(false);
   const [successSound, setSuccessSound] = useState(DEFAULT_SCAN_SOUND);
+  const [successSoundUrl, setSuccessSoundUrl] = useState('');
   const [rejectSound, setRejectSound] = useState(DEFAULT_REJECT_SOUND);
+  const [rejectSoundUrl, setRejectSoundUrl] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanHint, setScanHint] = useState('');
   const [error, setError] = useState('');
@@ -38,7 +40,9 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
     setPin('');
     setRemovePin(false);
     setSuccessSound(card?.successSound || DEFAULT_SCAN_SOUND);
+    setSuccessSoundUrl(card?.successSoundUrl || '');
     setRejectSound(card?.rejectSound || DEFAULT_REJECT_SOUND);
+    setRejectSoundUrl(card?.rejectSoundUrl || '');
     setScanning(false);
     setScanHint('');
     setError('');
@@ -76,7 +80,9 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
         profileId,
         profileUsername: profiles.find((p) => p.id === profileId)?.username || profileUsername || card?.profileUsername || '',
         successSound,
+        successSoundUrl,
         rejectSound,
+        rejectSoundUrl,
       };
       if (removePin) payload.pinHash = '';
       else if (pin) payload.pinHash = hashCardPin(pin);
@@ -109,7 +115,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
             <div className="space-y-2">
               <MagicCardScanner
                 onDetected={(value) => {
-                  playScanSound(successSound);
+                  playScanSound(successSound, successSoundUrl);
                   setScanning(false);
                   setNumber(normalizeCardNumber(value));
                   setError('');
@@ -204,14 +210,18 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
 
           <CardSoundPicker
             successSound={successSound}
+            successSoundUrl={successSoundUrl}
             rejectSound={rejectSound}
-            onSuccess={(id) => {
-              setSuccessSound(id);
-              playScanSound(id);
-            }}
-            onReject={(id) => {
-              setRejectSound(id);
-              playRejectSound(id);
+            rejectSoundUrl={rejectSoundUrl}
+            onChange={(patch) => {
+              if ('successSound' in patch) {
+                setSuccessSound(patch.successSound || DEFAULT_SCAN_SOUND);
+                setSuccessSoundUrl(patch.successSoundUrl || '');
+              }
+              if ('rejectSound' in patch) {
+                setRejectSound(patch.rejectSound || DEFAULT_REJECT_SOUND);
+                setRejectSoundUrl(patch.rejectSoundUrl || '');
+              }
             }}
           />
 

@@ -9,7 +9,8 @@ import { Printer, Download, RotateCcw, Save, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { updateCard } from '@/lib/magicCards';
 import { PETS } from '@/components/quest/PetCatalog';
-import { normalizeDesign, blankDesign } from '@/lib/cardDesigns';
+import { normalizeDesign, blankDesign, themeToDesign } from '@/lib/cardDesigns';
+import { listCardThemes, deleteCardTheme } from '@/lib/cardThemes';
 import { sanitizeCode39 } from '@/lib/code39';
 import CardFront from '@/components/admin/magicstudio/CardFront';
 import CardBack from '@/components/admin/magicstudio/CardBack';
@@ -52,6 +53,7 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
   const [tab, setTab] = useState('front');
   const [design, setDesign] = useState(blankDesign());
   const [pets, setPets] = useState([]);
+  const [themes, setThemes] = useState([]);
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
@@ -63,7 +65,23 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
     setDesign(normalizeDesign(card?.design));
     setPrintOpen(false);
     loadOwnedPets().then(setPets).catch((e) => console.error('Failed to load pets:', e));
+    loadThemes();
   }, [open, card]);
+
+  const loadThemes = () =>
+    listCardThemes().then(setThemes).catch((e) => console.error('Failed to load card themes:', e));
+
+  const removeTheme = async (theme) => {
+    try {
+      await deleteCardTheme(theme.id);
+      setThemes((list) => list.filter((t) => t.id !== theme.id));
+      if (design.themeId === theme.id) setDesign((d) => ({ ...d, themeId: '', themeName: '' }));
+      toast.success(`“${theme.name}” removed from your themes`);
+    } catch (e) {
+      console.error('Failed to delete card theme:', e);
+      toast.error('Could not delete that theme');
+    }
+  };
 
   const name = design.displayName?.trim() || card?.nickname || 'Magic Card';
 
@@ -134,7 +152,7 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
 
               <div className="flex justify-center rounded-2xl bg-slate-100 p-4">
                 {tab === 'front' ? (
-                  <CardFront name={name} design={design} scale={0.62} />
+                  <CardFront name={name} design={design} scale={0.62} shine />
                 ) : (
                   <CardBack number={card?.number || ''} design={design} scale={0.62} />
                 )}
@@ -175,10 +193,23 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
               </div>
 
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Template</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Theme</p>
                 <TemplateGrid
-                  value={design.templateId}
-                  onChange={(template) => setDesign({ ...design, templateId: template.id, colors: { ...template.colors } })}
+                  design={design}
+                  themes={themes}
+                  onThemeSaved={loadThemes}
+                  onDeleteTheme={removeTheme}
+                  onPickBuiltIn={(template) =>
+                    setDesign((d) => ({
+                      ...d,
+                      templateId: template.id,
+                      themeId: '',
+                      themeName: '',
+                      colors: { ...template.colors },
+                      textColor: '',
+                    }))
+                  }
+                  onPickTheme={(theme) => setDesign((d) => ({ ...d, ...themeToDesign(theme) }))}
                 />
               </div>
 

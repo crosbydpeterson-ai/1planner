@@ -9,6 +9,7 @@ import { ScanLine, Hash, Keyboard, Camera, RefreshCw, Loader2, ArrowLeft } from 
 import MagicCardScanner from '@/components/auth/MagicCardScanner';
 import { resolveCard, cardPinMatches, normalizeCardNumber } from '@/lib/magicCards';
 import { primeScanAudio, playScanSound, playRejectSound } from '@/lib/scanSound';
+import confetti from 'canvas-confetti';
 
 export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
   const [scanning, setScanning] = useState(true);
@@ -59,6 +60,12 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
         setBusy(false);
         return;
       }
+      // A card just opened an account — a little celebration makes it feel magic.
+      try {
+        confetti({ particleCount: 90, spread: 80, startVelocity: 42, origin: { y: 0.65 } });
+      } catch {
+        // no canvas available
+      }
       onUnlocked(profile);
       onOpenChange(false);
     } catch (e) {
@@ -81,12 +88,12 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
         return;
       }
       if (result.status === 'disabled') {
-        playRejectSound(result.card?.rejectSound);
+        playRejectSound(result.card?.rejectSound, result.card?.rejectSoundUrl);
         setError('This card is disabled. Ask an admin to enable it.');
         return;
       }
       // The card was read, so its own chime plays the moment it is recognised.
-      playScanSound(result.card?.successSound);
+      playScanSound(result.card?.successSound, result.card?.successSoundUrl);
       if (result.status === 'pin_required') {
         setCard(result.card);
         setPin('');
@@ -107,11 +114,11 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
       return;
     }
     if (!cardPinMatches(card, pin)) {
-      playRejectSound(card?.rejectSound);
+      playRejectSound(card?.rejectSound, card?.rejectSoundUrl);
       setError('Incorrect PIN. Try again.');
       return;
     }
-    playScanSound(card?.successSound);
+    playScanSound(card?.successSound, card?.successSoundUrl);
     openProfile(card);
   };
 

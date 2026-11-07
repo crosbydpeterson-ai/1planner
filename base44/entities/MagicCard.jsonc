@@ -33,11 +33,19 @@
     },
     "successSound": {
       "type": "string",
-      "description": "Chime played when this card is recognised: chime, sparkle, coin, powerup or zen. Empty falls back to the default chime."
+      "description": "Chime played when this card is recognised. A built-in sound id, or 'custom' when successSoundUrl holds an uploaded sound."
+    },
+    "successSoundUrl": {
+      "type": "string",
+      "description": "Public URL of an uploaded chime. Played instead of the built-in sound when set."
     },
     "rejectSound": {
       "type": "string",
-      "description": "Sound played when this card is refused (disabled card or wrong PIN): buzz, thud or deny. Empty falls back to the default buzz."
+      "description": "Sound played when this card is refused (disabled card or wrong PIN). A built-in id, or 'custom' when rejectSoundUrl holds an uploaded sound."
+    },
+    "rejectSoundUrl": {
+      "type": "string",
+      "description": "Public URL of an uploaded refusal sound. Played instead of the built-in sound when set."
     },
     "design": {
       "type": "object",
@@ -45,7 +53,15 @@
       "properties": {
         "templateId": {
           "type": "string",
-          "description": "neon_arcade | pet_passport | holo_collector | midnight_quest"
+          "description": "grid | passport | holo | starry | aurora | synth | ocean | dots | lava | swirl | ice | comic"
+        },
+        "themeId": {
+          "type": "string",
+          "description": "CardTheme id when the look came from a saved theme"
+        },
+        "themeName": {
+          "type": "string",
+          "description": "Name snapshot of the saved theme used for this card"
         },
         "colors": {
           "type": "object",
@@ -63,6 +79,10 @@
               "type": "string"
             }
           }
+        },
+        "textColor": {
+          "type": "string",
+          "description": "Overrides the template's default text colour. Empty falls back to the template."
         },
         "backgroundUri": {
           "type": "string",

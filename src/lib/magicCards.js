@@ -79,7 +79,9 @@ export const addCard = async (data) => {
     pinHash: data.pinHash || '',
     enabled: data.enabled !== false,
     successSound: data.successSound || '',
+    successSoundUrl: data.successSoundUrl || '',
     rejectSound: data.rejectSound || '',
+    rejectSoundUrl: data.rejectSoundUrl || '',
   });
   notify();
   return card;
