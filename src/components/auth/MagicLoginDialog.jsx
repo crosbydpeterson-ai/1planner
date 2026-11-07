@@ -65,25 +65,33 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
     }
   };
 
-  const handleCardValue = (raw) => {
+  const handleCardValue = async (raw) => {
     // A scan or typed number is consumed once; the camera stops either way.
     setScanning(false);
-    const result = resolveCard(raw);
-    if (result.status === 'unknown') {
-      setError('Unrecognized card. Scan it again or type the number manually.');
-      return;
-    }
-    if (result.status === 'disabled') {
-      setError('This card is disabled. Ask an admin to enable it.');
-      return;
-    }
+    setBusy(true);
     setError('');
-    if (result.status === 'pin_required') {
-      setCard(result.card);
-      setPin('');
-      return;
+    try {
+      const result = await resolveCard(raw);
+      if (result.status === 'unknown') {
+        setError('Unrecognized card. Scan it again or type the number manually.');
+        return;
+      }
+      if (result.status === 'disabled') {
+        setError('This card is disabled. Ask an admin to enable it.');
+        return;
+      }
+      if (result.status === 'pin_required') {
+        setCard(result.card);
+        setPin('');
+        return;
+      }
+      await openProfile(result.card);
+    } catch (e) {
+      console.error('Magic card lookup failed:', e);
+      setError('Could not check this card. Please try again.');
+    } finally {
+      setBusy(false);
     }
-    openProfile(result.card);
   };
 
   const submitPin = () => {
@@ -115,7 +123,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
             <ScanLine className="w-5 h-5 text-indigo-600" />
             Magic Login
             <Badge variant="outline" className="ml-1 text-[10px] font-medium text-amber-700 border-amber-300 bg-amber-50">
-              This browser only
+              Works on any device
             </Badge>
           </DialogTitle>
           <DialogDescription>
@@ -233,7 +241,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
             )}
 
             <p className="text-[11px] text-slate-400 text-center">
-              This browser only — cards and their PINs are saved in this browser.
+              Cards are saved with your account, so this one works on any device.
             </p>
           </div>
         )}

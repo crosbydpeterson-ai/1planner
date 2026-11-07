@@ -21,6 +21,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
   const [scanning, setScanning] = useState(false);
   const [scanHint, setScanHint] = useState('');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -33,11 +34,12 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
     setScanning(false);
     setScanHint('');
     setError('');
+    setSaving(false);
   }, [open, card]);
 
   const hasSavedPin = !!card?.pinHash;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const cleanNumber = normalizeCardNumber(number);
     if (!cleanNumber) {
       setError('Scan a card or type its number.');
@@ -47,29 +49,39 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
       setError('Choose the account this card opens.');
       return;
     }
-    if (isDuplicateNumber(cleanNumber, card?.id)) {
-      setError('That card number is already saved (disabled cards count too).');
-      return;
-    }
     if (pin && !/^\d{4,8}$/.test(pin)) {
       setError('Card PIN must be 4–8 digits.');
       return;
     }
 
-    const payload = {
-      number: cleanNumber,
-      nickname: nickname.trim(),
-      profileId,
-      profileUsername: profiles.find((p) => p.id === profileId)?.username || profileUsername || card?.profileUsername || '',
-    };
-    if (removePin) payload.pinHash = '';
-    else if (pin) payload.pinHash = hashCardPin(pin);
+    setSaving(true);
+    try {
+      if (await isDuplicateNumber(cleanNumber, card?.id)) {
+        setError('That card number is already saved (disabled cards count too).');
+        setSaving(false);
+        return;
+      }
 
-    if (isEdit) updateCard(card.id, payload);
-    else addCard({ ...payload, enabled: true });
+      const payload = {
+        number: cleanNumber,
+        nickname: nickname.trim(),
+        profileId,
+        profileUsername: profiles.find((p) => p.id === profileId)?.username || profileUsername || card?.profileUsername || '',
+      };
+      if (removePin) payload.pinHash = '';
+      else if (pin) payload.pinHash = hashCardPin(pin);
 
-    onSaved?.();
-    onOpenChange(false);
+      if (isEdit) await updateCard(card.id, payload);
+      else await addCard({ ...payload, enabled: true });
+
+      onSaved?.();
+      onOpenChange(false);
+    } catch (e) {
+      console.error('Failed to save magic card:', e);
+      setError('Could not save this card. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -177,7 +189,9 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave}>{isEdit ? 'Save card' : 'Add card'}</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : isEdit ? 'Save card' : 'Add card'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

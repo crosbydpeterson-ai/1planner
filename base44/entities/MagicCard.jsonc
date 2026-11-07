@@ -1,0 +1,40 @@
+{
+  "name": "MagicCard",
+  "type": "object",
+  "properties": {
+    "number": {
+      "type": "string",
+      "description": "Card number exactly as printed. Always text so leading zeros survive."
+    },
+    "numberKey": {
+      "type": "string",
+      "description": "Normalized card number (no spaces, dashes or dots, lowercase) used to match a scanned or typed card."
+    },
+    "nickname": {
+      "type": "string",
+      "description": "Friendly name shown in the admin list, e.g. 'Blue arcade card'"
+    },
+    "profileId": {
+      "type": "string",
+      "description": "UserProfile id this card opens"
+    },
+    "profileUsername": {
+      "type": "string",
+      "description": "Display snapshot of the linked account"
+    },
+    "pinHash": {
+      "type": "string",
+      "description": "Encoded optional card PIN. Empty means the card opens its account in one scan."
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Disabled cards are ignored at the login screen"
+    }
+  },
+  "required": [
+    "number",
+    "numberKey",
+    "profileId"
+  ]
+}

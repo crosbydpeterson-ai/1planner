@@ -13,14 +13,20 @@ const isAdminProfile = (p) => p?.rank === 'admin' || p?.rank === 'super_admin';
 
 export default function MagicCardsPanel({ users = [] }) {
   const { teachers } = useTeachers();
-  const [cards, setCards] = useState(() => listCards());
+  const [cards, setCards] = useState([]);
   const [extraProfiles, setExtraProfiles] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [creatingDemo, setCreatingDemo] = useState(false);
   const attemptedLookups = useRef(new Set());
 
-  const refresh = () => setCards(listCards());
+  const refresh = async () => {
+    try {
+      setCards(await listCards());
+    } catch (e) {
+      console.error('Failed to load magic cards:', e);
+    }
+  };
 
   useEffect(() => {
     refresh();
@@ -80,8 +86,9 @@ export default function MagicCardsPanel({ users = [] }) {
     return () => { cancelled = true; };
   }, [cards, profiles]);
 
-  const toggleCard = (card, enabled) => {
-    updateCard(card.id, { enabled });
+  const toggleCard = async (card, enabled) => {
+    await updateCard(card.id, { enabled });
+    refresh();
     toast.success(enabled ? 'Card enabled' : 'Card disabled');
   };
 
@@ -131,12 +138,12 @@ export default function MagicCardsPanel({ users = [] }) {
             <h2 className="text-white font-bold flex items-center gap-2">
               <ScanLine className="w-5 h-5 text-indigo-400" /> Magic Login
               <Badge variant="outline" className="text-[10px] font-medium text-amber-300 border-amber-500/50 bg-amber-500/10">
-                This browser only
+                Works on any device
               </Badge>
             </h2>
             <p className="text-sm text-slate-400 mt-1">
               Link a card to any account — link admins too. A card with no PIN opens its account in one scan.
-              Cards are stored in this browser only — never in the database — and are separate from regular sign-in.
+              Cards are saved here, so any device that scans one sees the same list.
             </p>
           </div>
           <div className="flex gap-2">
