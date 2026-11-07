@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Check, Loader2 } from 'lucide-react';
+import { playScanSound, primeScanAudio } from '@/lib/scanSound';
 
 // Reads a barcode / QR code with the camera. Newer mobile browsers have a
 // built-in BarcodeDetector; everywhere else (Firefox, Safari, most desktop
@@ -16,8 +17,10 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
   const [status, setStatus] = useState('starting');
 
   useEffect(() => {
+    primeScanAudio();
     let stream = null;
     let timer = null;
+    let successTimer = null;
     let controls = null;
     let cancelled = false;
 
@@ -42,8 +45,11 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
     const finish = (value) => {
       if (handledRef.current || !value) return;
       handledRef.current = true; // one scan is handled once
+      playScanSound();
       stop();
-      onDetected?.(String(value));
+      setStatus('detected');
+      // Let the success flash land before handing the card over.
+      successTimer = setTimeout(() => onDetected?.(String(value)), 550);
     };
 
     (async () => {
@@ -123,6 +129,7 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
 
     return () => {
       cancelled = true;
+      if (successTimer) clearTimeout(successTimer);
       stop();
     };
   }, []);
@@ -136,9 +143,27 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
         className="absolute inset-0 w-full h-full object-cover"
       />
       {status === 'scanning' && (
-        <div className="absolute inset-8 border-2 border-white/70 rounded-2xl pointer-events-none" />
+        <>
+          <div className="absolute inset-0 bg-slate-900/25 pointer-events-none" />
+          <div className="absolute inset-8 pointer-events-none animate-scan-glow">
+            <span className="absolute -top-px -left-px w-8 h-8 border-t-[3px] border-l-[3px] border-indigo-300 rounded-tl-xl" />
+            <span className="absolute -top-px -right-px w-8 h-8 border-t-[3px] border-r-[3px] border-indigo-300 rounded-tr-xl" />
+            <span className="absolute -bottom-px -left-px w-8 h-8 border-b-[3px] border-l-[3px] border-indigo-300 rounded-bl-xl" />
+            <span className="absolute -bottom-px -right-px w-8 h-8 border-b-[3px] border-r-[3px] border-indigo-300 rounded-br-xl" />
+          </div>
+          <div className="absolute inset-8 overflow-hidden pointer-events-none">
+            <div className="absolute left-0 right-0 h-10 animate-scan-sweep bg-gradient-to-b from-transparent via-indigo-300/70 to-transparent" />
+          </div>
+        </>
       )}
-      {status !== 'scanning' && (
+      {status === 'detected' && (
+        <div className="absolute inset-0 bg-emerald-500/25 flex items-center justify-center animate-scan-pop">
+          <div className="rounded-full bg-emerald-500 p-4 shadow-lg shadow-emerald-900/40">
+            <Check className="w-9 h-9 text-white" strokeWidth={3} />
+          </div>
+        </div>
+      )}
+      {status !== 'scanning' && status !== 'detected' && (
         <div className="relative z-10 text-center px-4 text-white/80 text-sm">
           {status === 'starting' ? (
             <span className="flex items-center justify-center gap-2">

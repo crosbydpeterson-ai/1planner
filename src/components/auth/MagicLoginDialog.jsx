@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScanLine, Hash, Keyboard, RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
 import MagicCardScanner from '@/components/auth/MagicCardScanner';
 import { resolveCard, cardPinMatches, normalizeCardNumber } from '@/lib/magicCards';
+import { primeScanAudio } from '@/lib/scanSound';
 
 export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
   const [scanning, setScanning] = useState(true);
@@ -22,6 +23,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
 
   useEffect(() => {
     if (!open) return;
+    primeScanAudio(); // opening the dialog is a tap, so the scan sound is allowed
     setScanning(true);
     setScanKey((k) => k + 1);
     setManualMode(false);
@@ -134,7 +136,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
         </DialogHeader>
 
         {card ? (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-scan-pop">
             <div className="space-y-2">
               <Label className="text-slate-700">Card PIN</Label>
               <div className="relative">
@@ -206,7 +208,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>}
 
             {manualMode && (
-              <div className="space-y-2">
+              <div className="space-y-2 animate-scan-pop">
                 {scanHint && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2">{scanHint}</p>}
                 <Label className="text-slate-700">Card number</Label>
                 <div className="relative">

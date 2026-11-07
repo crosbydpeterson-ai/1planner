@@ -77,11 +77,52 @@ module.exports = {
   				to: {
   					height: '0'
   				}
+  			},
+  			'scan-sweep': {
+  				'0%': {
+  					top: '-2.5rem',
+  					opacity: '0'
+  				},
+  				'15%': {
+  					opacity: '1'
+  				},
+  				'85%': {
+  					opacity: '1'
+  				},
+  				'100%': {
+  					top: '100%',
+  					opacity: '0'
+  				}
+  			},
+  			'scan-glow': {
+  				'0%, 100%': {
+  					opacity: '0.6'
+  				},
+  				'50%': {
+  					opacity: '1'
+  				}
+  			},
+  			'scan-pop': {
+  				'0%': {
+  					opacity: '0',
+  					transform: 'scale(0.9)'
+  				},
+  				'60%': {
+  					opacity: '1',
+  					transform: 'scale(1.05)'
+  				},
+  				'100%': {
+  					opacity: '1',
+  					transform: 'scale(1)'
+  				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'scan-sweep': 'scan-sweep 1.9s ease-in-out infinite',
+  			'scan-glow': 'scan-glow 1.8s ease-in-out infinite',
+  			'scan-pop': 'scan-pop 0.45s ease-out both'
   		}
   	}
   },
