@@ -87,46 +87,59 @@
   }
 }
 
-/* Magic Card Studio: only the card sheet is printed. */
+/* Magic Card Studio: only the card sheet reaches the printer. The sheet is a
+   hidden portal at the end of <body>, one Letter page per card side. */
+@media screen {
+  .magic-print-root {
+    display: none;
+  }
+}
+
 @media print {
+  @page {
+    size: letter portrait;
+    margin: 0;
+  }
+
   html,
   body {
     background: #fff !important;
-  }
-
-  body * {
-    visibility: hidden !important;
-  }
-
-  .print-overlay {
-    position: static !important;
-    background: #fff !important;
-    padding: 0 !important;
-    overflow: visible !important;
-  }
-
-  [data-print-sheet],
-  [data-print-sheet] * {
-    visibility: visible !important;
-  }
-
-  [data-print-sheet] {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
     margin: 0 !important;
     padding: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
+  }
+
+  /* Remove the app and the preview entirely, so nothing shifts the sheet. */
+  body > *:not(.magic-print-root) {
+    display: none !important;
+  }
+
+  .magic-print-root {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .magic-print-page {
+    position: relative;
+    width: 8.5in;
+    height: 11in;
+    overflow: hidden;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .magic-print-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .magic-print-root,
+  .magic-print-root * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .no-print {
     display: none !important;
-  }
-
-  @page {
-    margin: 0.5in;
   }
 }

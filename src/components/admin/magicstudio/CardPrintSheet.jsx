@@ -1,62 +1,87 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, X, Scissors } from 'lucide-react';
+import { Printer, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import CardFront from '@/components/admin/magicstudio/CardFront';
-import CardBack from '@/components/admin/magicstudio/CardBack';
+import PrintCardSlot from '@/components/admin/magicstudio/PrintCardSlot';
+import PrintPagePreview from '@/components/admin/magicstudio/PrintPagePreview';
 
-// Wallet-size, two-sided sheet: front and back side by side on one page with
-// cut guides. Only this sheet is visible when the browser prints.
-const PRINT_SCALE = 0.62; // 520px art -> ~3.37in (85.6mm) wide wallet card
-
-function CutGuide({ label, children }) {
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: '#667085', marginBottom: 6 }}>
-        <Scissors size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: -1 }} />
-        {label}
-      </div>
-      <div style={{ border: '1px dashed #94a3b8', padding: 6, borderRadius: 6, display: 'inline-block' }}>{children}</div>
-    </div>
-  );
-}
-
+// Prints one card on two Letter pages: the front on page 1, the back on page 2
+// at the mirrored position, so a two-sided print (flip on long edge) lines the
+// halves up on the same spot. Only the hidden sheet below reaches the printer.
 export default function CardPrintSheet({ open, onClose, card, design, name }) {
+  const sheetRef = useRef(null);
   if (!open || !card) return null;
 
-  return createPortal(
-    <div className="print-overlay fixed inset-0 z-[120] bg-slate-900/70 overflow-auto p-4">
-      <div data-print-sheet style={{ background: '#ffffff', borderRadius: 12, maxWidth: 900, margin: '0 auto', padding: 24 }}>
-        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#101828' }}>Print Card</h3>
-            <p style={{ fontSize: 11, color: '#667085' }}>
-              Wallet size (85.6 × 54 mm). Print on one sheet, cut along the dashes, then stick the halves back to back.
-              In the print dialog, turn on “Background graphics”.
-            </p>
+  const print = async () => {
+    // Wait for any art still loading, so the card never prints with a blank logo.
+    const images = Array.from(sheetRef.current?.querySelectorAll('img') || []);
+    await Promise.all(
+      images.map((img) =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise((resolve) => {
+              img.onload = resolve;
+              img.onerror = resolve;
+            })
+      )
+    );
+    window.print();
+  };
+
+  return (
+    <>
+      {createPortal(
+        <div className="print-overlay fixed inset-0 z-[120] bg-slate-900/70 overflow-auto p-4">
+          <div className="mx-auto max-w-3xl rounded-xl bg-white p-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Print Card</h3>
+                <p className="text-[11px] text-slate-500">
+                  Letter paper · 3.375 × 2.125 in wallet card (85.6 × 54 mm) · 0.5 in margins
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-6">
+              <PrintPagePreview side="front" label="Page 1 · Front" card={card} design={design} name={name} />
+              <PrintPagePreview side="back" label="Page 2 · Back" card={card} design={design} name={name} />
+            </div>
+
+            <div className="mt-4 flex gap-2 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-[11px] leading-relaxed text-indigo-900">
+              <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <div>
+                In the print dialog choose <strong>two-sided</strong> with <strong>“Flip on long edge”</strong> so the back
+                lands behind the front. Keep margins on <strong>Default</strong> and turn on{' '}
+                <strong>“Background graphics”</strong> for the full colors. Cut along the dashed guides.
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-center gap-2">
+              <Button variant="outline" onClick={onClose}>
+                Close
+              </Button>
+              <Button onClick={print} className="bg-indigo-600 hover:bg-indigo-700">
+                <Printer className="w-4 h-4 mr-2" /> Print
+              </Button>
+            </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+        </div>,
+        document.body
+      )}
 
-        <div style={{ display: 'flex', gap: 28, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <CutGuide label="Front">
-            <CardFront name={name} design={design} scale={PRINT_SCALE} />
-          </CutGuide>
-          <CutGuide label="Back">
-            <CardBack number={card.number} design={design} scale={PRINT_SCALE} />
-          </CutGuide>
-        </div>
-
-        <div className="no-print" style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-          <Button variant="outline" onClick={onClose}>Close</Button>
-          <Button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700">
-            <Printer className="w-4 h-4 mr-2" /> Print
-          </Button>
-        </div>
-      </div>
-    </div>,
-    document.body
+      {createPortal(
+        <div className="magic-print-root" ref={sheetRef} aria-hidden>
+          {['front', 'back'].map((side) => (
+            <div className="magic-print-page" key={side}>
+              <PrintCardSlot side={side} card={card} design={design} name={name} />
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
