@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 
-// Reads a barcode / QR code with the camera. Uses the browser's built-in
-// BarcodeDetector; when that is missing (or the camera is blocked) the parent
-// is told to fall back to typing the card number.
+// Reads a barcode / QR code with the camera. Newer mobile browsers have a
+// built-in BarcodeDetector; everywhere else (Firefox, Safari, most desktop
+// Chrome) the frames are decoded in JavaScript, so scanning works in any
+// browser. Only a blocked/absent camera falls back to typing the number.
 const FORMATS = [
   'qr_code', 'code_128', 'code_39', 'code_93', 'codabar', 'itf',
   'ean_13', 'ean_8', 'upc_a', 'upc_e', 'data_matrix', 'pdf417',
@@ -17,16 +18,32 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
   useEffect(() => {
     let stream = null;
     let timer = null;
+    let controls = null;
     let cancelled = false;
 
     const stop = () => {
       if (timer) clearTimeout(timer);
       timer = null;
+      if (controls) {
+        try {
+          controls.stop();
+        } catch {
+          // already stopped
+        }
+        controls = null;
+      }
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
         stream = null;
       }
       if (videoRef.current) videoRef.current.srcObject = null;
+    };
+
+    const finish = (value) => {
+      if (handledRef.current || !value) return;
+      handledRef.current = true; // one scan is handled once
+      stop();
+      onDetected?.(String(value));
     };
 
     (async () => {
@@ -48,37 +65,50 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
           await videoRef.current.play().catch(() => {});
         }
 
-        if (!Detector) {
-          setStatus('unsupported');
-          onUnavailable?.('This browser cannot read barcodes. Type the card number instead.');
+        setStatus('scanning');
+
+        if (Detector) {
+          let detector;
+          try {
+            detector = new Detector({ formats: FORMATS });
+          } catch {
+            detector = new Detector();
+          }
+
+          const loop = async () => {
+            if (cancelled || handledRef.current) return;
+            try {
+              const codes = await detector.detect(videoRef.current);
+              const value = codes?.[0]?.rawValue;
+              if (value) {
+                finish(value);
+                return;
+              }
+            } catch {
+              // Individual frames can fail while the camera warms up — keep looking.
+            }
+            timer = setTimeout(loop, 350);
+          };
+          loop();
           return;
         }
 
-        setStatus('scanning');
-        let detector;
-        try {
-          detector = new Detector({ formats: FORMATS });
-        } catch {
-          detector = new Detector();
-        }
-
-        const loop = async () => {
-          if (cancelled || handledRef.current) return;
+        // No built-in detector: decode the video frames in JavaScript instead.
+        const { BrowserMultiFormatReader } = await import('@zxing/browser');
+        if (cancelled) return;
+        const reader = new BrowserMultiFormatReader(undefined, 200);
+        const started = await reader.decodeFromStream(stream, videoRef.current, (result) => {
+          if (result) finish(result.getText());
+        });
+        if (handledRef.current) {
           try {
-            const codes = await detector.detect(videoRef.current);
-            const value = codes?.[0]?.rawValue;
-            if (value) {
-              handledRef.current = true; // one scan is handled once
-              stop();
-              onDetected?.(String(value));
-              return;
-            }
+            started.stop();
           } catch {
-            // Individual frames can fail while the camera warms up — keep looking.
+            // already stopped
           }
-          timer = setTimeout(loop, 350);
-        };
-        loop();
+        } else {
+          controls = started;
+        }
       } catch (e) {
         if (cancelled) return;
         stop();
