@@ -15,6 +15,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
   const [scanning, setScanning] = useState(true);
   const [scanKey, setScanKey] = useState(0);
   const [manualMode, setManualMode] = useState(false);
+  const [legacyMode, setLegacyMode] = useState(false);
   const [manualNumber, setManualNumber] = useState('');
   const [scanHint, setScanHint] = useState('');
   const [card, setCard] = useState(null);
@@ -28,6 +29,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
     setScanning(true);
     setScanKey((k) => k + 1);
     setManualMode(false);
+    setLegacyMode(false);
     setManualNumber('');
     setScanHint('');
     setCard(null);
@@ -40,6 +42,17 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
     setError('');
     setScanHint('');
     setManualMode(false);
+    setScanning(true);
+    setScanKey((k) => k + 1);
+  };
+
+  // Older cards were printed in Code 39, so this switches the camera to that
+  // format only and back. Typing the number keeps working in either mode.
+  const toggleLegacy = () => {
+    setError('');
+    setScanHint('');
+    setManualMode(false);
+    setLegacyMode((v) => !v);
     setScanning(true);
     setScanKey((k) => k + 1);
   };
@@ -199,6 +212,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
               <>
                 <MagicCardScanner
                   key={scanKey}
+                  format={legacyMode ? 'code39' : 'code128'}
                   onDetected={handleCardValue}
                   onUnavailable={(message) => {
                     setScanHint(message);
@@ -210,6 +224,20 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
                     Keep the card steady inside the frame. Each scan is used once.
                   </p>
                 )}
+                <div className="text-center">
+                  {legacyMode && (
+                    <p className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-1.5 mb-1">
+                      Older card mode — looking for Code 39 only.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={toggleLegacy}
+                    className="text-[11px] text-slate-500 underline underline-offset-2 hover:text-slate-700"
+                  >
+                    {legacyMode ? 'Scan a new Code 128 card instead' : 'Scan an older Code 39 card'}
+                  </button>
+                </div>
               </>
             ) : (
               !manualMode && (

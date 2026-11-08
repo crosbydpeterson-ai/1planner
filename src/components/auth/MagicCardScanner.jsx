@@ -2,20 +2,26 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Check, Loader2 } from 'lucide-react';
 import { primeScanAudio } from '@/lib/scanSound';
 
-// Reads a barcode / QR code with the camera. Newer mobile browsers have a
+// Reads the card's barcode with the camera. Newer mobile browsers have a
 // built-in BarcodeDetector; everywhere else (Firefox, Safari, most desktop
 // Chrome) the frames are decoded in JavaScript, so scanning works in any
 // browser. Only a blocked/absent camera falls back to typing the number.
-const FORMATS = [
-  'qr_code', 'code_39', 'code_128',
-];
+//
+// Cards print in Code 128, and the decoder searches for that format alone —
+// fewer formats per frame is what makes a card read quickly. `format="code39"`
+// is the legacy switch for older printed cards, and it searches that format
+// alone in the same way.
+const FORMATS = {
+  code128: ['code_128'],
+  code39: ['code_39'],
+};
 
 // The decoder is large; start downloading it as soon as a screen that offers
 // scanning loads, so the first scan is not held up by the download.
 const zxingPromise = import('@zxing/browser');
 
 
-export default function MagicCardScanner({ onDetected, onUnavailable }) {
+export default function MagicCardScanner({ onDetected, onUnavailable, format = 'code128' }) {
   const videoRef = useRef(null);
   const handledRef = useRef(false);
   const [status, setStatus] = useState('starting');
@@ -112,7 +118,8 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
               typeof Detector.getSupportedFormats === 'function'
                 ? await Detector.getSupportedFormats().catch(() => null)
                 : null;
-            const usable = supported?.length ? FORMATS.filter((f) => supported.includes(f)) : FORMATS;
+            const wanted = FORMATS[format] || FORMATS.code128;
+            const usable = supported?.length ? wanted.filter((f) => supported.includes(f)) : wanted;
             detector = new Detector(usable.length ? { formats: usable } : undefined);
           } catch {
             detector = new Detector();
@@ -145,7 +152,9 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
         });
         // Restricting the formats keeps each frame cheap, which is what makes
         // a card read in well under a second instead of several.
-        reader.possibleFormats = [BarcodeFormat.CODE_39, BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE];
+        reader.possibleFormats = [
+          format === 'code39' ? BarcodeFormat.CODE_39 : BarcodeFormat.CODE_128,
+        ];
         const started = await reader.decodeFromStream(stream, videoRef.current, (result) => {
           if (result) finish(result.getText());
         });
@@ -177,7 +186,7 @@ export default function MagicCardScanner({ onDetected, onUnavailable }) {
       if (successTimer) clearTimeout(successTimer);
       stop();
     };
-  }, []);
+  }, [format]);
 
   return (
     <div className="relative rounded-2xl overflow-hidden bg-slate-900 aspect-[4/3] flex items-center justify-center">

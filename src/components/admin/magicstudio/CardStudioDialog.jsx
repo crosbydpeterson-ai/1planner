@@ -11,7 +11,7 @@ import { updateCard } from '@/lib/magicCards';
 import { PETS } from '@/components/quest/PetCatalog';
 import { normalizeDesign, blankDesign, themeToDesign, getTemplate } from '@/lib/cardDesigns';
 import { listCardThemes, deleteCardTheme } from '@/lib/cardThemes';
-import { sanitizeCode39 } from '@/lib/code39';
+import { sanitizeCode128 } from '@/lib/code128';
 import CardFront from '@/components/admin/magicstudio/CardFront';
 import CardBack from '@/components/admin/magicstudio/CardBack';
 import TemplateGrid from '@/components/admin/magicstudio/TemplateGrid';
@@ -174,10 +174,10 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
                 so it prints at wallet-card size even when the print dialog is blocked.
               </p>
 
-              {card && sanitizeCode39(card.number) !== String(card.number).toUpperCase() && (
+              {card && sanitizeCode128(card.number) !== String(card.number) && (
                 <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
-                  This number has characters a barcode can’t hold (like an underscore), so the printed code covers only its
-                  letters, digits and dashes. Typing the number still opens the same account.
+                  This number has characters a barcode can’t hold (like accented letters or emoji), so the printed code
+                  covers only its plain characters. Typing the number still opens the same account.
                 </p>
               )}
             </div>
