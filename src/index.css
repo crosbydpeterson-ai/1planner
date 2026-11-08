@@ -172,6 +172,44 @@
   will-change: transform, opacity;
 }
 
+/* App loading screen: soft shapes drifting in place. */
+@keyframes loading-float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -18px, 0) scale(1.03);
+  }
+}
+
+.loading-blob {
+  animation: loading-float 9s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes loading-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+    opacity: 0.85;
+  }
+}
+
+.loading-particle {
+  animation: loading-drift 6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-blob,
+  .loading-particle {
+    animation: none;
+  }
+}
+
 @keyframes card-holo-shift {
   0% {
     background-position: 0% 50%;

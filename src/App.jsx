@@ -25,6 +25,7 @@ import MarketplaceHub from './pages/MarketplaceHub';
 import UpdatesHub from './pages/UpdatesHub';
 import Music from './pages/Music';
 import SeasonBook from './pages/SeasonBook';
+import AppLoadingScreen from './components/loading/AppLoadingScreen';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -37,18 +38,6 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
   const location = useLocation();
-  const [loadingScreenUrl, setLoadingScreenUrl] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const recs = await base44.entities.AppCustomization.filter({ type: 'loading_screen', is_active: true });
-        setLoadingScreenUrl(recs[0]?.image || recs[0]?.imageUrl || null);
-      } catch (e) {
-        console.error('Failed to load loading screen', e);
-      }
-    })();
-  }, []);
 
   // OAuth consent page must render outside the auth gate — it handles the
   // signed-out case itself and preserves the `ctx` handle in returnTo.
@@ -62,17 +51,7 @@ const AuthenticatedApp = () => {
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        {loadingScreenUrl && (
-          <>
-            <img src={loadingScreenUrl} alt="Loading" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/20" />
-          </>
-        )}
-        <div className="relative z-10 w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   // Handle authentication errors
