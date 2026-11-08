@@ -3,11 +3,14 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { ScanLine, Plus, Pencil, Hash, UserRoundPlus, Loader2, CreditCard, Shield, Palette } from 'lucide-react';
+import { ScanLine, Plus, Pencil, Hash, UserRoundPlus, Loader2, CreditCard, Shield, Palette, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { MAGIC_CARDS_UPDATED, listCards, updateCard } from '@/lib/magicCards';
 import MagicCardFormDialog from '@/components/admin/MagicCardFormDialog';
 import CardStudioDialog from '@/components/admin/magicstudio/CardStudioDialog';
+import CardPrintSheet from '@/components/admin/magicstudio/CardPrintSheet';
+import { normalizeDesign } from '@/lib/cardDesigns';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useTeachers } from '@/hooks/useTeachers';
 
 const isAdminProfile = (p) => p?.rank === 'admin' || p?.rank === 'super_admin';
@@ -20,6 +23,8 @@ export default function MagicCardsPanel({ users = [] }) {
   const [editing, setEditing] = useState(null);
   const [studioCard, setStudioCard] = useState(null);
   const [creatingDemo, setCreatingDemo] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [printItems, setPrintItems] = useState([]);
   const attemptedLookups = useRef(new Set());
 
   const refresh = async () => {
@@ -94,6 +99,24 @@ export default function MagicCardsPanel({ users = [] }) {
     toast.success(enabled ? 'Card enabled' : 'Card disabled');
   };
 
+  // Bulk printing: every ticked card goes onto the same sheets, up to six per
+  // page, each keeping its own artwork.
+  const allSelected = cards.length > 0 && selectedIds.length === cards.length;
+
+  const toggleSelected = (id) =>
+    setSelectedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+
+  const printSelected = () => {
+    const chosen = cards.filter((card) => selectedIds.includes(card.id));
+    setPrintItems(
+      chosen.map((card) => ({
+        card,
+        design: normalizeDesign(card.design),
+        name: card.design?.displayName?.trim() || card.nickname || 'Magic Card',
+      }))
+    );
+  };
+
   // A fake, no-admin test profile so the demo has something to open.
   const createTestProfile = async () => {
     setCreatingDemo(true);
@@ -160,6 +183,32 @@ export default function MagicCardsPanel({ users = [] }) {
         </div>
       </div>
 
+      {cards.length > 0 && (
+        <div className="bg-slate-800 rounded-2xl border border-slate-700 p-3 flex items-center justify-between gap-3 flex-wrap">
+          <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={() => setSelectedIds(allSelected ? [] : cards.map((c) => c.id))}
+            />
+            Select all
+            <span className="text-slate-500">
+              · {selectedIds.length} of {cards.length} selected
+            </span>
+          </label>
+          <Button
+            size="sm"
+            onClick={printSelected}
+            disabled={selectedIds.length === 0}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Printer className="w-4 h-4 mr-2" />
+            {selectedIds.length > 0
+              ? `Print ${selectedIds.length} card${selectedIds.length === 1 ? '' : 's'}`
+              : 'Print cards'}
+          </Button>
+        </div>
+      )}
+
       <div className="bg-slate-800 rounded-2xl border border-slate-700 divide-y divide-slate-700/70">
         {cards.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-sm">
@@ -169,6 +218,10 @@ export default function MagicCardsPanel({ users = [] }) {
         ) : (
           cards.map((card) => (
             <div key={card.id} className="p-4 flex items-center gap-3 flex-wrap">
+              <Checkbox
+                checked={selectedIds.includes(card.id)}
+                onCheckedChange={() => toggleSelected(card.id)}
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-white font-semibold truncate">{card.nickname || 'Untitled card'}</span>
@@ -232,6 +285,12 @@ export default function MagicCardsPanel({ users = [] }) {
         onOpenChange={(v) => { if (!v) setStudioCard(null); }}
         card={studioCard}
         onSaved={refresh}
+      />
+
+      <CardPrintSheet
+        open={printItems.length > 0}
+        onClose={() => setPrintItems([])}
+        items={printItems}
       />
     </div>
   );

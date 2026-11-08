@@ -271,14 +271,12 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
       </Dialog>
 
       {/* Offscreen full-size front and back, used for the PDF download */}
-      <CardCapture refs={captureRef} card={card} design={design} name={name} />
+      <CardCapture refs={captureRef} items={[{ card, design, name }]} />
 
       <CardPrintSheet
         open={printOpen}
         onClose={() => setPrintOpen(false)}
-        card={card}
-        design={design}
-        name={name}
+        items={[{ card, design, name }]}
       />
     </>
   );

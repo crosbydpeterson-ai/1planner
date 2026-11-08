@@ -24,6 +24,9 @@ export default function CardFront({ name, design, scale = 1, shine = false }) {
         style={{
           width: CARD_W,
           height: CARD_H,
+          // The border is part of the card's footprint, so the artwork really is
+          // CARD_W wide and prints inside its cut guides instead of 3px past them.
+          boxSizing: 'border-box',
           position: 'relative',
           overflow: 'hidden',
           borderRadius: 22,
