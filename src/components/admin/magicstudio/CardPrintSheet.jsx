@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, X, Info, Download } from 'lucide-react';
+import { Printer, Info, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import PrintCardSlot from '@/components/admin/magicstudio/PrintCardSlot';
 import PrintPagePreview from '@/components/admin/magicstudio/PrintPagePreview';
 import CardCapture from '@/components/admin/magicstudio/CardCapture';
@@ -10,6 +11,11 @@ import { buildCardPdfUrl, downloadCardPdf } from '@/lib/cardPdf';
 // Prints one card on two Letter pages: the front on page 1, the back on page 2
 // at the mirrored position, so a two-sided print (flip on long edge) lines the
 // halves up on the same spot. Only the hidden sheet below reaches the printer.
+//
+// This is a dialog of its own, opened on top of the studio. A hand-rolled
+// overlay is not part of the studio's modal layer, so every click in it counts
+// as a click outside the studio and the studio closes before the button ever
+// fires — which is why Print and Download did nothing.
 export default function CardPrintSheet({ open, onClose, card, design, name }) {
   const sheetRef = useRef(null);
   const captureRef = useRef({});
@@ -40,12 +46,14 @@ export default function CardPrintSheet({ open, onClose, card, design, name }) {
 
   const makePdf = async () => {
     setBuilding(true);
+    setPdfError('');
     try {
       const url = await buildCardPdfUrl(captureRef.current);
       setPdfUrl(url);
       return url;
     } catch (e) {
       console.error('Could not build the card PDF', e);
+      setPdfError('The PDF could not be built. Close this window and try again.');
       return null;
     } finally {
       setBuilding(false);
@@ -72,69 +80,63 @@ export default function CardPrintSheet({ open, onClose, card, design, name }) {
 
   return (
     <>
-      {/* The studio dialog switches pointer events off for the whole page while
-          it is open, so this window turns them back on for itself. */}
-      {createPortal(
-        <div
-          className="print-overlay fixed inset-0 z-[120] overflow-auto p-4"
-          style={{ pointerEvents: 'auto', background: 'rgba(15, 23, 42, 0.7)' }}
-        >
-          <div className="mx-auto max-w-3xl rounded-xl bg-white p-5">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Print Card</h3>
-                <p className="text-[11px] text-slate-500">
-                  Letter paper · 3.375 × 2.125 in wallet card (85.6 × 54 mm) · 0.5 in margins
-                </p>
-              </div>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="w-4 h-4" />
-              </Button>
+      <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Print Card</DialogTitle>
+            <DialogDescription>
+              Letter paper · 3.375 × 2.125 in wallet card (85.6 × 54 mm) · 0.5 in margins
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-wrap justify-center gap-6">
+            <PrintPagePreview side="front" label="Page 1 · Front" card={card} design={design} name={name} />
+            <PrintPagePreview side="back" label="Page 2 · Back" card={card} design={design} name={name} />
+          </div>
+
+          {pdfUrl && (
+            <div className="mt-4 rounded-lg border border-slate-300 bg-slate-50 p-3">
+              <p className="mb-2 text-[11px] leading-relaxed text-slate-700">
+                Both sides are on one letter PDF below, already at wallet-card size with 0.5 in margins. Print it from
+                the PDF viewer, or download it and send it straight to your printer.
+              </p>
+              <iframe title="Magic Card PDF" src={pdfUrl} className="h-[360px] w-full rounded border bg-white" />
+              <a
+                href={pdfUrl}
+                download={`magic-card-${card?.number || 'card'}.pdf`}
+                className="mt-2 inline-block text-[11px] font-semibold text-indigo-700 underline"
+              >
+                Open the PDF in a new tab
+              </a>
             </div>
+          )}
 
-            <div className="flex flex-wrap justify-center gap-6">
-              <PrintPagePreview side="front" label="Page 1 · Front" card={card} design={design} name={name} />
-              <PrintPagePreview side="back" label="Page 2 · Back" card={card} design={design} name={name} />
-            </div>
-
-            {pdfUrl && (
-              <div className="mt-4 rounded-lg border border-slate-300 bg-slate-50 p-3">
-                <p className="mb-2 text-[11px] leading-relaxed text-slate-700">
-                  Both sides are on one letter PDF below, already at wallet-card size with 0.5 in margins. Print it from
-                  the PDF viewer, or download it and send it straight to your printer.
-                </p>
-                <iframe title="Magic Card PDF" src={pdfUrl} className="h-[360px] w-full rounded border bg-white" />
-              </div>
-            )}
-
-            <div className="mt-4 flex gap-2 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-[11px] leading-relaxed text-indigo-900">
-              <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
-              <div>
-                In the print dialog choose <strong>two-sided</strong> with <strong>“Flip on long edge”</strong> so the back
-                lands behind the front. Keep margins on <strong>Default</strong> and turn on{' '}
-                <strong>“Background graphics”</strong> for the full colors. Cut along the dashed guides.
-              </div>
-            </div>
-
-            {pdfError && (
-              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-700">{pdfError}</p>
-            )}
-
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Button variant="outline" onClick={onClose}>
-                Close
-              </Button>
-              <Button variant="outline" onClick={download} disabled={building}>
-                <Download className="w-4 h-4 mr-2" /> {building ? 'Preparing…' : 'Download PDF'}
-              </Button>
-              <Button onClick={print} disabled={building} className="bg-indigo-600 hover:bg-indigo-700">
-                <Printer className="w-4 h-4 mr-2" /> Print
-              </Button>
+          <div className="mt-4 flex gap-2 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-[11px] leading-relaxed text-indigo-900">
+            <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <div>
+              In the print dialog choose <strong>two-sided</strong> with <strong>“Flip on long edge”</strong> so the back
+              lands behind the front. Keep margins on <strong>Default</strong> and turn on{' '}
+              <strong>“Background graphics”</strong> for the full colors. Cut along the dashed guides.
             </div>
           </div>
-        </div>,
-        document.body
-      )}
+
+          {pdfError && (
+            <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-700">{pdfError}</p>
+          )}
+
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+            <Button variant="outline" onClick={download} disabled={building}>
+              <Download className="w-4 h-4 mr-2" /> {building ? 'Preparing…' : 'Download PDF'}
+            </Button>
+            <Button onClick={print} disabled={building} className="bg-indigo-600 hover:bg-indigo-700">
+              <Printer className="w-4 h-4 mr-2" /> Print
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {createPortal(
         <div className="magic-print-root" ref={sheetRef} aria-hidden>

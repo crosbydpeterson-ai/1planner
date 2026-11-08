@@ -106,6 +106,10 @@
     background: #fff !important;
     margin: 0 !important;
     padding: 0 !important;
+    /* The dialog's scroll lock leaves overflow hidden on the body, which would
+       clip the sheet to a single page and lose the card back. */
+    overflow: visible !important;
+    height: auto !important;
   }
 
   /* Remove the app and the preview entirely, so nothing shifts the sheet. */
