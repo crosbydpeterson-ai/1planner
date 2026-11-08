@@ -2,6 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { getLegalMoves, parsePiece } from '@/lib/pawSpellLogic';
 import { PIECE_TO_PET, PET_EMOJIS, PET_TO_CHESS_NAME, PET_DESCRIPTIONS } from '@/lib/pawSpellConstants';
 
+// Stable empty array so moving the cursor over empty squares doesn't
+// re-render the whole board on every mouse event.
+const NO_MOVES = [];
+
 function PieceCard({ cell, equippedSkins, skinImages }) {
   if (!cell) return null;
   const { color, type } = parsePiece(cell);
@@ -42,7 +46,7 @@ export default function PawBoard({
 }) {
   const [selected, setSelected] = useState(null);
   const [hoveredPiece, setHoveredPiece] = useState(null);
-  const [hoveredOppMoves, setHoveredOppMoves] = useState([]); // legal moves of hovered opp piece
+  const [hoveredOppMoves, setHoveredOppMoves] = useState(NO_MOVES); // legal moves of hovered opp piece
   const [legalMoves, setLegalMoves] = useState([]);
 
   const handleSquareClick = (row, col) => {
@@ -95,12 +99,18 @@ export default function PawBoard({
         const moves = getLegalMoves(board, row, col, lastMove, castlingRights, abilityEffects);
         setHoveredOppMoves(moves);
       } else {
-        setHoveredOppMoves([]);
+        setHoveredOppMoves(NO_MOVES);
       }
-    } else {
+    } else if (hoveredPiece) {
       setHoveredPiece(null);
-      setHoveredOppMoves([]);
+      setHoveredOppMoves(NO_MOVES);
     }
+  };
+
+  const clearHover = () => {
+    if (!hoveredPiece) return;
+    setHoveredPiece(null);
+    setHoveredOppMoves(NO_MOVES);
   };
 
   const isLegalTarget = (row, col) => legalMoves.some(([r, c]) => r === row && c === col);
@@ -114,10 +124,12 @@ export default function PawBoard({
 
   return (
     <div className="flex flex-col items-center gap-2">
-      {/* Hover tooltip */}
-      <div className="min-h-10 flex items-center justify-center mb-1">
+      {/* Board */}
+      <div className="relative">
+        {/* Hover tooltip — floating above the board with pointer-events off, so
+            showing it never shifts the squares out from under the cursor. */}
         {hoveredPiece && (
-          <div className="bg-purple-900/90 backdrop-blur text-white rounded-xl px-4 py-2 text-xs text-center border border-purple-500/40 max-w-xs">
+          <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 w-max max-w-[19rem] bg-purple-900 text-white rounded-xl px-4 py-2 text-xs text-center border border-purple-500/40 shadow-xl">
             <div className="flex items-center justify-center gap-2 flex-wrap">
               <span className="font-bold text-purple-200">{PET_TO_CHESS_NAME[hoveredPiece.petType]}</span>
               <span className="text-purple-400">·</span>
@@ -138,110 +150,109 @@ export default function PawBoard({
             )}
           </div>
         )}
-      </div>
 
-      {/* Board */}
-      <div className="rounded-2xl overflow-hidden border-2 border-purple-700 shadow-2xl shadow-purple-900/60"
-        style={{ background: '#1a0f2e' }}>
-        {board.map((row, ri) => (
-          <div key={ri} className="flex">
-            {row.map((cell, ci) => {
-              const isLight = (ri + ci) % 2 === 0;
-              const gem = getGem(ri, ci);
-              const selected_ = isSelected(ri, ci);
-              const legal = isLegalTarget(ri, ci);
-              const lastMv = isLastMove(ri, ci);
+        <div className="rounded-2xl overflow-hidden border-2 border-purple-700 shadow-2xl shadow-purple-900/60"
+          style={{ background: '#1a0f2e' }}>
+          {board.map((row, ri) => (
+            <div key={ri} className="flex">
+              {row.map((cell, ci) => {
+                const isLight = (ri + ci) % 2 === 0;
+                const gem = getGem(ri, ci);
+                const selected_ = isSelected(ri, ci);
+                const legal = isLegalTarget(ri, ci);
+                const lastMv = isLastMove(ri, ci);
 
-              let bg = isLight ? '#2d1b4e' : '#1a0f2e';
-              if (lastMv) bg = isLight ? '#4c1d6e' : '#3b1558';
-              if (selected_) bg = '#7c3aed';
+                let bg = isLight ? '#2d1b4e' : '#1a0f2e';
+                if (lastMv) bg = isLight ? '#4c1d6e' : '#3b1558';
+                if (selected_) bg = '#7c3aed';
 
-              const effects = getEffectsAt(ri, ci);
-              const isFrozen = effects.some(e => e.type === 'frozen');
-              const isLavaWall = effects.some(e => e.type === 'lavaWall');
-              const isBurnTrap = effects.some(e => e.type === 'burnTrap');
-              const isFrostPath = effects.some(e => e.type === 'frostPath');
-              const isBlocked = effects.some(e => e.type === 'blocked');
-              const isBlessing = effects.some(e => e.type === 'blessing');
-              const isVanish = effects.some(e => e.type === 'vanish');
-              const isGemLock = effects.some(e => e.type === 'gemLock');
-              const isAbTarget = isAbilityTargetSquare(ri, ci);
-              const isOppThreat = isOppMove(ri, ci);
+                const effects = getEffectsAt(ri, ci);
+                const isFrozen = effects.some(e => e.type === 'frozen');
+                const isLavaWall = effects.some(e => e.type === 'lavaWall');
+                const isBurnTrap = effects.some(e => e.type === 'burnTrap');
+                const isFrostPath = effects.some(e => e.type === 'frostPath');
+                const isBlocked = effects.some(e => e.type === 'blocked');
+                const isBlessing = effects.some(e => e.type === 'blessing');
+                const isVanish = effects.some(e => e.type === 'vanish');
+                const isGemLock = effects.some(e => e.type === 'gemLock');
+                const isAbTarget = isAbilityTargetSquare(ri, ci);
+                const isOppThreat = isOppMove(ri, ci);
 
-              if (isLavaWall) bg = '#7c2d12';
-              if (isFrostPath) bg = '#0e7490';
-              if (isOppThreat) bg = isLight ? '#7c2020' : '#5c1010';
-              if (isAbTarget) bg = '#facc15';
+                if (isLavaWall) bg = '#7c2d12';
+                if (isFrostPath) bg = '#0e7490';
+                if (isOppThreat) bg = isLight ? '#7c2020' : '#5c1010';
+                if (isAbTarget) bg = '#facc15';
 
-              return (
-                <div
-                  key={ci}
-                  className={`relative cursor-pointer transition-colors ${isAbTarget ? 'ring-2 ring-yellow-300 z-10' : ''} ${isOppThreat && !isAbTarget ? 'ring-1 ring-red-500/60' : ''}`}
-                  style={{ width: 52, height: 52, background: bg }}
-                  onClick={() => handleSquareClick(ri, ci)}
-                  onMouseEnter={() => handleHover(ri, ci)}
-                  onMouseLeave={() => { setHoveredPiece(null); setHoveredOppMoves([]); }}
-                >
-                  {/* Ability effect overlays */}
-                  {isFrozen && <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-lg z-15" style={{ background: 'rgba(56,189,248,0.25)' }}>❄️</div>}
-                  {isBurnTrap && <div className="absolute bottom-0 right-0 text-xs z-15 pointer-events-none">🔥</div>}
-                  {isBlocked && <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-base z-15" style={{ background: 'rgba(34,197,94,0.25)' }}>🌿</div>}
-                  {isBlessing && <div className="absolute top-0 left-0 text-xs z-15 pointer-events-none">✨</div>}
-                  {isVanish && <div className="absolute inset-0 pointer-events-none z-15" style={{ background: 'rgba(0,0,0,0.4)' }} />}
-                  {isGemLock && <div className="absolute top-0 left-0 text-[10px] z-15 pointer-events-none">🔒</div>}
-                  {/* Legal move indicator */}
-                  {legal && (
-                    <div className={`absolute inset-0 flex items-center justify-center z-10 pointer-events-none`}>
-                      {cell ? (
-                        <div className="absolute inset-0 border-2 border-purple-400 rounded-sm opacity-80" />
-                      ) : (
-                        <div className="w-3 h-3 rounded-full bg-purple-400 opacity-70" />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Gem */}
-                  {gem && (() => {
-                    const key = `${ri},${ci}`;
-                    const prog = gemProgress[key];
-                    const turns = prog ? prog.turns : 0;
-                    return (
-                      <div className="absolute top-0 right-0 z-20 pointer-events-none flex flex-col items-end">
-                        <span className="text-sm leading-none">💎</span>
-                        {turns > 0 && (
-                          <span className={`text-[9px] font-bold leading-none px-0.5 rounded ${prog.side === 'w' ? 'text-yellow-300' : 'text-purple-300'}`}>
-                            {turns}/3
-                          </span>
+                return (
+                  <div
+                    key={ci}
+                    className={`relative cursor-pointer transition-colors ${isAbTarget ? 'ring-2 ring-yellow-300 z-10' : ''} ${isOppThreat && !isAbTarget ? 'ring-1 ring-red-500/60' : ''}`}
+                    style={{ width: 52, height: 52, background: bg }}
+                    onClick={() => handleSquareClick(ri, ci)}
+                    onMouseEnter={() => handleHover(ri, ci)}
+                    onMouseLeave={clearHover}
+                  >
+                    {/* Ability effect overlays */}
+                    {isFrozen && <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-lg z-15" style={{ background: 'rgba(56,189,248,0.25)' }}>❄️</div>}
+                    {isBurnTrap && <div className="absolute bottom-0 right-0 text-xs z-15 pointer-events-none">🔥</div>}
+                    {isBlocked && <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-base z-15" style={{ background: 'rgba(34,197,94,0.25)' }}>🌿</div>}
+                    {isBlessing && <div className="absolute top-0 left-0 text-xs z-15 pointer-events-none">✨</div>}
+                    {isVanish && <div className="absolute inset-0 pointer-events-none z-15" style={{ background: 'rgba(0,0,0,0.4)' }} />}
+                    {isGemLock && <div className="absolute top-0 left-0 text-[10px] z-15 pointer-events-none">🔒</div>}
+                    {/* Legal move indicator */}
+                    {legal && (
+                      <div className={`absolute inset-0 flex items-center justify-center z-10 pointer-events-none`}>
+                        {cell ? (
+                          <div className="absolute inset-0 border-2 border-purple-400 rounded-sm opacity-80" />
+                        ) : (
+                          <div className="w-3 h-3 rounded-full bg-purple-400 opacity-70" />
                         )}
                       </div>
-                    );
-                  })()}
+                    )}
 
-                  {/* Piece */}
-                  {cell && (
-                    <PieceCard
-                      cell={cell}
-                      equippedSkins={equippedSkins}
-                      skinImages={skinImages}
-                    />
-                  )}
+                    {/* Gem */}
+                    {gem && (() => {
+                      const key = `${ri},${ci}`;
+                      const prog = gemProgress[key];
+                      const turns = prog ? prog.turns : 0;
+                      return (
+                        <div className="absolute top-0 right-0 z-20 pointer-events-none flex flex-col items-end">
+                          <span className="text-sm leading-none">💎</span>
+                          {turns > 0 && (
+                            <span className={`text-[9px] font-bold leading-none px-0.5 rounded ${prog.side === 'w' ? 'text-yellow-300' : 'text-purple-300'}`}>
+                              {turns}/3
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
 
-                  {/* Coords */}
-                  {ci === 0 && (
-                    <span className="absolute bottom-0 left-0.5 text-[9px] text-purple-400/50 pointer-events-none">
-                      {8 - ri}
-                    </span>
-                  )}
-                  {ri === 7 && (
-                    <span className="absolute bottom-0 right-0.5 text-[9px] text-purple-400/50 pointer-events-none">
-                      {String.fromCharCode(97 + ci)}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+                    {/* Piece */}
+                    {cell && (
+                      <PieceCard
+                        cell={cell}
+                        equippedSkins={equippedSkins}
+                        skinImages={skinImages}
+                      />
+                    )}
+
+                    {/* Coords */}
+                    {ci === 0 && (
+                      <span className="absolute bottom-0 left-0.5 text-[9px] text-purple-400/50 pointer-events-none">
+                        {8 - ri}
+                      </span>
+                    )}
+                    {ri === 7 && (
+                      <span className="absolute bottom-0 right-0.5 text-[9px] text-purple-400/50 pointer-events-none">
+                        {String.fromCharCode(97 + ci)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
