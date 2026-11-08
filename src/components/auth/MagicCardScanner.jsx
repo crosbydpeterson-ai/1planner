@@ -29,15 +29,12 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
   useEffect(() => {
     primeScanAudio();
     let stream = null;
-    let timer = null;
     let successTimer = null;
     let controls = null;
     let guard = null;
     let cancelled = false;
 
     const stop = () => {
-      if (timer) clearTimeout(timer);
-      timer = null;
       if (controls) {
         try {
           controls.stop();
@@ -109,64 +106,85 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
         clearTimeout(guard);
         setStatus('scanning');
 
-        if (Detector) {
+        const wantedFormat = FORMATS[format] || FORMATS.code128;
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        // The built-in detector is the fast path, but on some devices it keeps
+        // reporting "no code" for a card another reader sees instantly. Give it
+        // a short head start only, then hand over to the JavaScript decoder on
+        // the very same camera feed.
+        const HAND_OFF_AFTER = 4;
+
+        // Returns true once the scan is dealt with (read, or the scanner closed).
+        const runBuiltIn = async (Detector) => {
           let detector;
           try {
-            // Only ask for the formats the cards use: fewer formats is read
-            // noticeably faster. Anything the device cannot read is dropped.
+            // Ask for the selected format alone — fewer formats per frame is
+            // what makes a card read quickly.
             const supported =
               typeof Detector.getSupportedFormats === 'function'
                 ? await Detector.getSupportedFormats().catch(() => null)
                 : null;
-            const wanted = FORMATS[format] || FORMATS.code128;
-            const usable = supported?.length ? wanted.filter((f) => supported.includes(f)) : wanted;
-            detector = new Detector(usable.length ? { formats: usable } : undefined);
+            // A device that cannot read this format is never going to find the
+            // card, so go straight to ZXing.
+            if (supported?.length && !wantedFormat.every((f) => supported.includes(f))) return false;
+            detector = new Detector({ formats: wantedFormat });
           } catch {
-            detector = new Detector();
+            return false;
           }
 
-          const loop = async () => {
-            if (cancelled || handledRef.current) return;
+          for (let attempt = 0; attempt < HAND_OFF_AFTER; attempt += 1) {
+            if (cancelled || handledRef.current) return true;
             try {
+              // The whole frame is decoded, so the card does not have to sit
+              // inside the on-screen guide.
               const codes = await detector.detect(videoRef.current);
               const value = codes?.[0]?.rawValue;
               if (value) {
                 finish(value);
-                return;
+                return true;
               }
             } catch {
-              // Individual frames can fail while the camera warms up — keep looking.
+              // A detector that errors out will not read this card — hand over.
+              return false;
             }
-            timer = setTimeout(loop, 150);
-          };
-          loop();
-          return;
-        }
-
-        // No built-in detector: decode the video frames in JavaScript instead.
-        const { BrowserMultiFormatReader, BarcodeFormat } = await zxingPromise;
-        if (cancelled) return;
-        const reader = new BrowserMultiFormatReader(undefined, {
-          delayBetweenScanAttempts: 60,
-          delayBetweenScanSuccess: 250,
-        });
-        // Restricting the formats keeps each frame cheap, which is what makes
-        // a card read in well under a second instead of several.
-        reader.possibleFormats = [
-          format === 'code39' ? BarcodeFormat.CODE_39 : BarcodeFormat.CODE_128,
-        ];
-        const started = await reader.decodeFromStream(stream, videoRef.current, (result) => {
-          if (result) finish(result.getText());
-        });
-        if (handledRef.current) {
-          try {
-            started.stop();
-          } catch {
-            // already stopped
+            await wait(160);
           }
-        } else {
-          controls = started;
-        }
+          return false;
+        };
+
+        // Decodes the full frame in JavaScript and keeps looking until a card is
+        // read or the scanner closes.
+        const runZxing = async () => {
+          const { BrowserMultiFormatReader, BarcodeFormat } = await zxingPromise;
+          if (cancelled || handledRef.current) return;
+          const reader = new BrowserMultiFormatReader(undefined, {
+            delayBetweenScanAttempts: 30,
+            delayBetweenScanSuccess: 250,
+          });
+          // Restricting the formats keeps each frame cheap and stops a Code 128
+          // card being misread as another symbol's digits.
+          reader.possibleFormats = [
+            format === 'code39' ? BarcodeFormat.CODE_39 : BarcodeFormat.CODE_128,
+          ];
+          const started = await reader.decodeFromStream(stream, videoRef.current, (result) => {
+            if (result) finish(result.getText());
+          });
+          if (cancelled || handledRef.current) {
+            try {
+              started.stop();
+            } catch {
+              // already stopped
+            }
+          } else {
+            controls = started;
+          }
+        };
+
+        // Let the video deliver its first real frame before asking for a decode.
+        if (videoRef.current && videoRef.current.readyState < 2) await wait(200);
+        const settled = Detector ? await runBuiltIn(Detector) : false;
+        if (!settled) await runZxing();
       } catch (e) {
         clearTimeout(guard);
         if (cancelled) return;
