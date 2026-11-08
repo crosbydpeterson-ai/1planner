@@ -27,17 +27,16 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
   const [status, setStatus] = useState('starting');
 
   useEffect(() => {
+    handledRef.current = false;
+    setStatus('starting');
     primeScanAudio();
     let stream = null;
-    let timer = null;
     let successTimer = null;
     let controls = null;
     let guard = null;
     let cancelled = false;
 
     const stop = () => {
-      if (timer) clearTimeout(timer);
-      timer = null;
       if (controls) {
         try {
           controls.stop();
@@ -54,7 +53,7 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
     };
 
     const finish = (value) => {
-      if (handledRef.current || !value) return;
+      if (cancelled || handledRef.current || !value) return;
       // One scan is handled once. The chime is played by the screen that knows
       // this card, so each card keeps its own sound.
       handledRef.current = true;
@@ -105,45 +104,40 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
           await videoRef.current.play().catch(() => {});
         }
 
+        if (cancelled) return;
         live = true;
         clearTimeout(guard);
         setStatus('scanning');
 
         if (Detector) {
-          let detector;
+          // Some browsers expose BarcodeDetector but cannot read this format.
+          // Give it a short head start, then try ZXing on the same camera feed.
           try {
-            // Only ask for the formats the cards use: fewer formats is read
-            // noticeably faster. Anything the device cannot read is dropped.
-            const supported =
-              typeof Detector.getSupportedFormats === 'function'
-                ? await Detector.getSupportedFormats().catch(() => null)
-                : null;
             const wanted = FORMATS[format] || FORMATS.code128;
-            const usable = supported?.length ? wanted.filter((f) => supported.includes(f)) : wanted;
-            detector = new Detector(usable.length ? { formats: usable } : undefined);
-          } catch {
-            detector = new Detector();
-          }
-
-          const loop = async () => {
-            if (cancelled || handledRef.current) return;
-            try {
-              const codes = await detector.detect(videoRef.current);
-              const value = codes?.[0]?.rawValue;
-              if (value) {
-                finish(value);
-                return;
+            const supported = typeof Detector.getSupportedFormats === 'function'
+              ? await Detector.getSupportedFormats()
+              : wanted;
+            if (cancelled) return;
+            if (supported.includes(wanted[0])) {
+              const detector = new Detector({ formats: wanted });
+              for (let attempt = 0; attempt < 4; attempt++) {
+                if (cancelled) return;
+                const codes = await detector.detect(videoRef.current);
+                if (cancelled) return;
+                const match = codes.find((code) => code.format === wanted[0] && code.rawValue);
+                if (match) {
+                  finish(match.rawValue);
+                  return;
+                }
+                if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 100));
               }
-            } catch {
-              // Individual frames can fail while the camera warms up — keep looking.
             }
-            timer = setTimeout(loop, 150);
-          };
-          loop();
-          return;
+          } catch {
+            // If the native detector fails, fall through to ZXing.
+          }
         }
 
-        // No built-in detector: decode the video frames in JavaScript instead.
+        if (cancelled) return;
         const { BrowserMultiFormatReader, BarcodeFormat } = await zxingPromise;
         if (cancelled) return;
         const reader = new BrowserMultiFormatReader(undefined, {
@@ -158,7 +152,7 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
         const started = await reader.decodeFromStream(stream, videoRef.current, (result) => {
           if (result) finish(result.getText());
         });
-        if (handledRef.current) {
+        if (cancelled || handledRef.current) {
           try {
             started.stop();
           } catch {
