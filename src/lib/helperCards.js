@@ -9,6 +9,7 @@
 // the HelperAction row is the audit trail either way.
 import { base44 } from '@/api/base44Client';
 import { onProfileSwitch } from '@/lib/dataCache';
+import { normalizeDesign } from '@/lib/cardDesigns';
 
 export const HELPER_CARDS_UPDATED = 'helper-cards-updated';
 
@@ -62,8 +63,34 @@ export const ACTION_LABELS = {
   switch_account: 'Switched Account',
 };
 
+// Only the fields a helper card prints, so a saved look never carries the magic
+// card's wallet-only settings.
+const helperDesign = (design) => {
+  const d = normalizeDesign(design);
+  return {
+    templateId: d.templateId,
+    themeId: d.themeId || '',
+    themeName: d.themeName || '',
+    colors: { ...d.colors },
+    textColor: d.textColor || '',
+    backgroundUri: d.backgroundUri || '',
+    sticker: d.sticker || '',
+    displayName: d.displayName || '',
+  };
+};
+
 const toPayload = (data) => ({
   number: normalizeHelperNumber(data.number),
+  design: helperDesign(data.design),
+  reward: data.reward?.type
+    ? {
+        type: data.reward.type,
+        petId: data.reward.petId || '',
+        amount: Number(data.reward.amount) || 0,
+        title: data.reward.title || '',
+        label: data.reward.label || '',
+      }
+    : {},
   numberKey: helperKey(data.number),
   nickname: (data.nickname || '').trim(),
   adminProfileId: data.adminProfileId || '',
@@ -95,6 +122,9 @@ export const isDuplicateHelperNumber = async (number, ignoreId = null) => {
 
 export const saveHelperCard = async (data, id = null) => {
   const body = toPayload(data);
+  // Only carried when the caller reset the bonus, so an ordinary edit keeps the
+  // list of students who already received it.
+  if (Array.isArray(data.rewardGrantedProfileIds)) body.rewardGrantedProfileIds = data.rewardGrantedProfileIds;
   if (!body.number) throw helperError('A helper card needs a number.');
   if (!body.adminProfileId) throw helperError('Choose the admin this card belongs to.');
   if (await isDuplicateHelperNumber(body.number, id)) throw helperError('That card number is already in use.');

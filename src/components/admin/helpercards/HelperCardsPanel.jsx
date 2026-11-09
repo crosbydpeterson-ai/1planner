@@ -14,6 +14,7 @@ import HelperCardFormDialog from './HelperCardFormDialog';
 import HelperCardPrintDialog from './HelperCardPrintDialog';
 import HelperCardHistoryDialog from './HelperCardHistoryDialog';
 import QuickHelpDialog from '@/components/helper/QuickHelpDialog';
+import { cardRewardLabel } from '@/lib/magicCardReward';
 
 const ACTION_CHIPS = [
   { key: 'fixXp', label: 'XP' },
@@ -141,6 +142,11 @@ export default function HelperCardsPanel({ users = [], currentAdmin }) {
                           {chip.label}
                         </span>
                       ))}
+                      {card.reward?.type && (
+                        <span className="text-[10px] text-amber-200 bg-amber-500/15 border border-amber-500/30 rounded-full px-2 py-0.5">
+                          🎁 {cardRewardLabel(card.reward)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1 font-mono">{maskHelperNumber(card.number)}</p>

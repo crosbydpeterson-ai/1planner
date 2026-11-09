@@ -9,7 +9,7 @@ import { CUSTOM_PET_PREFIX, customPetStorageId } from '@/lib/redeemReward';
 // One optional reward on a magic card: what the linked account receives the
 // first time the card is scanned. Kept out of the sign-in fields, so changing
 // the reward never changes how a card logs in.
-export default function MagicCardRewardPicker({ reward, onChange }) {
+export default function MagicCardRewardPicker({ reward, onChange, label = 'Card reward (optional)', note }) {
   const [customPets, setCustomPets] = useState([]);
   const type = reward?.type || 'none';
 
@@ -65,7 +65,7 @@ export default function MagicCardRewardPicker({ reward, onChange }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label className="text-slate-700">Card reward (optional)</Label>
+        <Label className="text-slate-700">{label}</Label>
         {type !== 'none' && (
           <button type="button" onClick={() => onChange(null)} className="text-xs font-semibold text-red-600">
             Remove
@@ -120,9 +120,10 @@ export default function MagicCardRewardPicker({ reward, onChange }) {
       )}
 
       <p className="text-[11px] text-slate-500">
-        {type === 'none'
-          ? 'This card only opens its account.'
-          : 'Given to the linked account the first time this card is scanned — once per account.'}
+        {note ||
+          (type === 'none'
+            ? 'This card only opens its account.'
+            : 'Given to the linked account the first time this card is scanned — once per account.')}
       </p>
     </div>
   );

@@ -55,25 +55,43 @@ export const cardRewardLabel = (reward) => {
 };
 
 /**
- * Grant a card's reward to one profile, at most once ever.
+ * Grant any card's reward to one profile, at most once ever. Magic cards and
+ * helper cards share this path, so both follow the redeem code's own rules.
  * Returns { message, updated } when something was granted, otherwise null —
  * a card with no reward, an already-claimed reward, or a reward this student
- * already owns never blocks the login.
+ * already owns never blocks the action.
  */
-export async function grantMagicCardReward(card, profile) {
-  const reward = card?.reward;
-  if (!reward?.type || !profile?.id) return null;
+export async function grantCardRewardOnce({ entityName, card, profile }) {
+  if (!card?.id || !profile?.id) return null;
+  const entity = base44.entities[entityName];
+  if (!entity) return null;
 
-  const already = card.rewardGrantedProfileIds || [];
-  if (already.includes(profile.id)) return null;
+  // Read both sides again: two windows open at once must not both spend the
+  // claim, and the reward must land on the student's current collection.
+  let fresh = card;
+  let subject = profile;
+  try {
+    const [cardRows, profileRows] = await Promise.all([
+      entity.filter({ id: card.id }),
+      base44.entities.UserProfile.filter({ id: profile.id }),
+    ]);
+    if (cardRows[0]) fresh = cardRows[0];
+    if (profileRows[0]) subject = profileRows[0];
+  } catch {}
+
+  const reward = fresh.reward;
+  if (!reward?.type) return null;
+
+  const already = fresh.rewardGrantedProfileIds || [];
+  if (already.includes(subject.id)) return null;
 
   // Claim first so a second scan in the same moment cannot grant twice.
   try {
-    await base44.entities.MagicCard.update(card.id, {
-      rewardGrantedProfileIds: [...already, profile.id],
+    await entity.update(fresh.id, {
+      rewardGrantedProfileIds: [...already, subject.id],
     });
   } catch (e) {
-    console.error('Could not claim the magic card reward:', e);
+    console.error('Could not claim the card reward:', e);
     return null;
   }
 
@@ -88,22 +106,27 @@ export async function grantMagicCardReward(card, profile) {
         // A card's Plus is permanent, the same as a Plus code with no seasons.
         seasons: 0,
       },
-      profile,
+      profile: subject,
       resolvedPet,
     });
 
     if (Object.keys(plan.updateData).length > 0) {
-      await base44.entities.UserProfile.update(profile.id, plan.updateData);
+      await base44.entities.UserProfile.update(subject.id, plan.updateData);
     }
-    return { message: plan.message, updated: { ...profile, ...plan.updateData } };
+    return { message: plan.message, updated: { ...subject, ...plan.updateData } };
   } catch (e) {
-    console.error('Magic card reward could not be applied:', e);
-    // Nothing landed, so release the claim and let the student scan again.
+    console.error('Card reward could not be applied:', e);
+    // Nothing landed, so release the claim and let the card try again.
     try {
-      await base44.entities.MagicCard.update(card.id, {
-        rewardGrantedProfileIds: already,
-      });
+      await entity.update(fresh.id, { rewardGrantedProfileIds: already });
     } catch {}
     return null;
   }
 }
+
+export const grantMagicCardReward = (card, profile) =>
+  grantCardRewardOnce({ entityName: 'MagicCard', card, profile });
+
+// A helper card hands its bonus to the student it helps, once per student.
+export const grantHelperCardReward = (card, profile) =>
+  grantCardRewardOnce({ entityName: 'HelperCard', card, profile });

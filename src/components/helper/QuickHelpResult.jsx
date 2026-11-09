@@ -38,6 +38,13 @@ export default function QuickHelpResult({ result, card, admin, onClose }) {
         </div>
       )}
 
+      {result?.bonusLabel && (
+        <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">Card bonus</p>
+          <p className="text-[11px] text-amber-100 mt-0.5">🎁 {result.bonusLabel}</p>
+        </div>
+      )}
+
       <div className="rounded-xl bg-slate-800/60 border border-slate-700 px-3 py-2 space-y-1">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Recorded</p>
         <p className="text-[11px] text-slate-300">

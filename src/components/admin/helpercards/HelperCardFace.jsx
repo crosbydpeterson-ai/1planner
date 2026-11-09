@@ -1,67 +1,117 @@
 import React from 'react';
 import CardQr from '@/components/admin/magicstudio/CardQr';
+import CardTemplateArt from '@/components/admin/magicstudio/CardTemplateArt';
+import { getTemplate, normalizeDesign, alpha } from '@/lib/cardDesigns';
 
 // The helper card is drawn on the same 520 × 328 artboard the printed wallet
-// card uses, so the print dialog can scale it straight onto paper.
+// card uses, so the print sheet can scale it straight onto paper.
 export const HELPER_CARD_W = 520;
 export const HELPER_CARD_H = 328;
 
-// A helper card is never decorated: one large black-on-white QR, the admin it
-// belongs to, and nothing that could be mistaken for a login card.
+const QR_SIZE = 168;
+
+// A helper card wears the same art as a magic card — the studio's templates,
+// palette and sticker — but keeps its number on the front as one large QR code,
+// because it is scanned by an admin rather than kept in a wallet.
 export default function HelperCardFace({ card }) {
+  const design = normalizeDesign(card?.design);
+  const template = getTemplate(design.templateId);
+  const c = design.colors;
+  const textColor = design.textColor || template.text;
+  const frame =
+    template.frame === 'holo'
+      ? 'rgba(255,255,255,0.85)'
+      : template.frame === 'soft'
+      ? alpha(c.primary, 0.6)
+      : alpha(c.primary, 0.85);
+  const title = design.displayName || card?.nickname || 'Helper Card';
+  const sticker = design.sticker || '🛠️';
+
   return (
     <div
       style={{
         width: HELPER_CARD_W,
         height: HELPER_CARD_H,
+        // The border is part of the footprint so the artboard matches the cut
+        // guides the print sheet draws around it.
+        boxSizing: 'border-box',
         position: 'relative',
         overflow: 'hidden',
         borderRadius: 22,
-        background: 'linear-gradient(140deg, #0f172a 0%, #1e1b4b 55%, #312e81 100%)',
-        color: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 24,
-        padding: '24px 26px',
-        boxSizing: 'border-box',
+        border: `3px solid ${frame}`,
+        boxShadow: `inset 0 0 26px ${alpha(c.primary, 0.35)}`,
+        color: textColor,
         fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'radial-gradient(circle at 82% 18%, rgba(99,102,241,0.35), transparent 62%)',
-        }}
-      />
+      <CardTemplateArt templateId={template.art} colors={c} backgroundUri={design.backgroundUri} />
 
-      <div style={{ background: '#ffffff', padding: 10, borderRadius: 14, flexShrink: 0, position: 'relative' }}>
-        <CardQr value={card.number} size={168} />
-      </div>
+      <div style={{ position: 'absolute', inset: 0, padding: '22px 24px', display: 'flex', alignItems: 'center', gap: 22 }}>
+        <div style={{ background: '#ffffff', padding: 10, borderRadius: 16, flexShrink: 0, position: 'relative' }}>
+          <CardQr value={card?.number || ''} size={QR_SIZE} />
+        </div>
 
-      <div style={{ position: 'relative', minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 10, letterSpacing: 3, opacity: 0.65, textTransform: 'uppercase' }}>1Planner</div>
-        <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 0.4, marginTop: 2 }}>Helper Card</div>
-        {card.nickname && (
-          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4, lineHeight: 1.3 }}>{card.nickname}</div>
-        )}
-        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 10 }}>
-          {card.adminUsername || 'Admin'} · admin only
-        </div>
-        <div
-          style={{
-            fontFamily: 'ui-monospace, monospace',
-            fontSize: 12,
-            letterSpacing: 1.6,
-            marginTop: 8,
-            opacity: 0.95,
-            wordBreak: 'break-all',
-          }}
-        >
-          {card.number}
-        </div>
-        <div style={{ fontSize: 9, letterSpacing: 1.4, textTransform: 'uppercase', opacity: 0.55, marginTop: 10 }}>
-          One action per scan
+        <div style={{ position: 'relative', minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 10, letterSpacing: 2.6, textTransform: 'uppercase', opacity: 0.8 }}>1Planner</div>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 900,
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                  marginTop: 3,
+                  padding: '4px 9px',
+                  borderRadius: 999,
+                  background: alpha(c.ink, 0.35),
+                  border: `1px solid ${alpha(c.primary, 0.8)}`,
+                  display: 'inline-block',
+                }}
+              >
+                Helper Card
+              </div>
+            </div>
+            <div
+              style={{
+                width: 62,
+                height: 62,
+                borderRadius: 18,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: alpha(c.ink, template.stickerBg),
+                border: `2px solid ${alpha(c.accent, 0.85)}`,
+                fontSize: 32,
+                lineHeight: 1,
+                flexShrink: 0,
+              }}
+            >
+              {sticker}
+            </div>
+          </div>
+
+          <div
+            style={{
+              fontSize: 24,
+              fontWeight: 900,
+              lineHeight: 1.15,
+              textShadow: template.glow ? `0 0 14px ${alpha(c.primary, 0.9)}` : 'none',
+              wordBreak: 'break-word',
+            }}
+          >
+            {title}
+          </div>
+
+          <div style={{ fontSize: 11, opacity: 0.8 }}>{card?.adminUsername || 'Admin'} · admin only</div>
+
+          <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12, letterSpacing: 1.6, opacity: 0.95, wordBreak: 'break-all' }}>
+            {card?.number || ''}
+          </div>
+
+          <div style={{ fontSize: 9, letterSpacing: 1.4, textTransform: 'uppercase', opacity: 0.6 }}>
+            One action per scan
+          </div>
         </div>
       </div>
     </div>

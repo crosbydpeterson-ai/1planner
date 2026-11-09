@@ -16,6 +16,7 @@ import QuickHelpVerify from './QuickHelpVerify';
 import QuickHelpTarget from './QuickHelpTarget';
 import QuickHelpActionForm from './QuickHelpActionForm';
 import QuickHelpResult from './QuickHelpResult';
+import { grantHelperCardReward } from '@/lib/magicCardReward';
 
 const STEP_COPY = {
   scan: ['Scan helper card', 'Hold the card in the frame — the QR code reads fastest.'],
@@ -122,7 +123,15 @@ export default function QuickHelpDialog({ open, onOpenChange }) {
         changes: outcome.changes || {},
         appliedAt: new Date().toISOString(),
       });
-      setResult({ ...outcome, switched: !!outcome.switched, actionLabel: ACTION_LABELS[actionType], appliedAt: new Date().toISOString() });
+      // The card's own bonus lands on the student it just helped, once per student.
+      const bonus = await grantHelperCardReward(card, target);
+      setResult({
+        ...outcome,
+        switched: !!outcome.switched,
+        actionLabel: ACTION_LABELS[actionType],
+        appliedAt: new Date().toISOString(),
+        bonusLabel: bonus?.message || '',
+      });
       setStep('done');
     } catch (e) {
       const message = e?.userFacing ? e.message : 'That did not go through. Nothing was changed.';

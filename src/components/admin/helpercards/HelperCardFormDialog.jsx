@@ -10,6 +10,14 @@ import { toast } from 'sonner';
 import { saveHelperCard, generateHelperNumber, isAdminProfile } from '@/lib/helperCards';
 import MagicCardScanner from '@/components/auth/MagicCardScanner';
 import { primeScanAudio, playScanSound } from '@/lib/scanSound';
+import HelperCardFace, { HELPER_CARD_W, HELPER_CARD_H } from './HelperCardFace';
+import HelperCardDesignFields from './HelperCardDesignFields';
+import MagicCardRewardPicker from '@/components/admin/MagicCardRewardPicker';
+import { blankDesign, normalizeDesign } from '@/lib/cardDesigns';
+
+// The live preview is the real card face, shrunk to fit this dialog.
+const PREVIEW_W = 330;
+const PREVIEW_SCALE = PREVIEW_W / HELPER_CARD_W;
 
 const ACTION_ROWS = [
   { key: 'fixXp', label: 'Fix Missing XP', hint: 'Add XP with a required reason' },
@@ -25,6 +33,9 @@ const emptyForm = (admin) => ({
   adminUsername: admin?.username || '',
   actions: { fixXp: true, grantReward: true, resetPasscode: true, switchAccount: false },
   rewardPresets: [{ id: 'preset_xp_25', label: '+25 XP', type: 'xp', amount: 25 }],
+  reward: null,
+  rewardGrantedProfileIds: [],
+  design: blankDesign(),
   note: '',
 });
 
@@ -46,6 +57,9 @@ export default function HelperCardFormDialog({ open, onClose, card, users = [], 
             ...card,
             actions: { ...(card.actions || {}) },
             rewardPresets: (card.rewardPresets || []).map((preset) => ({ ...preset })),
+            reward: card.reward?.type ? { ...card.reward } : null,
+            rewardGrantedProfileIds: card.rewardGrantedProfileIds || [],
+            design: normalizeDesign(card.design),
           }
         : emptyForm(currentAdmin)
     );
@@ -75,8 +89,14 @@ export default function HelperCardFormDialog({ open, onClose, card, users = [], 
     setError('');
     try {
       const admin = admins.find((row) => row.id === form.adminProfileId);
+      // A different bonus is a fresh gift, so the "already given" list starts over.
+      const rewardChanged = JSON.stringify(form.reward || null) !== JSON.stringify(card?.reward || null);
       const saved = await saveHelperCard(
-        { ...form, adminUsername: admin?.username || form.adminUsername },
+        {
+          ...form,
+          adminUsername: admin?.username || form.adminUsername,
+          rewardGrantedProfileIds: rewardChanged ? [] : form.rewardGrantedProfileIds,
+        },
         card?.id || null
       );
       toast.success(card ? 'Helper card updated' : 'Helper card created');
@@ -108,6 +128,17 @@ export default function HelperCardFormDialog({ open, onClose, card, users = [], 
               placeholder="Front desk card"
               className="mt-1 bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
             />
+          </div>
+
+          <div className="flex justify-center rounded-2xl border border-slate-700 bg-slate-800 p-2">
+            <div
+              className="overflow-hidden rounded-xl"
+              style={{ width: PREVIEW_W, height: Math.round(HELPER_CARD_H * PREVIEW_SCALE) }}
+            >
+              <div style={{ transform: `scale(${PREVIEW_SCALE})`, transformOrigin: 'top left' }}>
+                <HelperCardFace card={form} />
+              </div>
+            </div>
           </div>
 
           <div>
@@ -274,6 +305,26 @@ export default function HelperCardFormDialog({ open, onClose, card, users = [], 
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="rounded-2xl bg-white p-3">
+            <HelperCardDesignFields
+              design={normalizeDesign(form.design)}
+              onChange={(design) => setForm({ ...form, design })}
+            />
+          </div>
+
+          <div className="rounded-2xl bg-white p-3">
+            <MagicCardRewardPicker
+              reward={form.reward}
+              onChange={(reward) => setForm({ ...form, reward })}
+              label="Bonus for the student (optional)"
+              note={
+                form.reward?.type
+                  ? 'Given to the student the first time this card helps them — once per student.'
+                  : 'With no bonus, this card only makes the change you confirm.'
+              }
+            />
           </div>
 
           {error && (
