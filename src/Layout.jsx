@@ -20,6 +20,7 @@ import useSessionTracker from '@/hooks/useSessionTracker';
 import { useTeachers } from '@/hooks/useTeachers';
 import TeacherReselectDialog from '@/components/teacher/TeacherReselectDialog';
 import MusicPlayerBar from '@/components/music/MusicPlayerBar';
+import QuickHelpLauncher from '@/components/helper/QuickHelpLauncher';
 
 export default function Layout({ children, currentPageName }) {
         useSessionTracker();
@@ -224,6 +225,11 @@ export default function Layout({ children, currentPageName }) {
   // Don't show navigation on Home (login) page or Admin page
   const hideNav = currentPageName === 'Home' || currentPageName === 'Admin' || currentPageName === 'CommunityWall' || currentPageName === 'community' || currentPageName === 'GameBuilder';
 
+  // The floating corner cluster (messages + Quick Help) and the space reserved
+  // for it. Pages with their own top bars (Admin, Community Wall) keep their
+  // own header, so nothing floats over them.
+  const showCornerCluster = !hideNav || currentPageName === 'Home';
+
   
   const navItems = [
             { name: 'Dashboard', icon: Home, label: 'Home' },
@@ -269,9 +275,18 @@ export default function Layout({ children, currentPageName }) {
       <header className="fixed top-3 left-3 z-50">
         <BrandLogo size="md" />
       </header>
-      {children}
+      {/* One floating cluster in the top-right corner: messages, then Quick Help.
+          They sit side by side here rather than on top of each other. */}
+      {showCornerCluster && (
+        <div className="fixed top-3 right-3 z-[60] flex items-center gap-2">
+          {!hideNav && currentProfile && <MessageWidget currentProfile={currentProfile} />}
+          <QuickHelpLauncher />
+        </div>
+      )}
+      {/* Page content starts below that corner cluster, so a page's own header
+          buttons (sign out, settings) are never underneath it. */}
+      <div className={showCornerCluster ? 'pt-14' : ''}>{children}</div>
       {!hideNav && currentPageName !== 'CommunityWall' && currentPageName !== 'community' && <ChatbotWidget />}
-      {!hideNav && currentProfile && <MessageWidget currentProfile={currentProfile} />}
       {/* The player keeps its media mounted on every page so playback survives
           navigation; only the visible bar is hidden where there is no room. */}
       {currentProfile && <MusicPlayerBar profile={currentProfile} hideUI={hideNav} />}
