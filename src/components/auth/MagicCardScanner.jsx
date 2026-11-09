@@ -8,24 +8,17 @@ import { primeScanAudio } from '@/lib/scanSound';
 // Chrome) the frames are decoded in JavaScript, so scanning works in any
 // browser. Only a blocked/absent camera falls back to typing the number.
 //
-// Cards print in Code 128, and the decoder searches for that format alone —
-// fewer formats per frame is what makes a card read quickly. `format="code39"`
-// is the legacy switch for older printed cards, and it searches that format
-// alone in the same way.
+// Cards print in Code 128, older ones in Code 39, so those two are searched and
+// nothing else — every format the decoder is asked to try costs time on each
+// frame. `format="code39"` only puts the legacy format first.
 const FORMATS = {
-  code128: ['code_128'],
-  code39: ['code_39'],
+  code128: ['code_128', 'code_39'],
+  code39: ['code_39', 'code_128'],
 };
 
 // The decoder is large; start downloading it as soon as a screen that offers
 // scanning loads, so the first scan is not held up by the download.
 const zxingPromise = import('@zxing/browser');
-
-// Frames are decoded at the camera's own resolution. A barcode only takes up a
-// part of the picture, so shrinking the frame also shrinks its bars — below
-// roughly 2 pixels per bar the decoder cannot resolve them at all. Only frames
-// larger than this (4K phone feeds) are reduced, purely to bound the work.
-const MAX_DECODE_WIDTH = 2400;
 
 // The built-in detector gets a short head start to itself; after that the
 // JavaScript decoder works on the same feed in parallel. Whichever reads the
@@ -159,10 +152,15 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
               typeof DetectorClass.getSupportedFormats === 'function'
                 ? await DetectorClass.getSupportedFormats().catch(() => null)
                 : null;
-            // A device that cannot read this format is never going to find the
-            // card, so leave it to the JavaScript decoder.
-            if (supported?.length && !wantedFormat.every((f) => supported.includes(f))) return;
-            detector = new DetectorClass({ formats: wantedFormat });
+            // A device that cannot read either format is never going to find
+            // the card, so leave it to the JavaScript decoder. Keeping just the
+            // formats it does support means a Code 39 card still reads on a
+            // device that only handles Code 128 (and the other way round).
+            const searched = supported?.length
+              ? wantedFormat.filter((f) => supported.includes(f))
+              : wantedFormat;
+            if (!searched.length) return;
+            detector = new DetectorClass({ formats: searched });
           } catch {
             return;
           }
@@ -195,38 +193,73 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
           if (cancelled || handledRef.current) return;
 
           // Hints must be a Map: the reader keeps them and reads its formats
-          // back out of it on every frame.
-          // Every bar code a printed card can carry is searched, so the card is
-          // read whichever format it was printed in — Code 128 on new cards,
-          // Code 39 on older ones — and the chosen format is searched first.
-          const preferred = format === 'code39' ? BarcodeFormat.CODE_39 : BarcodeFormat.CODE_128;
-          const searched = [
-            preferred,
-            BarcodeFormat.CODE_128,
-            BarcodeFormat.CODE_39,
-            BarcodeFormat.EAN_13,
-            BarcodeFormat.UPC_A,
-            BarcodeFormat.EAN_8,
-            BarcodeFormat.UPC_E,
-            BarcodeFormat.ITF,
-          ].filter((f, i, all) => all.indexOf(f) === i);
-
+          // back out of it on every frame. Only the two formats printed on
+          // cards are listed, which is most of what makes a frame cheap.
           const hints = new Map();
-          hints.set(DecodeHintType.POSSIBLE_FORMATS, searched);
-          const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanSuccess: 200 });
+          hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.CODE_39]);
+          const reader = new BrowserMultiFormatReader(hints);
 
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d', { willReadFrequently: true });
           if (!ctx) return;
 
           // The guide on screen is a wide band across the middle, and this crop
-          // matches it, so the enlarged pass looks at exactly the area the
-          // student is told to fill.
+          // matches it. Reading the band rather than the whole picture is what
+          // makes a card quick to read: the bars fill the crop, so they arrive
+          // at the decoder large and sharp instead of as a few thin pixels.
           const CROP_W = 0.92;
-          const CROP_H = 0.36;
-          let magnified = false;
+          const CROP_H = 0.38;
+          const BAND_MAX = 2600;
+          const FULL_MAX = 1024;
+
+          const decodeCanvas = () => {
+            try {
+              const value = reader.decodeFromCanvas(canvas)?.getText?.();
+              if (!value) return false;
+              finish(value);
+              return true;
+            } catch {
+              // No symbol in this view — try the next one.
+              return false;
+            }
+          };
+
+          // The band exactly as the camera gave it, doubled when the camera is
+          // small enough that the bars would only be a pixel or two wide.
+          const drawBand = (video) => {
+            const cropW = video.videoWidth * CROP_W;
+            const cropH = video.videoHeight * CROP_H;
+            const scale = cropW >= 1200 ? Math.min(1, BAND_MAX / cropW) : 2;
+            canvas.width = Math.round(cropW * scale);
+            canvas.height = Math.round(cropH * scale);
+            ctx.imageSmoothingEnabled = scale < 1;
+            ctx.drawImage(
+              video,
+              (video.videoWidth - cropW) / 2,
+              (video.videoHeight - cropH) / 2,
+              cropW,
+              cropH,
+              0,
+              0,
+              canvas.width,
+              canvas.height
+            );
+          };
+
+          // A small copy of the whole picture, for a card held away from the
+          // guide. Kept modest — this pass exists so a badly aimed card is still
+          // found, not as the main read.
+          const drawFull = (video) => {
+            const scale = Math.min(1, FULL_MAX / video.videoWidth);
+            canvas.width = Math.round(video.videoWidth * scale);
+            canvas.height = Math.round(video.videoHeight * scale);
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          };
+
           let lastFrame = -1;
           let reads = 0;
+          let frames = 0;
           while (!cancelled && !handledRef.current) {
             const video = videoRef.current;
             if (!video || video.readyState < 2 || !video.videoWidth) {
@@ -239,55 +272,26 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
               continue;
             }
             lastFrame = video.currentTime;
-
-            // Two views are tried in turn: the frame exactly as the camera
-            // delivered it, and an enlarged copy of the area inside the
-            // on-screen guide. The enlarged pass rescues low-resolution
-            // webcams, where the bars alone are only a pixel or two wide.
-            if (magnified) {
-              const cropWidth = video.videoWidth * CROP_W;
-              const cropHeight = video.videoHeight * CROP_H;
-              const zoom = Math.min(2, MAX_DECODE_WIDTH / cropWidth);
-              canvas.width = Math.round(cropWidth * zoom);
-              canvas.height = Math.round(cropHeight * zoom);
-              ctx.imageSmoothingEnabled = false;
-              ctx.drawImage(
-                video,
-                (video.videoWidth - cropWidth) / 2,
-                (video.videoHeight - cropHeight) / 2,
-                cropWidth,
-                cropHeight,
-                0,
-                0,
-                canvas.width,
-                canvas.height
-              );
-            } else {
-              const scale = Math.min(1, MAX_DECODE_WIDTH / video.videoWidth);
-              canvas.width = Math.round(video.videoWidth * scale);
-              canvas.height = Math.round(video.videoHeight * scale);
-              ctx.imageSmoothingEnabled = true;
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            }
-            magnified = !magnified;
+            frames += 1;
 
             // Camera size and run of attempts, so a scanner that cannot see the
             // bars on this device says so instead of looking stuck.
-            reads += 1;
             if (statsRef.current) {
               statsRef.current.textContent = `${video.videoWidth}×${video.videoHeight} · ${reads} scans`;
             }
 
-            try {
-              const result = reader.decodeFromCanvas(canvas);
-              const value = result?.getText?.();
-              if (value) {
-                finish(value);
-                return;
-              }
-            } catch {
-              // No symbol in this frame — straight on to the next one.
+            drawBand(video);
+            reads += 1;
+            if (decodeCanvas()) return;
+
+            // The whole picture is the more expensive view, so it takes every
+            // third frame rather than halving the rate of the useful one.
+            if (frames % 3 === 0) {
+              drawFull(video);
+              reads += 1;
+              if (decodeCanvas()) return;
             }
+
             // Yield so the video keeps painting between decodes.
             await wait(0);
           }
