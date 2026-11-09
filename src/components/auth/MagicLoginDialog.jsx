@@ -158,7 +158,7 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
           <DialogDescription>
             {card
               ? 'Enter this card’s PIN to continue.'
-              : 'Hold a magic card up to the camera, or type its number.'}
+              : 'Hold a magic card up to the camera — the QR code reads fastest — or type its number.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -221,14 +221,14 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
                 />
                 {!scanHint && (
                   <p className="text-xs text-slate-500 text-center">
-                    Move the card closer until the barcode fills the band, and hold it
-                    still. Each scan is used once.
+                    Hold the card still with its codes in view. The QR code reads
+                    fastest; the barcode works too. Each scan is used once.
                   </p>
                 )}
                 <div className="text-center">
                   {legacyMode && (
                     <p className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-1.5 mb-1">
-                      Older card mode — looking for Code 39 only.
+                      Older card mode — reading Code 39 barcodes as well (QR still works).
                     </p>
                   )}
                   <button

@@ -1,5 +1,6 @@
 import React from 'react';
 import CardCode from '@/components/admin/magicstudio/CardCode';
+import CardQr from '@/components/admin/magicstudio/CardQr';
 import CardTemplateArt from '@/components/admin/magicstudio/CardTemplateArt';
 import { getTemplate, alpha } from '@/lib/cardDesigns';
 import { CARD_W, CARD_H } from '@/lib/brandAssets';
@@ -79,21 +80,46 @@ export default function CardBack({ number, design, scale = 1 }) {
             {design.displayName?.trim() || template.name} · Magic Login
           </div>
 
-          {/* White plate + quiet-zone margins keep the bars scannable. */}
+          {/* One white plate holds both codes, side by side: the QR code (read
+              almost instantly) and the Code 128 bars (older scanners, and cards
+              already printed). Both carry the card number exactly as stored —
+              leading zeros included, never a URL, never the PIN. */}
           <div
             style={{
               background: '#ffffff',
-              padding: '8px 14px',
+              padding: '10px 12px',
               borderRadius: 10,
               width: '100%',
               border: `1px solid ${alpha(c.primary, 0.35)}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
             }}
           >
-            <CardCode value={number} height={82} color={barcodeColor} />
-          </div>
-
-          <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 18, letterSpacing: 2.6, fontWeight: 700 }}>
-            {number}
+            <CardQr value={number} size={132} />
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <CardCode value={number} height={76} color={barcodeColor} />
+              <div
+                style={{
+                  fontFamily: 'ui-monospace, monospace',
+                  fontSize: 17,
+                  letterSpacing: 2.2,
+                  fontWeight: 700,
+                  color: '#101828',
+                }}
+              >
+                {number}
+              </div>
+            </div>
           </div>
 
           <div style={{ fontSize: 9, letterSpacing: 1.6, textTransform: 'uppercase', opacity: 0.65 }}>

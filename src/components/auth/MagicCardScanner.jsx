@@ -8,12 +8,13 @@ import { primeScanAudio } from '@/lib/scanSound';
 // Chrome) the frames are decoded in JavaScript, so scanning works in any
 // browser. Only a blocked/absent camera falls back to typing the number.
 //
-// Cards print in Code 128, older ones in Code 39, so those two are searched and
-// nothing else — every format the decoder is asked to try costs time on each
-// frame. `format="code39"` only puts the legacy format first.
+// Cards print a QR code and a Code 128 barcode, older ones only Code 39. Those
+// three are searched and nothing else — every format the decoder is asked to
+// try costs time on each frame. `format="code39"` only puts the legacy format
+// first; the QR is always in the list, because it is the quickest to read.
 const FORMATS = {
-  code128: ['code_128', 'code_39'],
-  code39: ['code_39', 'code_128'],
+  code128: ['qr_code', 'code_128', 'code_39'],
+  code39: ['qr_code', 'code_39', 'code_128'],
 };
 
 // The decoder is large; start downloading it as soon as a screen that offers
@@ -193,10 +194,14 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
           if (cancelled || handledRef.current) return;
 
           // Hints must be a Map: the reader keeps them and reads its formats
-          // back out of it on every frame. Only the two formats printed on
-          // cards are listed, which is most of what makes a frame cheap.
+          // back out of it on every frame. Only the formats printed on cards
+          // are listed, which is most of what makes a frame cheap.
           const hints = new Map();
-          hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.CODE_39]);
+          hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+            BarcodeFormat.QR_CODE,
+            BarcodeFormat.CODE_128,
+            BarcodeFormat.CODE_39,
+          ]);
           const reader = new BrowserMultiFormatReader(hints);
 
           const canvas = document.createElement('canvas');
@@ -257,6 +262,30 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           };
 
+          // A square taken from the middle of the picture, large enough to hold
+          // a whole QR code with its white margins. A QR is square, so it must
+          // not be squeezed into the narrow barcode band — this pass is what
+          // reads it, and it arrives complete rather than clipped.
+          const SQUARE_MAX = 1400;
+          const drawSquare = (video) => {
+            const side = Math.min(video.videoWidth, video.videoHeight);
+            const scale = Math.min(1, SQUARE_MAX / side);
+            canvas.width = Math.round(side * scale);
+            canvas.height = Math.round(side * scale);
+            ctx.imageSmoothingEnabled = scale < 1;
+            ctx.drawImage(
+              video,
+              (video.videoWidth - side) / 2,
+              (video.videoHeight - side) / 2,
+              side,
+              side,
+              0,
+              0,
+              canvas.width,
+              canvas.height
+            );
+          };
+
           let lastFrame = -1;
           let reads = 0;
           let frames = 0;
@@ -277,15 +306,26 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
             // Camera size and run of attempts, so a scanner that cannot see the
             // bars on this device says so instead of looking stuck.
             if (statsRef.current) {
-              statsRef.current.textContent = `${video.videoWidth}×${video.videoHeight} · ${reads} scans`;
+              statsRef.current.textContent = `${video.videoWidth}×${video.videoHeight} · ${frames} frames`;
             }
 
+            // The barcode band goes first: it is the cheapest look and reads
+            // the bars. A QR that happens to sit inside it reads here too.
             drawBand(video);
             reads += 1;
             if (decodeCanvas()) return;
 
-            // The whole picture is the more expensive view, so it takes every
-            // third frame rather than halving the rate of the useful one.
+            // Then the QR square, on every other frame. A card carries both
+            // codes, so whichever one is readable wins — `finish` stops the
+            // camera on the first result, so two codes never both count.
+            if (frames % 2 === 0) {
+              drawSquare(video);
+              reads += 1;
+              if (decodeCanvas()) return;
+            }
+
+            // The whole picture is the most expensive view, so it takes every
+            // third frame rather than halving the rate of the useful ones.
             if (frames % 3 === 0) {
               drawFull(video);
               reads += 1;

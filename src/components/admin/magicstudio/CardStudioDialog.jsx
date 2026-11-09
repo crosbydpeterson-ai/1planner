@@ -176,8 +176,9 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
 
               {card && sanitizeCode128(card.number) !== String(card.number) && (
                 <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
-                  This number has characters a barcode can’t hold (like accented letters or emoji), so the printed code
-                  covers only its plain characters. Typing the number still opens the same account.
+                  This number has characters a barcode can’t hold (like accented letters or emoji). The QR code
+                  still carries it in full; the barcode covers only its plain characters. Typing the number always
+                  opens the same account.
                 </p>
               )}
             </div>
@@ -235,7 +236,8 @@ export default function CardStudioDialog({ open, onOpenChange, card, onSaved }) 
                   onChange={setDesign}
                 />
                 <p className="text-[11px] text-slate-500 mt-1">
-                  The barcode always prints on a white plate, so any bar colour you pick stays scannable.
+                  The QR code always prints black on a white square, and the barcode always prints on a white plate,
+                  so any bar colour you pick stays scannable.
                 </p>
               </div>
 
