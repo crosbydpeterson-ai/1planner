@@ -1,0 +1,90 @@
+{
+  "name": "HelperAction",
+  "type": "object",
+  "properties": {
+    "cardId": {
+      "type": "string",
+      "description": "HelperCard id this action was made with"
+    },
+    "cardNickname": {
+      "type": "string",
+      "description": "Snapshot of the card name, so history reads correctly after a rename"
+    },
+    "cardNumberMasked": {
+      "type": "string",
+      "description": "Masked card number for the history view. The full number is never copied into the log."
+    },
+    "scanId": {
+      "type": "string",
+      "description": "Unique id for one scan. A second confirmation on the same scan is refused, which is what prevents a double grant."
+    },
+    "actionType": {
+      "type": "string",
+      "enum": [
+        "fix_xp",
+        "grant_reward",
+        "reset_passcode",
+        "switch_account"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue",
+        "purple",
+        "pink"
+      ],
+      "description": "Which Quick Help action was confirmed"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "applied",
+        "blocked"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "red"
+      ],
+      "default": "pending",
+      "description": "pending = claimed but not finished, applied = the change landed, blocked = refused or failed and nothing was changed"
+    },
+    "adminProfileId": {
+      "type": "string",
+      "description": "UserProfile id of the admin who confirmed"
+    },
+    "adminUsername": {
+      "type": "string",
+      "description": "Snapshot of the admin's username"
+    },
+    "targetProfileId": {
+      "type": "string",
+      "description": "UserProfile id the action was applied to"
+    },
+    "targetUsername": {
+      "type": "string",
+      "description": "Snapshot of the student's username"
+    },
+    "summary": {
+      "type": "string",
+      "description": "What changed, in words: '+25 XP \u2014 Math retry'"
+    },
+    "changes": {
+      "type": "object",
+      "description": "Field-level before/after, e.g. { xp: { before: 340, after: 365 } }"
+    },
+    "blockedReason": {
+      "type": "string",
+      "description": "Why the action was refused or failed"
+    },
+    "appliedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "cardId",
+    "scanId",
+    "actionType"
+  ]
+}

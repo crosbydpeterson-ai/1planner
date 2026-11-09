@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, CalendarHeart, MessageSquare, Gamepad2, Store, Bell, Music2, Stamp } from 'lucide-react';
+import { Home, ClipboardList, Trophy, Gem, Sparkles, Shield, ShoppingBag, CalendarHeart, MessageSquare, Gamepad2, Store, Bell, Music2, Stamp, LifeBuoy } from 'lucide-react';
+import QuickHelpDialog from '@/components/helper/QuickHelpDialog';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 import { getAppSettings, onProfileSwitch } from '@/lib/dataCache';
@@ -34,6 +35,7 @@ export default function Layout({ children, currentPageName }) {
         const [currentProfile, setCurrentProfile] = useState(null);
         const [reselectRequired, setReselectRequired] = useState(false);
         const [reselectOpen, setReselectOpen] = useState(false);
+        const [quickHelpOpen, setQuickHelpOpen] = useState(false);
         const { teachers } = useTeachers();
   
   useEffect(() => {
@@ -268,6 +270,19 @@ export default function Layout({ children, currentPageName }) {
       <header className="fixed top-3 left-3 z-50">
         <BrandLogo size="md" />
       </header>
+      {/* Quick Help lives here so an admin can reach it on any device, signed in
+          or not. Without their helper card and password it does nothing. */}
+      <div className="fixed top-3 right-3 z-50">
+        <button
+          type="button"
+          onClick={() => setQuickHelpOpen(true)}
+          title="Admin Quick Help"
+          className="w-9 h-9 rounded-full bg-white/90 border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:text-indigo-600"
+        >
+          <LifeBuoy className="w-4 h-4" />
+        </button>
+      </div>
+      <QuickHelpDialog open={quickHelpOpen} onOpenChange={setQuickHelpOpen} />
       {children}
       {!hideNav && currentPageName !== 'CommunityWall' && currentPageName !== 'community' && <ChatbotWidget />}
       {!hideNav && currentProfile && <MessageWidget currentProfile={currentProfile} />}

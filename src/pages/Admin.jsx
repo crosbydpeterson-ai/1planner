@@ -49,6 +49,7 @@ import EditShopItemDialog from '@/components/admin/EditShopItemDialog';
 import AdminSettingsPanel from '@/components/admin/AdminSettingsPanel';
 import LogoutRestrictionPanel from '@/components/admin/LogoutRestrictionPanel';
 import MagicCardsPanel from '@/components/admin/MagicCardsPanel';
+import HelperCardsPanel from '@/components/admin/helpercards/HelperCardsPanel';
 import ActiveEggJobs from '@/components/admin/ActiveEggJobs';
 import { runEggGenerationJob } from '@/lib/eggGeneration';
 import SeasonStudio from '@/components/admin/seasonstudio/SeasonStudio';
@@ -371,6 +372,7 @@ export default function Admin() {
             {can('manageWheelLibrary') && <TabsTrigger value="wheel_library" className="data-[state=active]:bg-slate-700">🎡 Wheel Library</TabsTrigger>}
             {can('manageSettings') && <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700">⚙️ Settings</TabsTrigger>}
             {(isSuperAdmin || can('manageSettings')) && <TabsTrigger value="magic_login" className="data-[state=active]:bg-slate-700">🔮 Magic Login</TabsTrigger>}
+            {(isSuperAdmin || can('manageSettings')) && <TabsTrigger value="helper_cards" className="data-[state=active]:bg-slate-700">🛟 Helper Cards</TabsTrigger>}
             {isSuperAdmin && <TabsTrigger value="lore" className="data-[state=active]:bg-slate-700">📖 Lore Comic</TabsTrigger>}
           </TabsList>
 
@@ -531,6 +533,11 @@ export default function Admin() {
           </TabsContent>
           {(isSuperAdmin || can('manageSettings')) && (
             <TabsContent value="magic_login"><MagicCardsPanel users={users} /></TabsContent>
+          )}
+          {(isSuperAdmin || can('manageSettings')) && (
+            <TabsContent value="helper_cards">
+              <HelperCardsPanel users={users} currentAdmin={adminProfile} />
+            </TabsContent>
           )}
         </Tabs>
 

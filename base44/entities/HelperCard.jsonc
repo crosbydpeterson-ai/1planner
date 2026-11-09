@@ -1,0 +1,106 @@
+{
+  "name": "HelperCard",
+  "type": "object",
+  "properties": {
+    "number": {
+      "type": "string",
+      "description": "Card number exactly as printed and encoded in the QR code. Always text, so leading characters survive."
+    },
+    "numberKey": {
+      "type": "string",
+      "description": "Normalized card number (no spaces, dashes or dots, lowercase) used to match a scanned or typed card."
+    },
+    "nickname": {
+      "type": "string",
+      "description": "Admin-facing name, e.g. 'Front desk helper card'"
+    },
+    "adminProfileId": {
+      "type": "string",
+      "description": "UserProfile id of the admin this card belongs to. Quick Help refuses the card if that account is no longer an admin."
+    },
+    "adminUsername": {
+      "type": "string",
+      "description": "Display snapshot of the admin who owns the card"
+    },
+    "actions": {
+      "type": "object",
+      "description": "Which Quick Help actions this card may confirm. Switch Account is off by default.",
+      "properties": {
+        "fixXp": {
+          "type": "boolean",
+          "default": false
+        },
+        "grantReward": {
+          "type": "boolean",
+          "default": false
+        },
+        "resetPasscode": {
+          "type": "boolean",
+          "default": false
+        },
+        "switchAccount": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "rewardPresets": {
+      "type": "array",
+      "default": [],
+      "description": "The short list of rewards this card is allowed to grant.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "description": "What the admin sees on the reward tile, e.g. '+50 XP'"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "xp",
+              "coins"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "type",
+          "amount"
+        ]
+      }
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "A disabled card is refused when scanned and checked again at confirmation."
+    },
+    "disabledAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "disabledBy": {
+      "type": "string",
+      "description": "Admin username who disabled or replaced the card"
+    },
+    "replacedByCardId": {
+      "type": "string",
+      "description": "HelperCard id that replaced this one, when it was retired"
+    },
+    "note": {
+      "type": "string",
+      "description": "Optional admin note, e.g. who carries this card"
+    }
+  },
+  "required": [
+    "number",
+    "numberKey",
+    "adminProfileId"
+  ]
+}
