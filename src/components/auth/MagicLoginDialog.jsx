@@ -221,7 +221,8 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
                 />
                 {!scanHint && (
                   <p className="text-xs text-slate-500 text-center">
-                    Keep the card steady inside the frame. Each scan is used once.
+                    Move the card closer until the barcode fills the band, and hold it
+                    still. Each scan is used once.
                   </p>
                 )}
                 <div className="text-center">
