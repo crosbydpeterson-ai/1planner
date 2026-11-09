@@ -23,12 +23,14 @@
       "enum": [
         "fix_xp",
         "grant_reward",
+        "gift_song",
         "reset_passcode",
         "switch_account"
       ],
       "enumColors": [
         "yellow",
         "blue",
+        "green",
         "purple",
         "pink"
       ],

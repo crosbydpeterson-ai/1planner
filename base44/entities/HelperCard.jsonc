@@ -34,6 +34,11 @@
           "type": "boolean",
           "default": false
         },
+        "giftSong": {
+          "type": "boolean",
+          "default": false,
+          "description": "Lets the admin add one song from the library to the student's collection."
+        },
         "resetPasscode": {
           "type": "boolean",
           "default": false

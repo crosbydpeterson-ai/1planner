@@ -7,6 +7,7 @@ const FIELD_LABELS = {
   questCoins: 'Quest Coins',
   passcode: 'Passcode',
   account: 'Account',
+  song: 'Song',
 };
 
 // Step 5: the receipt. Close is the only way out — another change needs

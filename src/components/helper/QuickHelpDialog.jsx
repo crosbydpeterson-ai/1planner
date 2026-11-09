@@ -13,6 +13,7 @@ import {
   ACTION_LABELS,
 } from '@/lib/helperCards';
 import QuickHelpVerify from './QuickHelpVerify';
+import QuickHelpMenu from './QuickHelpMenu';
 import QuickHelpTarget from './QuickHelpTarget';
 import QuickHelpActionForm from './QuickHelpActionForm';
 import QuickHelpResult from './QuickHelpResult';
@@ -21,7 +22,8 @@ import { grantHelperCardReward } from '@/lib/magicCardReward';
 const STEP_COPY = {
   scan: ['Scan helper card', 'Hold the card in the frame — the QR code reads fastest.'],
   verify: ['Verify admin', 'Only the admin this card belongs to can continue.'],
-  choose: ['Who and what', 'Pick the student, then one action.'],
+  menu: ['Pick an action', 'Choose one thing to do with this card.'],
+  target: ['Who are you helping?', 'Pick the student on this device.'],
   action: ['Confirm the change', 'Check it, then confirm once.'],
   done: ['Done', 'One action per scan.'],
 };
@@ -205,22 +207,37 @@ export default function QuickHelpDialog({ open, onOpenChange }) {
             card={card}
             onVerified={(verifiedAdmin) => {
               setAdmin(verifiedAdmin);
-              setStep('choose');
+              setStep('menu');
             }}
             onBack={reset}
           />
         )}
 
-        {step === 'choose' && card && (
+        {step === 'menu' && card && (
+          <QuickHelpMenu
+            card={card}
+            onPick={(chosenAction) => {
+              setActionType(chosenAction);
+              setError('');
+              setStep('target');
+            }}
+            onBack={() => setStep('verify')}
+          />
+        )}
+
+        {step === 'target' && card && (
           <QuickHelpTarget
             card={card}
-            onContinue={({ target: chosen, actionType: chosenAction }) => {
+            actionType={actionType}
+            onContinue={(chosen) => {
               setTarget(chosen);
-              setActionType(chosenAction);
               setError('');
               setStep('action');
             }}
-            onBack={() => setStep('verify')}
+            onBack={() => {
+              setError('');
+              setStep('menu');
+            }}
           />
         )}
 
@@ -231,7 +248,7 @@ export default function QuickHelpDialog({ open, onOpenChange }) {
             target={target}
             busy={busy}
             onConfirm={runAction}
-            onBack={() => { setError(''); setStep('choose'); }}
+            onBack={() => { setError(''); setStep('target'); }}
           />
         )}
 

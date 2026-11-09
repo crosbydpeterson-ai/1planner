@@ -19,6 +19,7 @@ import { cardRewardLabel } from '@/lib/magicCardReward';
 const ACTION_CHIPS = [
   { key: 'fixXp', label: 'XP' },
   { key: 'grantReward', label: 'Reward' },
+  { key: 'giftSong', label: 'Song' },
   { key: 'resetPasscode', label: 'Passcode' },
   { key: 'switchAccount', label: 'Switch' },
 ];

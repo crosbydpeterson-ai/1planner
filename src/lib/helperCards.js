@@ -10,6 +10,7 @@
 import { base44 } from '@/api/base44Client';
 import { onProfileSwitch } from '@/lib/dataCache';
 import { normalizeDesign } from '@/lib/cardDesigns';
+import { songGrantPatch } from '@/lib/songGift';
 
 export const HELPER_CARDS_UPDATED = 'helper-cards-updated';
 
@@ -59,6 +60,7 @@ export const isAdminProfile = (profile) =>
 export const ACTION_LABELS = {
   fix_xp: 'Fix Missing XP',
   grant_reward: 'Granted Reward',
+  gift_song: 'Gifted a Song',
   reset_passcode: 'Reset Passcode',
   switch_account: 'Switched Account',
 };
@@ -98,6 +100,7 @@ const toPayload = (data) => ({
   actions: {
     fixXp: !!data.actions?.fixXp,
     grantReward: !!data.actions?.grantReward,
+    giftSong: !!data.actions?.giftSong,
     resetPasscode: !!data.actions?.resetPasscode,
     switchAccount: !!data.actions?.switchAccount,
   },
@@ -183,6 +186,7 @@ export const verifyHelperAdmin = async (card, password) => {
 const ACTION_FIELDS = {
   fix_xp: 'fixXp',
   grant_reward: 'grantReward',
+  gift_song: 'giftSong',
   reset_passcode: 'resetPasscode',
   switch_account: 'switchAccount',
 };
@@ -288,6 +292,18 @@ export const performHelperAction = async ({ actionType, target, detail }) => {
     return {
       summary: `${preset.label} (${amount > 0 ? '+' : ''}${amount})`,
       changes: { [field]: applied },
+    };
+  }
+
+  if (actionType === 'gift_song') {
+    const song = detail?.song;
+    if (!song?.id) throw helperError('Choose a song to gift.');
+    const patch = songGrantPatch(target, song.id);
+    if (Object.keys(patch).length === 0) throw helperError('That student already owns this song.');
+    await base44.entities.UserProfile.update(target.id, patch);
+    return {
+      summary: `Song added — ${song.title}`,
+      changes: { song: { before: 'not owned', after: song.title } },
     };
   }
 

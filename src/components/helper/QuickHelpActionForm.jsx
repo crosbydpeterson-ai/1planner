@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Check, Loader2, AlertTriangle, Sparkles, Gift, KeyRound, LogIn } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, AlertTriangle, Sparkles, Gift, Music, KeyRound, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { loadGiftableTracks } from '@/lib/songGift';
 
 const TITLES = {
   fix_xp: { label: 'Fix Missing XP', icon: Sparkles },
   grant_reward: { label: 'Grant Reward', icon: Gift },
+  gift_song: { label: 'Gift a Song', icon: Music },
   reset_passcode: { label: 'Reset Passcode', icon: KeyRound },
   switch_account: { label: 'Switch Account', icon: LogIn },
 };
@@ -22,7 +24,21 @@ export default function QuickHelpActionForm({ card, actionType, target, onConfir
   const [pin, setPin] = useState('');
   const [pin2, setPin2] = useState('');
   const [ack, setAck] = useState(false);
+  const [tracks, setTracks] = useState([]);
+  const [songId, setSongId] = useState('');
+  const [songSearch, setSongSearch] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (actionType !== 'gift_song') return;
+    loadGiftableTracks()
+      .then(setTracks)
+      .catch((e) => console.error('Failed to load songs:', e));
+  }, [actionType]);
+
+  const songs = tracks.filter(
+    (track) => !songSearch.trim() || String(track.title || '').toLowerCase().includes(songSearch.trim().toLowerCase())
+  );
 
   const preset = presets.find((p) => p.id === presetId) || null;
   const xpNow = Number(target.xp) || 0;
@@ -42,6 +58,11 @@ export default function QuickHelpActionForm({ card, actionType, target, onConfir
     if (actionType === 'grant_reward') {
       if (!preset) return setError("Choose one of this card's rewards.");
       return onConfirm({ preset });
+    }
+    if (actionType === 'gift_song') {
+      const song = tracks.find((track) => track.id === songId);
+      if (!song) return setError('Pick the song to gift.');
+      return onConfirm({ song: { id: song.id, title: song.title } });
     }
     if (actionType === 'reset_passcode') {
       if (!/^\d{4}$/.test(pin)) return setError('The new passcode must be 4 digits.');
@@ -64,6 +85,10 @@ export default function QuickHelpActionForm({ card, actionType, target, onConfir
       const now = preset.type === 'coins' ? coinsNow : xpNow;
       const unit = preset.type === 'coins' ? 'Quest Coins' : 'XP';
       return `${target.username}: ${now} → ${now + preset.amount} ${unit}`;
+    }
+    if (actionType === 'gift_song') {
+      const song = tracks.find((track) => track.id === songId);
+      return song ? `🎵 "${song.title}" → ${target.username}'s music` : 'No song picked yet.';
     }
     if (actionType === 'reset_passcode') {
       return `${target.username} picks a new 4-digit passcode on this device.`;
@@ -136,6 +161,41 @@ export default function QuickHelpActionForm({ card, actionType, target, onConfir
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {actionType === 'gift_song' && (
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1.5">Song to gift</p>
+          <Input
+            value={songSearch}
+            onChange={(e) => setSongSearch(e.target.value)}
+            placeholder="Search songs"
+            className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+          />
+          <div className="mt-1.5 max-h-44 overflow-y-auto rounded-xl border border-slate-700 divide-y divide-slate-700/70">
+            {songs.length === 0 ? (
+              <p className="p-3 text-xs text-slate-500">
+                {tracks.length === 0 ? 'No songs in the library yet.' : 'No song matches that title.'}
+              </p>
+            ) : (
+              songs.map((track) => (
+                <button
+                  key={track.id}
+                  type="button"
+                  onClick={() => { setSongId(track.id); setError(''); }}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-3 py-2 text-left transition-colors',
+                    songId === track.id ? 'bg-indigo-500/15' : 'hover:bg-slate-800'
+                  )}
+                >
+                  <Music className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                  <span className="text-sm text-white truncate flex-1">{track.title}</span>
+                  {songId === track.id && <Check className="w-4 h-4 text-indigo-300" />}
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
 

@@ -22,6 +22,7 @@ const PREVIEW_SCALE = PREVIEW_W / HELPER_CARD_W;
 const ACTION_ROWS = [
   { key: 'fixXp', label: 'Fix Missing XP', hint: 'Add XP with a required reason' },
   { key: 'grantReward', label: 'Grant Reward', hint: 'Send one of the rewards below' },
+  { key: 'giftSong', label: 'Gift a Song', hint: 'Add one song from the library' },
   { key: 'resetPasscode', label: 'Reset Passcode', hint: 'Student sets a new 4-digit PIN' },
   { key: 'switchAccount', label: 'Switch Account', hint: 'Off by default — changes who is signed in' },
 ];
@@ -31,7 +32,7 @@ const emptyForm = (admin) => ({
   nickname: '',
   adminProfileId: admin?.id || '',
   adminUsername: admin?.username || '',
-  actions: { fixXp: true, grantReward: true, resetPasscode: true, switchAccount: false },
+  actions: { fixXp: true, grantReward: true, giftSong: true, resetPasscode: true, switchAccount: false },
   rewardPresets: [{ id: 'preset_xp_25', label: '+25 XP', type: 'xp', amount: 25 }],
   reward: null,
   rewardGrantedProfileIds: [],
