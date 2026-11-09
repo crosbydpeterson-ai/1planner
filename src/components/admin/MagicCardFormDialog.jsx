@@ -7,6 +7,7 @@ import { ScanLine, Hash, X } from 'lucide-react';
 import MagicCardScanner from '@/components/auth/MagicCardScanner';
 import MagicAccountPicker from '@/components/admin/MagicAccountPicker';
 import CardSoundPicker from '@/components/admin/CardSoundPicker';
+import MagicCardRewardPicker from '@/components/admin/MagicCardRewardPicker';
 import {
   playScanSound, playRejectSound, primeScanAudio, DEFAULT_SCAN_SOUND, DEFAULT_REJECT_SOUND,
 } from '@/lib/scanSound';
@@ -26,6 +27,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
   const [successSoundUrl, setSuccessSoundUrl] = useState('');
   const [rejectSound, setRejectSound] = useState(DEFAULT_REJECT_SOUND);
   const [rejectSoundUrl, setRejectSoundUrl] = useState('');
+  const [reward, setReward] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [scanHint, setScanHint] = useState('');
   const [error, setError] = useState('');
@@ -43,6 +45,7 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
     setSuccessSoundUrl(card?.successSoundUrl || '');
     setRejectSound(card?.rejectSound || DEFAULT_REJECT_SOUND);
     setRejectSoundUrl(card?.rejectSoundUrl || '');
+    setReward(card?.reward?.type ? { ...card.reward } : null);
     setScanning(false);
     setScanHint('');
     setError('');
@@ -83,7 +86,13 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
         successSoundUrl,
         rejectSound,
         rejectSoundUrl,
+        reward,
       };
+
+      // A different reward is a new gift, so the "already given" list starts over.
+      if (isEdit && JSON.stringify(reward) !== JSON.stringify(card?.reward || null)) {
+        payload.rewardGrantedProfileIds = [];
+      }
       if (removePin) payload.pinHash = '';
       else if (pin) payload.pinHash = hashCardPin(pin);
 
@@ -207,6 +216,8 @@ export default function MagicCardFormDialog({ open, onOpenChange, card, profiles
               </div>
             )}
           </div>
+
+          <MagicCardRewardPicker reward={reward} onChange={setReward} />
 
           <CardSoundPicker
             successSound={successSound}

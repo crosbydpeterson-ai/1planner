@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, RefreshCw, Loader2, AlertTriangle, Save } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Loader2, AlertTriangle, Save, ScanLine, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveHelperCard, generateHelperNumber, isAdminProfile } from '@/lib/helperCards';
+import MagicCardScanner from '@/components/auth/MagicCardScanner';
+import { primeScanAudio, playScanSound } from '@/lib/scanSound';
 
 const ACTION_ROWS = [
   { key: 'fixXp', label: 'Fix Missing XP', hint: 'Add XP with a required reason' },
@@ -30,12 +32,14 @@ export default function HelperCardFormDialog({ open, onClose, card, users = [], 
   const [form, setForm] = useState(emptyForm(currentAdmin));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [scanning, setScanning] = useState(false);
   const admins = users.filter(isAdminProfile);
 
   useEffect(() => {
     if (!open) return;
     setError('');
     setBusy(false);
+    setScanning(false);
     setForm(
       card
         ? {
@@ -132,21 +136,65 @@ export default function HelperCardFormDialog({ open, onClose, card, users = [], 
           <div>
             <div className="flex items-center justify-between">
               <Label className="text-slate-300">Card number</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setForm({ ...form, number: generateHelperNumber() })}
-                className="h-7 text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <RefreshCw className="w-3.5 h-3.5 mr-1" /> New number
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    primeScanAudio();
+                    setScanning((v) => !v);
+                  }}
+                  className="h-7 text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  <ScanLine className="w-3.5 h-3.5 mr-1" /> {scanning ? 'Stop' : 'Scan card'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setForm({ ...form, number: generateHelperNumber() })}
+                  className="h-7 text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 mr-1" /> New number
+                </Button>
+              </div>
             </div>
+
+            {scanning && (
+              <div className="mt-2 space-y-2">
+                <MagicCardScanner
+                  onDetected={(value) => {
+                    playScanSound();
+                    setScanning(false);
+                    setForm((prev) => ({ ...prev, number: String(value).trim() }));
+                    setError('');
+                  }}
+                  onUnavailable={(message) => {
+                    setScanning(false);
+                    setError(message);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setScanning(false)}
+                  className="w-full text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  <X className="w-4 h-4 mr-1" /> Stop camera
+                </Button>
+              </div>
+            )}
+
             <Input
               value={form.number}
               onChange={(e) => setForm({ ...form, number: e.target.value })}
-              className="mt-1 bg-slate-800 border-slate-600 text-white font-mono"
+              className="mt-2 bg-slate-800 border-slate-600 text-white font-mono"
             />
+            <p className="text-[10px] text-slate-500 mt-1">
+              Scan a printed helper card to reuse its number, or type one.
+            </p>
           </div>
 
           <div>

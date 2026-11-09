@@ -82,6 +82,8 @@ export const addCard = async (data) => {
     successSoundUrl: data.successSoundUrl || '',
     rejectSound: data.rejectSound || '',
     rejectSoundUrl: data.rejectSoundUrl || '',
+    reward: data.reward || null,
+    rewardGrantedProfileIds: [],
   });
   notify();
   return card;

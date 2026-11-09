@@ -47,6 +47,46 @@
       "type": "string",
       "description": "Public URL of an uploaded refusal sound. Played instead of the built-in sound when set."
     },
+    "reward": {
+      "type": "object",
+      "description": "Optional reward this card hands its linked account the first time it is scanned. Same payload the redeem codes use, so it grants through the same rules.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "pet",
+            "onepassplus",
+            "xp",
+            "coins",
+            "title"
+          ]
+        },
+        "petId": {
+          "type": "string",
+          "description": "Built-in pet id, or 'custom_<CustomPet id>'"
+        },
+        "amount": {
+          "type": "number",
+          "description": "XP or coin amount"
+        },
+        "title": {
+          "type": "string",
+          "description": "Exact title text for a title reward"
+        },
+        "label": {
+          "type": "string",
+          "description": "What the admin and student see, e.g. '+50 XP' or '\ud83d\udc3e Math Cat'"
+        }
+      }
+    },
+    "rewardGrantedProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Accounts that already received this card's reward, so one card gives its reward once per account."
+    },
     "design": {
       "type": "object",
       "description": "Magic Card Studio look only. Kept apart from the sign-in fields (number, PIN, linked profile, enabled), so changing the artwork never changes how the card logs in.",

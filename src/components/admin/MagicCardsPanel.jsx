@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { ScanLine, Plus, Pencil, Hash, UserRoundPlus, Loader2, CreditCard, Shield, Palette, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { MAGIC_CARDS_UPDATED, listCards, updateCard } from '@/lib/magicCards';
+import { cardRewardLabel } from '@/lib/magicCardReward';
 import MagicCardFormDialog from '@/components/admin/MagicCardFormDialog';
 import CardStudioDialog from '@/components/admin/magicstudio/CardStudioDialog';
 import CardPrintSheet from '@/components/admin/magicstudio/CardPrintSheet';
@@ -232,6 +233,11 @@ export default function MagicCardsPanel({ users = [] }) {
                   ) : (
                     <Badge variant="outline" className="text-[10px] text-emerald-300 border-emerald-500/50 bg-emerald-500/10">
                       No PIN
+                    </Badge>
+                  )}
+                  {card.reward?.type && (
+                    <Badge variant="outline" className="text-[10px] text-amber-300 border-amber-500/50 bg-amber-500/10">
+                      🎁 {cardRewardLabel(card.reward)}
                     </Badge>
                   )}
                   {!card.enabled && (

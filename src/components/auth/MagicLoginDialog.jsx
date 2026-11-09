@@ -8,10 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { ScanLine, Hash, Keyboard, Camera, RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
 import MagicCardScanner from '@/components/auth/MagicCardScanner';
 import { resolveCard, cardPinMatches, normalizeCardNumber } from '@/lib/magicCards';
+import { grantMagicCardReward } from '@/lib/magicCardReward';
 import { primeScanAudio, playScanSound, playRejectSound } from '@/lib/scanSound';
+import { useToast } from '@/components/ui/use-toast';
 import confetti from 'canvas-confetti';
 
 export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
+  const { toast } = useToast();
   const [scanning, setScanning] = useState(true);
   const [scanKey, setScanKey] = useState(0);
   const [manualMode, setManualMode] = useState(false);
@@ -79,7 +82,16 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
       } catch {
         // no canvas available
       }
-      onUnlocked(profile);
+
+      // A card can hand this account its reward the first time it is scanned.
+      // It never blocks the login: a card with no reward, or one already
+      // claimed, simply opens the account.
+      const reward = await grantMagicCardReward(matchedCard, profile).catch(() => null);
+      if (reward?.message) {
+        toast({ title: '🎁 Magic card reward', description: reward.message });
+      }
+
+      onUnlocked(reward?.updated || profile);
       onOpenChange(false);
     } catch (e) {
       console.error('Magic login failed:', e);
@@ -182,6 +194,11 @@ export default function MagicLoginDialog({ open, onOpenChange, onUnlocked }) {
               <p className="text-xs text-slate-500">
                 {card.nickname || 'Magic card'} → {card.profileUsername || 'linked account'}
               </p>
+              {!!card.reward?.type && (
+                <p className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                  🎁 This card gives: {card.reward.label || 'a reward'}
+                </p>
+              )}
             </div>
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>}
             <div className="flex gap-2">
