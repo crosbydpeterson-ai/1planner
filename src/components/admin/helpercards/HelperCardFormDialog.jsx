@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, RefreshCw, Loader2, AlertTriangle, Save, ScanLine, X } from 'lucide-react';
+import { RefreshCw, Loader2, AlertTriangle, Save, ScanLine, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveHelperCard, generateHelperNumber, isAdminProfile } from '@/lib/helperCards';
 import MagicCardScanner from '@/components/auth/MagicCardScanner';
@@ -13,6 +13,7 @@ import { primeScanAudio, playScanSound } from '@/lib/scanSound';
 import HelperCardFace, { HELPER_CARD_W, HELPER_CARD_H } from './HelperCardFace';
 import HelperCardDesignFields from './HelperCardDesignFields';
 import MagicCardRewardPicker from '@/components/admin/MagicCardRewardPicker';
+import HelperRewardPresets from './HelperRewardPresets';
 import { blankDesign, normalizeDesign } from '@/lib/cardDesigns';
 
 // The live preview is the real card face, shrunk to fit this dialog.
@@ -33,7 +34,7 @@ const emptyForm = (admin) => ({
   adminProfileId: admin?.id || '',
   adminUsername: admin?.username || '',
   actions: { fixXp: true, grantReward: true, giftSong: true, resetPasscode: true, switchAccount: false },
-  rewardPresets: [{ id: 'preset_xp_25', label: '+25 XP', type: 'xp', amount: 25 }],
+  rewardPresets: [{ id: 'preset_xp_25', label: '+25 XP', type: 'xp', amount: 25, value: '' }],
   reward: null,
   rewardGrantedProfileIds: [],
   design: blankDesign(),
@@ -65,24 +66,6 @@ export default function HelperCardFormDialog({ open, onClose, card, users = [], 
         : emptyForm(currentAdmin)
     );
   }, [open, card, currentAdmin]);
-
-  const setPreset = (index, patch) =>
-    setForm((prev) => ({
-      ...prev,
-      rewardPresets: prev.rewardPresets.map((preset, i) => (i === index ? { ...preset, ...patch } : preset)),
-    }));
-
-  const addPreset = () =>
-    setForm((prev) => ({
-      ...prev,
-      rewardPresets: [
-        ...prev.rewardPresets,
-        { id: `preset_${Date.now()}`, label: '+25 XP', type: 'xp', amount: 25 },
-      ],
-    }));
-
-  const removePreset = (index) =>
-    setForm((prev) => ({ ...prev, rewardPresets: prev.rewardPresets.filter((_, i) => i !== index) }));
 
   const save = async () => {
     if (busy) return;
@@ -252,61 +235,10 @@ export default function HelperCardFormDialog({ open, onClose, card, users = [], 
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between">
-              <Label className="text-slate-300">Rewards this card may grant</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={addPreset}
-                className="h-7 text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" /> Add
-              </Button>
-            </div>
-            <div className="mt-1 space-y-1.5">
-              {form.rewardPresets.length === 0 && (
-                <p className="text-[10px] text-slate-500">
-                  With no rewards listed, this card can't grant any.
-                </p>
-              )}
-              {form.rewardPresets.map((preset, index) => (
-                <div key={preset.id || index} className="flex items-center gap-1.5">
-                  <Input
-                    value={preset.label}
-                    onChange={(e) => setPreset(index, { label: e.target.value })}
-                    placeholder="+25 XP"
-                    className="flex-1 bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
-                  />
-                  <Select value={preset.type} onValueChange={(value) => setPreset(index, { type: value })}>
-                    <SelectTrigger className="w-24 bg-slate-800 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="xp">XP</SelectItem>
-                      <SelectItem value="coins">Coins</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number"
-                    value={preset.amount}
-                    onChange={(e) => setPreset(index, { amount: e.target.value })}
-                    className="w-20 bg-slate-800 border-slate-600 text-white"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removePreset(index)}
-                    className="h-8 w-8 text-slate-500 hover:text-red-400 hover:bg-slate-800"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <HelperRewardPresets
+            presets={form.rewardPresets}
+            onChange={(rewardPresets) => setForm({ ...form, rewardPresets })}
+          />
 
           <div className="rounded-2xl bg-white p-3">
             <HelperCardDesignFields

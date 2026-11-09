@@ -8,6 +8,7 @@ const FIELD_LABELS = {
   passcode: 'Passcode',
   account: 'Account',
   song: 'Song',
+  reward: 'Reward',
 };
 
 // Step 5: the receipt. Close is the only way out — another change needs

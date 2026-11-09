@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Check, Loader2, AlertTriangle, Sparkles, Gift, Music, KeyRound, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { loadGiftableTracks } from '@/lib/songGift';
+import { PRESET_TYPE_LABELS } from '@/lib/helperCards';
 
 const TITLES = {
   fix_xp: { label: 'Fix Missing XP', icon: Sparkles },
@@ -82,9 +83,9 @@ export default function QuickHelpActionForm({ card, actionType, target, onConfir
     }
     if (actionType === 'grant_reward') {
       if (!preset) return 'No reward chosen yet.';
-      const now = preset.type === 'coins' ? coinsNow : xpNow;
-      const unit = preset.type === 'coins' ? 'Quest Coins' : 'XP';
-      return `${target.username}: ${now} → ${now + preset.amount} ${unit}`;
+      if (preset.type === 'xp') return `${target.username}: ${xpNow} → ${xpNow + preset.amount} XP`;
+      if (preset.type === 'coins') return `${target.username}: ${coinsNow} → ${coinsNow + preset.amount} Quest Coins`;
+      return `${target.username} receives ${preset.label}`;
     }
     if (actionType === 'gift_song') {
       const song = tracks.find((track) => track.id === songId);
@@ -155,7 +156,7 @@ export default function QuickHelpActionForm({ card, actionType, target, onConfir
                 >
                   <p className="text-xs font-semibold text-white leading-tight">{option.label}</p>
                   <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                    {option.type === 'coins' ? 'Quest Coins' : 'XP'}
+                    {PRESET_TYPE_LABELS[option.type] || option.type}
                   </p>
                 </button>
               ))}

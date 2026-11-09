@@ -52,7 +52,7 @@
     "rewardPresets": {
       "type": "array",
       "default": [],
-      "description": "The short list of rewards this card is allowed to grant.",
+      "description": "The short list of gifts this card may grant. Every gift type the app gives is offered: XP, Quest Coins, a pet, a theme, a song, a title or 1Pass Plus.",
       "items": {
         "type": "object",
         "properties": {
@@ -61,23 +61,32 @@
           },
           "label": {
             "type": "string",
-            "description": "What the admin sees on the reward tile, e.g. '+50 XP'"
+            "description": "What the admin sees on the reward tile, e.g. '+50 XP' or '\ud83d\udc3e Math Cat'"
           },
           "type": {
             "type": "string",
             "enum": [
               "xp",
-              "coins"
+              "coins",
+              "pet",
+              "theme",
+              "song",
+              "title",
+              "onepassplus"
             ]
           },
           "amount": {
-            "type": "number"
+            "type": "number",
+            "description": "XP or Quest Coin amount. Zero for collection gifts."
+          },
+          "value": {
+            "type": "string",
+            "description": "What is handed over, by type: pet id ('custom_<CustomPet id>' for a custom pet), theme id ('custom_<CustomTheme id>' for a custom theme), MusicTrack id, or the exact title text. Empty for XP, coins and 1Pass Plus."
           }
         },
         "required": [
           "label",
-          "type",
-          "amount"
+          "type"
         ]
       }
     },

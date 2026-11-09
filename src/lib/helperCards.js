@@ -65,6 +65,17 @@ export const ACTION_LABELS = {
   switch_account: 'Switched Account',
 };
 
+// What a card's rewards can be, in the words the admin and student read.
+export const PRESET_TYPE_LABELS = {
+  xp: 'XP',
+  coins: 'Quest Coins',
+  pet: 'Pet',
+  theme: 'Theme',
+  song: 'Song',
+  title: 'Title',
+  onepassplus: '1Pass Plus',
+};
+
 // Only the fields a helper card prints, so a saved look never carries the magic
 // card's wallet-only settings.
 const helperDesign = (design) => {
@@ -105,12 +116,13 @@ const toPayload = (data) => ({
     switchAccount: !!data.actions?.switchAccount,
   },
   rewardPresets: (data.rewardPresets || [])
-    .filter((preset) => preset?.label && Math.trunc(Number(preset.amount)) !== 0)
+    .filter((preset) => preset?.type && preset?.label)
     .map((preset) => ({
-      id: preset.id || `${preset.type}_${Math.trunc(Number(preset.amount))}_${Math.random().toString(36).slice(2, 6)}`,
+      id: preset.id || `preset_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       label: preset.label,
-      type: preset.type === 'coins' ? 'coins' : 'xp',
-      amount: Math.trunc(Number(preset.amount)),
+      type: preset.type,
+      amount: Math.trunc(Number(preset.amount) || 0),
+      value: String(preset.value || ''),
     })),
   enabled: data.enabled !== false,
   note: (data.note || '').trim(),
@@ -284,14 +296,43 @@ export const performHelperAction = async ({ actionType, target, detail }) => {
 
   if (actionType === 'grant_reward') {
     const preset = detail?.preset;
-    if (!preset) throw helperError('Choose a reward.');
-    const amount = Math.trunc(Number(preset.amount) || 0);
-    if (!amount) throw helperError('That reward has no amount.');
-    const applied = preset.type === 'coins' ? await addCoins(target, amount) : await addXp(target, amount);
-    const field = preset.type === 'coins' ? 'questCoins' : 'xp';
+    if (!preset?.type) throw helperError('Choose a reward.');
+
+    if (preset.type === 'xp' || preset.type === 'coins') {
+      const amount = Math.trunc(Number(preset.amount) || 0);
+      if (!amount) throw helperError('That reward has no amount.');
+      const applied = preset.type === 'coins' ? await addCoins(target, amount) : await addXp(target, amount);
+      const field = preset.type === 'coins' ? 'questCoins' : 'xp';
+      return {
+        summary: `${preset.label} (${amount > 0 ? '+' : ''}${amount})`,
+        changes: { [field]: applied },
+      };
+    }
+
+    // Collections and Plus are stored as lists/flags on the profile.
+    const ownedField = {
+      pet: 'unlockedPets',
+      theme: 'unlockedThemes',
+      song: 'unlockedTrackIds',
+      title: 'unlockedTitles',
+    }[preset.type];
+
+    if (!ownedField && preset.type !== 'onepassplus') throw helperError('That reward is not available.');
+
+    if (ownedField) {
+      const value = String(preset.value || '').trim();
+      if (!value) throw helperError('That reward is not set up correctly.');
+      const owned = target[ownedField] || [];
+      if (owned.includes(value)) throw helperError('That student already has this reward.');
+      await base44.entities.UserProfile.update(target.id, { [ownedField]: [...owned, value] });
+    } else {
+      if (target.has1PassPlus) throw helperError('That student already has 1Pass Plus.');
+      await base44.entities.UserProfile.update(target.id, { has1PassPlus: true });
+    }
+
     return {
-      summary: `${preset.label} (${amount > 0 ? '+' : ''}${amount})`,
-      changes: { [field]: applied },
+      summary: preset.label,
+      changes: { reward: { before: 'not owned', after: preset.label } },
     };
   }
 
