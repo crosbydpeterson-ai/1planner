@@ -21,10 +21,11 @@ const FORMATS = {
 // scanning loads, so the first scan is not held up by the download.
 const zxingPromise = import('@zxing/browser');
 
-// JavaScript decoding cost follows the pixel count, and a card fills a good
-// part of the picture, so a ~960px wide copy keeps every bar crisp while
-// decoding far faster than the full camera frame.
-const DECODE_WIDTH = 960;
+// Frames are decoded at the camera's own resolution. A barcode only takes up a
+// part of the picture, so shrinking the frame also shrinks its bars — below
+// roughly 2 pixels per bar the decoder cannot resolve them at all. Only frames
+// larger than this (4K phone feeds) are reduced, purely to bound the work.
+const MAX_DECODE_WIDTH = 1600;
 
 // The built-in detector gets a short head start to itself; after that the
 // JavaScript decoder works on the same feed in parallel. Whichever reads the
@@ -189,6 +190,10 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
           const ctx = canvas.getContext('2d', { willReadFrequently: true });
           if (!ctx) return;
 
+          // Matches the on-screen guide, so the enlarged pass looks at exactly
+          // the area the student is told to hold the card inside.
+          const GUIDE_CROP = 0.88;
+          let magnified = false;
           let lastFrame = -1;
           while (!cancelled && !handledRef.current) {
             const video = videoRef.current;
@@ -203,14 +208,36 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
             }
             lastFrame = video.currentTime;
 
-            const scale = Math.min(1, DECODE_WIDTH / video.videoWidth);
-            const width = Math.round(video.videoWidth * scale);
-            const height = Math.round(video.videoHeight * scale);
-            if (canvas.width !== width || canvas.height !== height) {
-              canvas.width = width;
-              canvas.height = height;
+            // Two views are tried in turn: the frame exactly as the camera
+            // delivered it, and an enlarged copy of the area inside the
+            // on-screen guide. The enlarged pass rescues low-resolution
+            // webcams, where the bars alone are only a pixel or two wide.
+            if (magnified) {
+              const cropWidth = video.videoWidth * GUIDE_CROP;
+              const cropHeight = video.videoHeight * GUIDE_CROP;
+              const zoom = Math.min(2, MAX_DECODE_WIDTH / cropWidth);
+              canvas.width = Math.round(cropWidth * zoom);
+              canvas.height = Math.round(cropHeight * zoom);
+              ctx.imageSmoothingEnabled = false;
+              ctx.drawImage(
+                video,
+                (video.videoWidth - cropWidth) / 2,
+                (video.videoHeight - cropHeight) / 2,
+                cropWidth,
+                cropHeight,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+              );
+            } else {
+              const scale = Math.min(1, MAX_DECODE_WIDTH / video.videoWidth);
+              canvas.width = Math.round(video.videoWidth * scale);
+              canvas.height = Math.round(video.videoHeight * scale);
+              ctx.imageSmoothingEnabled = true;
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             }
-            ctx.drawImage(video, 0, 0, width, height);
+            magnified = !magnified;
 
             try {
               const result = reader.decodeFromCanvas(canvas);
