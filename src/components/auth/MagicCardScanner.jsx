@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Check, Loader2 } from 'lucide-react';
+import { DecodeHintType } from '@zxing/library';
 import { primeScanAudio } from '@/lib/scanSound';
 
 // Reads the card's barcode with the camera. Newer mobile browsers have a
@@ -20,6 +21,16 @@ const FORMATS = {
 // scanning loads, so the first scan is not held up by the download.
 const zxingPromise = import('@zxing/browser');
 
+// JavaScript decoding cost follows the pixel count, and a card fills a good
+// part of the picture, so a ~960px wide copy keeps every bar crisp while
+// decoding far faster than the full camera frame.
+const DECODE_WIDTH = 960;
+
+// The built-in detector gets a short head start to itself; after that the
+// JavaScript decoder works on the same feed in parallel. Whichever reads the
+// card first wins, so a device whose built-in detector stays silent never
+// stalls the scan.
+const NATIVE_HEAD_START = 150;
 
 export default function MagicCardScanner({ onDetected, onUnavailable, format = 'code128' }) {
   const videoRef = useRef(null);
@@ -28,21 +39,13 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
 
   useEffect(() => {
     primeScanAudio();
+    handledRef.current = false;
     let stream = null;
     let successTimer = null;
-    let controls = null;
     let guard = null;
     let cancelled = false;
 
     const stop = () => {
-      if (controls) {
-        try {
-          controls.stop();
-        } catch {
-          // already stopped
-        }
-        controls = null;
-      }
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
         stream = null;
@@ -58,22 +61,37 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
       stop();
       setStatus('detected');
       // Let the success flash land before handing the card over.
-      successTimer = setTimeout(() => onDetected?.(String(value)), 400);
+      successTimer = setTimeout(() => onDetected?.(String(value)), 250);
     };
 
-    // A device that refuses the rear-camera hint still has a usable camera, so
-    // fall back to any camera instead of giving up. A blocked camera throws
-    // straight away and is reported as such.
+    // Continuous autofocus and a sharper feed are what let the decoder read the
+    // bars at arm's length. Each step is a little less demanding, so a device
+    // that refuses one still opens a usable camera instead of giving up.
     const openCamera = async () => {
-      try {
-        return await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      const attempts = [
+        {
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            focusMode: { ideal: 'continuous' },
+          },
           audio: false,
-        });
-      } catch (e) {
-        if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') throw e;
-        return await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        },
+        { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+        { video: true, audio: false },
+      ];
+      let lastError = null;
+      for (const constraints of attempts) {
+        try {
+          return await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (e) {
+          // A blocked camera is a decision, not a mismatch — report it as is.
+          if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') throw e;
+          lastError = e;
+        }
       }
+      throw lastError || new Error('camera unavailable');
     };
 
     (async () => {
@@ -87,6 +105,7 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
         setStatus('error');
         onUnavailable?.('The camera did not open. Type the card number instead.');
       }, 8000);
+
       try {
         if (!navigator.mediaDevices?.getUserMedia) {
           throw Object.assign(new Error('no camera api'), { name: 'UnsupportedError' });
@@ -109,32 +128,26 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
         const wantedFormat = FORMATS[format] || FORMATS.code128;
         const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-        // The built-in detector is the fast path, but on some devices it keeps
-        // reporting "no code" for a card another reader sees instantly. Give it
-        // a short head start only, then hand over to the JavaScript decoder on
-        // the very same camera feed.
-        const HAND_OFF_AFTER = 4;
-
-        // Returns true once the scan is dealt with (read, or the scanner closed).
-        const runBuiltIn = async (Detector) => {
+        // Returns when the scan is dealt with (read, or the scanner closed).
+        const runBuiltIn = async (DetectorClass) => {
           let detector;
           try {
             // Ask for the selected format alone — fewer formats per frame is
             // what makes a card read quickly.
             const supported =
-              typeof Detector.getSupportedFormats === 'function'
-                ? await Detector.getSupportedFormats().catch(() => null)
+              typeof DetectorClass.getSupportedFormats === 'function'
+                ? await DetectorClass.getSupportedFormats().catch(() => null)
                 : null;
             // A device that cannot read this format is never going to find the
-            // card, so go straight to ZXing.
-            if (supported?.length && !wantedFormat.every((f) => supported.includes(f))) return false;
-            detector = new Detector({ formats: wantedFormat });
+            // card, so leave it to the JavaScript decoder.
+            if (supported?.length && !wantedFormat.every((f) => supported.includes(f))) return;
+            detector = new DetectorClass({ formats: wantedFormat });
           } catch {
-            return false;
+            return;
           }
 
-          for (let attempt = 0; attempt < HAND_OFF_AFTER; attempt += 1) {
-            if (cancelled || handledRef.current) return true;
+          let failures = 0;
+          while (!cancelled && !handledRef.current) {
             try {
               // The whole frame is decoded, so the card does not have to sit
               // inside the on-screen guide.
@@ -142,49 +155,87 @@ export default function MagicCardScanner({ onDetected, onUnavailable, format = '
               const value = codes?.[0]?.rawValue;
               if (value) {
                 finish(value);
-                return true;
+                return;
               }
+              failures = 0;
             } catch {
-              // A detector that errors out will not read this card — hand over.
-              return false;
+              // A detector that keeps erroring out will not read this card.
+              failures += 1;
+              if (failures > 4) return;
             }
-            await wait(160);
+            await wait(90);
           }
-          return false;
         };
 
-        // Decodes the full frame in JavaScript and keeps looking until a card is
-        // read or the scanner closes.
+        // Decodes frames in JavaScript, as fast as the camera delivers them,
+        // until a card is read or the scanner closes.
         const runZxing = async () => {
           const { BrowserMultiFormatReader, BarcodeFormat } = await zxingPromise;
           if (cancelled || handledRef.current) return;
-          const reader = new BrowserMultiFormatReader(undefined, {
-            delayBetweenScanAttempts: 30,
-            delayBetweenScanSuccess: 250,
-          });
-          // Restricting the formats keeps each frame cheap and stops a Code 128
-          // card being misread as another symbol's digits.
-          reader.possibleFormats = [
+
+          // Hints must be a Map: the reader keeps them and reads its formats
+          // back out of it on every frame.
+          const hints = new Map();
+          hints.set(DecodeHintType.POSSIBLE_FORMATS, [
             format === 'code39' ? BarcodeFormat.CODE_39 : BarcodeFormat.CODE_128,
-          ];
-          const started = await reader.decodeFromStream(stream, videoRef.current, (result) => {
-            if (result) finish(result.getText());
-          });
-          if (cancelled || handledRef.current) {
-            try {
-              started.stop();
-            } catch {
-              // already stopped
+          ]);
+          // Restricting the formats keeps each frame cheap and stops a Code 128
+          // card being misread as another symbol's digits. Trying harder pays
+          // for itself on a card held slightly crooked or in low light.
+          hints.set(DecodeHintType.TRY_HARDER, true);
+          const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanSuccess: 200 });
+
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) return;
+
+          let lastFrame = -1;
+          while (!cancelled && !handledRef.current) {
+            const video = videoRef.current;
+            if (!video || video.readyState < 2 || !video.videoWidth) {
+              await wait(60);
+              continue;
             }
-          } else {
-            controls = started;
+            // Never decode the same frame twice — that is pure waiting.
+            if (video.currentTime === lastFrame) {
+              await wait(10);
+              continue;
+            }
+            lastFrame = video.currentTime;
+
+            const scale = Math.min(1, DECODE_WIDTH / video.videoWidth);
+            const width = Math.round(video.videoWidth * scale);
+            const height = Math.round(video.videoHeight * scale);
+            if (canvas.width !== width || canvas.height !== height) {
+              canvas.width = width;
+              canvas.height = height;
+            }
+            ctx.drawImage(video, 0, 0, width, height);
+
+            try {
+              const result = reader.decodeFromCanvas(canvas);
+              const value = result?.getText?.();
+              if (value) {
+                finish(value);
+                return;
+              }
+            } catch {
+              // No symbol in this frame — straight on to the next one.
+            }
+            // Yield so the video keeps painting between decodes.
+            await wait(0);
           }
         };
 
         // Let the video deliver its first real frame before asking for a decode.
-        if (videoRef.current && videoRef.current.readyState < 2) await wait(200);
-        const settled = Detector ? await runBuiltIn(Detector) : false;
-        if (!settled) await runZxing();
+        if (videoRef.current && videoRef.current.readyState < 2) await wait(120);
+        await Promise.all([
+          Detector ? runBuiltIn(Detector) : Promise.resolve(),
+          (async () => {
+            if (Detector) await wait(NATIVE_HEAD_START);
+            await runZxing();
+          })(),
+        ]);
       } catch (e) {
         clearTimeout(guard);
         if (cancelled) return;
