@@ -26,6 +26,33 @@
       "type": "string",
       "description": "Full YouTube watch URL (for sourceType=youtube)"
     },
+    "startAtSeconds": {
+      "type": "number",
+      "default": 0,
+      "description": "Where playback begins, in seconds. Everything before it is skipped, so an intro or a spoken preamble is never heard. 0 starts at the top."
+    },
+    "skipSegments": {
+      "type": "array",
+      "default": [],
+      "description": "Parts of the song that are jumped over during playback, in seconds from the start of the file. Each part needs an end later than its start.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "number",
+            "description": "First second of the part to cut, e.g. 35"
+          },
+          "end": {
+            "type": "number",
+            "description": "Second where the song picks up again, e.g. 70"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ]
+      }
+    },
     "coverImageUri": {
       "type": "string",
       "description": "Private file URI for the cover art, signed on display"

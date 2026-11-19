@@ -7,12 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import MusicTrimFields from '@/components/admin/music/MusicTrimFields';
+import { parseTimeInput, formatClock } from '@/lib/musicTrim';
 import { toast } from 'sonner';
 
 export default function MusicTrackFormDialog({ open, onOpenChange, track, adminProfile, onSaved }) {
   const [form, setForm] = useState({ title: '', description: '', sourceType: 'upload', youtubeUrl: '', isActive: true, isSeasonExclusive: false });
   const [audioUri, setAudioUri] = useState('');
   const [coverUri, setCoverUri] = useState('');
+  const [startInput, setStartInput] = useState('');
+  const [segments, setSegments] = useState([]);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [generatingCover, setGeneratingCover] = useState(false);
@@ -30,6 +34,14 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
       });
       setAudioUri(track?.audioFileUri || '');
       setCoverUri(track?.coverImageUri || '');
+      setStartInput(track?.startAtSeconds > 0 ? formatClock(track.startAtSeconds) : '');
+      setSegments(
+        (track?.skipSegments || []).map((seg, i) => ({
+          id: `seg_${i}`,
+          start: formatClock(seg.start),
+          end: formatClock(seg.end),
+        }))
+      );
     }
   }, [open, track]);
 
@@ -92,6 +104,25 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
     if (!form.title.trim()) { toast.error('Please enter a title'); return; }
     if (form.sourceType === 'upload' && !audioUri) { toast.error('Please upload an audio file'); return; }
     if (form.sourceType === 'youtube' && !form.youtubeUrl.trim()) { toast.error('Please paste a YouTube URL'); return; }
+
+    // Trim: the start time and each skipped part, entered as "m:ss" or seconds.
+    const startAtSeconds = parseTimeInput(startInput) ?? 0;
+    if (startInput.trim() && parseTimeInput(startInput) === null) {
+      toast.error('Start time should look like 1:23');
+      return;
+    }
+    const skipSegments = [];
+    for (const seg of segments) {
+      if (!seg.start.trim() && !seg.end.trim()) continue;
+      const from = parseTimeInput(seg.start);
+      const to = parseTimeInput(seg.end);
+      if (from === null || to === null || to <= from) {
+        toast.error('Each skipped part needs a start and a later end, like 0:35 → 1:10');
+        return;
+      }
+      skipSegments.push({ start: from, end: to });
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -100,6 +131,8 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
         sourceType: form.sourceType,
         audioFileUri: form.sourceType === 'upload' ? audioUri : null,
         youtubeUrl: form.sourceType === 'youtube' ? form.youtubeUrl.trim() : null,
+        startAtSeconds,
+        skipSegments,
         coverImageUri: coverUri || null,
         isActive: form.isActive,
         isSeasonExclusive: form.isSeasonExclusive,
@@ -160,6 +193,12 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
               <Input value={form.youtubeUrl} onChange={(e) => setForm({ ...form, youtubeUrl: e.target.value })} placeholder="https://www.youtube.com/watch?v=…" />
             </div>
           )}
+          <MusicTrimFields
+            start={startInput}
+            onStartChange={setStartInput}
+            segments={segments}
+            onSegmentsChange={setSegments}
+          />
           <div className="space-y-2">
             <Label>Cover image (square)</Label>
             <input type="file" accept="image/*" onChange={handleCover} className="text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-700" />

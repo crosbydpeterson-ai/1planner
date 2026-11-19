@@ -4,6 +4,7 @@ import { musicPlayer, parseYouTubeId } from '@/lib/musicPlayerStore';
 import { useMusicPlayer } from '@/hooks/useMusicPlayer';
 import { getSignedUrl, invalidateSignedUrl } from '@/hooks/useSignedUrl';
 import { loadYouTubeIframeApi } from '@/lib/youtubeIframe';
+import { getPlaybackStart, skipTargetFor } from '@/lib/musicTrim';
 
 /**
  * The playback engine behind the persistent music bar.
@@ -98,7 +99,15 @@ export function useMusicPlaybackEngine(profile) {
       const player = ytPlayerRef.current;
       if (!player || !player.getCurrentTime || mediaKindRef.current !== 'youtube') return;
       try {
-        musicPlayer.setTime(player.getCurrentTime() || 0);
+        const time = player.getCurrentTime() || 0;
+        // Jump over a part the admin cut out of this song.
+        const target = skipTargetFor(musicPlayer.getState().track, time);
+        if (target !== null) {
+          try { player.seekTo(target, true); } catch (err) { /* ignore */ }
+          musicPlayer.setTime(target);
+        } else {
+          musicPlayer.setTime(time);
+        }
         const d = player.getDuration ? player.getDuration() : 0;
         if (d) musicPlayer.setDuration(d);
       } catch (e) { /* player torn down mid-poll */ }
@@ -166,9 +175,9 @@ export function useMusicPlaybackEngine(profile) {
     const s = musicPlayer.getState();
     if (!s.track || s.track.sourceType !== 'upload') return;
     const forTrackId = s.track.id;
-    // Replay after a finished song starts from the top.
+    // Replay after a finished song starts again at its chosen start time.
     if ((s.status === 'ended' || audio.ended) && audio.currentTime > 0) {
-      try { audio.currentTime = 0; } catch (e) { /* ignore */ }
+      try { audio.currentTime = getPlaybackStart(s.track); } catch (e) { /* ignore */ }
     }
     if (!s.isPlaying) {
       try { audio.pause(); } catch (e) { /* ignore */ }
@@ -200,9 +209,9 @@ export function useMusicPlaybackEngine(profile) {
     if (!s.track || s.track.sourceType !== 'youtube') return;
     try {
       const playerState = typeof player.getPlayerState === 'function' ? player.getPlayerState() : null;
-      // Replay after a finished video starts from the top.
+      // Replay after a finished video starts again at its chosen start time.
       if ((s.status === 'ended' || playerState === YOUTUBE.ENDED) && typeof player.seekTo === 'function') {
-        player.seekTo(0, true);
+        player.seekTo(getPlaybackStart(s.track), true);
       }
       if (s.isPlaying) {
         player.playVideo();
@@ -237,6 +246,18 @@ export function useMusicPlaybackEngine(profile) {
     musicPlayer.clearPendingSeek();
   }
 
+  // A song that has just loaded begins at its chosen start time (or right after
+  // a skipped part covering it) instead of at 0. A resume or an explicit seek
+  // keeps the position the student already has.
+  function applyStartTime(audio) {
+    const s = musicPlayer.getState();
+    if (!s.track || s.track.sourceType !== 'upload') return;
+    if (s.pendingSeek !== null || s.currentTime > 0.25) return;
+    const start = getPlaybackStart(s.track);
+    if (start <= 0) return;
+    try { audio.currentTime = start; } catch (e) { /* metadata not ready yet */ }
+  }
+
   // ── loading ───────────────────────────────────────────────
   // A cached signed URL is reused, so reopening the same song costs no request
   // and does not reload the media element — it just starts it again.
@@ -250,9 +271,9 @@ export function useMusicPlaybackEngine(profile) {
     if (url && loadedUriRef.current === t.audioFileUri) {
       audio.muted = mutedRef.current;
       const s0 = musicPlayer.getState();
-      // A fresh selection starts from the top; a resume keeps its position.
+      // A fresh selection starts at its chosen start time; a resume keeps its position.
       if (s0.currentTime === 0 && audio.currentTime > 0.25) {
-        try { audio.currentTime = 0; } catch (e) { /* ignore */ }
+        try { audio.currentTime = getPlaybackStart(t); } catch (e) { /* ignore */ }
       }
       applyUploadIntent(audio);
       armWatchdog(gen, 'upload');
@@ -287,7 +308,7 @@ export function useMusicPlaybackEngine(profile) {
     if (!ytReady || !hostRef.current) return; // the effect re-runs when readiness flips
     musicPlayer.setStatus('loading');
     mediaKindRef.current = 'youtube';
-    ytRef.current = { trackId: t.id, loadedAt: Date.now() };
+    ytRef.current = { trackId: t.id, loadedAt: Date.now(), startApplied: false };
 
     let player = ytPlayerRef.current;
     if (player && typeof player.loadVideoById === 'function') {
@@ -339,6 +360,15 @@ export function useMusicPlaybackEngine(profile) {
         if (!musicPlayer.getState().isPlaying) {
           try { ytPlayerRef.current?.pauseVideo?.(); } catch (e) { /* ignore */ }
           return;
+        }
+        // A freshly loaded video begins at the song's chosen start time.
+        if (!ytRef.current.startApplied) {
+          ytRef.current.startApplied = true;
+          const start = getPlaybackStart(t);
+          if (start > 0) {
+            try { ytPlayerRef.current?.seekTo?.(start, true); } catch (e) { /* ignore */ }
+            musicPlayer.setTime(start);
+          }
         }
         clearWatchdog();
         musicPlayer.setStatus('playing');
@@ -582,11 +612,19 @@ export function useMusicPlaybackEngine(profile) {
     },
     onTimeUpdate: (e) => {
       if (!uploadIsCurrent() || seekingRef.current) return;
+      // Jump over a part the admin cut out of this song.
+      const target = skipTargetFor(musicPlayer.getState().track, e.target.currentTime);
+      if (target !== null) {
+        try { e.target.currentTime = target; } catch (err) { /* ignore */ }
+        musicPlayer.setTime(target);
+        return;
+      }
       musicPlayer.setTime(e.target.currentTime);
     },
     onLoadedMetadata: (e) => {
       if (!uploadIsCurrent()) return;
       if (isFinite(e.target.duration)) musicPlayer.setDuration(e.target.duration);
+      applyStartTime(e.target);
       applyPendingSeek();
     },
     onError: () => { if (uploadIsCurrent()) handleAudioError(); },
