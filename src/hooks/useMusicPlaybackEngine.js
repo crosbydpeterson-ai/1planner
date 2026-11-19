@@ -4,7 +4,7 @@ import { musicPlayer, parseYouTubeId } from '@/lib/musicPlayerStore';
 import { useMusicPlayer } from '@/hooks/useMusicPlayer';
 import { getSignedUrl, invalidateSignedUrl } from '@/hooks/useSignedUrl';
 import { loadYouTubeIframeApi } from '@/lib/youtubeIframe';
-import { getPlaybackStart, skipTargetFor } from '@/lib/musicTrim';
+import { getPlaybackStart, clampToPlayable } from '@/lib/musicTrim';
 
 /**
  * The playback engine behind the persistent music bar.
@@ -100,11 +100,12 @@ export function useMusicPlaybackEngine(profile) {
       if (!player || !player.getCurrentTime || mediaKindRef.current !== 'youtube') return;
       try {
         const time = player.getCurrentTime() || 0;
-        // Jump over a part the admin cut out of this song.
-        const target = skipTargetFor(musicPlayer.getState().track, time);
-        if (target !== null) {
-          try { player.seekTo(target, true); } catch (err) { /* ignore */ }
-          musicPlayer.setTime(target);
+        // A cut part is never heard: the timer skips over it, and the song can
+        // never be dragged back before its start.
+        const at = clampToPlayable(musicPlayer.getState().track, time);
+        if (Math.abs(at - time) > 0.05) {
+          try { player.seekTo(at, true); } catch (err) { /* ignore */ }
+          musicPlayer.setTime(at);
         } else {
           musicPlayer.setTime(time);
         }
@@ -178,6 +179,12 @@ export function useMusicPlaybackEngine(profile) {
     // Replay after a finished song starts again at its chosen start time.
     if ((s.status === 'ended' || audio.ended) && audio.currentTime > 0) {
       try { audio.currentTime = getPlaybackStart(s.track); } catch (e) { /* ignore */ }
+    }
+    // A cut part is never heard, not even for a moment after a seek or a resume.
+    const allowed = clampToPlayable(s.track, audio.currentTime);
+    if (Math.abs(allowed - audio.currentTime) > 0.05) {
+      try { audio.currentTime = allowed; } catch (e) { /* metadata not ready */ }
+      musicPlayer.setTime(allowed);
     }
     if (!s.isPlaying) {
       try { audio.pause(); } catch (e) { /* ignore */ }
@@ -579,8 +586,9 @@ export function useMusicPlaybackEngine(profile) {
   };
 
   const beginSeek = (value) => {
+    // The thumb can't be dragged into a cut part either — it lands at its end.
     seekingRef.current = true;
-    setSeeking(value);
+    setSeeking(clampToPlayable(musicPlayer.getState().track, value));
   };
 
   const commitSeek = (value) => {
@@ -612,14 +620,25 @@ export function useMusicPlaybackEngine(profile) {
     },
     onTimeUpdate: (e) => {
       if (!uploadIsCurrent() || seekingRef.current) return;
-      // Jump over a part the admin cut out of this song.
-      const target = skipTargetFor(musicPlayer.getState().track, e.target.currentTime);
-      if (target !== null) {
-        try { e.target.currentTime = target; } catch (err) { /* ignore */ }
-        musicPlayer.setTime(target);
+      // A cut part is never heard: the timer skips over it, and the song can
+      // never be dragged back before its start.
+      const time = e.target.currentTime;
+      const at = clampToPlayable(musicPlayer.getState().track, time);
+      if (Math.abs(at - time) > 0.05) {
+        try { e.target.currentTime = at; } catch (err) { /* ignore */ }
+        musicPlayer.setTime(at);
         return;
       }
-      musicPlayer.setTime(e.target.currentTime);
+      musicPlayer.setTime(time);
+    },
+    onSeeked: (e) => {
+      // Enforce the trim even on a paused song, where no timeupdate arrives.
+      if (!uploadIsCurrent()) return;
+      const at = clampToPlayable(musicPlayer.getState().track, e.target.currentTime);
+      if (Math.abs(at - e.target.currentTime) > 0.05) {
+        try { e.target.currentTime = at; } catch (err) { /* ignore */ }
+        musicPlayer.setTime(at);
+      }
     },
     onLoadedMetadata: (e) => {
       if (!uploadIsCurrent()) return;

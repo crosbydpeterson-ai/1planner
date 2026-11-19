@@ -11,6 +11,8 @@
 // when it isn't. Failures land in 'error' with a retryable message, and a
 // resume() from that state asks the player to load the track again.
 
+import { clampToPlayable } from '@/lib/musicTrim';
+
 const idleState = () => ({
   track: null,
   isPlaying: false,
@@ -161,8 +163,11 @@ export const musicPlayer = {
     emit();
   },
 
+  // A cut part can't be chosen: a position inside one lands at its end, and a
+  // position before the song's start lands at the start.
   seek: (t) => {
-    state = { ...state, pendingSeek: t, currentTime: t };
+    const at = clampToPlayable(state.track, t);
+    state = { ...state, pendingSeek: at, currentTime: at };
     emit();
   },
 

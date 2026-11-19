@@ -46,6 +46,21 @@ export function skipTargetFor(track, time) {
   return target;
 }
 
+// The nearest second a student is allowed to hear. A position inside a skipped
+// part jumps to the end of that part, and a position before the song's start
+// jumps to the start — so a cut can never be reached by seeking either.
+export function clampToPlayable(track, time) {
+  if (!isFinite(time)) return 0;
+  const start = getPlaybackStart(track);
+  let at = time < start ? start : time;
+  for (let i = 0; i < 20; i += 1) {
+    const target = skipTargetFor(track, at);
+    if (target === null) break;
+    at = target;
+  }
+  return at;
+}
+
 // The real first second of the song: the chosen start, moved past any part
 // that start would have landed inside.
 export function getPlaybackStart(track) {
