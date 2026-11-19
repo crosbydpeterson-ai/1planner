@@ -156,7 +156,7 @@ export default function MusicTrackFormDialog({ open, onOpenChange, track, adminP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{track ? 'Edit Track' : 'New Study Track'}</DialogTitle>
         </DialogHeader>

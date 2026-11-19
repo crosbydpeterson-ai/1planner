@@ -65,6 +65,19 @@ export const musicPlayer = {
     emit();
   },
 
+  // Patch the song playing right now (e.g. its trim was just saved) without
+  // restarting it or reloading the media.
+  updateTrack: (patch) => {
+    if (!state.track) return;
+    const track = { ...state.track, ...patch };
+    state = {
+      ...state,
+      track,
+      queue: state.queue.map((t) => (t.id === track.id ? { ...t, ...patch } : t)),
+    };
+    emit();
+  },
+
   setRepeat: (on) => {
     if (state.repeat === !!on) return;
     state = { ...state, repeat: !!on };

@@ -1,14 +1,28 @@
 import React from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Crosshair } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatClock } from '@/lib/musicTrim';
 
-/** Start time + the parts of a song playback should jump over. Times are "m:ss". */
-export default function MusicTrimFields({ start, onStartChange, segments, onSegmentsChange }) {
+/**
+ * Start time + the parts of a song playback should jump over. Times are "m:ss".
+ * With `getCurrentTime` (live playback), the start can be taken from the spot
+ * being listened to, and a new skipped part begins at that spot.
+ */
+export default function MusicTrimFields({ start, onStartChange, segments, onSegmentsChange, getCurrentTime }) {
   const update = (id, key, value) =>
     onSegmentsChange(segments.map((seg) => (seg.id === id ? { ...seg, [key]: value } : seg)));
-  const add = () => onSegmentsChange([...segments, { id: `seg_${Date.now()}`, start: '', end: '' }]);
+
+  const currentClock = () => {
+    const secs = getCurrentTime?.();
+    return isFinite(secs) && secs > 0 ? formatClock(secs) : null;
+  };
+
+  const add = () => {
+    const at = currentClock();
+    onSegmentsChange([...segments, { id: `seg_${Date.now()}`, start: at || '', end: '' }]);
+  };
   const remove = (id) => onSegmentsChange(segments.filter((seg) => seg.id !== id));
 
   return (
@@ -19,12 +33,28 @@ export default function MusicTrimFields({ start, onStartChange, segments, onSegm
       </div>
       <div className="space-y-1">
         <Label className="text-xs text-slate-600">Start at (m:ss)</Label>
-        <Input
-          value={start}
-          onChange={(e) => onStartChange(e.target.value)}
-          placeholder="0:00"
-          className="h-8 w-28"
-        />
+        <div className="flex items-center gap-2">
+          <Input
+            value={start}
+            onChange={(e) => onStartChange(e.target.value)}
+            placeholder="0:00"
+            className="h-8 w-28"
+          />
+          {getCurrentTime && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 gap-1 px-2 text-xs text-indigo-600"
+              onClick={() => {
+                const at = currentClock();
+                if (at) onStartChange(at);
+              }}
+            >
+              <Crosshair className="w-3.5 h-3.5" /> Use current
+            </Button>
+          )}
+        </div>
       </div>
       <div className="space-y-2">
         <Label className="text-xs text-slate-600">Parts to skip</Label>

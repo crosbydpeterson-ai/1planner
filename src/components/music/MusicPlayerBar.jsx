@@ -1,8 +1,9 @@
-import React from 'react';
-import { Play, Pause, X, Volume2, VolumeX, Loader2, AlertCircle, Repeat } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, Pause, X, Volume2, VolumeX, Loader2, AlertCircle, Repeat, Scissors } from 'lucide-react';
 import { formatTime } from '@/lib/musicPlayerStore';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { useMusicPlaybackEngine } from '@/hooks/useMusicPlaybackEngine';
+import MusicTrimDialog from '@/components/music/MusicTrimDialog';
 
 /**
  * The visible music bar.
@@ -16,6 +17,8 @@ export default function MusicPlayerBar({ profile, hideUI = false }) {
   const engine = useMusicPlaybackEngine(profile);
   const { track, isPlaying, currentTime, duration, isLoading, hasError, error, muted, repeat, seeking } = engine;
   const coverSrc = useSignedUrl(track?.coverImageUri);
+  const [trimOpen, setTrimOpen] = useState(false);
+  const isAdmin = profile?.rank === 'admin' || profile?.rank === 'super_admin';
 
   const dur = duration || 0;
   const cur = seeking !== null ? seeking : currentTime;
@@ -63,6 +66,16 @@ export default function MusicPlayerBar({ profile, hideUI = false }) {
               >
                 <Repeat className="w-4 h-4" />
               </button>
+              {isAdmin && (
+                <button
+                  onClick={() => setTrimOpen(true)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100"
+                  aria-label="Trim this song"
+                  title="Trim this song — set where it starts and skip parts"
+                >
+                  <Scissors className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={() => engine.setMuted(m => !m)}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100"
@@ -107,6 +120,10 @@ export default function MusicPlayerBar({ profile, hideUI = false }) {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {isAdmin && track ? (
+        <MusicTrimDialog open={trimOpen} onOpenChange={setTrimOpen} track={track} />
       ) : null}
 
       {/* Media elements stay mounted independently of the visible bar, and stay
