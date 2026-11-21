@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import LeaderboardRow from '@/components/quest/LeaderboardRow';
 import GlassIcon from '@/components/ui/GlassIcon';
 import { PETS } from '@/components/quest/PetCatalog';
+import { normalizeGrade } from '@/lib/grades';
 
 export default function Leaderboard() {
   const navigate = useNavigate();
@@ -44,19 +45,22 @@ export default function Leaderboard() {
         setProfile(profiles[0]);
       }
 
-      await loadLeaderboard();
+      await loadLeaderboard(profiles[0]?.grade);
     } catch (e) {
       console.error('Error loading data:', e);
     }
     setLoading(false);
   };
 
-  const loadLeaderboard = async () => {
+  const loadLeaderboard = async (grade) => {
     setRefreshing(true);
     try {
-      // Get all visible users (not locked, not hidden)
+      // One grade at a time: students are ranked against their own grade.
+      const gradeKey = normalizeGrade(grade);
       const allProfiles = await base44.entities.UserProfile.list('-xp');
-      const visible = allProfiles.filter(p => !p.isLocked && !p.hiddenFromLeaderboard);
+      const visible = allProfiles.filter(p =>
+        !p.isLocked && !p.hiddenFromLeaderboard && normalizeGrade(p.grade) === gradeKey
+      );
       
       // Add pet emoji to each user
       const withPets = visible.map(p => {
@@ -103,14 +107,14 @@ export default function Leaderboard() {
               <GlassIcon icon={Trophy} color="amber" />
               <div>
                 <h1 className="text-2xl font-bold text-slate-800">Leaderboard</h1>
-                <p className="text-sm text-slate-500">Top students by XP</p>
+                <p className="text-sm text-slate-500">Top Grade {normalizeGrade(profile?.grade)} students by XP</p>
               </div>
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            onClick={loadLeaderboard}
+            onClick={() => loadLeaderboard(profile?.grade)}
             disabled={refreshing}
             className="rounded-xl"
           >

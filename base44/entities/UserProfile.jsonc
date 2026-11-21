@@ -10,6 +10,19 @@
       "type": "string",
       "description": "Display username"
     },
+    "grade": {
+      "type": "string",
+      "enum": [
+        "5",
+        "6"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "6",
+      "description": "The student's grade: '5' or '6'. Chosen at signup and only changed by an admin. Organizes schoolwork and the leaderboard; it never grants permissions. Profiles saved before grades existed have no value and count as Grade 6."
+    },
     "contactEmail": {
       "type": "string",
       "format": "email",

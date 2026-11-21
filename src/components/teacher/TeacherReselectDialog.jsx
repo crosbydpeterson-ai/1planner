@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Calculator, BookOpen, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { teachersForGrade } from '@/lib/grades';
 
 /**
  * Forced teacher re-selection popup.
@@ -23,8 +24,10 @@ import { toast } from 'sonner';
  *  - profile: current UserProfile
  *  - teachers: { all, math, reading } from useTeachers
  *  - onComplete: (updatedProfile) => void
+ *  - reason: 'year' for the new-school-year reset, 'grade' when an admin
+ *    changed the student's grade and their teachers no longer match it.
  */
-export default function TeacherReselectDialog({ open, profile, teachers, onComplete }) {
+export default function TeacherReselectDialog({ open, profile, teachers, onComplete, reason = 'year' }) {
   const [mathId, setMathId] = useState('');
   const [readingId, setReadingId] = useState('');
   const [saving, setSaving] = useState(false);
@@ -59,17 +62,21 @@ export default function TeacherReselectDialog({ open, profile, teachers, onCompl
     setSaving(false);
   };
 
-  const mathTeachers = (teachers?.math || []).filter((t) => t.isActive !== false);
-  const readingTeachers = (teachers?.reading || []).filter((t) => t.isActive !== false);
+  // Only the teachers of the student's own grade are offered.
+  const mathTeachers = teachersForGrade(teachers?.math, profile?.grade);
+  const readingTeachers = teachersForGrade(teachers?.reading, profile?.grade);
 
   return (
     <Dialog open={open} onOpenChange={() => { /* prevent dismiss */ }}>
       <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>New School Year — Pick Your Teachers</DialogTitle>
+          <DialogTitle>
+            {reason === 'grade' ? `Grade ${profile?.grade === '5' ? '5' : '6'} — Pick Your Teachers` : 'New School Year — Pick Your Teachers'}
+          </DialogTitle>
           <DialogDescription>
-            Your admin has started a new school year. Please select your new Math and Reading
-            teachers to continue. Your pets, coins, gems, and cosmetics are safe.
+            {reason === 'grade'
+              ? 'Your admin changed your grade, so your old teachers no longer match. Please pick your Math and Reading teachers to continue. Your XP, pets, coins, and progress are safe.'
+              : 'Your admin has started a new school year. Please select your new Math and Reading teachers to continue. Your pets, coins, gems, and cosmetics are safe.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -96,7 +103,7 @@ export default function TeacherReselectDialog({ open, profile, teachers, onCompl
                 </button>
               ))}
               {mathTeachers.length === 0 && (
-                <p className="text-xs text-slate-400 col-span-2">No math teachers available.</p>
+                <p className="text-xs text-slate-400 col-span-2">No math teachers for your grade yet — ask your admin.</p>
               )}
             </div>
           </div>
@@ -123,7 +130,7 @@ export default function TeacherReselectDialog({ open, profile, teachers, onCompl
                 </button>
               ))}
               {readingTeachers.length === 0 && (
-                <p className="text-xs text-slate-400 col-span-2">No reading teachers available.</p>
+                <p className="text-xs text-slate-400 col-span-2">No reading teachers for your grade yet — ask your admin.</p>
               )}
             </div>
           </div>

@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sword, Shield, Sparkles, User, Hash, BookOpen, Calculator, ChevronRight, Eye, EyeOff, ScanLine } from 'lucide-react';
+import { Sword, Shield, Sparkles, User, Hash, BookOpen, Calculator, ChevronRight, Eye, EyeOff, ScanLine, GraduationCap } from 'lucide-react';
 import MagicLoginDialog from '@/components/auth/MagicLoginDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useTeachers } from '@/hooks/useTeachers';
 import { useAuth } from '@/lib/AuthContext';
 import { onProfileSwitch } from '@/lib/dataCache';
+import { GRADE_OPTIONS, teachersForGrade } from '@/lib/grades';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function Home() {
   const [pin, setPin] = useState('');
   const [mathTeacher, setMathTeacher] = useState('');
   const [readingTeacher, setReadingTeacher] = useState('');
+  const [grade, setGrade] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -144,6 +146,13 @@ export default function Home() {
     navigate(createPageUrl('Dashboard'));
   };
 
+  // Changing the grade drops any teacher that belongs to the other grade.
+  const handleGradeChange = (value) => {
+    setGrade(value);
+    if (mathTeacher && !teachersForGrade(teachers.math, value).some((t) => t.id === mathTeacher)) setMathTeacher('');
+    if (readingTeacher && !teachersForGrade(teachers.reading, value).some((t) => t.id === readingTeacher)) setReadingTeacher('');
+  };
+
   const handleSignup = async () => {
     if (!username.trim()) {
       setError('Please enter a username');
@@ -155,6 +164,10 @@ export default function Home() {
     }
     if (!/^\d{4}$/.test(pin)) {
       setError('PIN must be exactly 4 digits');
+      return;
+    }
+    if (!grade) {
+      setError('Please select your grade');
       return;
     }
     if (!mathTeacher) {
@@ -237,6 +250,7 @@ export default function Home() {
         username: username.trim().toLowerCase(),
         mathTeacher,
         readingTeacher,
+        grade,
         xp: referralCode ? referredRewardXP : 0,
         isLocked: false,
         hiddenFromLeaderboard: false,
@@ -436,42 +450,75 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Teacher selections (signup only) */}
+              {/* Grade question, then the teachers for that grade (signup only) */}
               {mode === 'signup' &&
               <>
                   <div className="space-y-2">
                     <Label className="text-slate-700 flex items-center gap-2">
-                      <Calculator className="w-4 h-4" />
-                      Math Teacher
+                      <GraduationCap className="w-4 h-4" />
+                      What grade are you in?
                     </Label>
-                    <Select value={mathTeacher} onValueChange={setMathTeacher}>
-                      <SelectTrigger className="h-12 rounded-xl border-slate-200">
-                        <SelectValue placeholder="Select your Math teacher" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teachers.math.filter((t) => t.isActive !== false).map((t) =>
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                      )}
-                      </SelectContent>
-                    </Select>
+                    <div className="grid grid-cols-2 gap-2">
+                      {GRADE_OPTIONS.map((g) =>
+                    <button
+                      key={g.value}
+                      type="button"
+                      onClick={() => handleGradeChange(g.value)}
+                      className={`h-12 rounded-xl border text-sm font-semibold transition-all ${
+                      grade === g.value ?
+                      'border-indigo-500 bg-indigo-50 text-indigo-700' :
+                      'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`
+                      }>
+
+                          {g.label}
+                        </button>
+                    )}
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-slate-700 flex items-center gap-2">
-                      <BookOpen className="w-4 h-4" />
-                      Reading Teacher
-                    </Label>
-                    <Select value={readingTeacher} onValueChange={setReadingTeacher}>
-                      <SelectTrigger className="h-12 rounded-xl border-slate-200">
-                        <SelectValue placeholder="Select your Reading teacher" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teachers.reading.filter((t) => t.isActive !== false).map((t) =>
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                      )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {grade &&
+              <>
+                      <div className="space-y-2">
+                        <Label className="text-slate-700 flex items-center gap-2">
+                          <Calculator className="w-4 h-4" />
+                          Math Teacher
+                        </Label>
+                        <Select value={mathTeacher} onValueChange={setMathTeacher}>
+                          <SelectTrigger className="h-12 rounded-xl border-slate-200">
+                            <SelectValue placeholder="Select your Math teacher" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {teachersForGrade(teachers.math, grade).map((t) =>
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                        )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-slate-700 flex items-center gap-2">
+                          <BookOpen className="w-4 h-4" />
+                          Reading Teacher
+                        </Label>
+                        <Select value={readingTeacher} onValueChange={setReadingTeacher}>
+                          <SelectTrigger className="h-12 rounded-xl border-slate-200">
+                            <SelectValue placeholder="Select your Reading teacher" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {teachersForGrade(teachers.reading, grade).map((t) =>
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                        )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {(teachersForGrade(teachers.math, grade).length === 0 || teachersForGrade(teachers.reading, grade).length === 0) &&
+                  <p className="text-xs text-amber-600">
+                            No Grade {grade} teachers are set up yet — ask your admin to add them.
+                          </p>
+                  }
+                    </>
+              }
                 </>
               }
 

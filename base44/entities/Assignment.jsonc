@@ -18,6 +18,21 @@
       "type": "string",
       "description": "Target teacher ID or 'everyone'"
     },
+    "grade": {
+      "type": "string",
+      "enum": [
+        "5",
+        "6",
+        "both"
+      ],
+      "enumColors": [
+        "blue",
+        "purple",
+        "green"
+      ],
+      "default": "6",
+      "description": "Which grade this schoolwork is for: '5', '6', or 'both'. Assignments saved before grades existed have no value and count as Grade 6."
+    },
     "pdfUrl": {
       "type": "string",
       "description": "URL of attached PDF file for AI question generation"

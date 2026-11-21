@@ -10,6 +10,19 @@
       "type": "string",
       "description": "Subject slug this teacher teaches \u2014 'math', 'reading', or a custom Subject entity slug"
     },
+    "grade": {
+      "type": "string",
+      "enum": [
+        "5",
+        "6"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "6",
+      "description": "Grade this teacher teaches: '5' or '6'. Teachers saved before grades existed have no value and count as Grade 6."
+    },
     "isActive": {
       "type": "boolean",
       "default": true,

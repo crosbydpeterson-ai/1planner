@@ -21,6 +21,7 @@ import { useTeachers } from '@/hooks/useTeachers';
 import TeacherReselectDialog from '@/components/teacher/TeacherReselectDialog';
 import MusicPlayerBar from '@/components/music/MusicPlayerBar';
 import QuickHelpLauncher from '@/components/helper/QuickHelpLauncher';
+import { teachersForGrade } from '@/lib/grades';
 
 export default function Layout({ children, currentPageName }) {
         useSessionTracker();
@@ -190,11 +191,25 @@ export default function Layout({ children, currentPageName }) {
     }
   };
 
+  // A student whose grade an admin changed may now hold teachers from the other
+  // grade. They are asked to pick again — only when their grade has teachers to
+  // choose from, so nobody gets stuck behind an empty list.
+  const gradeTeachersMismatch = (() => {
+    if (!currentProfile || isAdmin) return false;
+    const math = teachersForGrade(teachers.math, currentProfile.grade);
+    const reading = teachersForGrade(teachers.reading, currentProfile.grade);
+    if (math.length === 0 || reading.length === 0) return false;
+    return !math.some((t) => t.id === currentProfile.mathTeacher) ||
+      !reading.some((t) => t.id === currentProfile.readingTeacher);
+  })();
+
   useEffect(() => {
-    if (reselectRequired && currentProfile && !isAdmin && (!currentProfile.mathTeacher || !currentProfile.readingTeacher)) {
+    if (!currentProfile || isAdmin) return;
+    const yearReset = reselectRequired && (!currentProfile.mathTeacher || !currentProfile.readingTeacher);
+    if (yearReset || gradeTeachersMismatch) {
       setReselectOpen(true);
     }
-  }, [reselectRequired, currentProfile, isAdmin]);
+  }, [reselectRequired, currentProfile, isAdmin, gradeTeachersMismatch]);
 
   const isFeatureLockedForUser = (feature) => {
     if (isAdmin) return false;
@@ -368,6 +383,7 @@ export default function Layout({ children, currentPageName }) {
           open={reselectOpen}
           profile={currentProfile}
           teachers={teachers}
+          reason={reselectRequired && (!currentProfile.mathTeacher || !currentProfile.readingTeacher) ? 'year' : 'grade'}
           onComplete={(updated) => {
             setCurrentProfile(updated);
             setReselectOpen(false);

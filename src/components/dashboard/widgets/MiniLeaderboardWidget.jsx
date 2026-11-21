@@ -5,8 +5,9 @@ import { createPageUrl } from '@/utils';
 import { Trophy, ChevronRight } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { PETS } from '@/components/quest/PetCatalog';
+import { normalizeGrade } from '@/lib/grades';
 
-export default function MiniLeaderboardWidget({ currentUserId }) {
+export default function MiniLeaderboardWidget({ currentUserId, grade }) {
   const [topUsers, setTopUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,9 +17,10 @@ export default function MiniLeaderboardWidget({ currentUserId }) {
 
   const loadTop3 = async () => {
     try {
-      const allProfiles = await base44.entities.UserProfile.list('-xp', 10);
+      const gradeKey = normalizeGrade(grade);
+      const allProfiles = await base44.entities.UserProfile.list('-xp', 50);
       const visible = allProfiles
-        .filter(p => !p.isLocked && !p.hiddenFromLeaderboard)
+        .filter(p => !p.isLocked && !p.hiddenFromLeaderboard && normalizeGrade(p.grade) === gradeKey)
         .slice(0, 3);
       
       const withPets = visible.map(p => {

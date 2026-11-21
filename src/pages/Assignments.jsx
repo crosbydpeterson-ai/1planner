@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchProfileWithRetry } from '@/lib/profileLoader';
+import { assignmentMatchesGrade, normalizeGrade } from '@/lib/grades';
 import LoadErrorCard from '@/components/common/LoadErrorCard';
 import { ClipboardList, ArrowLeft, CheckCircle, Plus, AlertTriangle, Gift, FileText, Upload, X, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -119,6 +120,8 @@ export default function Assignments() {
           expiredIds.push(a.id);
           return false;
         }
+        // Only this student's grade, plus schoolwork shared with both grades.
+        if (!assignmentMatchesGrade(a, p.grade)) return false;
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
         if (a.subject === 'math' && a.target === p.mathTeacher) return true;
         if (a.subject === 'reading' && a.target === p.readingTeacher) return true;
@@ -230,6 +233,7 @@ export default function Assignments() {
         description: newAssignment.description,
         subject: newAssignment.subject,
         target: target,
+        grade: normalizeGrade(profile.grade),
         xpReward: 25,
         dueDate: newAssignment.dueDate || null,
         pdfUrl: pdfUrl || null,

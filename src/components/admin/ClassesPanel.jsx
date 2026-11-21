@@ -10,12 +10,14 @@ import { useSubjects } from '@/hooks/useSubjects';
 import TeacherRosterDialog from '@/components/admin/TeacherRosterDialog';
 import StartNewYearDialog from '@/components/admin/StartNewYearDialog';
 import SubjectsPanel from '@/components/admin/SubjectsPanel';
+import { GRADE_OPTIONS, normalizeGrade } from '@/lib/grades';
 
 export default function ClassesPanel() {
   const { teachers, loading, reload } = useTeachers();
   const { subjects } = useSubjects();
   const [users, setUsers] = useState([]);
   const [newName, setNewName] = useState({});
+  const [newGrade, setNewGrade] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [rosterTeacher, setRosterTeacher] = useState(null);
@@ -49,7 +51,7 @@ export default function ClassesPanel() {
     try {
       const existing = teachers[subject] || [];
       const sortOrder = existing.length || 0;
-      await base44.entities.Teacher.create({ name, subject, isActive: true, sortOrder });
+      await base44.entities.Teacher.create({ name, subject, grade: normalizeGrade(newGrade[subject]), isActive: true, sortOrder });
       setNewName({ ...newName, [subject]: '' });
       reload();
       toast.success(`${name} added`);
@@ -76,6 +78,18 @@ export default function ClassesPanel() {
       toast.success('Teacher renamed');
     } catch (e) {
       toast.error('Failed to rename');
+    }
+  };
+
+  // Moving a teacher to the other grade leaves their old students unmatched, so
+  // those students are asked to pick a teacher from their own grade.
+  const setTeacherGrade = async (teacher, value) => {
+    try {
+      await base44.entities.Teacher.update(teacher.id, { grade: value });
+      reload();
+      toast.success(`${teacher.name} is now Grade ${value}`);
+    } catch (e) {
+      toast.error('Failed to change grade');
     }
   };
 
@@ -168,6 +182,10 @@ export default function ClassesPanel() {
 
         {/* Add new */}
         <div className="flex gap-2 mb-4">
+          <Select value={normalizeGrade(newGrade[subject])} onValueChange={(v) => setNewGrade({ ...newGrade, [subject]: v })}>
+            <SelectTrigger className="bg-slate-700 border-slate-600 text-white text-xs h-9 w-[104px] flex-shrink-0"><SelectValue /></SelectTrigger>
+            <SelectContent>{GRADE_OPTIONS.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}</SelectContent>
+          </Select>
           <Input
           value={newName[subject] || ''}
           onChange={(e) => setNewName({ ...newName, [subject]: e.target.value })}
@@ -204,6 +222,10 @@ export default function ClassesPanel() {
                     <span className="text-sm text-white font-medium truncate">{t.name}</span>
                     <span className="text-xs bg-slate-600 text-slate-300 px-1.5 py-0.5 rounded">{countFor(t.id, subject)} students</span>
                   </button>
+                  <Select value={normalizeGrade(t.grade)} onValueChange={(v) => setTeacherGrade(t, v)}>
+                    <SelectTrigger className="bg-slate-600 border-slate-500 text-white text-xs h-7 w-[92px] flex-shrink-0"><SelectValue /></SelectTrigger>
+                    <SelectContent>{GRADE_OPTIONS.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}</SelectContent>
+                  </Select>
                   <div className="flex gap-1 flex-shrink-0">
                     <Button size="sm" variant="ghost" onClick={() => startRename(t)} className="text-slate-400 hover:text-white h-8 w-8 p-0"><Edit2 className="w-3.5 h-3.5" /></Button>
                     <Button size="sm" variant="ghost" onClick={() => removeTeacher(t)} className="text-red-400 hover:text-red-300 h-8 w-8 p-0"><Trash2 className="w-3.5 h-3.5" /></Button>

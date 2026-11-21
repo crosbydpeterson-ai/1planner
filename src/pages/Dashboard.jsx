@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { LogOut, Settings, Ticket, Wand2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PETS, getPetTheme } from '@/components/quest/PetCatalog';
+import { assignmentMatchesGrade, normalizeGrade } from '@/lib/grades';
 import BrandLogo from '@/components/branding/BrandLogo';
 
 // Widget components
@@ -142,6 +143,8 @@ export default function Dashboard() {
         assignmentLoadFailed = true;
       }
       let visible = assignments.filter((a) => {
+        // Only this student's grade, plus schoolwork shared with both grades.
+        if (!assignmentMatchesGrade(a, p.grade)) return false;
         if (a.target === 'everyone' || a.subject === 'everyone') return true;
         if (a.subject === 'math' && a.target === p.mathTeacher) return true;
         if (a.subject === 'reading' && a.target === p.readingTeacher) return true;
@@ -168,6 +171,7 @@ export default function Dashboard() {
               description: 'This is a practice assignment to help you learn! Complete it to earn 50 XP.',
               subject: 'everyone',
               target: p.userId,
+              grade: normalizeGrade(p.grade),
               xpReward: 50,
               isApproved: true,
               isFlagged: false
@@ -298,7 +302,7 @@ export default function Dashboard() {
 
 
       case 'leaderboard':
-        return <MiniLeaderboardWidget key={widgetId} currentUserId={profile.id} />;
+        return <MiniLeaderboardWidget key={widgetId} currentUserId={profile.id} grade={profile.grade} />;
       case 'assignments':
         return (
           <RecentAssignmentsWidget

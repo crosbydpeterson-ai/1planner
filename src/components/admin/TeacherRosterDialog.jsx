@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { teachersForGrade } from '@/lib/grades';
 
 /**
  * Shows all students assigned to a given teacher and lets the admin
@@ -28,7 +29,8 @@ export default function TeacherRosterDialog({ teacher, users, teachers, open, on
 
   const field = teacher.subject === 'math' ? 'mathTeacher' : 'readingTeacher';
   const roster = users.filter((u) => u[field] === teacher.id);
-  const sameSubject = (teachers?.[teacher.subject] || []).filter((t) => t.id !== teacher.id && t.isActive !== false);
+  // Only teachers of the same subject and the same grade.
+  const sameSubject = teachersForGrade((teachers?.[teacher.subject] || []).filter((t) => t.id !== teacher.id), teacher.grade);
 
   const reassign = async (user, newTeacherId) => {
     if (!newTeacherId) return;

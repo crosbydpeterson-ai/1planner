@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Save } from 'lucide-react';
 import { getActiveSubjects } from '@/lib/subjects';
 import { loadAndSeedTeachers } from '@/lib/teachers';
+import { teachersForGrade } from '@/lib/grades';
 
 /**
  * Lets a student pick a teacher for each custom subject.
@@ -28,7 +29,8 @@ export default function SubjectAssignmentSelector({ profile, onUpdated }) {
         const allTeachers = await loadAndSeedTeachers();
         const grouped = {};
         custom.forEach((s) => {
-          grouped[s.slug] = allTeachers.filter((t) => t.subject === s.slug && t.isActive !== false);
+          // Only this student's grade.
+          grouped[s.slug] = teachersForGrade(allTeachers.filter((t) => t.subject === s.slug), profile.grade);
         });
         setTeachersBySubject(grouped);
 
